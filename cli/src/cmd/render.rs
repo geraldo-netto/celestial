@@ -30,8 +30,8 @@
 //!
 //! [vars]
 //! title        = "Spring Equinox 2025"
-//! bg_color     = "#0d1117"
-//! ring_color   = "#58a6ff"
+//! bg_color     = "#ffffff"    white background (default)
+//! ring_color   = "#1a1a2e"    dark navy for rings and labels
 //! ```
 
 use std::collections::BTreeMap;
@@ -356,13 +356,13 @@ fn build_context(
     let mut vars = serde_json::Map::new();
     // defaults
     for (k, v) in [
-        ("bg_color", "#0d1117"),
-        ("ring_color", "#58a6ff"),
-        ("planet_color", "#e6edf3"),
-        ("retro_color", "#ff7b72"),
-        ("hard_color", "#ff7b72"),
-        ("soft_color", "#388bfd"),
-        ("text_color", "#e6edf3"),
+        ("bg_color", "#ffffff"),
+        ("ring_color", "#1a1a2e"),
+        ("planet_color", "#0d0d1e"),
+        ("retro_color", "#b01020"),
+        ("hard_color", "#b01020"),
+        ("soft_color", "#1a50b0"),
+        ("text_color", "#0d0d1e"),
         ("title", "Celestial Chart"),
     ] {
         vars.insert(k.to_string(), json!(v));
@@ -400,17 +400,88 @@ fn build_context(
     }))
 }
 
+// ─── Label collision avoidance ────────────────────────────────────────────────
+
+/// Compute non-overlapping wheel angles for planet degree labels.
+///
+/// Starts each label at its natural angular position (derived from the planet
+/// longitude) and iteratively separates overlapping pairs symmetrically along
+/// the arc, keeping each label within `MAX_DRIFT` degrees of its planet.
+/// Returns one adjusted angle per planet, in the original planet order.
+fn spread_labels(lons: &[f64], asc: f64) -> Vec<f64> {
+    // Approximate angular half-width of a degree label (e.g. "29°Gem") at
+    // the label ring radius.  At r = RP + 22 ≈ 234px, 10° of arc ≈ 41px,
+    // which comfortably brackets a ~36px label.
+    const HALF_DEG: f64 = 5.5; // half-width in degrees
+    const MIN_SEP: f64 = HALF_DEG * 2.0 + 1.5; // 12.5° minimum centre-to-centre
+    const MAX_DRIFT: f64 = 28.0; // max degrees a label may wander from its planet
+    const MAX_ITER: usize = 300;
+
+    let n = lons.len();
+    let natural: Vec<f64> = lons
+        .iter()
+        .map(|&l| (180.0 - (l - asc)).rem_euclid(360.0))
+        .collect();
+    let mut placed = natural.clone();
+
+    for _iter in 0..MAX_ITER {
+        let mut any = false;
+        for i in 0..n {
+            for j in (i + 1)..n {
+                // Signed angular gap from i to j in (−180, +180]
+                let mut d = placed[j] - placed[i];
+                while d > 180.0 {
+                    d -= 360.0;
+                }
+                while d < -180.0 {
+                    d += 360.0;
+                }
+
+                if d.abs() < MIN_SEP {
+                    any = true;
+                    // Push symmetrically; slightly more than half ensures convergence
+                    let push = (MIN_SEP - d.abs()) * 0.55 + 0.05;
+                    if d >= 0.0 {
+                        placed[j] += push;
+                        placed[i] -= push;
+                    } else {
+                        placed[i] += push;
+                        placed[j] -= push;
+                    }
+                    // Clamp each to ±MAX_DRIFT from its natural angle
+                    for k in [i, j] {
+                        let mut drift = placed[k] - natural[k];
+                        while drift > 180.0 {
+                            drift -= 360.0;
+                        }
+                        while drift < -180.0 {
+                            drift += 360.0;
+                        }
+                        if drift.abs() > MAX_DRIFT {
+                            placed[k] = natural[k] + drift.signum() * MAX_DRIFT;
+                        }
+                    }
+                }
+            }
+        }
+        if !any {
+            break;
+        }
+    }
+    placed.iter().map(|a| a.rem_euclid(360.0)).collect()
+}
+
 // ─── Built-in SVG generator (pure Rust — no template parsing) ────────────────
 
 fn render_builtin_svg(ctx: &Value) -> String {
     let vars = &ctx["vars"];
-    let bg = vars["bg_color"].as_str().unwrap_or("#0d1117");
-    let ring = vars["ring_color"].as_str().unwrap_or("#58a6ff");
-    let pfg = vars["planet_color"].as_str().unwrap_or("#e6edf3");
-    let retro_c = vars["retro_color"].as_str().unwrap_or("#ff7b72");
-    let hard_c = vars["hard_color"].as_str().unwrap_or("#ff7b72");
-    let soft_c = vars["soft_color"].as_str().unwrap_or("#388bfd");
-    let txt = vars["text_color"].as_str().unwrap_or("#e6edf3");
+    let bg = vars["bg_color"].as_str().unwrap_or("#ffffff");
+    let ring = vars["ring_color"].as_str().unwrap_or("#1a1a2e");
+    let pfg = vars["planet_color"].as_str().unwrap_or("#0d0d1e");
+    let retro_c = vars["retro_color"].as_str().unwrap_or("#b01020");
+    let hard_c = vars["hard_color"].as_str().unwrap_or("#b01020");
+    let soft_c = vars["soft_color"].as_str().unwrap_or("#1a50b0");
+    let txt = vars["text_color"].as_str().unwrap_or("#0d0d1e");
     let title = vars["title"].as_str().unwrap_or("Celestial Chart");
 
     let date = ctx["date"].as_str().unwrap_or("");
@@ -465,11 +536,11 @@ fn render_builtin_svg(ctx: &Value) -> String {
         r#"</text>
 
   <!-- rings -->
-  <circle cx="{CX}" cy="{CY}" r="{RO}" fill="none" stroke="{ring}" stroke-width="1.5" opacity=".45"/>
-  <circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="{ring}" stroke-width=".5"  opacity=".25"/>
-  <circle cx="{CX}" cy="{CY}" r="{RI}" fill="none" stroke="{ring}" stroke-width="1"   opacity=".4"/>
-  <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width=".5"  opacity=".25"/>
-  <circle cx="{CX}" cy="{CY}" r="{RC}" fill="{bg}"  stroke="{ring}" stroke-width="1"   opacity=".3"/>
+  <circle cx="{CX}" cy="{CY}" r="{RO}" fill="none" stroke="{ring}" stroke-width="2.5" opacity=".6"/>
+  <circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>
+  <circle cx="{CX}" cy="{CY}" r="{RI}" fill="none" stroke="{ring}" stroke-width="2.0" opacity=".55"/>
+  <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>
+  <circle cx="{CX}" cy="{CY}" r="{RC}" fill="{bg}"  stroke="{ring}" stroke-width="2.0" opacity=".4"/>
 
 "#
     );
@@ -485,8 +556,8 @@ fn render_builtin_svg(ctx: &Value) -> String {
         let g = sign["glyph"].as_str().unwrap_or("");
         let _ = write!(
             s,
-            r#"  <line x1="{sx1:.2}" y1="{sy1:.2}" x2="{sx2:.2}" y2="{sy2:.2}" stroke="{ring}" stroke-width=".6" opacity=".35"/>
-  <text x="{gx:.2}" y="{gy:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{ring}">{g}</text>
+            r#"  <line x1="{sx1:.2}" y1="{sy1:.2}" x2="{sx2:.2}" y2="{sy2:.2}" stroke="{ring}" stroke-width="1.5" opacity=".55"/>
+  <text x="{gx:.2}" y="{gy:.2}" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{ring}">{g}</text>
 "#
         );
     }
@@ -502,11 +573,11 @@ fn render_builtin_svg(ctx: &Value) -> String {
         let ny = h["num_y"].as_f64().unwrap_or(0.0);
         let n = h["num"].as_u64().unwrap_or(0);
         let ang = h["is_angle"].as_bool().unwrap_or(false);
-        let (sw, op) = if ang { ("1.8", ".75") } else { (".7", ".35") };
+        let (sw, op) = if ang { ("3.0", ".85") } else { ("1.5", ".55") };
         let _ = write!(
             s,
             r#"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{ring}" stroke-width="{sw}" opacity="{op}"/>
-  <text x="{nx:.2}" y="{ny:.2}" font-size="9" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".5">{n}</text>
+  <text x="{nx:.2}" y="{ny:.2}" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">{n}</text>
 "#
         );
     }
@@ -522,7 +593,7 @@ fn render_builtin_svg(ctx: &Value) -> String {
         let ly = wy(CY, RI + 18.0, lon2, asc) + dy;
         let _ = write!(
             s,
-            r#"  <text x="{lx:.2}" y="{ly:.2}" text-anchor="{anchor}" font-size="10" font-weight="700" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{name}</text>
+            r#"  <text x="{lx:.2}" y="{ly:.2}" text-anchor="{anchor}" font-size="12" font-weight="800" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{name}</text>
 "#
         );
     }
@@ -540,18 +611,25 @@ fn render_builtin_svg(ctx: &Value) -> String {
         let op = if orb < 2.0 { ".55" } else { ".22" };
         let _ = write!(
             s,
-            r#"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{col}" stroke-width=".8" opacity="{op}"/>
+            r#"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{col}" stroke-width="1.8" opacity="{op}"/>
 "#
         );
     }
 
-    // ── planet glyphs ─────────────────────────────────────────────────────────
+    // ── planet glyphs (collision-free label placement) ────────────────────────
     s.push_str("\n");
-    for p in planets {
+
+    // Collect planet longitudes and compute non-overlapping label angles
+    let planet_lons: Vec<f64> = planets
+        .iter()
+        .map(|p| p["lon"].as_f64().unwrap_or(0.0))
+        .collect();
+    let label_angles = spread_labels(&planet_lons, asc);
+    const LABEL_R: f64 = RP + 26.0;
+
+    for (idx, p) in planets.iter().enumerate() {
         let px = p["x"].as_f64().unwrap_or(0.0);
         let py = p["y"].as_f64().unwrap_or(0.0);
-        let lx = p["label_x"].as_f64().unwrap_or(0.0);
-        let ly = p["label_y"].as_f64().unwrap_or(0.0);
         let tx1 = p["tick_x1"].as_f64().unwrap_or(0.0);
         let ty1 = p["tick_y1"].as_f64().unwrap_or(0.0);
         let tx2 = p["tick_x2"].as_f64().unwrap_or(0.0);
@@ -560,11 +638,40 @@ fn render_builtin_svg(ctx: &Value) -> String {
         let dl = p["deg_label"].as_str().unwrap_or("");
         let ret = p["retro"].as_bool().unwrap_or(false);
         let col = if ret { retro_c } else { pfg };
+
+        // Adjusted label position from spread_labels (direct angle → SVG coords)
+        let placed_ang = label_angles[idx];
+        let lx = CX + LABEL_R * placed_ang.to_radians().cos();
+        let ly = CY - LABEL_R * placed_ang.to_radians().sin();
+
+        // Natural angle for the leader-line anchor (just outside the glyph ring)
+        let lon_i = planet_lons[idx];
+        let nat_ang = (180.0 - (lon_i - asc)).rem_euclid(360.0);
+        let anchor_r = RP + 13.0;
+        let ax = CX + anchor_r * nat_ang.to_radians().cos();
+        let ay = CY - anchor_r * nat_ang.to_radians().sin();
+
+        // Draw a dashed leader line only when label drifted from its planet
+        let mut drift = placed_ang - nat_ang;
+        while drift > 180.0 {
+            drift -= 360.0;
+        }
+        while drift < -180.0 {
+            drift += 360.0;
+        }
+        if drift.abs() > 3.5 {
+            let _ = write!(
+                s,
+                r#"  <line x1="{ax:.2}" y1="{ay:.2}" x2="{lx:.2}" y2="{ly:.2}" stroke="{pfg}" stroke-width="0.9" opacity=".45" stroke-dasharray="3,2"/>
+"#
+            );
+        }
+
         let _ = write!(
             s,
-            r#"  <line x1="{tx1:.2}" y1="{ty1:.2}" x2="{tx2:.2}" y2="{ty2:.2}" stroke="{pfg}" stroke-width=".4" opacity=".3"/>
-  <text x="{px:.2}" y="{py:.2}" font-size="15" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}" filter="url(#glow)">{g}</text>
-  <text x="{lx:.2}" y="{ly:.2}" font-size="9" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".85">{dl}</text>
+            r#"  <line x1="{tx1:.2}" y1="{ty1:.2}" x2="{tx2:.2}" y2="{ty2:.2}" stroke="{pfg}" stroke-width="1.0" opacity=".45"/>
+  <text x="{px:.2}" y="{py:.2}" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}" filter="url(#glow)">{g}</text>
+  <text x="{lx:.2}" y="{ly:.2}" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{dl}</text>
 "#
         );
     }
@@ -572,7 +679,7 @@ fn render_builtin_svg(ctx: &Value) -> String {
     // ── moon phase in centre ──────────────────────────────────────────────────
     let _ = write!(
         s,
-        r#"  <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".8">{phase}</text>
+        r#"  <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="11" font-weight="500" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".9">{phase}</text>
   <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".65">{illum:.1}%</text>
 
 "#,
@@ -903,7 +1010,7 @@ const EXAMPLE_TEMPLATE: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
   <!-- planet glyphs -->
   {{ for p in planets }}
   <line x1="{p.tick_x1}" y1="{p.tick_y1}" x2="{p.tick_x2}" y2="{p.tick_y2}"
-        stroke="{vars.planet_color}" stroke-width=".4" opacity=".3"/>
+        stroke="{vars.planet_color}" stroke-width="1.0" opacity=".45"/>
   <text x="{p.x}" y="{p.y}" text-anchor="middle" dominant-baseline="central"
         font-size="15" font-family="serif" fill="{vars.planet_color}">{p.glyph}</text>
   <text x="{p.label_x}" y="{p.label_y}" text-anchor="middle" dominant-baseline="central"
@@ -1148,8 +1255,8 @@ mod tests {
             std::collections::BTreeMap::new(),
         )
         .unwrap();
-        assert_eq!(ctx["vars"]["bg_color"], "#0d1117");
-        assert_eq!(ctx["vars"]["ring_color"], "#58a6ff");
+        assert_eq!(ctx["vars"]["bg_color"], "#ffffff");
+        assert_eq!(ctx["vars"]["ring_color"], "#1a1a2e");
         assert_eq!(ctx["vars"]["title"], "Celestial Chart");
     }
 
