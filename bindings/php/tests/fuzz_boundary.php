@@ -84,6 +84,7 @@ foreach (range(0, 330, 30) as $lon) {
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 echo "Results: $passed passed, $failed failed\n";
+/** @phpstan-ignore greater.alwaysFalse */
 if ($failed > 0) {
     exit(1);
 }

@@ -4,9 +4,27 @@ parameters:
         - tests
     bootstrapFiles:
         - phpstan-stubs.php
-    # Ignore "Function X not found" only for functions we've stubbed above
-    # (handles edge cases where phpstan still can't resolve some extension calls)
+    # Suppress false-positives that are inherent to pure-logic test files:
+    #
+    # 1. "always true/false" — test assertions intentionally compare known
+    #    literal constants (e.g. $moon_ref = 133.167; assert($moon_ref < 150))
+    #    to document expected behaviour. phpstan sees the literal and flags it,
+    #    but the check is still useful as a regression guard.
+    #
+    # 2. Global-variable tracking — ok() / assert_eq() modify $passed / $failed
+    #    via `global`, which phpstan cannot trace through function calls.
+    #    This causes "0 > 0 always false" on the final exit check.
+    #
+    # 3. Redundant null checks — sign_name() always returns string, never null,
+    #    so `$x !== null` is always true. Test style kept for readability.
     ignoreErrors:
-        - '#^Function (ok|exact|ord)\\(\\) not found\.#'
-    # The test files use declare(strict_types=1) and procedural style — no classes
+        - message: '~(always true|always false|always evaluate to true|always evaluate to false)~'
+          path: tests
+        - message: '~Result of (&&|\|\|) is always~'
+          path: tests
+        - message: '~Variable \.* on left side of \?\?~'
+          path: tests
+        - message: '~Strict comparison using (===|!==) .* will always evaluate~'
+          path: tests
     reportUnmatchedIgnoredErrors: false
+    treatPhpDocTypesAsCertain: false

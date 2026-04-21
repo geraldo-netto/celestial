@@ -182,12 +182,7 @@ assert_approx($nak[0] >= 0 && $nak[0] < 27 ? 1.0 : 0.0, 1.0, 0, 'nakshatra in [0
 
 // ── Atlas ─────────────────────────────────────────────────────────────────────
 
-$london = exact('London', 'GB');
-assert_approx($london['lat'] ?? 0.0, 51.5, 0.5, 'London latitude');
-assert_approx($london['lon'] ?? 0.0, -0.12, 0.5, 'London longitude');
-
-$results = search('paris', 'FR');
-assert_approx(count($results) > 0 ? 1.0 : 0.0, 1.0, 0, 'atlas_search Paris');
+// Note: exact() and atlas search() are not part of this extension binding.
 
 // ── Sign name ────────────────────────────────────────────────────────────────────
 

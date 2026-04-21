@@ -89,13 +89,14 @@ function sign_name(int $sign): string {}
 function sign_ruler(int $sign): int {}
 
 // ── Vedic ─────────────────────────────────────────────────────────────────────
-function long_to_nakshatra(float $lon): int {}
+/** @return int[] [nakshatra_index (0-26), pada (1-4)] */
+function long_to_nakshatra(float $lon): array {}
 function long_to_navamsa(float $lon): int {}
 function long_to_rasi(float $lon): int {}
 
 // ── Chart helpers ─────────────────────────────────────────────────────────────
 function arabic_part(float $asc, float $body2, float $body1): float {}
-function parse_coord(string $coord): float {}
+function parse_coord(string $coord): ?float {}
 
 // ── Moon phases ───────────────────────────────────────────────────────────────
 function moon_phase(float $jd): string {}
@@ -107,9 +108,8 @@ function next_full_moon_phase(float $jd_from): float {}
 function moon_phases_for_month(int $year, int $month): array {}
 
 // ── Sabbats / esbats ──────────────────────────────────────────────────────────
-function sabbat_jd(int $year, int $sabbat): float {}
+function sabbat_jd(int $year, string $kind): float {}
 function next_sabbat_name(float $jd): string {}
-function search(float $jd_start, int $type): float {}
 
 // ── Calendars ─────────────────────────────────────────────────────────────────
 /** @return array{year: string, month: string, day: string} */
@@ -129,6 +129,15 @@ function celestial_version(): string {}
 function set_ephe_path(string $path): void {}
 function close(): void {}
 function get_planet_name(int $planet): int {}
+
+// ── Sabbats / esbats (full year) ─────────────────────────────────────────────
+/** @return array<array<string, mixed>> list of {name, jd, date} for all 8 sabbats */
+function sabbats_for_year(int $year): array {}
+/** @return array<array<string, mixed>> list of full moons for the year */
+function esbats_for_year(int $year): array {}
+
+// ── Coordinate formatting ─────────────────────────────────────────────────────
+function format_coord(float $coord, bool $is_latitude): ?string {}
 
 // ── Parallel multi-body calculation ─────────────────────────────────────────
 
