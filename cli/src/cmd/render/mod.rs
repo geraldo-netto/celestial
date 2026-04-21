@@ -2781,14 +2781,8 @@ mod tests_vedic {
     };
     use super::indigenous::build_medicine_wheel_context;
     use super::mesoamerican::build_mesoamerican_context;
-    use super::specialist::{
-        build_composite_context, build_dial_context, build_graphic_ephemeris_context,
-        build_local_space_context, build_triwheel_context,
-    };
     use super::vedic::{
         build_ashtakavarga_context, build_shadbala_context, build_vedic_context,
-        render_ashtakavarga_svg, render_dasha_svg, render_navamsa_svg, render_north_indian_svg,
-        render_shadbala_svg,
     };
     use super::*;
     use celestial_core::{long_to_navamsa, long_to_rasi};

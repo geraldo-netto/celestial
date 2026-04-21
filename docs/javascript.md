@@ -4,6 +4,45 @@
 **Platforms:** Node.js ≥ 18, pre-built `.node` addon  
 **Types:** Full TypeScript declarations in `bindings/js/index.d.ts`
 
+## Quick start
+
+```bash
+cd bindings/js && npm install && npm run build
+```
+
+```typescript
+import * as celestial from "celestial-js";
+
+const jd  = celestial.julday(2025, 3, 20, 9.0, celestial.GREG_CAL);
+const sun = celestial.calc_ut(jd, 0, celestial.FLG_BUILTIN | celestial.FLG_SPEED);
+console.log(`Sun  lon=${sun.lon.toFixed(4)}°`);
+
+const h = celestial.houses_ex(jd, 0, 48.85, 2.35, "P".charCodeAt(0));
+console.log(`ASC=${h.ascmc[0].toFixed(2)}°  MC=${h.ascmc[1].toFixed(2)}°`);
+
+// Parallel multi-body
+const results = celestial.calc_many(jd, [0,1,2,3,4,5,6], celestial.FLG_BUILTIN);
+
+// Phase 5 — Hellenistic
+const isDay = celestial.is_day_chart(sun.lon, h.cusps);
+const [dignityName, score] = celestial.full_dignity(0, sun.lon, isDay);
+
+// Phase 6 — Ba Zi
+const pillars = celestial.four_pillars(jd, 9.0, sun.lon);
+
+// Phase 7 — Mesoamerican
+const [trecena, signIdx, name, english] = celestial.tonalpohualli(jd);
+
+// Phase 8 — Medicine Wheel
+const [animal, element, clan, season] = celestial.medicine_wheel_totem(sun.lon);
+```
+
+Full TypeScript types in `bindings/js/index.d.ts`. For the full JS API reference see [docs/javascript.md](docs/javascript.md).
+
+---
+
+---
+
 ## Installation
 
 ```bash

@@ -19,15 +19,15 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
   - [Commands](#commands)
   - [Examples](#examples)
   - [Chart rendering](#chart-rendering----celestial-render)
-  - [Phase 1 — Wheel enhancements](#phase-1--wheel-enhancements)
-  - [Phase 2 — New Western chart types](#phase-2--new-western-chart-types)
-  - [Phase 3 — Specialist Western charts](#phase-3--specialist-western-charts)
-  - [Phase 4 — Vedic / Jyotish charts](#phase-4--vedic--jyotish-charts)
-  - [Phase 5 — Hellenistic / Persian](#phase-5--hellenistic--persian)
-  - [Phase 6 — Chinese astrology](#phase-6--chinese-astrology)
-  - [Phase 7 — Mesoamerican calendars](#phase-7--mesoamerican-calendars)
-  - [Phase 8 — Indigenous / other traditions](#phase-8--indigenous--other-traditions)
-  - [Plugin architecture](#plugin-architecture)
+    - [Wheel enhancements](#wheel-enhancements)
+    - [New Western chart types](#new-western-chart-types)
+    - [Specialist Western charts](#specialist-western-charts)
+    - [Vedic / Jyotish charts](#vedic--jyotish-charts)
+    - [Hellenistic / Persian](#hellenistic--persian)
+    - [Chinese astrology](#chinese-astrology)
+    - [Mesoamerican calendars](#mesoamerican-calendars)
+    - [Indigenous / other traditions](#indigenous--other-traditions)
+    - [Plugin architecture](#plugin-architecture)
 - [Rust API](#rust-api)
 - [Python](#python)
 - [JavaScript / TypeScript](#javascript--typescript)
@@ -36,7 +36,13 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
 - [Building from source](#building-from-source)
 - [Benchmarks](#benchmarks)
 - [API reference](#api-reference)
-- [Documentation](#documentation)
+- **Documentation**
+  - [docs/api\_reference.md](docs/api_reference.md) — complete function reference
+  - [docs/rust.md](docs/rust.md) — Rust API guide
+  - [docs/python.md](docs/python.md) — Python binding guide
+  - [docs/javascript.md](docs/javascript.md) — JavaScript / TypeScript guide
+  - [docs/php.md](docs/php.md) — PHP binding guide
+  - [docs/index.md](docs/index.md) — overview and quick-start
 - [CI](#ci)
 - [License](#license)
 
@@ -243,7 +249,7 @@ Templates use [TinyTemplate](https://github.com/bheisler/TinyTemplate) syntax. A
 
 ---
 
-### Phase 1 — Wheel enhancements
+### Wheel enhancements
 
 The natal wheel renders these additional layers automatically:
 
@@ -284,7 +290,7 @@ contra_antiscion(lon)  = (360° − lon) mod 360°
 
 ---
 
-### Phase 2 — New Western chart types
+### New Western chart types
 
 ```bash
 # Cosmogram (wheel without houses)
@@ -315,7 +321,7 @@ The bi-wheel draws natal planets as the inner ring and second-date planets on th
 
 ---
 
-### Phase 3 — Specialist Western charts
+### Specialist Western charts
 
 ```bash
 # 90° Midpoint Dial (Uranian/Hamburg)
@@ -342,7 +348,7 @@ The **graphic ephemeris** plots each planet's ecliptic longitude against time. R
 
 ---
 
-### Phase 4 — Vedic / Jyotish charts
+### Vedic / Jyotish charts
 
 All Vedic charts use sidereal (Lahiri ayanamsa) positions via `--type`:
 
@@ -372,7 +378,7 @@ celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type shadbala
 
 ---
 
-### Phase 5 — Hellenistic / Persian
+### Hellenistic / Persian
 
 ```bash
 # Hellenistic natal chart with full dignity overlay
@@ -409,7 +415,7 @@ Core Hellenistic API functions:
 
 ---
 
-### Phase 6 — Chinese astrology
+### Chinese astrology
 
 ```bash
 # Four Pillars of Destiny (Ba Zi)
@@ -429,7 +435,7 @@ The chart shows four pillars (Year, Month, Day, Hour), each with Heavenly Stem (
 
 ---
 
-### Phase 7 — Mesoamerican calendars
+### Mesoamerican calendars
 
 ```bash
 # Aztec + Maya calendar positions for any date
@@ -456,7 +462,7 @@ The **Calendar Round** (52-year cycle) is LCM(260, 365) = 18,980 days. All calcu
 
 ---
 
-### Phase 8 — Indigenous / other traditions
+### Indigenous / other traditions
 
 ```bash
 # Medicine Wheel + Egyptian decans
@@ -494,58 +500,11 @@ celestial synastry --date 1985-01-01  # runs celestial-synastry if on PATH
 celestial-core = { path = "core" }
 ```
 
-```rust
-use celestial_core::*;
-
-fn main() -> Result<()> {
-    let jd = julday(2025, 3, 20, 9.0, GREG_CAL);
-
-    // Sun — geocentric (Universal Time)
-    let sun = calc_ut(jd, SUN, FLG_BUILTIN | FLG_SPEED)?;
-    println!("Sun  lon={:.4}°  dist={:.6} AU  speed={:.4}°/d",
-        sun.lon, sun.dist, sun.speed_lon);
-
-    // All main planets
-    for body in [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE] {
-        let p = calc_ut(jd, body, FLG_BUILTIN)?;
-        println!("  {:<10}  {:>10.4}°", planet_name(body), p.lon);
-    }
-
-    // Parallel multi-body calculation
-    let planets = [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN];
-    let results = calc_many(jd, &planets, FLG_BUILTIN | FLG_SPEED)?;
-
-    // Placidus house cusps — Paris
-    let h = houses(jd, 48.85, 2.35, b'P')?;
-    println!("ASC={:.2}°  MC={:.2}°", h.ascmc[0], h.ascmc[1]);
-
-    // Sidereal (Lahiri) position of Mars
-    set_sid_mode(SIDM_LAHIRI, 0.0, 0.0);
-    let mars = calc_ut(jd, MARS, FLG_BUILTIN | FLG_SIDEREAL)?;
-
-    // Ba Zi (Four Pillars)
-    let pillars = four_pillars(jd, 14.0, sun.lon);
-    println!("Year: {} {}", pillars[0].stem_name, pillars[0].branch_name);
-
-    // Tonalpohualli
-    let (trecena, sign, name, _) = tonalpohualli(jd);
-    println!("Aztec day: {trecena} {name}");
-
-    // Medicine Wheel
-    let (animal, element, clan, season) = medicine_wheel_totem(sun.lon);
-    println!("Totem: {animal} ({element}, {clan}, {season})");
-
-    // Hellenistic dignities
-    let (dignity, score) = full_dignity(SUN, sun.lon, is_day_chart(sun.lon, &h.cusps))?;
-    println!("Sun dignity: {dignity:?} (score {score})");
-
-    Ok(())
-}
-```
-
-For extended Rust examples see [docs/rust.md](docs/rust.md).
+See **[docs/rust.md](docs/rust.md)** for the full API reference, extended examples,
+and a complete chart calculation walkthrough.
 
 ---
+
 
 ## Python
 
@@ -553,44 +512,11 @@ For extended Rust examples see [docs/rust.md](docs/rust.md).
 cd bindings/python && pip install maturin && maturin develop
 ```
 
-```python
-import celestial_py as celestial
-
-jd  = celestial.julday(2025, 3, 20, 9.0, celestial.GREG_CAL)
-pos = celestial.calc_ut(jd, celestial.SUN, celestial.FLG_BUILTIN | celestial.FLG_SPEED)
-print(f"Sun  lon={pos.lon:.4f}°  dist={pos.dist:.6f} AU")
-
-h = celestial.houses_ex(jd, 0, 48.85, 2.35, ord("P"))
-print(f"ASC={h.ascmc[0]:.2f}°  MC={h.ascmc[1]:.2f}°")
-
-# Parallel multi-body
-results = celestial.calc_many(jd, [0,1,2,3,4,5,6], celestial.FLG_BUILTIN)
-
-# Sidereal (Lahiri)
-celestial.set_sid_mode(celestial.SIDM_LAHIRI, 0.0, 0.0)
-moon = celestial.calc_ut(jd, celestial.MOON, celestial.FLG_BUILTIN | celestial.FLG_SIDEREAL)
-
-# Phase 5 — Hellenistic
-is_day   = celestial.is_day_chart(pos.lon, h.cusps)
-dignity, score = celestial.full_dignity(celestial.SUN, pos.lon, is_day)
-
-# Phase 6 — Ba Zi
-pillars = celestial.four_pillars(jd, 9.0, pos.lon)
-
-# Phase 7 — Mesoamerican
-trecena, sign_idx, name, english = celestial.tonalpohualli(jd)
-
-# Phase 8 — Medicine Wheel
-animal, element, clan, season = celestial.medicine_wheel_totem(pos.lon)
-
-# Moon phase
-phase      = celestial.moon_phase(jd)
-illumination = celestial.moon_illumination(jd)
-```
-
-For the full Python API reference see [docs/python.md](docs/python.md).
+See **[docs/python.md](docs/python.md)** for installation, all function signatures,
+return types, constants, and Phase 5–8 examples.
 
 ---
+
 
 ## JavaScript / TypeScript
 
@@ -598,74 +524,24 @@ For the full Python API reference see [docs/python.md](docs/python.md).
 cd bindings/js && npm install && npm run build
 ```
 
-```typescript
-import * as celestial from "celestial-js";
-
-const jd  = celestial.julday(2025, 3, 20, 9.0, celestial.GREG_CAL);
-const sun = celestial.calc_ut(jd, 0, celestial.FLG_BUILTIN | celestial.FLG_SPEED);
-console.log(`Sun  lon=${sun.lon.toFixed(4)}°`);
-
-const h = celestial.houses_ex(jd, 0, 48.85, 2.35, "P".charCodeAt(0));
-console.log(`ASC=${h.ascmc[0].toFixed(2)}°  MC=${h.ascmc[1].toFixed(2)}°`);
-
-// Parallel multi-body
-const results = celestial.calc_many(jd, [0,1,2,3,4,5,6], celestial.FLG_BUILTIN);
-
-// Phase 5 — Hellenistic
-const isDay = celestial.is_day_chart(sun.lon, h.cusps);
-const [dignityName, score] = celestial.full_dignity(0, sun.lon, isDay);
-
-// Phase 6 — Ba Zi
-const pillars = celestial.four_pillars(jd, 9.0, sun.lon);
-
-// Phase 7 — Mesoamerican
-const [trecena, signIdx, name, english] = celestial.tonalpohualli(jd);
-
-// Phase 8 — Medicine Wheel
-const [animal, element, clan, season] = celestial.medicine_wheel_totem(sun.lon);
-```
-
-Full TypeScript types in `bindings/js/index.d.ts`. For the full JS API reference see [docs/javascript.md](docs/javascript.md).
+See **[docs/javascript.md](docs/javascript.md)** for TypeScript interfaces, all function
+signatures, and Phase 5–8 examples.
 
 ---
+
 
 ## PHP
 
 ```bash
-sudo apt-get install php-dev   # Ubuntu/Debian
 cd bindings/php && cargo build --release
 # Add to php.ini:  extension=/path/to/libcelestial.so
 ```
 
-```php
-<?php
-$jd  = celestial_julday(2025, 3, 20, 9.0, GREG_CAL);
-$sun = celestial_calc_ut($jd, SE_SUN, FLG_BUILTIN | FLG_SPEED);
-printf("Sun  lon=%.4f°\n", $sun[0]);
-
-$h = celestial_houses_ex($jd, 0, 48.85, 2.35, ord('P'));
-printf("ASC=%.2f°  MC=%.2f°\n", $h['ascmc'][0], $h['ascmc'][1]);
-
-// Parallel multi-body
-$results = celestial_calc_many($jd, [SE_SUN, SE_MOON, SE_MERCURY], FLG_BUILTIN);
-
-// Phase 5 — Hellenistic
-$isDay = celestial_is_day_chart($sun[0], $h['cusps']);
-[$dignityName, $score] = celestial_full_dignity(SE_SUN, $sun[0], $isDay);
-
-// Phase 6 — Ba Zi
-$pillars = celestial_four_pillars($jd, 9.0, $sun[0]);
-
-// Phase 7 — Mesoamerican
-$tonal = celestial_tonalpohualli($jd);
-
-// Phase 8 — Medicine Wheel
-$totem = celestial_medicine_wheel_totem($sun[0]);
-```
-
-All functions are prefixed `celestial_`. phpstan stubs at `bindings/php/phpstan-stubs.php`. For the full PHP API reference see [docs/php.md](docs/php.md).
+See **[docs/php.md](docs/php.md)** for all `celestial_` prefixed functions, return
+types, phpstan integration, and Phase 5–8 examples.
 
 ---
+
 
 ## Accuracy
 
@@ -738,215 +614,12 @@ Precision vs Meeus benchmarks confirmed at ~3.2″ Sun / ~0.7″ Moon. `SYNODIC_
 
 ## API reference
 
-### Error types
-
-```rust
-pub enum Error {
-    Calc(String),      // planetary calculation failure
-    Houses(String),    // house system failure
-    Eclipse(String),   // eclipse search failure
-    RiseTrans(String), // rise/transit failure
-    Date(String),      // date conversion failure
-}
-pub type Result<T> = std::result::Result<T, Error>;
-```
-
-### Time & calendar
-
-| Function | Description |
-|---|---|
-| `julday(y, m, d, h, cal)` | Calendar date → Julian day number |
-| `revjul(jd, cal)` | Julian day → `CalDate` |
-| `utc_to_jd(date, cal)` | UTC → `JdPair` (jd_et, jd_ut) |
-| `deltat(jd)` | ΔT = TT − UT1 in days |
-| `sidtime(jd_ut)` | Greenwich Apparent Sidereal Time (hours) |
-| `day_of_week(jd)` | 0 = Sunday … 6 = Saturday |
-| `jdnow()` | Current Julian day (UTC) |
-| `jd_to_iso_string(jd, cal)` | Format JD as `YYYY-MM-DD HH:MM:SS UTC` |
-
-### Planetary positions
-
-| Function | Description |
-|---|---|
-| `calc_ut(jd, body, flags)` | Geocentric position (UT) → `PlanetPos` |
-| `calc(jd, body, flags)` | Geocentric position (TT/ET) → `PlanetPos` |
-| `calc_many(jd, bodies, flags)` | Parallel multi-body → `Vec<PlanetPos>` |
-| `calc_ut_many(jd, bodies, flags)` | Parallel multi-body (UT) |
-| `calc_pctr(jd, body, center, flags)` | Position relative to center body |
-| `fixstar_ut(name, jd, flags)` | Fixed star position → `FixStarPos` |
-| `fixstar_mag(name)` | Fixed star visual magnitude |
-| `nutation(jd, flags)` | IAU 2000B nutation → `NutationResult` |
-| `nod_aps(jd, body, flags, method)` | Nodes and apsides → `NodAps` |
-
-**`PlanetPos` fields:** `lon` `lat` `dist` `speed_lon` `speed_lat` `speed_dist` `ret_flags`
-
-**Body constants:** `SUN=0` `MOON=1` `MERCURY=2` `VENUS=3` `MARS=4` `JUPITER=5` `SATURN=6` `URANUS=7` `NEPTUNE=8` `PLUTO=9` `MEAN_NODE=10` `TRUE_NODE=11` `CHIRON=15`
-
-**Flag constants:** `FLG_BUILTIN` `FLG_SPEED` `FLG_SIDEREAL` `FLG_EQUATORIAL` `FLG_HELCTR` `FLG_TOPOCTR` `FLG_NONUT` `FLG_RADIANS` `FLG_XYZ`
-
-### Configuration
-
-| Function | Description |
-|---|---|
-| `planet_name(body)` | Body number → display name |
-| `set_sid_mode(mode, t0, ayan_t0)` | Activate a sidereal mode |
-| `set_topo(lon, lat, alt_m)` | Set topocentric observer |
-| `ayanamsa_ut(jd_ut)` | Ayanamsa for the active mode (UT) |
-| `ayanamsa_name(mode)` | Name of a sidereal mode constant |
-
-**Sidereal modes:** `SIDM_FAGAN_BRADLEY=0` · `SIDM_LAHIRI=1` · `SIDM_DELUCE=2` · `SIDM_RAMAN=3` · `SIDM_KRISHNAMURTI=5` · `SIDM_SASSANIAN=11` · `SIDM_USER=255`
-
-### Houses
-
-| Function | Description |
-|---|---|
-| `houses(jd, lat, lon, sys)` | Cusps + angles → `HouseResult` |
-| `houses_ex(jd, flags, lat, lon, sys)` | With sidereal / topocentric flags |
-| `house_pos(armc, lat, eps, sys, pos)` | House number for a body |
-| `house_name(sys)` | System byte → name |
-
-**`HouseResult`:** `cusps[12]` (index 0 skipped), `ascmc[8]` (0=ASC, 1=MC, 2=ARMC, 3=Vertex, 4=Equatorial ASC)
-
-**House systems:** `b'P'` Placidus · `b'K'` Koch · `b'E'` Equal · `b'W'` Whole-Sign · `b'O'` Porphyry · `b'R'` Regiomontanus · `b'C'` Campanus · `b'M'` Morinus · `b'B'` Alcabitus · `b'X'` Axial Rotation
-
-### Moon phases
-
-| Function | Description |
-|---|---|
-| `moon_phase(jd)` | Named phase → `MoonPhase` (8 variants) |
-| `moon_illumination(jd)` | Fraction illuminated (0.0–1.0) |
-| `moon_elongation(jd)` | Moon–Sun elongation (0°–360°) |
-| `next_new_moon(jd)` | JD of next new moon |
-| `next_first_quarter(jd)` | JD of next first quarter |
-| `next_full_moon_phase(jd)` | JD of next full moon |
-| `next_last_quarter(jd)` | JD of next last quarter |
-| `moon_phases_for_month(year, month)` | All phases in a calendar month |
-| `moon_phase_info(jd)` | Rich `MoonPhaseInfo` with prev/next phase |
-
-**`MoonPhase` variants:** `NewMoon` · `WaxingCrescent` · `FirstQuarter` · `WaxingGibbous` · `FullMoon` · `WaningGibbous` · `LastQuarter` · `WaningCrescent`
-
-**`MoonPhaseInfo` fields:** `phase` · `illumination` · `elongation` · `age_days` · `prev_phase_jd` · `prev_phase_name` · `next_phase_jd` · `next_phase_name`
-
-### Calendars & religious observances
-
-| Function | Description |
-|---|---|
-| `sabbats_for_year(year)` | All 8 Celtic sabbats → `Vec<Sabbat>` |
-| `esbats_for_year(year)` | All named full moons → `Vec<Esbat>` |
-| `omer_from_jd(jd)` | Tonight's Omer day (if in period) |
-| `omer_days(hebrew_year)` | Full 49-day schedule |
-| `jewish_holidays(hebrew_year)` | All major Jewish holidays |
-| `easter_gregorian(year)` | Western Easter → `(y, m, d)` |
-| `easter_orthodox(year)` | Orthodox Easter → `(y, m, d)` |
-| `christian_feasts(year)` | All moveable feasts (Ash Wednesday → Corpus Christi) |
-| `hijri_from_jd(jd)` | JD → Hijri date |
-| `islamic_observances(hijri_year)` | Major Islamic observances |
-| `panchanga(jd)` | Hindu Panchānga → `PanchangaResult` |
-| `hindu_festivals(year)` | Major Hindu festivals |
-| `vesak_jd(year)` | Vesak (Buddha Day) JD |
-| `uposatha_days(year)` | All four Uposatha phases |
-| `nowruz_jd(year)` | Nowruz JD (exact vernal equinox) |
-| `jd_to_bahai(jd)` | JD → `BahaiDate` |
-| `bahai_holy_days(bahai_year)` | 13 Bahá'í holy days |
-
-### Crossings, rise/set & eclipses
-
-| Function | Description |
-|---|---|
-| `solcross_ut(lon, jd, flags)` | Next solar ecliptic longitude crossing |
-| `mooncross_ut(lon, jd, flags)` | Next lunar ecliptic longitude crossing |
-| `rise_trans(jd, body, star, flags, rsmi, geo, press, temp)` | Rise / transit / set |
-| `sol_eclipse_when_glob(jd, flags, type, back)` | Next solar eclipse |
-| `lun_eclipse_when(jd, flags, type, back)` | Next lunar eclipse |
-
-### Aspects & searches
-
-| Function | Description |
-|---|---|
-| `calc_chart_aspects(positions, aspects, orb)` | All aspects in a chart |
-| `calc_chart_aspects_auto(positions, orbs)` | Aspects with per-planet orb table |
-| `match_aspect(p0, s0, p1, s1, aspect, orb)` | Test if aspect is within orb |
-| `next_retro(body, jd, back, days, flags)` | Next retrograde station |
-| `next_aspect_with(body, aspect, other, jd, …)` | Aspect between two bodies |
-| `next_aspect_cusp(body, aspect, cusp, jd, …)` | Aspect to a house cusp |
-| `sign_ingress_ut(body, jd, flags, back)` | Next sign ingress |
-| `retrograde_station_ut(body, jd, flags)` | Retrograde and direct station JDs |
-
-### Vedic / Jyotish
-
-| Function | Description |
-|---|---|
-| `long_to_rasi(lon)` | Sign 0–11 |
-| `long_to_navamsa(lon)` | Navamsa 0–11 |
-| `long_to_nakshatra(lon)` | `(nakshatra 0–26, pada 0–3)` |
-| `nakshatra_name(n)` | Nakshatra name |
-| `raman_houses(asc, mc, sandhi)` | 12 Raman house cusps |
-| `vimshottari_dasha(jd, moon_lon, span)` | Dasha period list |
-| `ochchabala(graha, lon)` | Exaltation strength (0–60) |
-| `tatkalika_relation(g1, g2)` | Temporary relationship (−1 / 0 / 1) |
-| `naisargika_relation(g1, g2)` | Natural relationship |
-| `residential_strength(lon, cusps)` | Bhava bala |
-
-### Hellenistic / Persian (Phase 5)
-
-| Function | Description |
-|---|---|
-| `egyptian_terms_ruler(lon)` | Egyptian bounds planet |
-| `decan_ruler(lon)` | Chaldean decan ruler |
-| `triplicity_rulers(lon)` | Day / night / participating rulers |
-| `full_dignity(body, lon, is_day)` | `(Dignity, score)` |
-| `almuten(lon, is_day)` | Planet with highest dignity at a degree |
-| `is_day_chart(sun_lon, cusps)` | True if Sun is above horizon |
-| `same_sect(body, is_day)` | Sect membership |
-| `firdaria(jd, is_day, span_years)` | Firdaria period list |
-| `annual_profection(cusps, age)` | `(house_number, profected_lon)` |
-| `monthly_profection(cusps, age_years, months)` | Sub-annual profection |
-
-### Chinese (Phase 6)
-
-| Function | Description |
-|---|---|
-| `four_pillars(jd, hour_ut, sun_lon)` | `[BaZiPillar; 4]` |
-| `solar_term_position(sun_lon)` | Current/next solar term info |
-| `sexagenary_name(idx)` | Stem + animal name |
-| `SOLAR_TERMS` | 24-term array (longitude, pinyin, english) |
-| `HEAVENLY_STEMS` | 10 stems (name, element, yang) |
-| `EARTHLY_BRANCHES` | 12 branches (name, animal, element, yang) |
-
-### Mesoamerican (Phase 7)
-
-| Function | Description |
-|---|---|
-| `tonalpohualli(jd)` | Aztec 260-day day position |
-| `xiuhpohualli(jd)` | Aztec 365-day solar year position |
-| `tzolkin(jd)` | Maya 260-day sacred calendar |
-| `haab(jd)` | Maya 365-day vague year |
-| `calendar_round(jd)` | Combined Tzolkin + Haab position |
-| `GMT_CORRELATION` | 584,283 — the correlation constant |
-
-### Indigenous / Egyptian (Phase 8)
-
-| Function | Description |
-|---|---|
-| `medicine_wheel_totem(sun_lon)` | `(animal, element, clan, season)` |
-| `egyptian_decan(lon)` | `(decan_idx, decan_name, rising_star)` |
+See **[docs/api_reference.md](docs/api_reference.md)** for the complete function
+reference — all 8 phases, all return types, all body/flag/house-system constants.
 
 ---
 
-## Documentation
 
-Extended per-topic documentation lives in the `docs/` directory:
-
-| Document | Contents |
-|---|---|
-| [docs/index.md](docs/index.md) | Overview, quick-start for all languages, architecture |
-| [docs/api_reference.md](docs/api_reference.md) | Complete function reference — all 8 phases and return types |
-| [docs/rust.md](docs/rust.md) | Full Rust crate API with extended code examples |
-| [docs/python.md](docs/python.md) | Python (PyO3) binding — installation, all functions, constants |
-| [docs/javascript.md](docs/javascript.md) | JavaScript / TypeScript (napi-rs) — typed API, full guide |
-| [docs/php.md](docs/php.md) | PHP (ext-php-rs) — installation, phpstan integration, all functions |
-
----
 
 ## CI
 
