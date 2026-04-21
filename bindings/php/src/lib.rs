@@ -1598,3 +1598,118 @@ pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
     // ── Refraction ────────────────────────────────────────────────────
     // ── split_deg flags ───────────────────────────────────────────────
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Phase 5–8 bindings
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Egyptian terms ruler for a longitude. Returns planet index 0-6.
+#[php_function]
+pub fn celestial_egyptian_terms_ruler(lon: f64) -> i64 {
+    celestial::egyptian_terms_ruler(lon).as_raw() as i64
+}
+
+/// Chaldean decan ruler. Returns planet index 0-6.
+#[php_function]
+pub fn celestial_decan_ruler(lon: f64) -> i64 {
+    celestial::decan_ruler(lon).as_raw() as i64
+}
+
+/// Full dignity (body_raw, lon, is_day). Returns [dignity_name, score].
+#[php_function]
+pub fn celestial_full_dignity(body_raw: i64, lon: f64, is_day: bool) -> Vec<String> {
+    use celestial::body::Body;
+    let (dig, score) = celestial::full_dignity(Body::from_raw(body_raw as i32), lon, is_day);
+    vec![dig.to_string(), score.to_string()]
+}
+
+/// Almuten (lon, is_day). Returns [body_raw, score].
+#[php_function]
+pub fn celestial_almuten(lon: f64, is_day: bool) -> Vec<i64> {
+    let (body, score) = celestial::almuten(lon, is_day);
+    vec![body.as_raw() as i64, score as i64]
+}
+
+/// Four Pillars Ba Zi. Returns 4 arrays of [stem_name, branch_name, animal, element, yang].
+#[php_function]
+pub fn celestial_four_pillars(jd_ut: f64, hour_ut: f64, sun_lon: f64) -> Vec<Vec<String>> {
+    celestial::four_pillars(jd_ut, hour_ut, sun_lon)
+        .iter()
+        .map(|p| {
+            vec![
+                p.stem_name.to_string(),
+                p.branch_name.to_string(),
+                p.animal.to_string(),
+                p.stem_element.to_string(),
+                if p.yang { "yang" } else { "yin" }.to_string(),
+            ]
+        })
+        .collect()
+}
+
+/// Solar term position for Sun longitude. Returns [current_idx, deg_into, next_idx, deg_to].
+#[php_function]
+pub fn celestial_solar_term_position(sun_lon: f64) -> Vec<f64> {
+    let (c, i, n, t) = celestial::solar_term_position(sun_lon);
+    vec![c as f64, i, n as f64, t]
+}
+
+/// Aztec Tonalpohualli. Returns [trecena, sign_idx, name, english].
+#[php_function]
+pub fn celestial_tonalpohualli(jd: f64) -> Vec<String> {
+    let (t, i, n, e) = celestial::tonalpohualli(jd);
+    vec![t.to_string(), i.to_string(), n.to_string(), e.to_string()]
+}
+
+/// Maya Tzolkin. Returns [trecena, sign_idx, name, english].
+#[php_function]
+pub fn celestial_tzolkin(jd: f64) -> Vec<String> {
+    let (t, i, n, e) = celestial::tzolkin(jd);
+    vec![t.to_string(), i.to_string(), n.to_string(), e.to_string()]
+}
+
+/// Maya Haab. Returns [month_idx, day, name].
+#[php_function]
+pub fn celestial_haab(jd: f64) -> Vec<String> {
+    let (m, d, n) = celestial::haab(jd);
+    vec![m.to_string(), d.to_string(), n.to_string()]
+}
+
+/// Medicine Wheel totem. Returns [animal, element, clan, season].
+#[php_function]
+pub fn celestial_medicine_wheel_totem(sun_lon: f64) -> Vec<String> {
+    let (a, e, c, s) = celestial::medicine_wheel_totem(sun_lon);
+    vec![a.to_string(), e.to_string(), c.to_string(), s.to_string()]
+}
+
+/// Egyptian decan. Returns [idx, name, rising_star].
+#[php_function]
+pub fn celestial_egyptian_decan(lon: f64) -> Vec<String> {
+    let (i, n, s) = celestial::egyptian_decan(lon);
+    vec![i.to_string(), n.to_string(), s.to_string()]
+}
+
+/// Fixed star position (UT). Returns [lon, lat, dist, speed_lon].
+#[php_function]
+pub fn celestial_fixstar_ut(star: &str, tjdut: f64, flags: i32) -> Option<Vec<f64>> {
+    celestial::fixstar_ut(star, tjdut, celestial::body::CalcFlags(flags))
+        .ok()
+        .map(|p| vec![p.xx[0], p.xx[1], p.xx[2], p.xx[3]])
+}
+
+/// Firdaria planetary periods. Returns list of [major_raw, minor_raw, start_jd, end_jd, years].
+#[php_function]
+pub fn celestial_firdaria(jd_birth: f64, is_day: bool, span_years: f64) -> Vec<Vec<f64>> {
+    celestial::firdaria(jd_birth, is_day, span_years)
+        .iter()
+        .map(|p| {
+            vec![
+                p.major_lord.as_raw() as f64,
+                p.minor_lord.as_raw() as f64,
+                p.start,
+                p.end,
+                p.years,
+            ]
+        })
+        .collect()
+}

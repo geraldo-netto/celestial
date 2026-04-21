@@ -891,3 +891,19 @@ export declare function nextLastQuarter(jdFrom: number): number;
 export declare function moonPhasesForMonth(year: number, month: number): PhaseEvent[];
 /** Detailed Moon phase info including illumination, age, and adjacent phases. */
 export declare function moonPhaseInfo(jd: number): MoonPhaseInfo;
+
+// ── Phase 5–8 functions ──────────────────────────────────────────────────────
+export declare function egyptian_terms_ruler(lon: number): number;
+export declare function decan_ruler(lon: number): number;
+export declare function full_dignity(body: number, lon: number, is_day: boolean): [string, number];
+export declare function almuten(lon: number, is_day: boolean): [number, number];
+export declare function firdaria(jd_birth: number, is_day: boolean, span_years: number): number[][];
+export declare function four_pillars(jd_ut: number, hour_ut: number, sun_lon: number): string[][];
+export declare function solar_term_position(sun_lon: number): [number, number, number, number];
+export declare function tonalpohualli(jd: number): [number, number, string, string];
+export declare function xiuhpohualli(jd: number): [string, string, string, string];
+export declare function tzolkin(jd: number): [number, number, string, string];
+export declare function haab(jd: number): [string, string, string];
+export declare function calendar_round(jd: number): [string, string, string, string];
+export declare function medicine_wheel_totem(sun_lon: number): [string, string, string, string];
+export declare function egyptian_decan(lon: number): [string, string, string];

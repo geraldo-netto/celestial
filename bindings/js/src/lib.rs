@@ -1943,3 +1943,128 @@ pub fn moon_phase_info(jd: f64) -> napi::Result<MoonPhaseInfo> {
         })
         .map_err(|e| napi::Error::from_reason(e.to_string()))
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Phase 5–8 bindings
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Egyptian terms ruler for an ecliptic longitude. Returns planet index 0-6.
+#[napi]
+pub fn egyptian_terms_ruler(lon: f64) -> i32 {
+    celestial::egyptian_terms_ruler(lon).as_raw()
+}
+
+/// Chaldean decan ruler. Returns planet index 0-6.
+#[napi]
+pub fn decan_ruler(lon: f64) -> i32 {
+    celestial::decan_ruler(lon).as_raw()
+}
+
+/// Full dignity for a planet. Returns [dignity_name, score].
+#[napi]
+pub fn full_dignity(body_raw: i32, lon: f64, is_day: bool) -> Vec<napi::Either<String, i32>> {
+    use celestial::body::Body;
+    let (dig, score) = celestial::full_dignity(Body::from_raw(body_raw), lon, is_day);
+    vec![
+        napi::Either::A(dig.to_string()),
+        napi::Either::B(score as i32),
+    ]
+}
+
+/// Almuten at a longitude. Returns [body_raw, score].
+#[napi]
+pub fn almuten(lon: f64, is_day: bool) -> Vec<i32> {
+    let (body, score) = celestial::almuten(lon, is_day);
+    vec![body.as_raw(), score as i32]
+}
+
+/// Firdaria periods. Returns list of [major_raw, minor_raw, start_jd, end_jd, years].
+#[napi]
+pub fn firdaria(jd_birth: f64, is_day: bool, span_years: f64) -> Vec<Vec<f64>> {
+    celestial::firdaria(jd_birth, is_day, span_years)
+        .iter()
+        .map(|p| {
+            vec![
+                p.major_lord.as_raw() as f64,
+                p.minor_lord.as_raw() as f64,
+                p.start,
+                p.end,
+                p.years,
+            ]
+        })
+        .collect()
+}
+
+/// Four Pillars (Ba Zi). Returns 4 × [stem, branch, stem_element, animal, yang].
+#[napi]
+pub fn four_pillars(jd_ut: f64, hour_ut: f64, sun_lon: f64) -> Vec<Vec<String>> {
+    celestial::four_pillars(jd_ut, hour_ut, sun_lon)
+        .iter()
+        .map(|p| {
+            vec![
+                p.stem_name.to_string(),
+                p.branch_name.to_string(),
+                p.animal.to_string(),
+                p.stem_element.to_string(),
+                p.branch_element.to_string(),
+                if p.yang { "yang" } else { "yin" }.to_string(),
+            ]
+        })
+        .collect()
+}
+
+/// Solar term position. Returns [current_idx, deg_into, next_idx, deg_to_next].
+#[napi]
+pub fn solar_term_position(sun_lon: f64) -> Vec<f64> {
+    let (c, i, n, t) = celestial::solar_term_position(sun_lon);
+    vec![c as f64, i, n as f64, t]
+}
+
+/// Aztec Tonalpohualli. Returns [trecena, sign_idx, nahuatl_name, english].
+#[napi]
+pub fn tonalpohualli(jd: f64) -> Vec<String> {
+    let (t, i, n, e) = celestial::tonalpohualli(jd);
+    vec![t.to_string(), i.to_string(), n.to_string(), e.to_string()]
+}
+
+/// Aztec Xiuhpohualli. Returns [month_idx, day, name, english].
+#[napi]
+pub fn xiuhpohualli(jd: f64) -> Vec<String> {
+    let (m, d, n, e) = celestial::xiuhpohualli(jd);
+    vec![m.to_string(), d.to_string(), n.to_string(), e.to_string()]
+}
+
+/// Maya Tzolkin. Returns [trecena, sign_idx, mayan_name, english].
+#[napi]
+pub fn tzolkin(jd: f64) -> Vec<String> {
+    let (t, i, n, e) = celestial::tzolkin(jd);
+    vec![t.to_string(), i.to_string(), n.to_string(), e.to_string()]
+}
+
+/// Maya Haab. Returns [month_idx, day, month_name].
+#[napi]
+pub fn haab(jd: f64) -> Vec<String> {
+    let (m, d, n) = celestial::haab(jd);
+    vec![m.to_string(), d.to_string(), n.to_string()]
+}
+
+/// Calendar Round. Returns [tzolkin_trecena, tzolkin_sign, haab_day, haab_month].
+#[napi]
+pub fn calendar_round(jd: f64) -> Vec<String> {
+    let (t, s, d, m) = celestial::calendar_round(jd);
+    vec![t.to_string(), s.to_string(), d.to_string(), m.to_string()]
+}
+
+/// Medicine Wheel totem. Returns [animal, element, clan, season].
+#[napi]
+pub fn medicine_wheel_totem(sun_lon: f64) -> Vec<String> {
+    let (a, e, c, s) = celestial::medicine_wheel_totem(sun_lon);
+    vec![a.to_string(), e.to_string(), c.to_string(), s.to_string()]
+}
+
+/// Egyptian decan. Returns [decan_idx, decan_name, rising_star].
+#[napi]
+pub fn egyptian_decan(lon: f64) -> Vec<String> {
+    let (i, n, s) = celestial::egyptian_decan(lon);
+    vec![i.to_string(), n.to_string(), s.to_string()]
+}

@@ -223,3 +223,19 @@ pub use crate::functions::vedic::{
     long_to_nakshatra, long_to_navamsa, long_to_rasi, naisargika_relation, nakshatra_name,
     ochchabala, raman_houses, rasi_diff, rasi_norm, residential_strength, tatkalika_relation,
 };
+
+// ─── Phase 5 exports ──────────────────────────────────────────────────────────
+pub use crate::functions::chart::{
+    almuten, decan_ruler, egyptian_terms_ruler, firdaria, full_dignity, is_day_chart, same_sect,
+    triplicity_rulers, Dignity, FirdariaPeriod,
+};
+
+// Phase 6: four_pillars, BaZiPillar etc. covered by pub use chart::* above
+
+// ─── Phase 7 exports (Mesoamerican) ──────────────────────────────────────────
+// Phase 8 exports (Indigenous/Egyptian) are also here
+// (all covered by pub use crate::functions::chart::* above, explicit for clarity)
+pub use crate::functions::chart::{
+    calendar_round, egyptian_decan, haab, medicine_wheel_totem, tonalpohualli, tzolkin,
+    xiuhpohualli, GMT_CORRELATION, TONALPOHUALLI_SIGNS, TZOLKIN_SIGNS, XIUHPOHUALLI_MONTHS,
+};

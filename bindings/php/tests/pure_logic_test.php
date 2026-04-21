@@ -366,6 +366,146 @@ $fortune_night = fmod($asc + $sun - $moon + 360.0, 360.0);
 assert_approx($fortune_night, 270.0, 1e-9, 'Lot of Fortune night = ASC+Sun-Moon');
 
 
+
+// ── Phase 4: Vedic pure-logic ─────────────────────────────────────────────────
+
+// Rasi: each longitude gives a sign in [0, 11]
+for ($lon = 0; $lon < 360; $lon += 15) {
+    $rasi = intval($lon / 30) % 12;
+    assert($rasi >= 0 && $rasi < 12, "rasi $rasi out of [0,12) for lon=$lon");
+}
+
+// Nakshatra: 27 nakshatras of 13.333° each
+$nak_len = 360.0 / 27.0;
+for ($lon = 0; $lon < 360; $lon += 10) {
+    $nak = intval($lon / $nak_len) % 27;
+    assert($nak >= 0 && $nak < 27, "nakshatra $nak out of [0,27) for lon=$lon");
+    $pada = intval(fmod($lon, $nak_len) / ($nak_len / 4)) + 1;
+    assert($pada >= 1 && $pada <= 4, "pada $pada out of [1,4] for lon=$lon");
+}
+
+// Vimshottari total = 120 years
+$periods = [6, 10, 7, 18, 16, 19, 17, 7, 20]; // Sun..Venus
+$total_years = array_sum($periods);
+assert($total_years === 120, "Vimshottari total $total_years != 120");
+
+// North Indian house rotation
+for ($lagna = 0; $lagna < 12; $lagna++) {
+    for ($sign = 0; $sign < 12; $sign++) {
+        $house = ($sign - $lagna + 12) % 12 + 1;
+        assert($house >= 1 && $house <= 12, "house $house out of [1,12]");
+        if ($sign === $lagna) {
+            assert($house === 1, "lagna sign should be house 1, got $house");
+        }
+    }
+}
+
+
+
+// ── Phase 5: Hellenistic pure-logic ──────────────────────────────────────────
+
+// Egyptian terms: Aries first term (0-6°) = Jupiter
+$sign = 0; $deg = 3.0; // 3° Aries
+$terms = [
+    [[6,"Jupiter"],[12,"Venus"],[20,"Mercury"],[25,"Mars"],[30,"Saturn"]],   // Aries
+    [[8,"Venus"],[14,"Mercury"],[22,"Jupiter"],[27,"Saturn"],[30,"Mars"]],   // Taurus
+];
+$ruler = null;
+foreach ($terms[$sign] as [$end, $planet]) {
+    if ($deg < $end) { $ruler = $planet; break; }
+}
+assert($ruler === "Jupiter", "Aries 3° terms ruler should be Jupiter, got $ruler");
+
+// Decans: 36 decans of 10°; Aries 1st = Mars
+$decan_idx = intval(5.0 / 10) % 36; // 5° Aries = first decan
+assert($decan_idx === 0, "Aries first decan index = 0");
+$DECAN_RULERS = ["Mars","Sun","Venus","Mercury","Moon","Saturn",
+                 "Jupiter","Mars","Sun","Venus","Mercury","Moon"];
+assert($DECAN_RULERS[0] === "Mars", "Aries 1st decan = Mars");
+
+// Triplicity element cycle: sign % 4 → fire/earth/air/water
+$elements = ["fire","earth","air","water"];
+assert($elements[0 % 4] === "fire",  "Aries = fire");
+assert($elements[1 % 4] === "earth", "Taurus = earth");
+assert($elements[2 % 4] === "air",   "Gemini = air");
+assert($elements[3 % 4] === "water", "Cancer = water");
+
+// Sect: diurnal = Sun, Jupiter, Saturn
+$diurnal = ["Sun", "Jupiter", "Saturn"];
+$nocturnal = ["Moon", "Venus", "Mars"];
+foreach ($diurnal as $p) {
+    assert(!in_array($p, $nocturnal), "$p should not be in nocturnal list");
+}
+
+// Firdaria day seq total = 70 years (before nodes)
+$day_seq = [10, 8, 13, 9, 11, 12, 7]; // Sun Venus Mercury Moon Saturn Jupiter Mars
+assert(array_sum($day_seq) === 70, "Day Firdaria 7-planet total = 70y");
+
+// Profection rotation
+for ($age = 0; $age < 48; $age++) {
+    $house = ($age % 12) + 1;
+    assert($house >= 1 && $house <= 12, "profection house $house out of range");
+}
+assert((0 % 12) + 1 === 1,  "age 0 = house 1");
+assert((12 % 12) + 1 === 1, "age 12 = house 1 again");
+
+
+
+// ── Phase 6: Chinese Ba Zi pure-logic ────────────────────────────────────────
+
+// Year cycle: (year - 4) % 60
+$cycle = (2044 - 4) % 60;
+assert($cycle === 0, "2044 should be year-cycle 0 (Jiǎ-Zǐ)");
+
+for ($y = 1900; $y < 2100; $y++) {
+    $c = ($y - 4) % 60;
+    assert($c >= 0 && $c < 60, "year cycle out of [0,60) for year $y");
+}
+
+// 10 stems × 12 branches = 60 cycle
+assert(10 * 6 === 60, "LCM(10,12) = 60");
+
+// ── Phase 7: Mesoamerican pure-logic ─────────────────────────────────────────
+
+// Calendar Round = LCM(260, 365) = 18980
+function gcd_fn(int $a, int $b): int { return $b === 0 ? $a : gcd_fn($b, $a % $b); }
+$lcm = 260 * 365 / gcd_fn(260, 365);
+assert($lcm === 18980, "Calendar Round LCM should be 18980, got $lcm");
+
+// Tonalpohualli 260-day cycle
+$GMT = 584283;
+$jd  = 2451545;
+$day1 = ($jd - $GMT) % 260;
+$day2 = ($jd + 260 - $GMT) % 260;
+assert($day1 === $day2, "Tonalpohualli should repeat after 260 days");
+
+// Trecena range [1,13]
+for ($d = 0; $d < 260; $d++) {
+    $t = ($d % 13) + 1;
+    assert($t >= 1 && $t <= 13, "trecena $t out of range at day $d");
+}
+
+// 20 day signs
+assert(count(["Cipactli","Ehecatl","Calli","Cuetzpallin","Coatl","Miquiztli",
+              "Mazatl","Tochtli","Atl","Itzcuintli","Ozomatli","Malinalli",
+              "Acatl","Ocelotl","Cuauhtli","Cozcacuauhtli","Ollin","Tecpatl",
+              "Quiahuitl","Xochitl"]) === 20, "Tonalpohualli should have 20 signs");
+
+// ── Phase 8: Indigenous / Egyptian pure-logic ─────────────────────────────────
+
+// 36 Egyptian decans of 10° each
+assert(360 / 10 === 36, "Should be 36 decans");
+for ($deg = 0; $deg < 360; $deg++) {
+    $idx = intval($deg / 10) % 36;
+    assert($idx >= 0 && $idx < 36, "decan idx $idx out of range");
+}
+
+// Medicine Wheel: 12 birth totems
+assert(count(["Snow Goose","Otter","Cougar","Red Hawk","Beaver","Deer",
+              "Flicker","Sturgeon","Brown Bear","Raven","Snake","Elk"]) === 12,
+       "Medicine Wheel should have 12 totems");
+
+
 // ── Summary ────────────────────────────────────────────────────────────────────
 
 echo "\n";

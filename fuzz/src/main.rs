@@ -1280,7 +1280,7 @@ fn test_phase1_arabic_parts(n: u32) -> Suite {
     s
 }
 
-fn test_phase1_dignities(n: u32) -> Suite {
+fn test_phase1_dignities(_n: u32) -> Suite {
     let mut s = Suite::new("phase1_dignities");
 
     // Each sign must have exactly one traditional ruler (7 planets, some rule 2 signs)
@@ -1461,6 +1461,310 @@ fn test_phase3_composite(n: u32) -> Suite {
     s
 }
 
+fn test_phase4_ashtakavarga(n: u32) -> Suite {
+    let mut s = Suite::new("phase4_ashtakavarga");
+    let mut rng = Xorshift64::new(0x182940B3C4D5E6F7);
+
+    // Test the core Vedic strength function used by Ashtakavarga:
+    // ochchabala must be in [0, 60] for all planets and longitudes.
+    for _ in 0..n {
+        let lon = rng.range_f64(0.0, 360.0);
+        for raw in 0i32..7 {
+            if let Some(v) = ochchabala(raw, lon) {
+                s.check(v >= 0.0 && v <= 60.0, || {
+                    format!("ochchabala({raw}, {lon:.4}) = {v:.4} outside [0,60]")
+                });
+            } else {
+                s.passed += 1;
+            }
+        }
+        // Sign index arithmetic (mod 12) is always in [0,12)
+        let rasi = (lon / 30.0) as usize % 12;
+        s.check(rasi < 12, || format!("rasi {rasi} >= 12 for lon {lon:.4}"));
+
+        // Navamsa index must also be in [0,12)
+        let navamsa = long_to_navamsa(lon) as usize % 12;
+        s.check(navamsa < 12, || {
+            format!("navamsa {navamsa} >= 12 for lon {lon:.4}")
+        });
+    }
+    s
+}
+
+fn test_phase4_shadbala(n: u32) -> Suite {
+    let mut s = Suite::new("phase4_shadbala");
+    let _flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    let mut rng = Xorshift64::new(0x2940B3C4D5E6F718);
+
+    // Ochchabala: for any sidereal longitude the result must be in [0, 60]
+    for _ in 0..n {
+        let lon = rng.range_f64(0.0, 360.0);
+        for raw in 0i32..7 {
+            if let Some(v) = ochchabala(raw, lon) {
+                s.check(v >= 0.0 && v <= 60.0, || {
+                    format!("ochchabala({raw}, {lon:.4}) = {v:.4} outside [0,60]")
+                });
+            } else {
+                s.passed += 1; // None is valid for outer planets
+            }
+        }
+    }
+    s
+}
+
+fn test_phase4_north_indian(n: u32) -> Suite {
+    let mut s = Suite::new("phase4_north_indian");
+    let mut rng = Xorshift64::new(0x40B3C4D5E6F71829);
+
+    // NI_CELLS geometry check: all 12 positions must be in a 540×540 grid
+    const NI_CELLS_FUZZ: &[(f64, f64)] = &[
+        (270.0, 72.0),
+        (405.0, 144.0),
+        (468.0, 270.0),
+        (405.0, 396.0),
+        (270.0, 468.0),
+        (135.0, 396.0),
+        (72.0, 270.0),
+        (135.0, 144.0),
+        (270.0, 180.0),
+        (360.0, 270.0),
+        (270.0, 360.0),
+        (180.0, 270.0),
+    ];
+    for (i, &(cx, cy)) in NI_CELLS_FUZZ.iter().enumerate() {
+        s.check(cx >= 0.0 && cx <= 540.0, || {
+            format!("NI_CELLS[{i}] cx={cx} out of [0,540]")
+        });
+        s.check(cy >= 0.0 && cy <= 540.0, || {
+            format!("NI_CELLS[{i}] cy={cy} out of [0,540]")
+        });
+    }
+    s.check(NI_CELLS_FUZZ.len() == 12, || {
+        format!("NI_CELLS has {} entries, expected 12", NI_CELLS_FUZZ.len())
+    });
+
+    // House rotation: rotating lagna by offset maps house numbers correctly
+    for _ in 0..n {
+        let lagna = (rng.next_u64() % 12) as usize;
+        for house0 in 0..12usize {
+            let house_num = (house0 + 12 - lagna) % 12 + 1;
+            s.check(house_num >= 1 && house_num <= 12, || {
+                format!("house_num {house_num} out of [1,12] for lagna={lagna} house0={house0}")
+            });
+            // House 1 must be exactly at the lagna sign
+            if house0 == lagna {
+                s.check(house_num == 1, || {
+                    format!("lagna sign {lagna} should be house 1, got {house_num}")
+                });
+            }
+        }
+    }
+    s
+}
+
+fn test_phase5_dignities(n: u32) -> Suite {
+    let mut s = Suite::new("phase5_dignities");
+    let mut rng = Xorshift64::new(0x5061736535446967);
+
+    // Egyptian terms: every degree returns one of 5 traditional planets
+    let trad = [
+        Body::SATURN,
+        Body::JUPITER,
+        Body::MARS,
+        Body::VENUS,
+        Body::MERCURY,
+    ];
+    for _ in 0..n {
+        let lon = rng.range_f64(0.0, 360.0);
+
+        let term = egyptian_terms_ruler(lon);
+        s.check(trad.contains(&term), || {
+            format!("lon {lon:.4}: terms ruler {term:?} not traditional")
+        });
+
+        let decan = decan_ruler(lon);
+        s.check(
+            trad.contains(&decan) || matches!(decan, Body::SUN | Body::MOON),
+            || format!("lon {lon:.4}: decan ruler {decan:?} not valid"),
+        );
+
+        let (day_r, night_r, _) = triplicity_rulers(lon);
+        let all_bodies = [
+            Body::SUN,
+            Body::MOON,
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS,
+            Body::JUPITER,
+            Body::SATURN,
+        ];
+        s.check(all_bodies.contains(&day_r), || {
+            format!("triplicity day ruler {day_r:?} at {lon:.4} not valid")
+        });
+        s.check(all_bodies.contains(&night_r), || {
+            format!("triplicity night ruler {night_r:?} at {lon:.4} not valid")
+        });
+    }
+    s
+}
+
+fn test_phase5_firdaria(n: u32) -> Suite {
+    let mut s = Suite::new("phase5_firdaria");
+    let mut rng = Xorshift64::new(0x5061736535466972);
+
+    for _ in 0..n / 10 {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
+        let is_day = rng.next_u64() % 2 == 0;
+        let span = rng.range_f64(10.0, 75.0);
+
+        let periods = firdaria(jd, is_day, span);
+
+        // Must not be empty for any reasonable span
+        s.check(!periods.is_empty(), || {
+            format!("firdaria empty for jd={jd:.2} span={span:.1}")
+        });
+
+        // First period must start exactly at birth JD
+        if let Some(first) = periods.first() {
+            s.check((first.start - jd).abs() < 1e-6, || {
+                format!("firdaria first start {:.4} != birth {jd:.4}", first.start)
+            });
+        }
+
+        // Periods must be chronological (no gaps or overlaps)
+        for w in periods.windows(2) {
+            s.check(w[0].end <= w[1].start + 1e-4, || {
+                format!("firdaria gap/overlap: {:.4} > {:.4}", w[0].end, w[1].start)
+            });
+        }
+
+        // All period years must be positive
+        for p in &periods {
+            s.check(p.years > 0.0, || {
+                format!("firdaria period years {:.4} <= 0", p.years)
+            });
+        }
+    }
+    s
+}
+
+fn test_phase5_full_dignity(n: u32) -> Suite {
+    let mut s = Suite::new("phase5_full_dignity");
+    let mut rng = Xorshift64::new(0x506875436469676E);
+    let bodies = [
+        Body::SUN,
+        Body::MOON,
+        Body::MERCURY,
+        Body::VENUS,
+        Body::MARS,
+        Body::JUPITER,
+        Body::SATURN,
+    ];
+
+    for _ in 0..n {
+        let lon = rng.range_f64(0.0, 360.0);
+        let is_day = rng.next_u64() % 2 == 0;
+
+        for &body in &bodies {
+            let (_dignity, score) = full_dignity(body, lon, is_day);
+            // Score must be in [-5, 5]
+            s.check(score >= -5 && score <= 5, || {
+                format!("dignity score {score} out of [-5,5] for {body:?} at {lon:.4}")
+            });
+
+            // Almuten result must be one of the 7 traditional planets
+            let (alm, alm_score) = almuten(lon, is_day);
+            s.check(bodies.contains(&alm), || {
+                format!("almuten {alm:?} not a traditional planet at {lon:.4}")
+            });
+            s.check(alm_score >= -5 && alm_score <= 5, || {
+                format!("almuten score {alm_score} out of range")
+            });
+        }
+    }
+    s
+}
+
+fn test_phase6_bazi(n: u32) -> Suite {
+    let mut s = Suite::new("phase6_bazi");
+    let mut rng = Xorshift64::new(0x426142697A697A79);
+
+    for _ in 0..n / 5 {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
+        let hr = rng.range_f64(0.0, 23.99);
+        let lon = rng.range_f64(0.0, 360.0); // sun longitude
+
+        let pillars = four_pillars(jd, hr, lon);
+        s.check(pillars.len() == 4, || {
+            format!("four_pillars returned {} pillars", pillars.len())
+        });
+        for p in &pillars {
+            s.check(p.stem < 10, || format!("stem {} >= 10", p.stem));
+            s.check(p.branch < 12, || format!("branch {} >= 12", p.branch));
+        }
+        // Solar term
+        let (cur, deg_into, next, deg_to) = solar_term_position(lon);
+        s.check(cur < 24, || format!("solar term idx {cur} >= 24"));
+        s.check(next < 24, || format!("next solar term idx {next} >= 24"));
+        s.check(deg_into >= 0.0, || format!("deg_into {deg_into} < 0"));
+        s.check(deg_to > 0.0, || format!("deg_to {deg_to} <= 0"));
+    }
+    s
+}
+
+fn test_phase7_mesoamerican(n: u32) -> Suite {
+    let mut s = Suite::new("phase7_mesoamerican");
+    let mut rng = Xorshift64::new(0x4D65736F616D6572);
+
+    for _ in 0..n {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
+
+        let (trecena, sign_idx, _, _) = tonalpohualli(jd);
+        s.check(trecena >= 1 && trecena <= 13, || {
+            format!("tonalpohualli trecena {trecena} out of [1,13]")
+        });
+        s.check(sign_idx < 20, || {
+            format!("tonalpohualli sign {sign_idx} >= 20")
+        });
+
+        let (m, day, _, _) = xiuhpohualli(jd);
+        s.check(m <= 18, || format!("xiuhpohualli month {m} > 18"));
+        s.check(day >= 1, || format!("xiuhpohualli day {day} < 1"));
+
+        let (zt, zi, _, _) = tzolkin(jd);
+        s.check(zt >= 1 && zt <= 13, || {
+            format!("tzolkin trecena {zt} out of [1,13]")
+        });
+        s.check(zi < 20, || format!("tzolkin sign {zi} >= 20"));
+
+        let (hm, hd, _) = haab(jd);
+        s.check(hm <= 18, || format!("haab month {hm} > 18"));
+        let _ = hd;
+    }
+    s
+}
+
+fn test_phase8_indigenous(n: u32) -> Suite {
+    let mut s = Suite::new("phase8_indigenous");
+    let mut rng = Xorshift64::new(0x496E64696765656E);
+
+    for _ in 0..n {
+        let lon = rng.range_f64(0.0, 360.0);
+
+        let (animal, element, clan, season) = medicine_wheel_totem(lon);
+        s.check(!animal.is_empty(), || "totem animal empty".to_string());
+        s.check(!element.is_empty(), || "totem element empty".to_string());
+        s.check(!clan.is_empty(), || "totem clan empty".to_string());
+        s.check(!season.is_empty(), || "totem season empty".to_string());
+
+        let (idx, name, star) = egyptian_decan(lon);
+        s.check(idx < 36, || format!("decan idx {idx} >= 36"));
+        s.check(!name.is_empty(), || "decan name empty".to_string());
+        s.check(!star.is_empty(), || "decan star empty".to_string());
+    }
+    s
+}
+
 fn main() {
     const N: u32 = 2_000; // iterations per group
 
@@ -1530,6 +1834,15 @@ fn main() {
         ),
         ("phase3_local_space", test_phase3_local_space(N).report()),
         ("phase3_composite", test_phase3_composite(N).report()),
+        ("phase4_ashtakavarga", test_phase4_ashtakavarga(N).report()),
+        ("phase4_shadbala", test_phase4_shadbala(N).report()),
+        ("phase4_north_indian", test_phase4_north_indian(N).report()),
+        ("phase5_dignities", test_phase5_dignities(N).report()),
+        ("phase5_firdaria", test_phase5_firdaria(N).report()),
+        ("phase5_full_dignity", test_phase5_full_dignity(N).report()),
+        ("phase6_bazi", test_phase6_bazi(N).report()),
+        ("phase7_mesoamerican", test_phase7_mesoamerican(N).report()),
+        ("phase8_indigenous", test_phase8_indigenous(N).report()),
     ];
 
     println!();

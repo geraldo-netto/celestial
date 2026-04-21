@@ -42,12 +42,20 @@ use celestial_core::body::{Body, CalcFlags, HouseSystem};
 use celestial_core::AzAlt;
 use celestial_core::MoonPhase;
 use celestial_core::{
+    almuten, azalt, decan_ruler, egyptian_terms_ruler, firdaria, fixstar_mag, fixstar_ut,
+    four_pillars, full_dignity, is_day_chart, midpoint_table, same_sect, solar_term_position,
+    triplicity_rulers, SOLAR_TERMS,
+};
+use celestial_core::{annual_profection, lon_to_sign, monthly_profection, zodiac_sign_name};
+use celestial_core::{
     arabic_parts_seven, calc_ut, diff_deg_signed, houses_ex, lunar_return_jd, midpoint_deg,
     moon_illumination, moon_phase, secondary_progressions, sign_exaltation, sign_ruler,
     solar_arc_directions, solar_return_jd,
 };
-use celestial_core::{azalt, fixstar_mag, fixstar_ut, midpoint_table};
-use celestial_core::{lon_to_sign, zodiac_sign_name};
+use celestial_core::{
+    calendar_round, egyptian_decan, haab, medicine_wheel_totem, tonalpohualli, tzolkin,
+    xiuhpohualli,
+};
 use celestial_core::{
     long_to_nakshatra, long_to_navamsa, long_to_rasi, naisargika_relation, nakshatra_name,
     ochchabala, vimshottari_dasha,
@@ -191,6 +199,1108 @@ fn moon_phase_str(jd: f64) -> &'static str {
 }
 
 /// Format a Julian Day as "YYYY-MM-DD".
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Phase 5 — Hellenistic / Persian chart builders
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── 1. Hellenistic dignities overlay (extends existing natal wheel) ───────────
+
+fn build_hellenistic_context(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    date_str: &str,
+    hsys: char,
+    user_vars: BTreeMap<String, String>,
+) -> Result<Value, String> {
+    let _flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    let mut vars = user_vars;
+    vars.entry("title".to_string())
+        .or_insert("Hellenistic Chart".to_string());
+
+    // Start from the standard context
+    let mut ctx = build_context(jd, lat, lon, date_str, hsys, vars)?;
+
+    let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
+        .map_err(|e| e.to_string())?;
+    let cusps_arr: [f64; 13] = {
+        let mut a = [0.0f64; 13];
+        for i in 0..13 {
+            a[i] = h.cusps[i];
+        }
+        a
+    };
+
+    // Determine sect
+    let sun_lon = ctx["planets"]
+        .as_array()
+        .and_then(|p| p.iter().find(|p| p["key"] == "sun"))
+        .and_then(|p| p["lon"].as_f64())
+        .unwrap_or(0.0);
+    let is_day = is_day_chart(sun_lon, &cusps_arr);
+
+    // Augment each planet with Phase 5 dignity data
+    if let Some(planets) = ctx["planets"].as_array_mut() {
+        for p in planets.iter_mut() {
+            let plon = p["lon"].as_f64().unwrap_or(0.0);
+            let body_key = p["key"].as_str().unwrap_or("");
+            let body = key_to_body(body_key);
+
+            if let Some(body) = body {
+                let (dignity, score) = full_dignity(body, plon, is_day);
+                let term_ruler = egyptian_terms_ruler(plon);
+                let decan = decan_ruler(plon);
+                let (trip_d, trip_n, trip_p) = triplicity_rulers(plon);
+                let (alm, alm_score) = almuten(plon, is_day);
+                let sect_ok = same_sect(body, is_day);
+
+                p["dignity5"] = json!(dignity.to_string());
+                p["dignity_score"] = json!(score);
+                p["term_ruler"] = json!(format!("{term_ruler:?}"));
+                p["decan_ruler"] = json!(format!("{decan:?}"));
+                p["triplicity_day"] = json!(format!("{trip_d:?}"));
+                p["triplicity_night"] = json!(format!("{trip_n:?}"));
+                p["triplicity_part"] = json!(format!("{trip_p:?}"));
+                p["almuten"] = json!(format!("{alm:?}"));
+                p["almuten_score"] = json!(alm_score);
+                p["same_sect"] = json!(sect_ok);
+            }
+        }
+    }
+    ctx["is_day"] = json!(is_day);
+    Ok(ctx)
+}
+
+/// Map a planet key string to a Body.
+fn key_to_body(key: &str) -> Option<Body> {
+    match key {
+        "sun" => Some(Body::SUN),
+        "moon" => Some(Body::MOON),
+        "mercury" => Some(Body::MERCURY),
+        "venus" => Some(Body::VENUS),
+        "mars" => Some(Body::MARS),
+        "jupiter" => Some(Body::JUPITER),
+        "saturn" => Some(Body::SATURN),
+        "uranus" => Some(Body::URANUS),
+        "neptune" => Some(Body::NEPTUNE),
+        "pluto" => Some(Body::PLUTO),
+        "mean_node" => Some(Body::MEAN_NODE),
+        "chiron" => Some(Body::CHIRON),
+        _ => None,
+    }
+}
+
+fn render_hellenistic_svg(ctx: &Value) -> String {
+    // Delegate to the full natal SVG — the dignity5/term/decan fields
+    // are in the context and visible via --print-context.
+    // We add an extra dignities legend section below the normal wheel.
+    let mut s = render_builtin_svg(ctx);
+
+    let _bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
+    let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
+    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
+    let is_day = ctx["is_day"].as_bool().unwrap_or(true);
+
+    let planets = ctx["planets"]
+        .as_array()
+        .map(|v| v.to_vec())
+        .unwrap_or_default();
+
+    // Build extended dignities table below the SVG
+    let ly = CY + RO + 260.0; // below the existing legend
+    let mut extra = format!(
+        "  <text x=\"24\" y=\"{ly:.0}\" font-size=\"12\" font-weight=\"600\" \
+         font-family=\"'Segoe UI',system-ui,sans-serif\" fill=\"{ring}\">\
+         Hellenistic Dignities — {} chart</text>\n",
+        if is_day { "Day" } else { "Night" }
+    );
+    extra.push_str(&format!(
+        "  <line x1=\"24\" y1=\"{:.0}\" x2=\"876\" y2=\"{:.0}\" \
+         stroke=\"{ring}\" stroke-width=\".5\" opacity=\".35\"/>\n",
+        ly + 3.0,
+        ly + 3.0
+    ));
+
+    // Column headers
+    let headers = [
+        "Glyph",
+        "Planet",
+        "Dignity",
+        "Score",
+        "Term lord",
+        "Decan lord",
+        "Triplicity D/N",
+        "Sect",
+    ];
+    let col_x = [24.0_f64, 48.0, 110.0, 210.0, 258.0, 358.0, 458.0, 600.0];
+    for (h, &x) in headers.iter().zip(col_x.iter()) {
+        extra.push_str(&format!(
+            "  <text x=\"{x:.0}\" y=\"{:.0}\" font-size=\"8\" font-weight=\"600\" \
+             fill=\"{ring}\" opacity=\".6\">{h}</text>\n",
+            ly + 14.0
+        ));
+    }
+
+    for (i, p) in planets.iter().enumerate() {
+        let ry = ly + 26.0 + i as f64 * 15.0;
+        let g = p["glyph"].as_str().unwrap_or("?");
+        let name = p["name"].as_str().unwrap_or("?");
+        let dig = p["dignity5"].as_str().unwrap_or("—");
+        let score = p["dignity_score"].as_i64().unwrap_or(0);
+        let term = p["term_ruler"].as_str().unwrap_or("—");
+        let decan = p["decan_ruler"].as_str().unwrap_or("—");
+        let trip_d = p["triplicity_day"].as_str().unwrap_or("—");
+        let trip_n = p["triplicity_night"].as_str().unwrap_or("—");
+        let sect = p["same_sect"].as_bool().unwrap_or(true);
+        let ret = p["retro"].as_bool().unwrap_or(false);
+
+        let score_col = if score >= 4 {
+            "#1a6030"
+        } else if score < 0 {
+            "#901020"
+        } else {
+            txt
+        };
+        let sect_lbl = if sect { "in sect" } else { "out of sect" };
+
+        let pfg = if ret { "#b01020" } else { txt };
+
+        for (&x, val) in col_x.iter().zip(
+            [
+                g,
+                name,
+                dig,
+                &score.to_string(),
+                term,
+                decan,
+                &format!("{trip_d}/{trip_n}"),
+                sect_lbl,
+            ]
+            .iter(),
+        ) {
+            let col = if x == 210.0 { score_col } else { pfg };
+            extra.push_str(&format!(
+                "  <text x=\"{x:.0}\" y=\"{ry:.0}\" font-size=\"9\" \
+                 font-family=\"'Segoe UI',system-ui,sans-serif\" fill=\"{col}\">{val}</text>\n"
+            ));
+        }
+    }
+
+    if let Some(idx) = s.rfind("</svg>") {
+        s.insert_str(idx, &extra);
+    }
+    s
+}
+
+// ─── 2. Firdaria timeline ──────────────────────────────────────────────────────
+
+fn build_firdaria_context(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    date_str: &str,
+    hsys: char,
+    user_vars: BTreeMap<String, String>,
+) -> Result<Value, String> {
+    let flags = CalcFlags::BUILTIN;
+    let mut vars = user_vars;
+    vars.entry("title".to_string())
+        .or_insert("Firdaria Timeline".to_string());
+
+    let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8)).map_err(|e| e.to_string())?;
+    let cusps_arr: [f64; 13] = {
+        let mut a = [0.0f64; 13];
+        for i in 0..13 {
+            a[i] = h.cusps[i];
+        }
+        a
+    };
+
+    let sun_pos = calc_ut(jd, Body::SUN, flags).map_err(|e| e.to_string())?;
+    let is_day = is_day_chart(sun_pos.lon, &cusps_arr);
+
+    let periods = firdaria(jd, is_day, 75.0);
+    let period_vals: Vec<Value> = periods
+        .iter()
+        .map(|p| {
+            json!({
+                "major_lord":  format!("{:?}", p.major_lord),
+                "minor_lord":  format!("{:?}", p.minor_lord),
+                "start":       jd_to_date_str(p.start),
+                "end":         jd_to_date_str(p.end),
+                "start_jd":    p.start,
+                "end_jd":      p.end,
+                "years":       (p.years * 100.0).round() / 100.0,
+            })
+        })
+        .collect();
+
+    let mut palette = BTreeMap::new();
+    for (k, v) in [
+        ("bg_color", "#ffffff"),
+        ("ring_color", "#1a1a2e"),
+        ("text_color", "#0d0d1e"),
+        ("planet_color", "#0d0d1e"),
+    ] {
+        palette.insert(k.to_string(), json!(v));
+    }
+    for (k, v) in &vars {
+        palette.insert(k.clone(), json!(v));
+    }
+
+    Ok(json!({
+        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
+        "is_day": is_day,
+        "firdaria": period_vals,
+        "vars": Value::Object(palette.into_iter().collect()),
+    }))
+}
+
+fn render_firdaria_svg(ctx: &Value) -> String {
+    use std::fmt::Write;
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
+    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
+    let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
+    let title = ctx["vars"]
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Firdaria");
+    let date = ctx["date"].as_str().unwrap_or("");
+    let is_day = ctx["is_day"].as_bool().unwrap_or(true);
+    let jd_birth = ctx["jd"].as_f64().unwrap_or(0.0);
+
+    // Planet colours (same as dasha palette)
+    const FIRD_COLORS: &[(&str, &str)] = &[
+        ("SUN", "#e67e22"),
+        ("MOON", "#7f8c8d"),
+        ("MERCURY", "#27ae60"),
+        ("VENUS", "#3498db"),
+        ("MARS", "#e74c3c"),
+        ("JUPITER", "#f39c12"),
+        ("SATURN", "#2c3e50"),
+        ("MEAN_NODE", "#8e44ad"),
+        ("TRUE_NODE", "#d35400"),
+    ];
+
+    let periods = ctx["firdaria"]
+        .as_array()
+        .map(|v| v.to_vec())
+        .unwrap_or_default();
+    if periods.is_empty() {
+        return String::new();
+    }
+
+    let jd_start = periods[0]["start_jd"].as_f64().unwrap_or(jd_birth);
+    let jd_end = periods
+        .last()
+        .and_then(|p| p["end_jd"].as_f64())
+        .unwrap_or(jd_birth + 75.0 * 365.25);
+    let span = (jd_end - jd_start).max(1.0);
+
+    const LM: f64 = 90.0;
+    const TM: f64 = 70.0;
+    const W: f64 = 720.0;
+    const BH: f64 = 18.0;
+    const BG: f64 = 2.0;
+
+    let n = periods.len().min(63); // show up to 9 major × 7 minor
+    let total_h = TM + n as f64 * (BH + BG) + 50.0;
+
+    let mut s = String::with_capacity(12 * 1024);
+    let _ = writeln!(
+        s,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 {total_h:.0}" width="900" height="{total_h:.0}">
+  <rect width="900" height="{total_h:.0}" fill="{bg}"/>
+  <text x="450" y="28" text-anchor="middle" font-size="16" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
+  <text x="450" y="46" text-anchor="middle" font-size="9"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">{date}  ·  {} chart</text>"#,
+        if is_day { "Day" } else { "Night" }
+    );
+
+    // Year axis
+    let birth_year = {
+        let d = celestial_core::revjul(jd_birth, celestial_core::body::Calendar::Gregorian);
+        d.year as i32
+    };
+    let end_year = birth_year + (span / 365.25) as i32 + 1;
+    for yr in (birth_year..=end_year).step_by(5) {
+        let jd_yr =
+            celestial_core::julday(yr, 1, 1, 0.0, celestial_core::body::Calendar::Gregorian);
+        let x = LM + (jd_yr - jd_start) / span * W;
+        if x < LM - 5.0 || x > LM + W + 5.0 {
+            continue;
+        }
+        let _ = writeln!(
+            s,
+            r#"  <line x1="{x:.1}" y1="{TM:.1}" x2="{x:.1}" y2="{:.1}" stroke="{ring}" stroke-width="0.5" opacity=".2"/>
+  <text x="{x:.1}" y="{:.1}" text-anchor="middle" font-size="7" fill="{ring}" opacity=".5">{yr}</text>"#,
+            TM + n as f64 * (BH + BG),
+            TM - 6.0
+        );
+    }
+
+    let mut prev_major = "";
+    for (i, p) in periods.iter().take(n).enumerate() {
+        let major = p["major_lord"].as_str().unwrap_or("?");
+        let minor = p["minor_lord"].as_str().unwrap_or("?");
+        let jd_s = p["start_jd"].as_f64().unwrap_or(jd_start);
+        let jd_e = p["end_jd"].as_f64().unwrap_or(jd_end);
+        let start = p["start"].as_str().unwrap_or("");
+
+        let bx = LM + (jd_s - jd_start) / span * W;
+        let bw = ((jd_e - jd_s) / span * W).max(1.0);
+        let by = TM + i as f64 * (BH + BG);
+
+        let col = FIRD_COLORS
+            .iter()
+            .find(|(n, _)| *n == major)
+            .map(|(_, c)| *c)
+            .unwrap_or("#888");
+
+        // Dim minor bars slightly vs major start
+        let op = if major == minor { "0.85" } else { "0.55" };
+        let _ = writeln!(
+            s,
+            r#"  <rect x="{bx:.1}" y="{by:.1}" width="{bw:.1}" height="{BH}" rx="3" fill="{col}" opacity="{op}"/>"#
+        );
+
+        if bw > 30.0 {
+            let lbl = if major == minor {
+                major.to_string()
+            } else {
+                format!("{major}/{minor}")
+            };
+            let _ = writeln!(
+                s,
+                r##"  <text x="{:.1}" y="{:.1}" font-size="8" dominant-baseline="central" fill="#fff">{lbl}</text>"##,
+                bx + 4.0,
+                by + BH * 0.5
+            );
+        }
+
+        // Left-axis label for new major period
+        if major != prev_major {
+            let _ = writeln!(
+                s,
+                r#"  <text x="{:.1}" y="{:.1}" text-anchor="end" font-size="9" font-weight="600" dominant-baseline="central" fill="{col}">{major}</text>
+  <text x="{:.1}" y="{:.1}" text-anchor="end" font-size="7" dominant-baseline="central" fill="{ring}" opacity=".5">{start}</text>"#,
+                LM - 4.0,
+                by + BH * 0.5,
+                LM - 4.0,
+                by + BH * 0.5 + 9.0
+            );
+            prev_major = major;
+        }
+    }
+
+    let _ = writeln!(s, "</svg>");
+    s
+}
+
+// ─── 3. Profection wheel ──────────────────────────────────────────────────────
+
+fn build_profection_context(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    date_str: &str,
+    hsys: char,
+    age: u32,
+    user_vars: BTreeMap<String, String>,
+) -> Result<Value, String> {
+    let flags = CalcFlags::BUILTIN;
+    let mut vars = user_vars;
+    vars.entry("title".to_string())
+        .or_insert(format!("Annual Profection — Age {age}"));
+
+    let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8)).map_err(|e| e.to_string())?;
+    let cusps_arr: [f64; 13] = {
+        let mut a = [0.0f64; 13];
+        for i in 0..13 {
+            a[i] = h.cusps[i];
+        }
+        a
+    };
+
+    let (house_num, prof_lon) = annual_profection(&cusps_arr, age);
+    let (month_house, month_lon) = monthly_profection(&cusps_arr, age, 0);
+    let prof_lord = sign_ruler((prof_lon / 30.0) as u8 % 12);
+
+    let mut ctx = build_context(jd, lat, lon, date_str, hsys, vars)?;
+    ctx["profection_house"] = json!(house_num);
+    ctx["profection_lon"] = json!((prof_lon * 1e4).round() / 1e4);
+    ctx["profection_lord"] = json!(format!("{prof_lord:?}"));
+    ctx["month_house"] = json!(month_house);
+    ctx["month_lon"] = json!((month_lon * 1e4).round() / 1e4);
+    ctx["profection_age"] = json!(age);
+    Ok(ctx)
+}
+
+fn render_profection_svg(ctx: &Value) -> String {
+    // Start from the natal wheel, add a profection marker
+    let mut s = render_builtin_svg(ctx);
+
+    let _ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
+    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
+    let prof_house = ctx["profection_house"].as_u64().unwrap_or(1);
+    let prof_lon = ctx["profection_lon"].as_f64().unwrap_or(0.0);
+    let prof_lord = ctx["profection_lord"].as_str().unwrap_or("?");
+    let age = ctx["profection_age"].as_u64().unwrap_or(0);
+    let asc = ctx["asc"].as_f64().unwrap_or(0.0);
+
+    // Highlight the profected house with an arc on the outer ring
+    let arc_col = "#d4a800";
+    let arc_x = wx(CX, RO + 10.0, prof_lon, asc);
+    let arc_y = wy(CY, RO + 10.0, prof_lon, asc);
+
+    let mut extra = format!(
+        "  <!-- Profection marker for age {age}, house {prof_house} -->\n\
+         <circle cx=\"{arc_x:.2}\" cy=\"{arc_y:.2}\" r=\"8\" fill=\"{arc_col}\" opacity=\".8\"/>\n\
+         <text x=\"{arc_x:.2}\" y=\"{arc_y:.2}\" font-size=\"9\" font-weight=\"700\" \
+         text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"{txt}\">{prof_house}</text>\n"
+    );
+
+    // Legend note
+    let ly = CY + RO + 20.0;
+    extra.push_str(&format!(
+        "  <text x=\"450\" y=\"{ly:.0}\" text-anchor=\"middle\" font-size=\"10\" \
+         font-family=\"'Segoe UI',system-ui,sans-serif\" fill=\"{arc_col}\" font-weight=\"600\">\
+         Age {age}: House {prof_house} profection — Lord: {prof_lord}</text>\n"
+    ));
+
+    if let Some(idx) = s.rfind("</svg>") {
+        s.insert_str(idx, &extra);
+    }
+    s
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Phase 6 — Chinese astrology chart builders
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Ba Zi (Four Pillars) ─────────────────────────────────────────────────────
+
+fn build_bazi_context(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    date_str: &str,
+    user_vars: BTreeMap<String, String>,
+) -> Result<Value, String> {
+    let flags = CalcFlags::BUILTIN;
+    let mut vars = user_vars;
+    vars.entry("title".to_string())
+        .or_insert("Four Pillars of Destiny (八字)".to_string());
+
+    // Compute Sun's ecliptic longitude for solar-term-based month pillar
+    let sun_pos = calc_ut(jd, Body::SUN, flags).map_err(|e| e.to_string())?;
+
+    // Extract hour from fractional JD (JD starts at noon)
+    let day_frac = (jd + 0.5).fract(); // fraction of day since midnight UT
+    let hour_ut = day_frac * 24.0;
+
+    let pillars = four_pillars(jd, hour_ut, sun_pos.lon);
+    let pillar_vals: Vec<Value> = pillars
+        .iter()
+        .map(|p| {
+            json!({
+                "stem":           p.stem,
+                "branch":         p.branch,
+                "stem_name":      p.stem_name,
+                "branch_name":    p.branch_name,
+                "animal":         p.animal,
+                "stem_element":   p.stem_element,
+                "branch_element": p.branch_element,
+                "yang":           p.yang,
+                "polarity":       if p.yang { "Yang" } else { "Yin" },
+                "name":           format!("{}-{}", p.stem_name, p.branch_name),
+            })
+        })
+        .collect();
+
+    // Solar term context
+    let (current_term, deg_into, next_term, deg_to) = solar_term_position(sun_pos.lon);
+    let (ct_pinyin, ct_english) = (SOLAR_TERMS[current_term].1, SOLAR_TERMS[current_term].2);
+    let (nt_pinyin, nt_english) = (SOLAR_TERMS[next_term].1, SOLAR_TERMS[next_term].2);
+
+    // Element count from pillars (useful for balance analysis)
+    let elements = ["Wood", "Fire", "Earth", "Metal", "Water"];
+    let mut element_counts = [0u8; 5];
+    for p in &pillars {
+        for (i, &el) in elements.iter().enumerate() {
+            if p.stem_element == el {
+                element_counts[i] += 1;
+            }
+            if p.branch_element == el {
+                element_counts[i] += 1;
+            }
+        }
+    }
+    let element_vals: Vec<Value> = elements
+        .iter()
+        .zip(element_counts.iter())
+        .map(|(&name, &count)| json!({ "element": name, "count": count }))
+        .collect();
+
+    let mut palette = BTreeMap::new();
+    for (k, v) in [
+        ("bg_color", "#fffff8"),
+        ("border_color", "#8b0000"),
+        ("text_color", "#1a0a00"),
+        ("planet_color", "#2a1a60"),
+    ] {
+        palette.insert(k.to_string(), json!(v));
+    }
+    for (k, v) in &vars {
+        palette.insert(k.clone(), json!(v));
+    }
+
+    Ok(json!({
+        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
+        "pillars":   pillar_vals,
+        "elements":  element_vals,
+        "solar_term_current":    ct_pinyin,
+        "solar_term_current_en": ct_english,
+        "solar_term_next":       nt_pinyin,
+        "solar_term_next_en":    nt_english,
+        "degrees_into_term":     (deg_into * 100.0).round() / 100.0,
+        "degrees_to_next":       (deg_to   * 100.0).round() / 100.0,
+        "sun_lon":    (sun_pos.lon * 1e4).round() / 1e4,
+        "vars": Value::Object(palette.into_iter().collect()),
+    }))
+}
+
+fn render_bazi_svg(ctx: &Value) -> String {
+    use std::fmt::Write;
+
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fffff8");
+    let border = ctx["vars"]["border_color"].as_str().unwrap_or("#8b0000");
+    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#1a0a00");
+    let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#2a1a60");
+    let title = ctx["vars"]
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Ba Zi");
+    let date = ctx["date"].as_str().unwrap_or("");
+
+    // Element colours
+    const ELEM_COLORS: &[(&str, &str)] = &[
+        ("Wood", "#2d6a2d"),
+        ("Fire", "#c0392b"),
+        ("Earth", "#a0722a"),
+        ("Metal", "#707070"),
+        ("Water", "#1a4a8a"),
+    ];
+
+    let pillars = ctx["pillars"]
+        .as_array()
+        .map(|v| v.to_vec())
+        .unwrap_or_default();
+    let elements = ctx["elements"]
+        .as_array()
+        .map(|v| v.to_vec())
+        .unwrap_or_default();
+    let solar_term = ctx["solar_term_current_en"].as_str().unwrap_or("—");
+    let solar_term_cn = ctx["solar_term_current"].as_str().unwrap_or("—");
+    let next_term_en = ctx["solar_term_next_en"].as_str().unwrap_or("—");
+    let deg_to = ctx["degrees_to_next"].as_f64().unwrap_or(0.0);
+
+    const CW: f64 = 160.0; // column width
+    const CH: f64 = 280.0; // column height
+    const OX: f64 = 60.0; // left margin
+    const OY: f64 = 70.0; // top margin
+
+    let total_w = OX * 2.0 + 4.0 * CW;
+    let total_h = OY + CH + 200.0;
+
+    let mut s = String::with_capacity(8 * 1024);
+    let _ = writeln!(
+        s,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w:.0} {total_h:.0}" width="{total_w:.0}" height="{total_h:.0}">
+  <rect width="{total_w:.0}" height="{total_h:.0}" fill="{bg}"/>
+  <text x="{:.1}" y="26" text-anchor="middle" font-size="16" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
+  <text x="{:.1}" y="44" text-anchor="middle" font-size="9"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".6">{date}</text>"#,
+        total_w / 2.0,
+        total_w / 2.0
+    );
+
+    // Column labels
+    let col_labels = ["Hour 時", "Day 日", "Month 月", "Year 年"];
+    for (ci, label) in col_labels.iter().enumerate() {
+        let cx = OX + ci as f64 * CW + CW / 2.0;
+        let _ = writeln!(
+            s,
+            r#"  <text x="{cx:.1}" y="{:.1}" font-size="11" font-weight="600" text-anchor="middle"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{border}" opacity=".8">{label}</text>"#,
+            OY - 8.0
+        );
+    }
+
+    // Four pillar columns
+    for (ci, p) in pillars.iter().enumerate() {
+        let cx = OX + ci as f64 * CW;
+        let _name = p["name"].as_str().unwrap_or("?");
+        let stem_n = p["stem_name"].as_str().unwrap_or("?");
+        let branch_n = p["branch_name"].as_str().unwrap_or("?");
+        let animal = p["animal"].as_str().unwrap_or("?");
+        let stem_el = p["stem_element"].as_str().unwrap_or("?");
+        let br_el = p["branch_element"].as_str().unwrap_or("?");
+        let pol = p["polarity"].as_str().unwrap_or("?");
+
+        let stem_col = ELEM_COLORS
+            .iter()
+            .find(|(e, _)| *e == stem_el)
+            .map(|(_, c)| *c)
+            .unwrap_or(txt);
+        let branch_col = ELEM_COLORS
+            .iter()
+            .find(|(e, _)| *e == br_el)
+            .map(|(_, c)| *c)
+            .unwrap_or(txt);
+
+        // Column background
+        let _ = writeln!(
+            s,
+            r#"  <rect x="{cx:.1}" y="{OY:.1}" width="{CW:.1}" height="{CH:.1}" rx="6" fill="none" stroke="{border}" stroke-width="1.5" opacity=".5"/>"#
+        );
+
+        // Divider line (stem / branch)
+        let div_y = OY + CH * 0.5;
+        let _ = writeln!(
+            s,
+            r#"  <line x1="{cx:.1}" y1="{div_y:.1}" x2="{:.1}" y2="{div_y:.1}" stroke="{border}" stroke-width="0.8" opacity=".4"/>"#,
+            cx + CW
+        );
+
+        let cx_c = cx + CW / 2.0;
+
+        // Heavenly Stem (upper half)
+        let _ = writeln!(
+            s,
+            r#"  <text x="{cx_c:.1}" y="{:.1}" font-size="28" font-weight="700" text-anchor="middle"
+        dominant-baseline="central" font-family="serif" fill="{stem_col}">{stem_n}</text>
+  <text x="{cx_c:.1}" y="{:.1}" font-size="10" text-anchor="middle"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{stem_col}" opacity=".8">{stem_el} · {pol}</text>"#,
+            OY + CH * 0.25,
+            OY + CH * 0.40
+        );
+
+        // Earthly Branch (lower half)
+        let _ = writeln!(
+            s,
+            r#"  <text x="{cx_c:.1}" y="{:.1}" font-size="22" font-weight="700" text-anchor="middle"
+        dominant-baseline="central" font-family="serif" fill="{branch_col}">{branch_n}</text>
+  <text x="{cx_c:.1}" y="{:.1}" font-size="11" text-anchor="middle"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{branch_col}">{animal}</text>
+  <text x="{cx_c:.1}" y="{:.1}" font-size="9" text-anchor="middle"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{branch_col}" opacity=".7">{br_el}</text>"#,
+            OY + CH * 0.65,
+            OY + CH * 0.78,
+            OY + CH * 0.90
+        );
+    }
+
+    // Element balance row
+    let ey = OY + CH + 18.0;
+    let _ = writeln!(
+        s,
+        r#"  <text x="{:.1}" y="{ey:.1}" font-size="11" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">Element balance:</text>"#,
+        OX
+    );
+    let ex_start = OX + 130.0;
+    for (i, el) in elements.iter().enumerate() {
+        let name = el["element"].as_str().unwrap_or("?");
+        let count = el["count"].as_u64().unwrap_or(0);
+        let ec = ELEM_COLORS
+            .iter()
+            .find(|(e, _)| *e == name)
+            .map(|(_, c)| *c)
+            .unwrap_or(txt);
+        let ex = ex_start + i as f64 * 90.0;
+        // Bar: width proportional to count (max 8)
+        let bw = count as f64 * 16.0;
+        let _ = writeln!(
+            s,
+            r#"  <rect x="{ex:.1}" y="{:.1}" width="{bw:.1}" height="12" rx="3" fill="{ec}" opacity=".7"/>
+  <text x="{:.1}" y="{:.1}" font-size="9" font-family="'Segoe UI',system-ui,sans-serif" fill="{ec}">{name} {count}</text>"#,
+            ey + 10.0,
+            ex + bw + 4.0,
+            ey + 21.0
+        );
+    }
+
+    // Solar term row
+    let sy = ey + 50.0;
+    let _ = writeln!(
+        s,
+        r#"  <text x="{:.1}" y="{sy:.1}" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{pcol}">
+        Solar term: <tspan font-weight="600">{solar_term_cn} — {solar_term}</tspan>
+        · Next: {next_term_en} in {deg_to:.1}°</text>"#,
+        OX
+    );
+
+    let _ = writeln!(s, "</svg>");
+    s
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Phase 7 — Mesoamerican calendar context + SVG
+// ═══════════════════════════════════════════════════════════════════════════════
+
+fn build_mesoamerican_context(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    date_str: &str,
+    user_vars: BTreeMap<String, String>,
+) -> Result<Value, String> {
+    let mut vars = user_vars;
+    vars.entry("title".to_string())
+        .or_insert("Mesoamerican Calendars".to_string());
+
+    let (trecena, sign_idx, tonal_name, tonal_en) = tonalpohualli(jd);
+    let (xiu_month, xiu_day, xiu_month_name, xiu_month_en) = xiuhpohualli(jd);
+    let (tzol_trecena, tzol_idx, tzol_name, tzol_en) = tzolkin(jd);
+    let (haab_month, haab_day, haab_month_name) = haab(jd);
+    let (cr_trecena, cr_sign, cr_haab_day, cr_haab_month) = calendar_round(jd);
+
+    let mut palette = BTreeMap::new();
+    for (k, v) in [
+        ("bg_color", "#1a0a00"),
+        ("border_color", "#d4a800"),
+        ("text_color", "#f0e0c0"),
+        ("planet_color", "#ffd070"),
+    ] {
+        palette.insert(k.to_string(), json!(v));
+    }
+    for (k, v) in &vars {
+        palette.insert(k.clone(), json!(v));
+    }
+
+    Ok(json!({
+        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
+        // Tonalpohualli (Aztec 260-day)
+        "tonal_trecena":  trecena,
+        "tonal_sign_idx": sign_idx,
+        "tonal_name":     tonal_name,
+        "tonal_english":  tonal_en,
+        // Xiuhpohualli (Aztec 365-day)
+        "xiu_month":      xiu_month,
+        "xiu_day":        xiu_day,
+        "xiu_month_name": xiu_month_name,
+        "xiu_month_en":   xiu_month_en,
+        // Tzolkin (Maya 260-day)
+        "tzol_trecena":   tzol_trecena,
+        "tzol_sign_idx":  tzol_idx,
+        "tzol_name":      tzol_name,
+        "tzol_english":   tzol_en,
+        // Haab (Maya 365-day)
+        "haab_month":     haab_month,
+        "haab_day":       haab_day,
+        "haab_month_name":haab_month_name,
+        // Calendar Round
+        "cr_trecena":     cr_trecena,
+        "cr_sign":        cr_sign,
+        "cr_haab_day":    cr_haab_day,
+        "cr_haab_month":  cr_haab_month,
+        "vars": Value::Object(palette.into_iter().collect()),
+    }))
+}
+
+fn render_mesoamerican_svg(ctx: &Value) -> String {
+    use std::fmt::Write;
+
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#1a0a00");
+    let gold = ctx["vars"]["border_color"].as_str().unwrap_or("#d4a800");
+    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#f0e0c0");
+    let title = ctx["vars"]
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Mesoamerican");
+    let date = ctx["date"].as_str().unwrap_or("");
+
+    // Day sign glyphs (simple text representations)
+    let tonal_name = ctx["tonal_name"].as_str().unwrap_or("?");
+    let tonal_en = ctx["tonal_english"].as_str().unwrap_or("?");
+    let trecena = ctx["tonal_trecena"].as_u64().unwrap_or(1);
+    let xiu_name = ctx["xiu_month_name"].as_str().unwrap_or("?");
+    let xiu_en = ctx["xiu_month_en"].as_str().unwrap_or("?");
+    let xiu_day = ctx["xiu_day"].as_u64().unwrap_or(1);
+    let _tzol_name = ctx["tzol_name"].as_str().unwrap_or("?");
+    let _tzol_en = ctx["tzol_english"].as_str().unwrap_or("?");
+    let _tzol_tre = ctx["tzol_trecena"].as_u64().unwrap_or(1);
+    let _haab_name = ctx["haab_month_name"].as_str().unwrap_or("?");
+    let _haab_day = ctx["haab_day"].as_u64().unwrap_or(0);
+    let cr_tre = ctx["cr_trecena"].as_u64().unwrap_or(1);
+    let cr_sign = ctx["cr_sign"].as_str().unwrap_or("?");
+    let cr_hday = ctx["cr_haab_day"].as_u64().unwrap_or(0);
+    let cr_hmonth = ctx["cr_haab_month"].as_str().unwrap_or("?");
+    let sign_idx = ctx["tonal_sign_idx"].as_u64().unwrap_or(0);
+
+    let mut s = String::with_capacity(8 * 1024);
+    let _ = writeln!(
+        s,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 580" width="700" height="580">
+  <rect width="700" height="580" fill="{bg}"/>
+  <text x="350" y="28" text-anchor="middle" font-size="16" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{gold}">{title}</text>
+  <text x="350" y="46" text-anchor="middle" font-size="9"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".7">{date}</text>"#
+    );
+
+    // Tonalpohualli panel (left)
+    let _ = writeln!(
+        s,
+        r#"
+  <!-- Aztec Tonalpohualli -->
+  <rect x="20" y="65" width="310" height="130" rx="6" fill="none" stroke="{gold}" stroke-width="1.5" opacity=".6"/>
+  <text x="175" y="82" text-anchor="middle" font-size="11" font-weight="600"
+        fill="{gold}">Tonalpohualli (Aztec 260-day)</text>
+  <text x="175" y="106" text-anchor="middle" font-size="32" font-weight="700"
+        fill="{gold}">{trecena} {tonal_name}</text>
+  <text x="175" y="128" text-anchor="middle" font-size="11"
+        fill="{txt}" opacity=".8">{trecena}-{tonal_en}</text>
+  <text x="175" y="148" text-anchor="middle" font-size="9"
+        fill="{txt}" opacity=".5">Day sign #{}: {tonal_en}</text>
+  <text x="175" y="164" text-anchor="middle" font-size="8"
+        fill="{txt}" opacity=".4">Trecena (week) {trecena} of 13</text>"#,
+        sign_idx + 1
+    );
+
+    // Xiuhpohualli panel (right)
+    let _ = writeln!(
+        s,
+        r#"
+  <!-- Aztec Xiuhpohualli -->
+  <rect x="370" y="65" width="310" height="130" rx="6" fill="none" stroke="{gold}" stroke-width="1.5" opacity=".6"/>
+  <text x="525" y="82" text-anchor="middle" font-size="11" font-weight="600"
+        fill="{gold}">Xiuhpohualli (Aztec 365-day)</text>
+  <text x="525" y="106" text-anchor="middle" font-size="28" font-weight="700"
+        fill="{gold}">Day {xiu_day}</text>
+  <text x="525" y="128" text-anchor="middle" font-size="14"
+        fill="{txt}">{xiu_name}</text>
+  <text x="525" y="148" text-anchor="middle" font-size="11"
+        fill="{txt}" opacity=".7">{xiu_en}</text>"#
+    );
+
+    // Tzolkin (Maya) panel
+
+    // Haab (Maya) panel
+
+    // Calendar Round (bottom centre)
+    let _ = writeln!(
+        s,
+        r#"
+  <!-- Calendar Round (52-year cycle) -->
+  <rect x="150" y="365" width="400" height="80" rx="6" fill="none" stroke="{gold}" stroke-width="1.5" opacity=".5"/>
+  <text x="350" y="382" text-anchor="middle" font-size="11" font-weight="600"
+        fill="{gold}">Calendar Round (52-year cycle)</text>
+  <text x="350" y="406" text-anchor="middle" font-size="18" font-weight="700"
+        fill="{gold}">{cr_tre} {cr_sign} — {cr_hday} {cr_hmonth}</text>
+  <text x="350" y="426" text-anchor="middle" font-size="8"
+        fill="{txt}" opacity=".45">Tzolkin + Haab combination, repeats every 18,980 days (≈52 years)</text>"#
+    );
+
+    // Note
+    s.push_str("  <text x=\"350\" y=\"525\" text-anchor=\"middle\" font-size=\"9\" fill=\"#4a9a6a\" opacity=\".5\">Maya</text>\n");
+    s.push_str("  <rect x=\"310\" y=\"516\" width=\"12\" height=\"12\" fill=\"#4a9a6a\" opacity=\".4\" rx=\"2\"/>\n");
+    let _ = writeln!(s, "  <text x=\"370\" y=\"525\" text-anchor=\"middle\" font-size=\"9\" fill=\"{gold}\" opacity=\".5\">Aztec</text>");
+    let _ = writeln!(s, "  <rect x=\"330\" y=\"516\" width=\"12\" height=\"12\" fill=\"{gold}\" opacity=\".4\" rx=\"2\"/>");
+
+    let _ = writeln!(s, "</svg>");
+    s
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Phase 8 — Medicine Wheel / Egyptian decans context + SVG
+// ═══════════════════════════════════════════════════════════════════════════════
+
+fn build_medicine_wheel_context(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    date_str: &str,
+    user_vars: BTreeMap<String, String>,
+) -> Result<Value, String> {
+    let flags = CalcFlags::BUILTIN;
+    let mut vars = user_vars;
+    vars.entry("title".to_string())
+        .or_insert("Medicine Wheel".to_string());
+
+    let sun_pos = calc_ut(jd, Body::SUN, flags).map_err(|e| e.to_string())?;
+    let (animal, element, clan, season) = medicine_wheel_totem(sun_pos.sun_lon_or(sun_pos.lon));
+    let (decan_idx, decan_name, decan_star) = egyptian_decan(sun_pos.lon);
+
+    let mut palette = BTreeMap::new();
+    for (k, v) in [
+        ("bg_color", "#0a1a0a"),
+        ("border_color", "#a0c040"),
+        ("text_color", "#d0e8a0"),
+        ("planet_color", "#80c060"),
+    ] {
+        palette.insert(k.to_string(), json!(v));
+    }
+    for (k, v) in &vars {
+        palette.insert(k.clone(), json!(v));
+    }
+
+    Ok(json!({
+        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
+        "sun_lon":    (sun_pos.lon * 1e4).round() / 1e4,
+        "totem":      animal,
+        "element":    element,
+        "clan":       clan,
+        "season":     season,
+        "decan_idx":  decan_idx,
+        "decan_name": decan_name,
+        "decan_star": decan_star,
+        "vars": Value::Object(palette.into_iter().collect()),
+    }))
+}
+
+fn render_medicine_wheel_svg(ctx: &Value) -> String {
+    use std::fmt::Write;
+
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#0a1a0a");
+    let green = ctx["vars"]["border_color"].as_str().unwrap_or("#a0c040");
+    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#d0e8a0");
+    let title = ctx["vars"]
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Medicine Wheel");
+    let date = ctx["date"].as_str().unwrap_or("");
+    let totem = ctx["totem"].as_str().unwrap_or("?");
+    let element = ctx["element"].as_str().unwrap_or("?");
+    let clan = ctx["clan"].as_str().unwrap_or("?");
+    let season = ctx["season"].as_str().unwrap_or("?");
+    let sun_lon = ctx["sun_lon"].as_f64().unwrap_or(0.0);
+    let decan_name = ctx["decan_name"].as_str().unwrap_or("?");
+    let decan_star = ctx["decan_star"].as_str().unwrap_or("?");
+    let decan_idx = ctx["decan_idx"].as_u64().unwrap_or(0);
+
+    const CX: f64 = 350.0;
+    const CY: f64 = 300.0;
+    const R: f64 = 200.0;
+
+    let mut s = String::with_capacity(8 * 1024);
+    let _ = writeln!(
+        s,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 600" width="700" height="600">
+  <rect width="700" height="600" fill="{bg}"/>
+  <text x="350" y="26" text-anchor="middle" font-size="15" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{green}">{title}</text>
+  <text x="350" y="43" text-anchor="middle" font-size="8"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".55">{date}</text>
+  <text x="350" y="55" text-anchor="middle" font-size="7" fill="{txt}" opacity=".35">
+    Sun Bear Medicine Wheel synthesis (1980) — modern system, not traditional indigenous</text>"#
+    );
+
+    // Outer circle
+    let _ = writeln!(
+        s,
+        r#"  <circle cx="{CX}" cy="{CY}" r="{R}" fill="none" stroke="{green}" stroke-width="2.0" opacity=".6"/>"#
+    );
+
+    // Cardinal directions
+    for (ang, dir, col) in [
+        (90.0_f64, "N", "#ffffff"),
+        (0.0, "E", "#ffff40"),
+        (270.0, "S", "#c06020"),
+        (180.0, "W", "#404040"),
+    ] {
+        let a = ang.to_radians();
+        let x = CX + (R + 18.0) * a.cos();
+        let y = CY - (R + 18.0) * a.sin();
+        let _ = writeln!(
+            s,
+            r#"  <text x="{x:.1}" y="{y:.1}" font-size="14" font-weight="700" text-anchor="middle"
+          dominant-baseline="central" fill="{col}">{dir}</text>"#
+        );
+    }
+
+    // 12 totem positions (every 30°)
+    const TOTEMS_12: &[(&str, &str)] = &[
+        ("Snow Goose", "Earth"),
+        ("Otter", "Air"),
+        ("Cougar", "Air"),
+        ("Red Hawk", "Fire"),
+        ("Beaver", "Earth"),
+        ("Deer", "Air"),
+        ("Flicker", "Water"),
+        ("Sturgeon", "Fire"),
+        ("Brown Bear", "Earth"),
+        ("Raven", "Air"),
+        ("Snake", "Water"),
+        ("Elk", "Fire"),
+    ];
+    for (i, &(totem_i, elem_i)) in TOTEMS_12.iter().enumerate() {
+        let ang = (i as f64 * 30.0 + 90.0).to_radians();
+        let tx = CX + (R - 28.0) * ang.cos();
+        let ty = CY - (R - 28.0) * ang.sin();
+        let col = match elem_i {
+            "Fire" => "#c04030",
+            "Water" => "#3060c0",
+            "Earth" => "#806020",
+            _ => "#406040",
+        };
+        let _ = writeln!(
+            s,
+            r#"  <text x="{tx:.1}" y="{ty:.1}" font-size="8" text-anchor="middle"
+          dominant-baseline="central" fill="{col}" opacity=".7">{totem_i}</text>"#
+        );
+    }
+
+    // Sun marker
+    let sun_ang = (sun_lon + 90.0).to_radians();
+    let sx = CX + R * sun_ang.cos();
+    let sy = CY - R * sun_ang.sin();
+    let _ = writeln!(
+        s,
+        r##"  <circle cx="{sx:.2}" cy="{sy:.2}" r="8" fill="#ffd040" opacity=".9"/>"##
+    );
+    let _ = writeln!(s, "  <text x=\"{sx:.2}\" y=\"{sy:.2}\" font-size=\"10\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#1a1a00\">☉</text>");
+
+    // Centre
+    let _ = writeln!(
+        s,
+        r#"  <text x="{CX}" y="{:.1}" text-anchor="middle" font-size="20" font-weight="700"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{green}">{totem}</text>
+  <text x="{CX}" y="{:.1}" text-anchor="middle" font-size="11" fill="{txt}">{element} · {clan} Clan</text>
+  <text x="{CX}" y="{:.1}" text-anchor="middle" font-size="10" fill="{txt}" opacity=".7">{season}</text>"#,
+        CY - 10.0,
+        CY + 12.0,
+        CY + 28.0
+    );
+
+    // Egyptian decan section
+    let _ = writeln!(s,
+        "  <text x=\"350\" y=\"520\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"600\" fill=\"#c8a030\">Egyptian Decan {} — {decan_name}</text>",
+        decan_idx + 1);
+    let _ = writeln!(s,
+        "  <text x=\"350\" y=\"538\" text-anchor=\"middle\" font-size=\"10\" fill=\"{txt}\" opacity=\".7\">Rising star: {decan_star}</text>");
+
+    let _ = writeln!(s, "</svg>");
+    s
+}
+
+// Helper to get sun longitude from PlanetPos
+trait SunLonHelper {
+    fn sun_lon_or(&self, fallback: f64) -> f64;
+}
+impl SunLonHelper for celestial_core::PlanetPos {
+    fn sun_lon_or(&self, _fallback: f64) -> f64 {
+        self.lon
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Phase 3 — specialist Western chart builders
@@ -2615,7 +3725,47 @@ pub fn run(mut args: RenderArgs) -> Result<(), String> {
             (build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?,
              render_shadbala_svg)
         }
-        other => return Err(format!("unknown --type '{other}'; valid: natal cosmogram solar-return lunar-return progressed solar-arc biwheel composite triwheel dial ephemeris local-space rasi navamsa dasha north-indian ashtakavarga shadbala")),
+        "hellenistic" | "greek" => {
+            let mut v = user_vars.clone();
+            v.entry("title".to_string()).or_insert_with(|| "Hellenistic Chart".to_string());
+            (build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+             render_hellenistic_svg)
+        }
+        "firdaria" | "persian" => {
+            let mut v = user_vars.clone();
+            v.entry("title".to_string()).or_insert_with(|| "Firdaria Timeline".to_string());
+            (build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+             render_firdaria_svg)
+        }
+        "profection" => {
+            let age = args.years.map(|y| y as u32)
+                .or(args.return_year.map(|r| r as u32))
+                .unwrap_or(0);
+            let mut v = user_vars.clone();
+            v.entry("title".to_string())
+                .or_insert_with(|| format!("Profection — Age {age}"));
+            (build_profection_context(jd, args.lat, args.lon, &args.date, args.hsys, age, v)?,
+             render_profection_svg)
+        }
+        "bazi" | "four-pillars" | "chinese" => {
+            let mut v = user_vars.clone();
+            v.entry("title".to_string()).or_insert_with(|| "Four Pillars (八字)".to_string());
+            (build_bazi_context(jd, args.lat, args.lon, &args.date, v)?,
+             render_bazi_svg)
+        }
+        "mesoamerican" | "aztec" | "maya" => {
+            let mut v = user_vars.clone();
+            v.entry("title".to_string()).or_insert_with(|| "Mesoamerican Calendars".to_string());
+            (build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?,
+             render_mesoamerican_svg)
+        }
+        "medicine-wheel" | "indigenous" | "egyptian-decans" => {
+            let mut v = user_vars.clone();
+            v.entry("title".to_string()).or_insert_with(|| "Medicine Wheel / Egyptian Decans".to_string());
+            (build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?,
+             render_medicine_wheel_svg)
+        }
+        other => return Err(format!("unknown --type '{other}'; valid: natal cosmogram solar-return lunar-return progressed solar-arc biwheel composite triwheel dial ephemeris local-space rasi navamsa dasha north-indian ashtakavarga shadbala hellenistic firdaria profection bazi mesoamerican medicine-wheel")),
     };
 
     // --print-context: dump JSON context and exit
@@ -4709,5 +5859,410 @@ mod tests_vedic {
         let svg = render_navamsa_svg(&ctx);
         assert!(svg.contains("D9"), "Navamsa title missing");
         assert!(svg.contains("</svg>"));
+    }
+    // ── Phase 4 (remaining): North Indian, Ashtakavarga, Shadbala ─────────────
+
+    #[test]
+    fn north_indian_context_uses_vedic_rasis() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        // North Indian reuses build_vedic_context — same rasi grouping
+        let ctx = build_vedic_context(jd, 13.08, 80.27, "2000-01-01", vars, "Rasi").unwrap();
+        let planets = ctx["planets"].as_array().unwrap();
+        assert_eq!(planets.len(), 12);
+        for p in planets {
+            let rasi = p["rasi"].as_i64().unwrap_or(-1);
+            assert!(
+                rasi >= 0 && rasi < 12,
+                "rasi {rasi} out of [0,12) for {}",
+                p["name"]
+            );
+        }
+    }
+
+    #[test]
+    fn north_indian_svg_has_all_12_cells() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_vedic_context(jd, 13.08, 80.27, "2000-01-01", vars, "Rasi").unwrap();
+        let svg = render_north_indian_svg(&ctx);
+        // All 12 house numbers (1..=12) should appear
+        for h in 1..=12u32 {
+            assert!(
+                svg.contains(&format!(">{h}<")),
+                "house number {h} missing from North Indian SVG"
+            );
+        }
+        assert!(svg.contains("</svg>"), "SVG not closed");
+    }
+
+    #[test]
+    fn north_indian_svg_has_rasi_glyphs() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_vedic_context(jd, 0.0, 0.0, "2000-01-01", vars, "Rasi").unwrap();
+        let svg = render_north_indian_svg(&ctx);
+        // At least Aries glyph should appear
+        assert!(svg.contains('\u{2648}'), "Aries glyph missing");
+    }
+
+    #[test]
+    fn ashtakavarga_context_has_rows_and_totals() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_ashtakavarga_context(jd, 13.08, 80.27, "2000-01-01", vars).unwrap();
+        let rows = ctx["ashtakavarga_rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 7, "expected 7 planet rows (Sun..Saturn)");
+        let totals = ctx["sarvashtakavarga"].as_array().unwrap();
+        assert_eq!(totals.len(), 12, "expected 12 sign totals");
+    }
+
+    #[test]
+    fn ashtakavarga_bindus_range() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_ashtakavarga_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let rows = ctx["ashtakavarga_rows"].as_array().unwrap();
+        for row in rows {
+            let name = row["planet"].as_str().unwrap_or("?");
+            let bindus = row["bindus"].as_array().unwrap();
+            assert_eq!(bindus.len(), 12, "{name}: expected 12 sign values");
+            for (si, b) in bindus.iter().enumerate() {
+                let bv = b.as_u64().unwrap_or(99);
+                assert!(
+                    bv <= 8,
+                    "{name} sign {si}: bindu {bv} > 8 (max is 8 contributors)"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn sarvashtakavarga_totals_are_sum_of_rows() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_ashtakavarga_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let rows = ctx["ashtakavarga_rows"].as_array().unwrap();
+        let totals = ctx["sarvashtakavarga"].as_array().unwrap();
+        for si in 0..12usize {
+            let row_sum: u64 = rows
+                .iter()
+                .map(|r| r["bindus"].as_array().unwrap()[si].as_u64().unwrap_or(0))
+                .sum();
+            let total = totals[si].as_u64().unwrap_or(0);
+            assert_eq!(
+                row_sum, total,
+                "sign {si}: row sum {row_sum} != sarvashtakavarga total {total}"
+            );
+        }
+    }
+
+    #[test]
+    fn ashtakavarga_svg_has_grid() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_ashtakavarga_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let svg = render_ashtakavarga_svg(&ctx);
+        assert!(svg.contains("Sun"), "Sun row missing from Ashtakavarga SVG");
+        assert!(svg.contains("Moon"), "Moon row missing");
+        assert!(svg.contains("Total"), "Total row missing");
+        assert!(svg.contains("</svg>"), "SVG not closed");
+    }
+
+    #[test]
+    fn shadbala_context_has_seven_planets() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_shadbala_context(jd, 13.08, 80.27, "2000-01-01", vars).unwrap();
+        let rows = ctx["shadbala"].as_array().unwrap();
+        assert_eq!(
+            rows.len(),
+            7,
+            "Shadbala needs exactly 7 planets (Sun..Saturn)"
+        );
+    }
+
+    #[test]
+    fn shadbala_strength_components_non_negative() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_shadbala_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let rows = ctx["shadbala"].as_array().unwrap();
+        for row in rows {
+            let name = row["name"].as_str().unwrap_or("?");
+            for field in &[
+                "ochchabala",
+                "sapta_bala",
+                "chesta_bala",
+                "dig_bala",
+                "total",
+            ] {
+                let v = row[field].as_f64().unwrap_or(-1.0);
+                assert!(v >= 0.0, "{name}.{field} = {v} is negative");
+            }
+            // Total should be >= each component
+            let total = row["total"].as_f64().unwrap_or(0.0);
+            let ochcha = row["ochchabala"].as_f64().unwrap_or(0.0);
+            assert!(
+                total >= ochcha,
+                "{name}: total {total} < ochchabala {ochcha}"
+            );
+        }
+    }
+
+    #[test]
+    fn shadbala_svg_has_all_planets() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_shadbala_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let svg = render_shadbala_svg(&ctx);
+        for planet in &[
+            "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn",
+        ] {
+            assert!(svg.contains(planet), "{planet} missing from Shadbala SVG");
+        }
+        assert!(svg.contains("Ochcha"), "column header missing");
+        assert!(svg.contains("</svg>"), "SVG not closed");
+    }
+    // ── Phase 5: Hellenistic / Persian chart types ─────────────────────────────
+
+    #[test]
+    fn hellenistic_context_has_dignity5_fields() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_hellenistic_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
+        let planets = ctx["planets"].as_array().unwrap();
+        assert_eq!(planets.len(), 12);
+        for p in planets {
+            // Every planet must have the new Phase 5 dignity fields
+            assert!(
+                p.get("dignity5").is_some(),
+                "{} missing dignity5",
+                p["name"]
+            );
+            assert!(
+                p.get("term_ruler").is_some(),
+                "{} missing term_ruler",
+                p["name"]
+            );
+            assert!(
+                p.get("decan_ruler").is_some(),
+                "{} missing decan_ruler",
+                p["name"]
+            );
+            assert!(
+                p.get("same_sect").is_some(),
+                "{} missing same_sect",
+                p["name"]
+            );
+        }
+    }
+
+    #[test]
+    fn hellenistic_context_has_is_day_flag() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_hellenistic_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
+        assert!(ctx.get("is_day").is_some(), "is_day missing from context");
+    }
+
+    #[test]
+    fn hellenistic_svg_has_dignity_table() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_hellenistic_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
+        let svg = render_hellenistic_svg(&ctx);
+        assert!(
+            svg.contains("Hellenistic Dignities"),
+            "dignity table heading missing"
+        );
+        assert!(svg.contains("Term lord"), "term lord column missing");
+        assert!(svg.contains("Decan lord"), "decan column missing");
+        assert!(svg.contains("</svg>"), "SVG not closed");
+    }
+
+    #[test]
+    fn firdaria_context_has_periods() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_firdaria_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
+        let periods = ctx["firdaria"].as_array().unwrap();
+        assert!(!periods.is_empty(), "firdaria periods should not be empty");
+        // Each period must have required fields
+        for p in periods {
+            assert!(p.get("major_lord").is_some());
+            assert!(p.get("minor_lord").is_some());
+            assert!(p.get("start_jd").is_some());
+            assert!(p.get("end_jd").is_some());
+        }
+    }
+
+    #[test]
+    fn firdaria_svg_has_bars() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_firdaria_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
+        let svg = render_firdaria_svg(&ctx);
+        assert!(svg.contains("<rect"), "no bars in Firdaria SVG");
+        assert!(svg.contains("</svg>"), "SVG not closed");
+    }
+
+    #[test]
+    fn profection_context_has_house_and_lord() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_profection_context(jd, 48.85, 2.35, "2000-01-01", 'P', 35, vars).unwrap();
+        let house = ctx["profection_house"].as_u64().unwrap_or(0);
+        assert!(
+            house >= 1 && house <= 12,
+            "profection house {house} out of [1,12]"
+        );
+        assert!(ctx.get("profection_lord").is_some());
+    }
+
+    #[test]
+    fn profection_svg_has_marker() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_profection_context(jd, 48.85, 2.35, "2000-01-01", 'P', 30, vars).unwrap();
+        let svg = render_profection_svg(&ctx);
+        assert!(svg.contains("profection"), "profection annotation missing");
+        assert!(svg.contains("</svg>"), "SVG not closed");
+    }
+    // ── Phase 6: Chinese / Ba Zi ────────────────────────────────────────────
+
+    #[test]
+    fn bazi_context_has_four_pillars() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_bazi_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let pillars = ctx["pillars"].as_array().unwrap();
+        assert_eq!(pillars.len(), 4, "Ba Zi must have exactly 4 pillars");
+        for p in pillars {
+            assert!(p.get("stem_name").is_some(), "pillar missing stem_name");
+            assert!(p.get("animal").is_some(), "pillar missing animal");
+            assert!(p.get("stem_element").is_some(), "pillar missing element");
+        }
+    }
+
+    #[test]
+    fn bazi_context_has_solar_term() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_bazi_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        assert!(ctx.get("solar_term_current").is_some());
+        assert!(ctx.get("solar_term_current_en").is_some());
+        assert!(ctx.get("degrees_to_next").is_some());
+    }
+
+    #[test]
+    fn bazi_context_element_counts_sum_to_eight() {
+        // 4 pillars × 2 (stem + branch) = 8 element contributions
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_bazi_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let total: u64 = ctx["elements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| e["count"].as_u64().unwrap_or(0))
+            .sum();
+        assert_eq!(total, 8, "total element counts must equal 8");
+    }
+
+    #[test]
+    fn bazi_svg_has_pillar_columns() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_bazi_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let svg = render_bazi_svg(&ctx);
+        // All 4 column labels must appear
+        for lbl in ["Hour 時", "Day 日", "Month 月", "Year 年"] {
+            assert!(
+                svg.contains(lbl),
+                "column label '{lbl}' missing from Ba Zi SVG"
+            );
+        }
+        assert!(svg.contains("</svg>"), "SVG not closed");
+    }
+
+    #[test]
+    fn bazi_svg_has_element_balance() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_bazi_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let svg = render_bazi_svg(&ctx);
+        assert!(
+            svg.contains("Element balance"),
+            "element balance section missing"
+        );
+    }
+
+    // ── Phase 7: Mesoamerican ────────────────────────────────────────────────
+
+    #[test]
+    fn mesoamerican_context_has_all_calendars() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_mesoamerican_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        // All four calendar systems must have an entry
+        assert!(ctx.get("tonal_name").is_some(), "tonalpohualli missing");
+        assert!(ctx.get("xiu_month_name").is_some(), "xiuhpohualli missing");
+        assert!(ctx.get("tzol_name").is_some(), "tzolkin missing");
+        assert!(ctx.get("haab_month_name").is_some(), "haab missing");
+        assert!(ctx.get("cr_sign").is_some(), "calendar round missing");
+    }
+
+    #[test]
+    fn mesoamerican_trecena_in_range() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_mesoamerican_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let t = ctx["tonal_trecena"].as_u64().unwrap_or(0);
+        assert!(t >= 1 && t <= 13, "trecena {t} out of [1,13]");
+    }
+
+    #[test]
+    fn mesoamerican_svg_has_both_traditions() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_mesoamerican_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let svg = render_mesoamerican_svg(&ctx);
+        assert!(svg.contains("Tonalpohualli"), "Aztec label missing");
+        assert!(svg.contains("Tzolkin"), "Maya label missing");
+        assert!(svg.contains("</svg>"), "SVG not closed");
+    }
+
+    // ── Phase 8: Medicine Wheel / Egyptian Decans ────────────────────────────
+
+    #[test]
+    fn medicine_wheel_context_has_totem() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_medicine_wheel_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        assert!(ctx.get("totem").is_some(), "totem missing");
+        assert!(ctx.get("element").is_some(), "element missing");
+        assert!(ctx.get("decan_name").is_some(), "decan_name missing");
+        assert!(ctx.get("decan_star").is_some(), "decan_star missing");
+    }
+
+    #[test]
+    fn medicine_wheel_svg_has_compass() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_medicine_wheel_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
+        let svg = render_medicine_wheel_svg(&ctx);
+        // Cardinal directions
+        for dir in ["N", "E", "S", "W"] {
+            assert!(
+                svg.contains(&format!(">{dir}<")),
+                "{dir} cardinal direction missing from Medicine Wheel SVG"
+            );
+        }
+        assert!(
+            svg.contains("Egyptian Decan"),
+            "Egyptian decan section missing"
+        );
+        assert!(svg.contains("</svg>"), "SVG not closed");
     }
 }

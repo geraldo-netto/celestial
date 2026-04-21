@@ -1149,6 +1149,183 @@ fn omer_declaration(day: i32) -> String {
 // ─── Module registration ──────────────────────────────────────────────────────
 
 /// Register the `celestial_py` Python extension module.
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Phase 5–8 bindings: Hellenistic, Persian, Chinese, Mesoamerican, Indigenous
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Egyptian terms (bounds) ruler for an ecliptic longitude.
+/// Returns the planet index (0=Sun…6=Saturn).
+#[pyfunction]
+fn egyptian_terms_ruler(lon: f64) -> i32 {
+    celestial::egyptian_terms_ruler(lon).as_raw()
+}
+
+/// Chaldean decan (face) ruler for an ecliptic longitude.
+/// Returns the planet index.
+#[pyfunction]
+fn decan_ruler(lon: f64) -> i32 {
+    celestial::decan_ruler(lon).as_raw()
+}
+
+/// Triplicity rulers for an ecliptic longitude.
+/// Returns (day_ruler, night_ruler, participating_ruler) as planet indices.
+#[pyfunction]
+fn triplicity_rulers(py: Python<'_>, lon: f64) -> PyObject {
+    let (d, n, p) = celestial::triplicity_rulers(lon);
+    (d.as_raw(), n.as_raw(), p.as_raw()).into_py(py)
+}
+
+/// Full dignity for a planet at a longitude.
+/// Returns (dignity_name: str, score: i8).
+#[pyfunction]
+fn full_dignity(py: Python<'_>, body_raw: i32, lon: f64, is_day: bool) -> PyObject {
+    use celestial::body::Body;
+    let body = Body::from_raw(body_raw);
+    let (dig, score) = celestial::full_dignity(body, lon, is_day);
+    (dig.to_string(), score).into_py(py)
+}
+
+/// Almuten (planet with highest dignity score) at a longitude.
+/// Returns (body_raw: i32, score: i8).
+#[pyfunction]
+fn almuten(py: Python<'_>, lon: f64, is_day: bool) -> PyObject {
+    let (body, score) = celestial::almuten(lon, is_day);
+    (body.as_raw(), score).into_py(py)
+}
+
+/// Whether a chart is a day chart (Sun above horizon).
+#[pyfunction]
+fn is_day_chart(sun_lon: f64, cusps: Vec<f64>) -> bool {
+    if cusps.len() < 13 {
+        return false;
+    }
+    let mut arr = [0.0f64; 13];
+    for (i, &v) in cusps.iter().take(13).enumerate() {
+        arr[i] = v;
+    }
+    celestial::is_day_chart(sun_lon, &arr)
+}
+
+/// Firdaria planetary period timeline.
+/// Returns list of (major_lord, minor_lord, start_jd, end_jd, years).
+#[pyfunction]
+fn firdaria(py: Python<'_>, jd_birth: f64, is_day: bool, span_years: f64) -> PyObject {
+    let periods = celestial::firdaria(jd_birth, is_day, span_years);
+    let result: Vec<PyObject> = periods
+        .iter()
+        .map(|p| {
+            (
+                p.major_lord.as_raw(),
+                p.minor_lord.as_raw(),
+                p.start,
+                p.end,
+                p.years,
+            )
+                .into_py(py)
+        })
+        .collect();
+    result.into_py(py)
+}
+
+/// Four Pillars of Destiny (Ba Zi).
+/// Returns list of 4 dicts: year, month, day, hour pillars.
+#[pyfunction]
+fn four_pillars(py: Python<'_>, jd_ut: f64, hour_ut: f64, sun_lon: f64) -> PyObject {
+    let pillars = celestial::four_pillars(jd_ut, hour_ut, sun_lon);
+    let result: Vec<PyObject> = pillars
+        .iter()
+        .map(|p| {
+            pyo3::types::PyDict::new_bound(py)
+                .tap(|d| {
+                    let _ = d.set_item("stem", p.stem);
+                    let _ = d.set_item("branch", p.branch);
+                    let _ = d.set_item("stem_name", p.stem_name);
+                    let _ = d.set_item("branch_name", p.branch_name);
+                    let _ = d.set_item("animal", p.animal);
+                    let _ = d.set_item("stem_element", p.stem_element);
+                    let _ = d.set_item("branch_element", p.branch_element);
+                    let _ = d.set_item("yang", p.yang);
+                })
+                .into_py(py)
+        })
+        .collect();
+    result.into_py(py)
+}
+
+/// Current solar term position.
+/// Returns (current_idx, degrees_into, next_idx, degrees_to_next).
+#[pyfunction]
+fn solar_term_position(py: Python<'_>, sun_lon: f64) -> PyObject {
+    let (cur, into, next, to) = celestial::solar_term_position(sun_lon);
+    (cur, into, next, to).into_py(py)
+}
+
+/// Aztec Tonalpohualli (260-day) position.
+/// Returns (trecena 1-13, sign_idx 0-19, nahuatl_name, english).
+#[pyfunction]
+fn tonalpohualli(py: Python<'_>, jd: f64) -> PyObject {
+    let (t, i, n, e) = celestial::tonalpohualli(jd);
+    (t, i, n, e).into_py(py)
+}
+
+/// Aztec Xiuhpohualli (365-day) position.
+/// Returns (month_idx, day, month_name, english).
+#[pyfunction]
+fn xiuhpohualli(py: Python<'_>, jd: f64) -> PyObject {
+    let (m, d, n, e) = celestial::xiuhpohualli(jd);
+    (m, d, n, e).into_py(py)
+}
+
+/// Maya Tzolkin (260-day) position.
+/// Returns (trecena, sign_idx, mayan_name, english).
+#[pyfunction]
+fn tzolkin(py: Python<'_>, jd: f64) -> PyObject {
+    let (t, i, n, e) = celestial::tzolkin(jd);
+    (t, i, n, e).into_py(py)
+}
+
+/// Maya Haab (365-day) position.
+/// Returns (month_idx, day, month_name).
+#[pyfunction]
+fn haab(py: Python<'_>, jd: f64) -> PyObject {
+    let (m, d, n) = celestial::haab(jd);
+    (m, d, n).into_py(py)
+}
+
+/// Maya Calendar Round (52-year cycle).
+/// Returns (tzolkin_trecena, tzolkin_sign, haab_day, haab_month).
+#[pyfunction]
+fn calendar_round(py: Python<'_>, jd: f64) -> PyObject {
+    let (t, s, d, m) = celestial::calendar_round(jd);
+    (t, s, d, m).into_py(py)
+}
+
+/// Medicine Wheel birth totem (Sun Bear synthesis).
+/// Returns (animal, element, clan, season) for a Sun longitude.
+#[pyfunction]
+fn medicine_wheel_totem(py: Python<'_>, sun_lon: f64) -> PyObject {
+    let (a, e, c, s) = celestial::medicine_wheel_totem(sun_lon);
+    (a, e, c, s).into_py(py)
+}
+
+/// Egyptian decan (face) for an ecliptic longitude.
+/// Returns (decan_idx 0-35, decan_name, rising_star).
+#[pyfunction]
+fn egyptian_decan(py: Python<'_>, lon: f64) -> PyObject {
+    let (i, n, s) = celestial::egyptian_decan(lon);
+    (i, n, s).into_py(py)
+}
+
+// Helper trait for PyDict tap pattern
+trait Tap: Sized {
+    fn tap(self, f: impl FnOnce(&Self)) -> Self {
+        f(&self);
+        self
+    }
+}
+impl Tap for pyo3::Bound<'_, pyo3::types::PyDict> {}
+
 #[pymodule]
 fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // ── functions ──────────────────────────────────────────────────────────
@@ -1438,6 +1615,23 @@ fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(next_last_quarter, m)?)?;
     m.add_function(wrap_pyfunction!(moon_phases_for_month, m)?)?;
     m.add_function(wrap_pyfunction!(moon_phase_info, m)?)?;
+    // ── Phase 5–8 functions ───────────────────────────────────────────────
+    m.add_function(wrap_pyfunction!(egyptian_terms_ruler, m)?)?;
+    m.add_function(wrap_pyfunction!(decan_ruler, m)?)?;
+    m.add_function(wrap_pyfunction!(triplicity_rulers, m)?)?;
+    m.add_function(wrap_pyfunction!(full_dignity, m)?)?;
+    m.add_function(wrap_pyfunction!(almuten, m)?)?;
+    m.add_function(wrap_pyfunction!(is_day_chart, m)?)?;
+    m.add_function(wrap_pyfunction!(firdaria, m)?)?;
+    m.add_function(wrap_pyfunction!(four_pillars, m)?)?;
+    m.add_function(wrap_pyfunction!(solar_term_position, m)?)?;
+    m.add_function(wrap_pyfunction!(tonalpohualli, m)?)?;
+    m.add_function(wrap_pyfunction!(xiuhpohualli, m)?)?;
+    m.add_function(wrap_pyfunction!(tzolkin, m)?)?;
+    m.add_function(wrap_pyfunction!(haab, m)?)?;
+    m.add_function(wrap_pyfunction!(calendar_round, m)?)?;
+    m.add_function(wrap_pyfunction!(medicine_wheel_totem, m)?)?;
+    m.add_function(wrap_pyfunction!(egyptian_decan, m)?)?;
     Ok(())
 }
 

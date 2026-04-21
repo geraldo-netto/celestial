@@ -155,3 +155,17 @@ function mean_obliquity(float $jde): float {}
 /** True (apparent) obliquity of the ecliptic in degrees. */
 function true_obliquity(float $jde): float {}
 
+// Phase 5–8 functions
+function celestial_egyptian_terms_ruler(float $lon): int {}
+function celestial_decan_ruler(float $lon): int {}
+function celestial_full_dignity(int $body, float $lon, bool $is_day): array {}
+function celestial_almuten(float $lon, bool $is_day): array {}
+function celestial_four_pillars(float $jd, float $hour, float $sun_lon): array {}
+function celestial_solar_term_position(float $sun_lon): array {}
+function celestial_tonalpohualli(float $jd): array {}
+function celestial_tzolkin(float $jd): array {}
+function celestial_haab(float $jd): array {}
+function celestial_medicine_wheel_totem(float $sun_lon): array {}
+function celestial_egyptian_decan(float $lon): array {}
+function celestial_fixstar_ut(string $star, float $jd, int $flags): ?array {}
+function celestial_firdaria(float $jd_birth, bool $is_day, float $span): array {}

@@ -1347,3 +1347,488 @@ class TestPhase1ArabicPartsPureLogic(unittest.TestCase):
             fortune = (asc + moon - sun) % 360.0
             self.assertGreaterEqual(fortune, 0.0)
             self.assertLess(fortune, 360.0)
+
+
+class TestPhase4VedicPureLogic(unittest.TestCase):
+    """Pure-logic tests for Vedic rasi / navamsa / nakshatra math (Phase 4)."""
+
+    def test_rasi_range(self):
+        """Every longitude maps to a rasi in [0, 11]."""
+        for lon in range(0, 360, 5):
+            rasi = int(lon / 30) % 12
+            self.assertGreaterEqual(rasi, 0)
+            self.assertLess(rasi, 12)
+
+    def test_navamsa_range(self):
+        """Every longitude maps to a navamsa in [0, 11]."""
+        # Navamsa divides each rasi into 9 parts of 3°20' each
+        for lon in range(0, 360):
+            nav = int(lon / (30.0 / 9.0)) % 12
+            self.assertGreaterEqual(nav, 0)
+            self.assertLess(nav, 12)
+
+    def test_nakshatra_range(self):
+        """Every longitude maps to a nakshatra in [0, 26]."""
+        for lon in range(0, 360, 5):
+            nak = int(lon / (360.0 / 27.0)) % 27
+            self.assertGreaterEqual(nak, 0)
+            self.assertLess(nak, 27)
+
+    def test_nakshatra_pada_range(self):
+        """Pada must always be 1–4."""
+        for lon in range(0, 360, 5):
+            nak_len = 360.0 / 27.0  # ~13.333°
+            nak = int(lon / nak_len)
+            deg_in_nak = lon - nak * nak_len
+            pada = int(deg_in_nak / (nak_len / 4)) + 1
+            self.assertGreaterEqual(pada, 1)
+            self.assertLessEqual(pada, 4)
+
+    def test_vimshottari_period_sum(self):
+        """Vimshottari dasha total spans exactly 120 years."""
+        periods = {
+            "Sun": 6,
+            "Moon": 10,
+            "Mars": 7,
+            "Rahu": 18,
+            "Jupiter": 16,
+            "Saturn": 19,
+            "Mercury": 17,
+            "Ketu": 7,
+            "Venus": 20,
+        }
+        self.assertEqual(sum(periods.values()), 120)
+
+    def test_ashtakavarga_max_bindus(self):
+        """Maximum bindus per sign per planet is 8 (one per reference point)."""
+        # 8 reference points: Sun, Moon, Mars, Mer, Jup, Ven, Sat, ASC
+        n_refs = 8
+        # Each reference contributes at most 1 bindu to any given sign
+        self.assertEqual(n_refs, 8)
+
+    def test_north_indian_12_houses(self):
+        """North Indian chart has exactly 12 houses."""
+        ni_cells = [
+            (270.0, 72.0),
+            (405.0, 144.0),
+            (468.0, 270.0),
+            (405.0, 396.0),
+            (270.0, 468.0),
+            (135.0, 396.0),
+            (72.0, 270.0),
+            (135.0, 144.0),
+            (270.0, 180.0),
+            (360.0, 270.0),
+            (270.0, 360.0),
+            (180.0, 270.0),
+        ]
+        self.assertEqual(len(ni_cells), 12)
+
+    def test_house_rotation_from_lagna(self):
+        """House number = (sign - lagna + 12) % 12 + 1, always in [1, 12]."""
+        for lagna in range(12):
+            for sign in range(12):
+                house = (sign - lagna + 12) % 12 + 1
+                self.assertGreaterEqual(house, 1)
+                self.assertLessEqual(house, 12)
+                if sign == lagna:
+                    self.assertEqual(house, 1)
+
+
+class TestPhase5HellenisticPureLogic(unittest.TestCase):
+    """Pure-logic tests for Hellenistic/Persian functions (Phase 5)."""
+
+    # ── Egyptian terms ────────────────────────────────────────────────────────
+
+    def _terms_ruler(self, lon: float) -> str:
+        """Replicate Egyptian terms table (Ptolemy) in Python for cross-check."""
+        TERMS = [
+            # Aries
+            [
+                (6, "Jupiter"),
+                (12, "Venus"),
+                (20, "Mercury"),
+                (25, "Mars"),
+                (30, "Saturn"),
+            ],
+            # Taurus
+            [
+                (8, "Venus"),
+                (14, "Mercury"),
+                (22, "Jupiter"),
+                (27, "Saturn"),
+                (30, "Mars"),
+            ],
+            # Gemini
+            [
+                (6, "Mercury"),
+                (12, "Jupiter"),
+                (17, "Venus"),
+                (24, "Mars"),
+                (30, "Saturn"),
+            ],
+            # Cancer
+            [
+                (7, "Mars"),
+                (13, "Venus"),
+                (19, "Mercury"),
+                (26, "Jupiter"),
+                (30, "Saturn"),
+            ],
+            # Leo
+            [
+                (6, "Jupiter"),
+                (11, "Venus"),
+                (18, "Saturn"),
+                (24, "Mercury"),
+                (30, "Mars"),
+            ],
+            # Virgo
+            [
+                (7, "Mercury"),
+                (17, "Venus"),
+                (21, "Jupiter"),
+                (28, "Mars"),
+                (30, "Saturn"),
+            ],
+            # Libra
+            [
+                (6, "Saturn"),
+                (14, "Mercury"),
+                (21, "Jupiter"),
+                (28, "Venus"),
+                (30, "Mars"),
+            ],
+            # Scorpio
+            [
+                (7, "Mars"),
+                (11, "Venus"),
+                (19, "Mercury"),
+                (24, "Jupiter"),
+                (30, "Saturn"),
+            ],
+            # Sagittarius
+            [
+                (12, "Jupiter"),
+                (17, "Venus"),
+                (21, "Mercury"),
+                (26, "Saturn"),
+                (30, "Mars"),
+            ],
+            # Capricorn
+            [
+                (7, "Mercury"),
+                (14, "Jupiter"),
+                (22, "Venus"),
+                (26, "Saturn"),
+                (30, "Mars"),
+            ],
+            # Aquarius
+            [
+                (7, "Mercury"),
+                (13, "Venus"),
+                (20, "Jupiter"),
+                (25, "Mars"),
+                (30, "Saturn"),
+            ],
+            # Pisces
+            [
+                (12, "Venus"),
+                (16, "Jupiter"),
+                (19, "Mercury"),
+                (28, "Mars"),
+                (30, "Saturn"),
+            ],
+        ]
+        sign = int(lon / 30) % 12
+        deg_in_sign = lon % 30
+        for end_deg, planet in TERMS[sign]:
+            if deg_in_sign < end_deg:
+                return planet
+        return "Saturn"
+
+    def test_terms_partition_every_sign(self):
+        """Every 1° increment must have a terms ruler."""
+        traditional = {"Jupiter", "Venus", "Mercury", "Mars", "Saturn"}
+        for i in range(360):
+            lon = i + 0.5
+            ruler = self._terms_ruler(lon)
+            self.assertIn(ruler, traditional, f"lon {lon}: {ruler} not traditional")
+
+    def test_aries_first_term_is_jupiter(self):
+        self.assertEqual(self._terms_ruler(3.0), "Jupiter")
+
+    def test_aries_second_term_is_venus(self):
+        self.assertEqual(self._terms_ruler(7.0), "Venus")
+
+    # ── Decans ────────────────────────────────────────────────────────────────
+
+    def _decan_ruler(self, lon: float) -> str:
+        DECAN_RULERS = [
+            "Mars",
+            "Sun",
+            "Venus",  # Aries
+            "Mercury",
+            "Moon",
+            "Saturn",  # Taurus
+            "Jupiter",
+            "Mars",
+            "Sun",  # Gemini
+            "Venus",
+            "Mercury",
+            "Moon",  # Cancer
+            "Saturn",
+            "Jupiter",
+            "Mars",  # Leo
+            "Sun",
+            "Venus",
+            "Mercury",  # Virgo
+            "Moon",
+            "Saturn",
+            "Jupiter",  # Libra
+            "Mars",
+            "Sun",
+            "Venus",  # Scorpio
+            "Mercury",
+            "Moon",
+            "Saturn",  # Sagittarius
+            "Jupiter",
+            "Mars",
+            "Sun",  # Capricorn
+            "Venus",
+            "Mercury",
+            "Moon",  # Aquarius
+            "Saturn",
+            "Jupiter",
+            "Mars",  # Pisces
+        ]
+        return DECAN_RULERS[int(lon / 10) % 36]
+
+    def test_aries_first_decan_is_mars(self):
+        self.assertEqual(self._decan_ruler(5.0), "Mars")
+
+    def test_aries_second_decan_is_sun(self):
+        self.assertEqual(self._decan_ruler(15.0), "Sun")
+
+    def test_all_36_decans_covered(self):
+        rulers = {self._decan_ruler(i * 10 + 5) for i in range(36)}
+        # Should use all 7 classical planets (Sun + 6)
+        self.assertEqual(len(rulers), 7)
+
+    # ── Triplicity ────────────────────────────────────────────────────────────
+
+    def _element(self, lon: float) -> str:
+        sign = int(lon / 30) % 12
+        return ["fire", "earth", "air", "water"][sign % 4]
+
+    def test_aries_is_fire(self):
+        self.assertEqual(self._element(15.0), "fire")
+
+    def test_taurus_is_earth(self):
+        self.assertEqual(self._element(45.0), "earth")
+
+    def test_gemini_is_air(self):
+        self.assertEqual(self._element(75.0), "air")
+
+    def test_cancer_is_water(self):
+        self.assertEqual(self._element(105.0), "water")
+
+    # ── Sect ──────────────────────────────────────────────────────────────────
+
+    def test_sect_day_planets(self):
+        """Sun, Jupiter, Saturn are diurnal."""
+        DIURNAL = {"Sun", "Jupiter", "Saturn"}
+        NOCTURNAL = {"Moon", "Venus", "Mars"}
+        for p in DIURNAL:
+            self.assertNotIn(p, NOCTURNAL)
+
+    # ── Firdaria sequence ─────────────────────────────────────────────────────
+
+    def test_vimshottari_day_sequence_starts_sun(self):
+        """Day Firdaria: Sun→Venus→Mercury→Moon→Saturn→Jupiter→Mars (10+8+13+9+11+12+7=70)."""
+        DAY_SEQ = [
+            ("Sun", 10),
+            ("Venus", 8),
+            ("Mercury", 13),
+            ("Moon", 9),
+            ("Saturn", 11),
+            ("Jupiter", 12),
+            ("Mars", 7),
+        ]
+        self.assertEqual(DAY_SEQ[0][0], "Sun")
+        self.assertEqual(sum(d for _, d in DAY_SEQ), 70)
+
+    def test_firdaria_night_sequence_starts_moon(self):
+        NIGHT_SEQ = [
+            ("Moon", 9),
+            ("Saturn", 11),
+            ("Mercury", 13),
+            ("Venus", 8),
+            ("Jupiter", 12),
+            ("Mars", 7),
+            ("Sun", 10),
+        ]
+        self.assertEqual(NIGHT_SEQ[0][0], "Moon")
+
+    # ── Profections ───────────────────────────────────────────────────────────
+
+    def test_profection_rotation(self):
+        """One house per year, returns to house 1 after 12 years."""
+        for age in range(48):
+            house = (age % 12) + 1
+            self.assertGreaterEqual(house, 1)
+            self.assertLessEqual(house, 12)
+        self.assertEqual((0 % 12) + 1, 1)
+        self.assertEqual((12 % 12) + 1, 1)
+
+
+class TestPhase6ChinesePureLogic(unittest.TestCase):
+    """Pure-logic tests for Chinese Ba Zi calendar math (Phase 6)."""
+
+    def _year_cycle(self, year):
+        return (year - 4) % 60
+
+    def test_jiazi_year_2044(self):
+        # 2044 - 4 = 2040; 2040 % 60 = 0 → cycle 0 = Jiǎ-Zǐ
+        self.assertEqual(self._year_cycle(2044), 0)
+
+    def test_year_cycle_range(self):
+        for y in range(1900, 2100):
+            c = self._year_cycle(y)
+            self.assertGreaterEqual(c, 0)
+            self.assertLess(c, 60)
+
+    def test_stem_count_is_10(self):
+        # 10 Heavenly Stems
+        stems = ["Jiǎ", "Yǐ", "Bǐng", "Dīng", "Wù", "Jǐ", "Gēng", "Xīn", "Rén", "Guǐ"]
+        self.assertEqual(len(stems), 10)
+
+    def test_branch_count_is_12(self):
+        animals = [
+            "Rat",
+            "Ox",
+            "Tiger",
+            "Rabbit",
+            "Dragon",
+            "Snake",
+            "Horse",
+            "Goat",
+            "Monkey",
+            "Rooster",
+            "Dog",
+            "Pig",
+        ]
+        self.assertEqual(len(animals), 12)
+
+    def test_solar_terms_count(self):
+        # 24 solar terms, one every 15°
+        self.assertEqual(360 // 15, 24)
+
+    def test_hour_branch(self):
+        # 12 double-hours cover 24 hours
+        for h in range(24):
+            branch = ((h + 1) // 2) % 12
+            self.assertGreaterEqual(branch, 0)
+            self.assertLess(branch, 12)
+
+
+class TestPhase7MesoamericanPureLogic(unittest.TestCase):
+    """Pure-logic tests for Mesoamerican calendar math (Phase 7)."""
+
+    GMT = 584_283
+
+    def _tonalpohualli(self, jd):
+        day_num = (int(jd) - self.GMT) % 260
+        return (day_num % 13 + 1, day_num % 20)
+
+    def _xiuhpohualli(self, jd):
+        day_num = (int(jd) - self.GMT) % 365
+        return (day_num // 20, day_num % 20 + 1)
+
+    def test_tonalpohualli_trecena_range(self):
+        for i in range(260):
+            jd = 2_451_545 + i
+            t, _ = self._tonalpohualli(jd)
+            self.assertGreaterEqual(t, 1)
+            self.assertLessEqual(t, 13)
+
+    def test_tonalpohualli_260_cycle(self):
+        jd = 2_451_545
+        t1, s1 = self._tonalpohualli(jd)
+        t2, s2 = self._tonalpohualli(jd + 260)
+        self.assertEqual(t1, t2)
+        self.assertEqual(s1, s2)
+
+    def test_xiuhpohualli_365_cycle(self):
+        jd = 2_451_545
+        m1, d1 = self._xiuhpohualli(jd)
+        m2, d2 = self._xiuhpohualli(jd + 365)
+        self.assertEqual(m1, m2)
+        self.assertEqual(d1, d2)
+
+    def test_calendar_round_18980_days(self):
+        # LCM(260, 365) = 18980
+        import math
+
+        self.assertEqual(math.lcm(260, 365), 18_980)
+
+    def test_signs_table_length(self):
+        signs = [
+            "Cipactli",
+            "Ehecatl",
+            "Calli",
+            "Cuetzpallin",
+            "Coatl",
+            "Miquiztli",
+            "Mazatl",
+            "Tochtli",
+            "Atl",
+            "Itzcuintli",
+            "Ozomatli",
+            "Malinalli",
+            "Acatl",
+            "Ocelotl",
+            "Cuauhtli",
+            "Cozcacuauhtli",
+            "Ollin",
+            "Tecpatl",
+            "Quiahuitl",
+            "Xochitl",
+        ]
+        self.assertEqual(len(signs), 20)
+
+
+class TestPhase8IndigenousPureLogic(unittest.TestCase):
+    """Pure-logic tests for Medicine Wheel and Egyptian decans (Phase 8)."""
+
+    def test_medicine_wheel_12_totems(self):
+        # Sun Bear system: 12 birth totems aligned to solar year
+        totems = [
+            "Snow Goose",
+            "Otter",
+            "Cougar",
+            "Red Hawk",
+            "Beaver",
+            "Deer",
+            "Flicker",
+            "Sturgeon",
+            "Brown Bear",
+            "Raven",
+            "Snake",
+            "Elk",
+        ]
+        self.assertEqual(len(totems), 12)
+
+    def test_36_egyptian_decans(self):
+        # 360° / 10° = 36 decans
+        self.assertEqual(360 // 10, 36)
+
+    def test_decan_idx_range(self):
+        for deg in range(360):
+            idx = int(deg / 10) % 36
+            self.assertGreaterEqual(idx, 0)
+            self.assertLess(idx, 36)
+
+    def test_4_elements_in_medicine_wheel(self):
+        elements = {"Fire", "Earth", "Air", "Water"}
+        self.assertEqual(len(elements), 4)

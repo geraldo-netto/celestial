@@ -1328,3 +1328,267 @@ Five independent pipelines, each triggered on changes to its own crate or `core/
 `lint-rs` and `lint-py`/`lint-ts` always run in parallel with strict scope: Rust clippy never touches `.py`/`.ts` files and Python/JS linters never touch `.rs` files.
 
 ---
+
+### Phase 2 — new Western chart types
+
+All accessible via `celestial render --type <name>`:
+
+```bash
+# Cosmogram: wheel without houses
+celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --type cosmogram
+
+# Solar Return (specify the return year)
+celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --type solar-return --return-year 2025
+
+# Lunar Return (search from --date2)
+celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --type lunar-return --date2 2025-01-01
+
+# Secondary Progressions
+celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --type progressed --years 39.5
+
+# Solar Arc Directions
+celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --type solar-arc --years 39.5
+
+# Bi-wheel (synastry / transit overlay)
+celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --type biwheel --date2 2025-03-20
+```
+
+The bi-wheel draws the natal chart as the inner ring and the second date's planets
+on the outer ring (rendered in green). Cross-aspects between rings are shown as dashed
+lines.
+
+### Phase 3 — specialist Western charts
+
+```bash
+# 90° Midpoint Dial (Uranian/Hamburg)
+celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --type dial
+
+# Composite chart (midpoint of two nativities)
+celestial render --date 1985-07-15 --date2 1990-03-20 --lat 48.85 --lon 2.35 --type composite
+
+# Tri-wheel (natal + progressed + transits)
+celestial render --date 1985-07-15 --date2 2010-01-01 --date3 2025-03-20 \
+  --lat 48.85 --lon 2.35 --type triwheel
+
+# Graphic Ephemeris (planetary motion over time)
+celestial render --date 2025-01-01 --date2 2025-12-31 --type ephemeris
+
+# Local Space chart (azimuth-based compass)
+celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --type local-space
+```
+
+The **90° dial** compresses all four zodiacal quadrants onto a single circle.
+Midpoints that are triggered by a planet within 1.5° are shown as short tick marks
+and listed in the legend.
+
+The **graphic ephemeris** plots each planet's ecliptic longitude against time. Retrograde
+arcs and sign ingresses are immediately visible as changes in line direction.
+
+### Phase 4 — Vedic / Jyotish charts
+
+All Vedic charts use sidereal (Lahiri ayanamsa) positions via `--type`:
+
+```bash
+# South Indian Rasi chart (fixed-sign 4×4 grid)
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type rasi
+
+# North Indian chart (rotating diamond layout, lagna = ASC sign)
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type north-indian
+
+# Navamsa D9 divisional chart
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type navamsa
+
+# Vimshottari dasha timeline (120-year bar chart)
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type dasha
+
+# Ashtakavarga (7×12 bindu table + Sarvashtakavarga totals)
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type ashtakavarga
+
+# Shadbala planetary strength (Ochchabala, Saptavargaja, Chesta, Dig bala)
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type shadbala
+```
+
+#### South Indian chart
+The classic 4×4 grid with fixed sign positions. Pisces occupies the top-left cell;
+signs proceed clockwise. The Vimshottari dasha schedule is shown below the grid.
+
+#### North Indian diamond chart
+A 12-cell diamond layout where house 1 always shows the ASC sign. House numbers
+rotate clockwise from the lagna. Each triangular cell shows the house number,
+rasi glyph, and planets.
+
+#### Navamsa (D9) chart
+Same grid layout as the South Indian chart but with each planet placed in its
+D9 navamsa sign — one ninth of each rasi (3°20′ each).
+
+#### Ashtakavarga
+Classical 8-source bindu system. Each of 7 planets plus the ASC contributes
+benefic bindus to signs by rule. The table shows:
+- 7 planet rows × 12 sign columns (individual bindus 0–8)
+- A Sarvashtakavarga totals row (sum across all 7 planets, 0–56 per sign)
+- Color-coded: green = strong (≥ 5 / ≥ 28), red = weak (≤ 2 / ≤ 18)
+
+#### Shadbala
+Three of the six classical strength components (Shadbala means "six strengths"):
+
+| Component | Calculation | Max |
+|---|---|---|
+| Ochchabala | Distance from exaltation point | 60 |
+| Saptavargaja | Sign placement (D1 + D9 relationship) | 60 |
+| Chesta bala | Motional strength (speed vs mean) | 60 |
+| Dig bala | Directional strength (placeholder) | 60 |
+
+Total > 100 shashtiamsas = planet considered strong.
+
+### Phase 5 — Hellenistic / Persian
+
+```bash
+# Hellenistic natal chart with full dignity overlay
+celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --type hellenistic
+
+# Persian Firdaria timeline (75-year period chart)
+celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --type firdaria
+
+# Annual profection wheel (specify age with --years)
+celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --type profection --years 39
+```
+
+#### Hellenistic dignities overlay (`--type hellenistic`)
+The standard natal wheel with an extended dignities table below it showing:
+
+| Column | Description |
+|---|---|
+| Dignity | Domicile (5), Exaltation (4), Triplicity (3), Term (2), Decan (1), Peregrine (0), Detriment (−5), Fall (−4) |
+| Score | Numeric dignity score |
+| Term lord | Egyptian bounds ruler (Ptolemy/Tetrabiblos) |
+| Decan lord | Face ruler in Chaldean sequence |
+| Triplicity | Day ruler / Night ruler |
+| Sect | "in sect" or "out of sect" for day/night chart |
+
+#### Firdaria (`--type firdaria`)
+Persian planetary period system (Abū Maʿshar). A horizontal bar chart covering
+75 years from birth. Day charts start with the Sun; night charts with the Moon.
+Each major period (Sun=10y, Venus=8y, Mercury=13y…) is subdivided into 7
+sub-periods (minor lords) following the same sequence.
+
+Sequence for **day charts**: Sun 10 · Venus 8 · Mercury 13 · Moon 9 · Saturn 11 · Jupiter 12 · Mars 7 · North Node 3 · South Node 2 (= 75 years).
+
+**Night chart** sequence starts with Moon.
+
+#### Profection wheel (`--type profection --years AGE`)
+Annual profection: the ASC advances one house per year of age. At age 35 the
+profected ASC is in house 12 (35 mod 12 + 1). The chart renders the natal wheel
+with a gold marker at the profected house. The profection lord (ruler of the
+profected sign) is highlighted in the legend.
+
+#### Core Hellenistic functions (accessible via Rust/Python/JS/PHP APIs)
+
+| Function | Description |
+|---|---|
+| `egyptian_terms_ruler(lon)` | Returns the Egyptian bounds planet for a longitude |
+| `decan_ruler(lon)` | Chaldean decan (face) ruler |
+| `triplicity_rulers(lon)` | `(day, night, participating)` triplicity rulers |
+| `full_dignity(body, lon, is_day)` | Returns `(Dignity, score)` |
+| `almuten(lon, is_day)` | Planet with highest dignity score at a degree |
+| `same_sect(body, is_day)` | True if planet is of the same sect as the chart |
+| `firdaria(jd, is_day, span_years)` | Vec of `FirdariaPeriod` |
+| `annual_profection(cusps, age)` | `(house_number, profected_lon)` |
+| `monthly_profection(cusps, age_years, age_months)` | Same for sub-annual |
+
+### Phase 6 — Chinese astrology
+
+```bash
+# Four Pillars of Destiny (Ba Zi)
+celestial render --date 1985-07-15 --type bazi
+```
+
+The chart shows the four pillars (Year, Month, Day, Hour), each with:
+- **Heavenly Stem** (天干): Jiǎ, Yǐ, Bǐng, Dīng, Wù, Jǐ, Gēng, Xīn, Rén, Guǐ
+- **Earthly Branch** (地支): Rat, Ox, Tiger, Rabbit, Dragon, Snake, Horse, Goat, Monkey, Rooster, Dog, Pig
+- Element and Yin/Yang polarity for both
+
+An element balance bar chart shows the distribution of Wood, Fire, Earth, Metal and Water
+across all eight stem+branch positions.
+
+The current **solar term** (节气) is computed from the Sun's ecliptic longitude and
+displayed with the degrees remaining until the next term.
+
+#### Available via API
+
+| Function | Returns |
+|---|---|
+| `four_pillars(jd, hour_ut, sun_lon)` | `[BaZiPillar; 4]` — year, month, day, hour |
+| `solar_term_position(sun_lon)` | `(current_idx, deg_into, next_idx, deg_to_next)` |
+| `sexagenary_name(cycle_idx)` | `(stem_name, animal_name)` |
+| `SOLAR_TERMS` | 24-entry array of `(longitude°, pinyin, english)` |
+| `HEAVENLY_STEMS` | 10-entry array of `(name, element, yang)` |
+| `EARTHLY_BRANCHES` | 12-entry array of `(name, animal, element, yang)` |
+
+### Phase 7 — Mesoamerican calendars
+
+```bash
+# Aztec + Maya calendar positions for any date
+celestial render --date 2000-01-01 --type mesoamerican
+# Also accepts: --type aztec, --type maya
+```
+
+The chart shows all four calendar systems side by side:
+
+| Calendar | Cycle | Description |
+|---|---|---|
+| Tonalpohualli | 260 days | Aztec ritual calendar: 20 day signs × 13 trecena numbers |
+| Xiuhpohualli | 365 days | Aztec solar year: 18 months of 20 days + 5 Nemontemi |
+| Tzolkin | 260 days | Maya sacred calendar (same cycle as Tonalpohualli) |
+| Haab | 365 days | Maya vague year: 18 months + 5-day Wayeb |
+
+The **Calendar Round** (52-year cycle) is the LCM(260, 365) = 18,980-day combination.
+
+All calculations use the **GMT correlation** (constant 584,283).
+
+#### Available via API
+
+| Function | Returns |
+|---|---|
+| `tonalpohualli(jd)` | `(trecena 1–13, sign_idx 0–19, nahuatl_name, english)` |
+| `xiuhpohualli(jd)` | `(month_idx, day, month_name, english)` |
+| `tzolkin(jd)` | `(trecena, sign_idx, mayan_name, english)` |
+| `haab(jd)` | `(month_idx, day, month_name)` |
+| `calendar_round(jd)` | `(tzolkin_trecena, tzolkin_sign, haab_day, haab_month)` |
+| `GMT_CORRELATION` | `584_283i64` — the correlation constant |
+
+### Phase 8 — Indigenous / other traditions
+
+```bash
+# Medicine Wheel + Egyptian decans
+celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --type medicine-wheel
+# Also accepts: --type indigenous, --type egyptian-decans
+```
+
+#### Medicine Wheel (modern synthesis)
+
+The chart shows a compass-rose wheel with the Sun's current position. Birth totem
+and element are derived from the **Sun Bear / Wabun Wind system** (1980 — a modern
+New Age synthesis, not a traditional single-nation indigenous system).
+
+12 birth totems correspond to roughly 30° Sun longitude segments:
+
+Snow Goose · Otter · Cougar · Red Hawk · Beaver · Deer · Flicker · Sturgeon ·
+Brown Bear · Raven · Snake · Elk
+
+Each totem belongs to a clan (Turtle/Earth, Butterfly/Air, Thunderbird/Fire, Frog/Water)
+and a season.
+
+#### Egyptian Decans
+
+Each of the 36 ten-degree sections of the ecliptic corresponds to a traditional Egyptian
+decan name (from Firmicus Maternus / Ptolemy) and its associated heliacal rising star.
+
+| Function | Returns |
+|---|---|
+| `medicine_wheel_totem(sun_lon)` | `(animal, element, clan, season)` |
+| `egyptian_decan(lon)` | `(decan_idx 0–35, decan_name, rising_star)` |
+
+> **Note:** The Medicine Wheel system presented here is the Sun Bear synthesis from
+> *The Medicine Wheel* (1980). Traditional indigenous astronomical knowledge varies
+> enormously by nation and is generally observational and seasonal, not a natal chart
+> system. This implementation is labelled accordingly in the SVG output.
