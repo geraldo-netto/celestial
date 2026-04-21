@@ -1,0 +1,151 @@
+//! Planetary phenomena: magnitude, phase, elongation, diameter.
+//!
+//! Implements the same quantities as `swe_pheno()`.
+//! Formulae from Meeus "Astronomical Algorithms", Mallama & Hilton (2018)
+//! and the Explanatory Supplement to the Astronomical Almanac.
+
+use std::f64::consts::PI;
+
+fn to_rad(d: f64) -> f64 {
+    d * PI / 180.0
+}
+
+/// All quantities returned by `pheno`.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Phenomena {
+    /// Phase angle (degrees): Sun–body–observer angle.
+    pub phase_angle: f64,
+    /// Illuminated fraction of disk (0…1).
+    pub phase_frac: f64,
+    /// Elongation from Sun (degrees).
+    pub elongation: f64,
+    /// Apparent angular diameter (arcsec).
+    pub ang_diameter: f64,
+    /// Apparent visual magnitude.
+    pub magnitude: f64,
+}
+
+/// Compute phenomena for a planet given geometric data.
+///
+/// * `body`       — SWE planet number (0=Sun,1=Moon,2=Mercury…)
+/// * `lon_body`   — geocentric ecliptic longitude of body (degrees)
+/// * `lat_body`   — geocentric ecliptic latitude of body (degrees)
+/// * `dist_body`  — geocentric distance (AU)
+/// * `dist_sun`   — heliocentric distance of body (AU; = dist_body for Sun)
+/// * `lon_sun`    — geocentric ecliptic longitude of Sun (degrees)
+pub fn compute_phenomena(
+    body: i32,
+    lon_body: f64,
+    lat_body: f64,
+    dist_body: f64, // geocentric AU
+    dist_sun: f64,  // heliocentric AU
+    lon_sun: f64,
+) -> Phenomena {
+    // ── elongation ────────────────────────────────────────────────────────────
+    let dl = (lon_body - lon_sun + 360.0).rem_euclid(360.0);
+    let _elong = {
+        // great-circle elongation including latitude
+        let cos_e = to_rad(lat_body).cos() * to_rad(dl.min(360.0 - dl)).cos();
+        to_rad(cos_e.acos().to_degrees().clamp(0.0, 180.0)).to_degrees()
+    };
+    // simpler formula: elong = |lon_body - lon_sun| normalised to 0–180
+    let elongation = if dl > 180.0 { 360.0 - dl } else { dl };
+
+    // ── phase angle ───────────────────────────────────────────────────────────
+    // Cosine rule in the Sun–body–Earth triangle:
+    //   r² = R² + d² - 2·R·d·cos(elong)
+    // where R = dist_sun (helio), d = dist_body (geo), r = helio dist of Earth ≈ 1 AU
+    let r_earth = 1.0_f64; // approximate
+    let cos_alpha = (dist_sun * dist_sun + dist_body * dist_body - r_earth * r_earth)
+        / (2.0 * dist_sun * dist_body);
+    let cos_alpha = cos_alpha.clamp(-1.0, 1.0);
+    let phase_angle = cos_alpha.acos().to_degrees();
+
+    // ── phase fraction ────────────────────────────────────────────────────────
+    let phase_frac = (1.0 + cos_alpha) / 2.0;
+
+    // ── angular diameter ─────────────────────────────────────────────────────
+    // Physical radii in km
+    let radius_km: f64 = match body {
+        0 => 696_000.0, // Sun
+        1 => 1_737.4,   // Moon
+        2 => 2_439.7,   // Mercury
+        3 => 6_051.8,   // Venus
+        4 => 3_389.5,   // Mars
+        5 => 71_492.0,  // Jupiter
+        6 => 60_268.0,  // Saturn (equatorial)
+        7 => 25_559.0,  // Uranus
+        8 => 24_764.0,  // Neptune
+        9 => 1_188.3,   // Pluto
+        _ => 0.0,
+    };
+    const AU_KM: f64 = 149_597_870.7;
+    let ang_diameter = if radius_km > 0.0 && dist_body > 0.0 {
+        2.0 * (radius_km / (dist_body * AU_KM)).atan().to_degrees() * 3600.0
+    } else {
+        0.0
+    };
+
+    // ── visual magnitude ─────────────────────────────────────────────────────
+    // Using Mallama & Hilton (2018) and classical Müller formulae.
+    // H  = absolute magnitude at 0° phase angle
+    // G  = slope parameter
+    // V  = H + 5·log10(R·Δ) + correction(i)
+    let magnitude = visual_magnitude(body, dist_sun, dist_body, phase_angle);
+
+    Phenomena {
+        phase_angle,
+        phase_frac,
+        elongation,
+        ang_diameter,
+        magnitude,
+    }
+}
+
+fn visual_magnitude(body: i32, r: f64, delta: f64, i: f64) -> f64 {
+    // r = heliocentric AU, delta = geocentric AU, i = phase angle degrees
+    let log_rd = 5.0 * (r * delta).log10();
+    let _ir = to_rad(i);
+    match body {
+        0 => -26.74, // Sun (geocentric)
+        1 => {
+            // Moon: Hilton (2005)
+            -12.74 + 0.026 * i + 4e-9 * i.powi(4)
+        }
+        2 => {
+            // Mercury: Mallama (2017)
+            -0.613 + log_rd + 6.328e-2 * i - 1.6336e-3 * i * i + 3.1707e-5 * i.powi(3)
+                - 3.2246e-7 * i.powi(4)
+        }
+        3 => {
+            // Venus: Mallama & Hilton (2018)
+            -4.384 + log_rd - 1.044e-3 * i + 3.687e-4 * i * i - 2.814e-6 * i.powi(3)
+                + 8.938e-9 * i.powi(4)
+        }
+        4 => {
+            // Mars: Mallama (2012)
+            -1.601 + log_rd + 0.02267 * i - 0.0001302 * i * i
+        }
+        5 => {
+            // Jupiter: Mallama & Hilton (2018)
+            -9.395 + log_rd + 0.005 * i
+        }
+        6 => {
+            // Saturn: mean, no ring correction
+            -8.88 + log_rd + 0.044 * i
+        }
+        7 => {
+            // Uranus
+            -7.110 + log_rd + 0.0028 * i
+        }
+        8 => {
+            // Neptune
+            -7.00 + log_rd + 0.0041 * i
+        }
+        9 => {
+            // Pluto: Buie (2010) — distance-only approximation
+            -1.00 + log_rd
+        }
+        _ => 99.9,
+    }
+}

@@ -1,0 +1,129 @@
+# ─── celestial-cli pipeline ───────────────────────────────────────────────────────
+#
+# Triggers: any change to cli/ or core/ (CLI depends on core)
+# Jobs:
+#   lint    → clippy on celestial-cli
+#   test    → cargo test --package celestial-cli
+#   build   → cargo build --release (verifies CLI compiles and links)
+
+name: celestial-cli
+
+on:
+  push:
+    branches: ["main", "master", "develop"]
+    paths:
+      - "cli/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  pull_request:
+    paths:
+      - "cli/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+concurrency:
+  group: celestial-cli-${{ github.ref }}
+  cancel-in-progress: true
+
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  lint:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cli-lint-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cli-lint-
+
+      - name: cargo clippy
+        run: |
+          cargo clippy \
+            --package celestial-cli \
+            -- -D warnings
+
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cli-test-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cli-test-
+
+      - name: cargo test
+        run: cargo test --package celestial-cli
+
+
+  build:
+    name: release build
+    needs: [lint, test]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cli-build-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cli-build-
+
+      - name: cargo build --release
+        run: cargo build --release --package celestial-cli
+
+      - name: Smoke-test CLI (--help)
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            ./target/release/celestial.exe --help
+          else
+            ./target/release/celestial --help
+          fi
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: celestial-${{ runner.os }}
+          path: |
+            target/release/celestial
+            target/release/celestial.exe
+          if-no-files-found: ignore
+          retention-days: 7

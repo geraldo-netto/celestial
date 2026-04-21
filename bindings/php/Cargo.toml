@@ -1,0 +1,32 @@
+[package]
+name        = "celestial-php"
+version     = "0.1.0"
+edition     = "2021"
+description = "PHP 8.x bindings for celestial-core (Swiss Ephemeris port) via ext-php-rs"
+license     = "AGPL-3.0-or-later"
+authors     = ["geraldo-netto"]
+
+[workspace]
+
+[lib]
+# Produces libcelestial.so (Linux) / libcelestial.dylib (macOS) / celestial.dll (Windows)
+crate-type = ["cdylib"]
+name       = "celestial"
+
+[dependencies]
+celestial-core = { path = "../../core" }
+ext-php-rs  = "0.13"
+
+# ── Build note ──────────────────────────────────────────────────────────────────
+# PHP development headers must be installed before building:
+#
+#   Ubuntu/Debian:  sudo apt-get install php-dev
+#   Fedora/RHEL:    sudo dnf install php-devel
+#   macOS:          brew install php
+#   Windows:        use the PHP SDK
+#
+# Build with:
+#   cargo build --release
+#
+# Then add to php.ini:
+#   extension = /path/to/libcelestial.so

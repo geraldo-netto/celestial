@@ -1,0 +1,37 @@
+{
+  "name": "celestial-js",
+  "version": "0.1.0",
+  "description": "Swiss Ephemeris bindings for Node.js/TypeScript (via napi-rs)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "AGPL-3.0",
+  "keywords": [
+    "astrology",
+    "ephemeris",
+    "astronomy",
+    "swiss-ephemeris",
+    "napi"
+  ],
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:dev": "napi build --platform",
+    "test": "jest --testPathPattern=tests/",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.19.39",
+    "jest": "^29",
+    "prettier": "^3.8.3",
+    "ts-jest": "^29",
+    "typescript": "^5"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.ts"
+    ]
+  }
+}

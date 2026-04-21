@@ -1,0 +1,348 @@
+//! Utility calculations: azimuth/altitude, refraction, coordinate transforms,
+//! phenomena, Gauquelin sectors, and heliacal events.
+
+// ─── Azimuth / altitude ───────────────────────────────────────────────────────
+
+/// Result of [`azalt`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct AzAlt {
+    /// Azimuth (degrees).
+    pub azimuth: f64,
+    /// True altitude above horizon (degrees).
+    pub true_alt: f64,
+    /// Apparent (refracted) altitude (degrees).
+    pub apparent_alt: f64,
+}
+
+/// Convert ecliptic/equatorial coordinates to azimuth and altitude.
+///
+/// - `calc_flag = 0` (`SE_ECL2HOR`): `xin` = ecliptic `[lon°, lat°, dist]`
+/// - `calc_flag = 1` (`SE_EQU2HOR`): `xin` = equatorial `[RA°, Dec°, dist]`
+/// - `geopos` = observer `[lon°, lat°, alt_m]` (east positive)
+/// - `pressure_mb` = atmospheric pressure (mbar); `temp_c` = temperature (°C)
+///
+/// Returns azimuth (0° N, clockwise) and true / apparent altitude above horizon.
+pub fn azalt(
+    jd_ut: f64,
+    direction: i32,
+    geopos: [f64; 3],
+    pressure_mb: f64,
+    temp_c: f64,
+    xin: [f64; 3],
+) -> AzAlt {
+    let geolon = geopos[0]; // observer longitude (°E)
+    let geolat = geopos[1]; // observer latitude  (°N)
+
+    // ── Step 1: get equatorial RA / Dec (degrees) ──────────────────────────
+    let (ra, dec) = if direction == 0 {
+        // Ecliptic → equatorial using true obliquity
+        let eps = crate::astronomy::obliquity_true(jd_ut).to_radians();
+        let lon = xin[0].to_radians();
+        let lat = xin[1].to_radians();
+
+        let sin_dec = lat.sin() * eps.cos() + lat.cos() * eps.sin() * lon.sin();
+        let dec_rad = sin_dec.clamp(-1.0, 1.0).asin();
+
+        let y = lon.sin() * eps.cos() - lat.tan() * eps.sin();
+        let x = lon.cos();
+        let ra_rad = y.atan2(x);
+
+        (ra_rad.to_degrees().rem_euclid(360.0), dec_rad.to_degrees())
+    } else {
+        (xin[0], xin[1]) // already equatorial
+    };
+
+    // ── Step 2: Local Sidereal Time → Hour Angle ───────────────────────────
+    let gmst_deg = crate::astronomy::houses::sidereal_time_deg(jd_ut);
+    let lst_deg = (gmst_deg + geolon).rem_euclid(360.0);
+    let ha_deg = (lst_deg - ra).rem_euclid(360.0);
+
+    // ── Step 3: equatorial → horizontal ───────────────────────────────────
+    let ha_r = ha_deg.to_radians();
+    let dec_r = dec.to_radians();
+    let lat_r = geolat.to_radians();
+
+    let sin_alt = lat_r.sin() * dec_r.sin() + lat_r.cos() * dec_r.cos() * ha_r.cos();
+    let true_alt_rad = sin_alt.clamp(-1.0, 1.0).asin();
+    let true_alt = true_alt_rad.to_degrees();
+
+    // Azimuth: North-based clockwise (N=0°, E=90°, S=180°, W=270°)
+    let cos_az =
+        (dec_r.sin() - lat_r.sin() * sin_alt) / (lat_r.cos() * true_alt_rad.cos().max(1e-10));
+    let az_base = cos_az.clamp(-1.0, 1.0).acos().to_degrees();
+    let az_north = if ha_r.sin() > 0.0 {
+        360.0 - az_base
+    } else {
+        az_base
+    };
+
+    // Swiss Ephemeris convention: azimuth measured from South, clockwise
+    // (S=0°, W=90°, N=180°, E=270°).  South-based = (North-based + 180°) % 360°
+    let azimuth = (az_north + 180.0).rem_euclid(360.0);
+
+    // ── Step 4: Bennett atmospheric refraction ─────────────────────────────
+    let apparent_alt = if true_alt > -5.0 {
+        let denom = true_alt + 7.31 / (true_alt + 4.4);
+        let r_arcmin = 1.02 / denom.to_radians().tan();
+        let r_deg = r_arcmin * (pressure_mb / 1010.0) * (283.0 / (273.0 + temp_c)) / 60.0;
+        true_alt + r_deg
+    } else {
+        true_alt
+    };
+
+    AzAlt {
+        azimuth,
+        true_alt,
+        apparent_alt,
+    }
+}
+
+/// Convert azimuth/altitude back to ecliptic/equatorial coordinates.
+///
+/// This is the exact inverse of [`azalt`].
+///
+/// - `calc_flag = 0` (`SE_HOR2ECL`): returns ecliptic `[lon°, lat°, 1.0]`
+/// - `calc_flag = 1` (`SE_HOR2EQU`): returns equatorial `[RA°, Dec°, 1.0]`
+/// - `xin` = `[azimuth°, true_altitude°]`  (South-based azimuth, S=0° clockwise)
+/// - `geopos` = observer `[lon°, lat°, alt_m]`
+pub fn azalt_rev(jd_ut: f64, direction: i32, geopos: [f64; 3], xin: [f64; 2]) -> [f64; 3] {
+    let geolon = geopos[0];
+    let geolat = geopos[1];
+
+    // Convert SE South-based azimuth → North-based (N=0°, E=90°)
+    let az_north = (xin[0] - 180.0).rem_euclid(360.0);
+    let alt = xin[1];
+
+    let az_r = az_north.to_radians();
+    let alt_r = alt.to_radians();
+    let lat_r = geolat.to_radians();
+
+    // Horizontal → equatorial
+    let sin_dec = lat_r.sin() * alt_r.sin() + lat_r.cos() * alt_r.cos() * az_r.cos();
+    let dec_rad = sin_dec.clamp(-1.0, 1.0).asin();
+    let dec = dec_rad.to_degrees();
+
+    let cos_ha = (alt_r.sin() - lat_r.sin() * sin_dec) / (lat_r.cos() * dec_rad.cos().max(1e-10));
+    // Quadrant rule (inverse of azalt's forward convention):
+    //   az_north in (180°,360°) — sin < 0 — means ha was in (0°,180°)   → ha = ha_base
+    //   az_north in (0°,180°)  — sin > 0 — means ha was in (180°,360°) → ha = 360°-ha_base
+    let ha_base = cos_ha.clamp(-1.0, 1.0).acos().to_degrees();
+    let ha_deg = if az_r.sin() < 0.0 {
+        ha_base
+    } else {
+        360.0 - ha_base
+    };
+
+    // Hour angle → right ascension via Local Sidereal Time
+    let gmst_deg = crate::astronomy::houses::sidereal_time_deg(jd_ut);
+    let lst_deg = (gmst_deg + geolon).rem_euclid(360.0);
+    let ra = (lst_deg - ha_deg).rem_euclid(360.0);
+
+    if direction == 1 {
+        // Return equatorial [RA, Dec, 1.0]
+        return [ra, dec, 1.0];
+    }
+
+    // Convert equatorial → ecliptic
+    let eps = crate::astronomy::obliquity_true(jd_ut).to_radians();
+    let ra_r = ra.to_radians();
+    let dec_r = dec_rad;
+
+    let sin_lat = dec_r.sin() * eps.cos() - dec_r.cos() * eps.sin() * ra_r.sin();
+    let lat_ecl = sin_lat.clamp(-1.0, 1.0).asin().to_degrees();
+
+    let y = ra_r.sin() * eps.cos() + dec_r.tan() * eps.sin();
+    let x = ra_r.cos();
+    let lon_ecl = y.atan2(x).to_degrees().rem_euclid(360.0);
+
+    [lon_ecl, lat_ecl, 1.0]
+}
+
+// ─── Refraction ───────────────────────────────────────────────────────────────
+
+/// Compute atmospheric refraction.
+pub fn refrac(altitude: f64, pressure_mb: f64, temp_c: f64, direction: i32) -> f64 {
+    {
+        // Simple Bennett formula
+        let a = altitude + 7.31 / (altitude + 4.4);
+        let r = 1.02 / a.to_radians().tan();
+        let r_corrected = r * (pressure_mb / 1010.0) * (283.0 / (273.0 + temp_c)) / 60.0;
+        if direction == 0 {
+            altitude + r_corrected
+        } else {
+            altitude - r_corrected
+        }
+    }
+}
+
+/// Extended refraction calculation.
+pub fn refrac_extended(
+    altitude: f64,
+    _geoalt: f64,
+    pressure_mb: f64,
+    temp_c: f64,
+    _lapse_rate: f64,
+    calc_flag: i32,
+) -> (f64, [f64; 4]) {
+    let result = refrac(altitude, pressure_mb, temp_c, calc_flag);
+    (result, [result, altitude, 0.0, 0.0])
+}
+
+// ─── Coordinate transforms ────────────────────────────────────────────────────
+
+/// Transform ecliptic ↔ equatorial coordinates.
+///
+/// `coords` = `[lon, lat, dist]`, `eps` = obliquity in degrees.
+/// Positive `eps` converts ecliptic → equatorial; negative reverses.
+pub fn coord_transform(coords: [f64; 3], eps: f64) -> [f64; 3] {
+    let (lon, lat, dist) = (coords[0], coords[1], coords[2]);
+    let eps_r = eps.to_radians();
+    let lon_r = lon.to_radians();
+    let lat_r = lat.to_radians();
+    // Swiss Ephemeris sign convention (swe_cotrans):
+    // y' = y*cos(eps) + z*sin(eps),  z' = -y*sin(eps) + z*cos(eps)
+    let cos_lat = lat_r.cos();
+    let x = lon_r.cos() * cos_lat;
+    let y = lon_r.sin() * cos_lat;
+    let z = lat_r.sin();
+    let yp = y * eps_r.cos() + z * eps_r.sin();
+    let zp = -y * eps_r.sin() + z * eps_r.cos();
+    let out_lon = yp.atan2(x).to_degrees().rem_euclid(360.0);
+    let out_lat = zp.clamp(-1.0, 1.0).asin().to_degrees();
+    [out_lon, out_lat, dist]
+}
+
+/// Transform with speeds (coord_transform_with_speed).
+pub fn coord_transform_with_speed(coords: [f64; 6], eps: f64) -> [f64; 6] {
+    let pos = [coords[0], coords[1], coords[2]];
+    let out = coord_transform(pos, eps);
+    [out[0], out[1], out[2], coords[3], coords[4], coords[5]]
+}
+
+// ─── Math utilities ───────────────────────────────────────────────────────────
+
+/// Normalise degrees to [0, 360).
+pub fn norm_deg(x: f64) -> f64 {
+    x.rem_euclid(360.0)
+}
+
+/// Normalise radians to [0, 2π).
+pub fn norm_rad(x: f64) -> f64 {
+    x.rem_euclid(std::f64::consts::TAU)
+}
+
+/// Midpoint of two ecliptic degrees (accounts for 360° wrap).
+pub fn midpoint_deg(x1: f64, x0: f64) -> f64 {
+    let d = diff_deg_signed(x1, x0);
+    norm_deg(x0 + d / 2.0)
+}
+
+/// Midpoint of two radian values.
+pub fn midpoint_rad(x1: f64, x0: f64) -> f64 {
+    let d = diff_rad_signed(x1, x0);
+    norm_rad(x0 + d / 2.0)
+}
+
+/// Signed difference of degrees, result in (−180, +180].
+pub fn diff_deg_signed(p1: f64, p2: f64) -> f64 {
+    let d = norm_deg(p1) - norm_deg(p2);
+    if d <= -180.0 {
+        d + 360.0
+    } else if d > 180.0 {
+        d - 360.0
+    } else {
+        d
+    }
+}
+
+/// Unsigned difference of degrees, result in [0, 360).
+pub fn diff_deg(p1: f64, p2: f64) -> f64 {
+    norm_deg(p1 - p2)
+}
+
+/// Signed difference of radians, result in (−π, +π].
+pub fn diff_rad_signed(p1: f64, p2: f64) -> f64 {
+    let pi = std::f64::consts::PI;
+    let d = norm_rad(p1) - norm_rad(p2);
+    if d <= -pi {
+        d + 2.0 * pi
+    } else if d > pi {
+        d - 2.0 * pi
+    } else {
+        d
+    }
+}
+
+/// Signed difference of centiseconds (long), result in (−648000000, +648000000].
+pub fn diff_cs_signed(p1: i32, p2: i32) -> i64 {
+    let full = 360 * 360_000i64;
+    let d = norm_cs(p1) - norm_cs(p2);
+    if d <= -(full / 2) {
+        d + full
+    } else if d > full / 2 {
+        d - full
+    } else {
+        d
+    }
+}
+
+/// Unsigned difference of centiseconds.
+pub fn diff_cs(p1: i32, p2: i32) -> i64 {
+    norm_cs(p1 - p2)
+}
+
+/// Normalise centiseconds to [0, 360°).
+pub fn norm_cs(p: i32) -> i64 {
+    p.rem_euclid(360 * 360_000) as i64
+}
+
+/// Round centiseconds to the nearest second.
+pub fn cs_round_sec(x: i32) -> i64 {
+    let r = x % 100;
+    if r >= 50 {
+        (x - r + 100) as i64
+    } else {
+        (x - r) as i64
+    }
+}
+
+/// Convert a float to a long integer (floor).
+pub fn deg_to_cs(x: f64) -> i64 {
+    x.floor() as i64
+}
+
+// ─── Split degrees ────────────────────────────────────────────────────────────
+
+/// Split a decimal degree value into degrees, minutes, seconds, fraction, sign.
+///
+/// Returns `(deg, min, sec, sec_fraction, sign)` where `sign` is +1 or −1,
+/// or a zodiac sign number (1–12) when `SPLIT_DEG_ZODIACAL` is set in `round_flag`.
+pub fn split_deg(deg: f64, round_flag: i32) -> (i32, i32, i32, f64, i32) {
+    use crate::constants::SPLIT_DEG_ZODIACAL;
+    let sign = if deg < 0.0 { -1i32 } else { 1i32 };
+    let abs = deg.abs();
+    // Total arcseconds
+    let total_sec = abs * 3600.0;
+    let (d, m, s, frac) = if round_flag & 1 != 0 {
+        // Round to nearest second
+        let rounded = total_sec.round() as i64;
+        let d = (rounded / 3600) as i32;
+        let m = ((rounded % 3600) / 60) as i32;
+        let s = (rounded % 60) as i32;
+        (d, m, s, 0.0_f64)
+    } else {
+        let d = total_sec as i64 / 3600;
+        let rem = total_sec - d as f64 * 3600.0;
+        let m_i = rem as i64 / 60;
+        let s_f = rem - m_i as f64 * 60.0;
+        let s = s_f.floor() as i32;
+        (d as i32, m_i as i32, s, s_f - s as f64)
+    };
+    if round_flag & SPLIT_DEG_ZODIACAL != 0 {
+        let sign_num = d / 30; // 0-indexed: 0=Aries, 1=Taurus, ..., 4=Leo
+        let d_in_sign = d % 30;
+        (d_in_sign, m, s, frac, sign_num)
+    } else {
+        (d, m, s, frac, sign)
+    }
+}

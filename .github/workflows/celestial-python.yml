@@ -1,0 +1,242 @@
+# ─── celestial-python pipeline ────────────────────────────────────────────────────
+#
+# Triggers: changes to bindings/python/ or core/
+# Jobs:
+#   lint-rs  → cargo clippy on the PyO3 binding (.rs files only)
+#   lint-py  → black + isort + ruff on Python files only (.py files only)
+#   test     → pytest pure_logic_test.py (no compiled extension needed)
+#   fuzz     → TestFuzzingBoundary + randomised full suite (no extension needed)
+#   build    → maturin build wheel + full test suite — matrix: Python 3.12 × 3 OS
+#
+# Scope guarantee:
+#   lint-rs installs NO Python tooling and touches NO .py files.
+#   lint-py installs NO Rust tooling and touches NO .rs files.
+#   They run in parallel; a failure in one reports independently of the other.
+
+name: celestial-python
+
+on:
+  push:
+    branches: ["main", "master", "develop"]
+    paths:
+      - "bindings/python/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  pull_request:
+    paths:
+      - "bindings/python/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+concurrency:
+  group: celestial-python-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  # ── Rust side: clippy on the PyO3 binding ─────────────────────────────────
+  # Scope: bindings/python/src/**/*.rs + core/**/*.rs (via --package celestial-py)
+  # Does NOT install Python, does NOT look at .py files.
+  lint-rs:
+    name: clippy (Rust · .rs only)
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bindings/python/target
+          key: ${{ runner.os }}-py-lint-rs-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-py-lint-rs-
+
+      # --package celestial-py scopes clippy to the PyO3 binding and its
+      # dependencies only. Python source files are never read.
+      - name: cargo clippy (Rust files only)
+        run: cargo clippy --package celestial-py -- -D warnings
+
+  # ── Python side: black + isort + ruff on Python files ─────────────────────
+  # Scope: bindings/python/**/*.py
+  # Does NOT install Rust, does NOT look at .rs files.
+  lint-py:
+    name: black + isort + ruff (Python · .py only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python linters
+        run: pip install black isort ruff
+
+      # Each linter is explicitly scoped to .py files under bindings/python/.
+      # No Rust toolchain is installed; .rs files are never touched.
+      - name: black --check (Python files only)
+        run: |
+          black --check --line-length 88 \
+            bindings/python/python/
+
+      - name: isort --check (Python files only)
+        run: |
+          isort --check --profile black \
+            bindings/python/python/
+
+      - name: ruff check (Python files only)
+        run: |
+          ruff check \
+            bindings/python/python/
+
+  # ── Pure-logic tests (no compiled extension needed) ────────────────────────
+  test:
+    name: pytest pure-logic (Python ${{ matrix.python }})
+    needs: [lint-rs, lint-py]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: pytest pure_logic_test.py
+        run: |
+          python3 -m pytest \
+            bindings/python/python/celestial_py/tests/pure_logic_test.py \
+            -v --tb=short
+
+  # ── Pure-logic fuzz / property tests ──────────────────────────────────────
+  # Mirrors the Rust fuzz job: runs TestFuzzingBoundary (adversarial inputs,
+  # roundtrip loops, range invariants) plus the full suite with randomised
+  # test order to catch order-dependent failures.
+  # No compiled extension required — pure Python only.
+  fuzz:
+    name: property & boundary tests
+    needs: [lint-rs, lint-py]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pytest + randomiser
+        run: pip install pytest pytest-randomly
+
+      - name: Boundary / adversarial tests (TestFuzzingBoundary)
+        run: |
+          python3 -m pytest \
+            bindings/python/python/celestial_py/tests/pure_logic_test.py::TestFuzzingBoundary \
+            -v --tb=short
+
+      - name: Full suite with randomised order (seed logged for replay)
+        run: |
+          python3 -m pytest \
+            bindings/python/python/celestial_py/tests/pure_logic_test.py \
+            -p randomly --randomly-seed=last \
+            -v --tb=short
+
+
+  # ── Build wheel + full test suite ─────────────────────────────────────────
+  build:
+    name: wheel (Python ${{ matrix.python }}, ${{ matrix.os }})
+    needs: [lint-rs, lint-py, test, fuzz]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.12"]
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bindings/python/target
+          key: ${{ runner.os }}-py312-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-py312-
+
+      - name: Install maturin and pytest
+        run: pip install maturin pytest
+
+      # --out dist/ is a relative path inside bindings/python — works on all OSes
+      # with no OS-specific temp directory quoting issues.
+      - name: Build wheel
+        run: maturin build --release --out dist/
+        working-directory: bindings/python
+
+      - name: Install wheel
+        working-directory: bindings/python
+        run: |
+          WHL=$(find dist/ -name "*.whl" | sort | tail -1)
+          if [ -z "$WHL" ]; then
+            echo "ERROR: maturin build produced no wheel in dist/"
+            ls -la dist/ || true
+            exit 1
+          fi
+          echo "Installing: $WHL"
+          pip install "$WHL"
+
+      - name: Copy compiled extension into source tree
+        # pytest loads python/celestial_py/__init__.py from the local source tree.
+        # The compiled _celestial_py.so must be co-located so the import resolves.
+        shell: python
+        run: |
+          import glob, site, shutil, pathlib, sys
+          dest_dir = pathlib.Path("bindings/python/python/celestial_py")
+          dest_dir.mkdir(parents=True, exist_ok=True)
+          for sp in site.getsitepackages():
+              for ext in glob.glob(f"{sp}/celestial_py/_celestial_py*"):
+                  dest = dest_dir / pathlib.Path(ext).name
+                  shutil.copy(ext, dest)
+                  print(f"Copied {ext} -> {dest}")
+                  sys.exit(0)
+          print("ERROR: could not find compiled _celestial_py extension in site-packages")
+          sys.exit(1)
+
+      - name: Run full test suite
+        run: python3 -m pytest python/celestial_py/tests/ -v --tb=short
+        working-directory: bindings/python
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: celestial-py312-${{ runner.os }}
+          path: bindings/python/dist/*.whl
+          if-no-files-found: warn
+          retention-days: 7

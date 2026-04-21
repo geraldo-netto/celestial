@@ -1,0 +1,115 @@
+# ─── celestial-core pipeline ──────────────────────────────────────────────────────
+#
+# Triggers: any change to core/, fuzz/, Cargo.toml, Cargo.lock, rustfmt.toml
+# Jobs (parallel):
+#   lint    → cargo fmt --check + cargo clippy -D warnings
+#   test    → cargo test --package celestial-core (549 tests)
+#   fuzz    → cargo run --manifest-path fuzz/Cargo.toml (32 property suites)
+
+name: celestial-core
+
+on:
+  push:
+    branches: ["main", "master", "develop"]
+    paths:
+      - "core/**"
+      - "fuzz/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rustfmt.toml"
+  pull_request:
+    paths:
+      - "core/**"
+      - "fuzz/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rustfmt.toml"
+
+concurrency:
+  group: celestial-core-${{ github.ref }}
+  cancel-in-progress: true
+
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  lint:
+    name: fmt & clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-core-lint-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-core-lint-
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: |
+          cargo clippy \
+            --package celestial-core \
+            -- -D warnings
+
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-core-test-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-core-test-
+
+      - name: cargo test
+        run: |
+          cargo test \
+            --package celestial-core \
+            -- --test-threads=1
+
+  fuzz:
+    name: property tests
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-core-fuzz-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-core-fuzz-
+
+      - name: Run property-test suites
+        run: cargo run --manifest-path fuzz/Cargo.toml

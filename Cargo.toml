@@ -1,0 +1,19 @@
+[workspace]
+members  = ["core", "bindings/python", "bindings/js", "fuzz", "cli"]
+resolver = "2"
+
+[workspace.package]
+version  = "0.1.0"
+edition  = "2021"
+license  = "AGPL-3.0-or-later"
+authors  = ["geraldo-netto"]
+
+[workspace.dependencies]
+pyo3         = { version = "0.21", features = ["extension-module"] }
+napi         = { version = "2", features = ["napi4"] }
+napi-derive  = "2"
+
+# Pin unicode-segmentation to a version compatible with Rust 1.75
+[workspace.dependencies.unicode-segmentation]
+version = "=1.11.0"
+

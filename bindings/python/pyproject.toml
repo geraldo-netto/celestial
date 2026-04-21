@@ -1,0 +1,35 @@
+[build-system]
+requires      = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name            = "celestial-py"
+version         = "0.1.0"
+description     = "Python bindings for the Swiss Ephemeris (Rust/PyO3)"
+license         = { text = "AGPL-3.0" }
+requires-python = ">=3.8"
+classifiers     = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov"]
+
+[tool.maturin]
+features        = ["pyo3/extension-module"]
+python-source   = "python"
+module-name     = "celestial_py._celestial_py"
+
+[tool.pytest.ini_options]
+# Do not add local source dirs to sys.path — use the installed wheel instead.
+pythonpath = []
+
+[tool.black]
+line-length = 88
+target-version = ["py38", "py39", "py310", "py311", "py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88

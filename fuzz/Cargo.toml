@@ -1,0 +1,12 @@
+[package]
+name    = "celestial-fuzz"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[dependencies]
+celestial-core = { path = "../core" }
+
+[[bin]]
+name = "run_prop_tests"
+path = "src/main.rs"

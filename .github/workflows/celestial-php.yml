@@ -1,0 +1,193 @@
+# ─── celestial-php pipeline ───────────────────────────────────────────────────────
+#
+# Triggers: changes to bindings/php/ or core/
+# Jobs:
+#   lint-rs          → cargo clippy on the PHP binding ONLY (.rs files only)
+#   test             → php pure_logic_test.php (after build, ubuntu only)
+#   fuzz             → adversarial inputs on the pure-logic functions
+#   build            → cargo build --release + upload .so (matrix: PHP 8.1)
+#
+# Scope guarantee:
+#   lint-rs runs `cargo clippy` from bindings/php/ — the PHP binding has its
+#   own [workspace] (separate from the root workspace), so cargo only sees
+#   celestial-php and its dependency celestial-core. No other crates are checked.
+#   PHP dev headers are required in both jobs because ext-php-rs needs them
+#   to compile the Rust crate at all.
+
+name: celestial-php
+
+on:
+  push:
+    branches: ["main", "master", "develop"]
+    paths:
+      - "bindings/php/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  pull_request:
+    paths:
+      - "bindings/php/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+concurrency:
+  group: celestial-php-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  # ── Rust side: clippy scoped to the PHP binding only ───────────────────────
+  # ext-php-rs requires PHP dev headers to compile, so setup-php is necessary.
+  # Scope: bindings/php/src/**/*.rs + core/**/*.rs (via --manifest-path)
+  # Does NOT run any PHP linter — PHP has no standard linter in this project.
+  lint-rs:
+    name: clippy (Rust · celestial-php only)
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install PHP dev headers (required by ext-php-rs to compile)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: none
+          coverage: none
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bindings/php/target
+          key: ${{ runner.os }}-php-lint-rs-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-php-lint-rs-
+
+      # The PHP binding has its own [workspace] in bindings/php/Cargo.toml
+      # The PHP binding is a standalone workspace (bindings/php/Cargo.toml
+      # has its own [workspace] section, separate from the root).
+      # Use --manifest-path so cargo finds the right Cargo.toml regardless
+      # of the current directory, and avoid any --package flag entirely.
+      - name: cargo clippy
+        run: cargo clippy --manifest-path bindings/php/Cargo.toml -- -D warnings
+
+  # ── Build + run PHP pure-logic test suite ─────────────────────────────────
+  build:
+    name: build & test PHP ${{ matrix.php }}
+    needs: [lint-rs]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.1"]
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php }} with dev headers
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bindings/php/target
+          key: ${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-php${{ matrix.php }}-
+
+      - name: cargo build --release
+        run: cargo build --release
+        working-directory: bindings/php
+
+      - name: Verify .so was produced
+        run: ls -lh target/release/libcelestial.so
+        working-directory: bindings/php
+
+      - name: Run pure-logic tests
+        run: |
+          php -d extension=target/release/libcelestial.so \
+              tests/pure_logic_test.php
+        working-directory: bindings/php
+
+      - name: Upload .so artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: celestial-php${{ matrix.php }}-linux
+          path: bindings/php/target/release/libcelestial.so
+          retention-days: 7
+
+  # ── Fuzz / boundary tests ─────────────────────────────────────────────────
+  # Builds the extension (PHP needs the .so) then runs the pure-logic test
+  # suite multiple times to check for non-determinism, plus exercises the
+  # math functions with adversarial inputs (large values, boundary edge cases).
+  fuzz:
+    name: boundary tests PHP ${{ matrix.php }}
+    needs: [lint-rs]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.1"]
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bindings/php/target
+          key: ${{ runner.os }}-php${{ matrix.php }}-fuzz-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-php${{ matrix.php }}-fuzz-
+
+      - name: cargo build --release
+        run: cargo build --release
+        working-directory: bindings/php
+
+      - name: Run pure-logic suite 3 times
+        run: |
+          for run in 1 2 3; do
+            echo "--- run $run/3 ---"
+            php -d extension=target/release/libcelestial.so \
+                tests/pure_logic_test.php
+          done
+        working-directory: bindings/php
+
+      - name: Adversarial boundary inputs
+        run: |
+          php -d extension=target/release/libcelestial.so \
+              tests/fuzz_boundary.php
+        working-directory: bindings/php
+

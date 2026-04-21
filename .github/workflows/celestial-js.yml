@@ -1,0 +1,202 @@
+# ─── celestial-js pipeline ────────────────────────────────────────────────────────
+#
+# Triggers: changes to bindings/js/ or core/
+# Jobs:
+#   lint-rs  → cargo clippy on the Rust binding (celestial-js crate)
+#   lint-ts  → prettier --check + tsc --noEmit on the TS side
+#   test     → node pure_logic.test.mjs (no compiled addon, runs on all Node versions)
+#   fuzz     → fuzzing describe block + randomised runs across 5 seeds
+#   build    → napi build (.node addon) — matrix: Node 22 × 3 OS
+#
+# Separation rationale:
+#   lint-rs and lint-ts are independent tools checking different file types.
+#   Keeping them in separate jobs means a Prettier failure doesn't block clippy
+#   and a clippy failure doesn't block Prettier — both report simultaneously,
+#   and test/build only wait for both to pass.
+
+name: celestial-js
+
+on:
+  push:
+    branches: ["main", "master", "develop"]
+    paths:
+      - "bindings/js/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  pull_request:
+    paths:
+      - "bindings/js/**"
+      - "core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+concurrency:
+  group: celestial-js-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  # ── Rust side: clippy on the napi-rs binding ───────────────────────────────
+  lint-rs:
+    name: clippy (Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bindings/js/target
+          key: ${{ runner.os }}-js-lint-rs-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-js-lint-rs-
+
+      - name: cargo clippy
+        run: cargo clippy --package celestial-js -- -D warnings
+
+  # ── TypeScript / JS side: prettier + tsc ──────────────────────────────────
+  lint-ts:
+    name: prettier & tsc (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: bindings/js/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+        working-directory: bindings/js
+
+      - name: prettier --check
+        # Checks only TS/JS/declaration files — never touches Rust source
+        run: npx prettier --check "tests/**/*.{ts,mjs}" "index.d.ts"
+        working-directory: bindings/js
+
+      - name: tsc --noEmit
+        run: npx tsc --noEmit
+        working-directory: bindings/js
+
+  # ── Pure-logic tests (no compiled addon needed) ────────────────────────────
+  test:
+    name: pure-logic tests (Node ${{ matrix.node }})
+    needs: [lint-rs, lint-ts]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ["22"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: node pure_logic.test.mjs
+        run: node bindings/js/tests/pure_logic.test.mjs
+
+  # ── Fuzz / boundary tests ─────────────────────────────────────────────────
+  # Runs the full pure-logic suite (which includes the "fuzzing: boundary /
+  # adversarial inputs" describe block) five times in sequence.
+  # The boundary block covers: normDeg/normCs with ±1e308, splitDeg minute/
+  # second invariants, diffDegSigned range [-180,+180], and 500 random
+  # julDay↔revJul round-trips.  Repeated runs catch V8 JIT-related flakiness.
+  fuzz:
+    name: boundary & adversarial tests
+    needs: [lint-rs, lint-ts]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run boundary suite 5 times
+        run: |
+          for run in 1 2 3 4 5; do
+            echo "--- run $run/5 ---"
+            node bindings/js/tests/pure_logic.test.mjs
+          done
+
+
+  # ── napi build: compiled .node addon ──────────────────────────────────────
+  build:
+    name: napi build (Node ${{ matrix.node }}, ${{ matrix.os }})
+    needs: [lint-rs, lint-ts, test, fuzz]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ["22"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: bindings/js/package-lock.json
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bindings/js/target
+          key: ${{ runner.os }}-js-node${{ matrix.node }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-js-node${{ matrix.node }}-
+
+      - name: npm ci
+        run: npm ci
+        working-directory: bindings/js
+
+      - name: napi build (release)
+        run: npx napi build --platform --release
+        working-directory: bindings/js
+
+      - name: Run integration tests against compiled addon
+        working-directory: bindings/js
+        shell: bash
+        run: |
+          # The test file guards all ephe-dependent tests with describeEphe (skipped
+          # when SWISSEPH_EPHE_PATH is unset) and all addon-dependent tests with
+          # describeModule (skipped when require("../index") throws).
+          # A missing addon → all 30 tests skipped, 0 failed → exit 0.
+          # A compiled addon with test failures → exit 1 (hard failure).
+          if [ -f *.node ]; then
+            echo "Addon found — running full integration test suite"
+            npx jest tests/celestial.test.ts --testTimeout=30000
+          else
+            echo "No compiled addon found — skipping integration tests"
+            echo "  (build the addon with 'npm run build' to run them)"
+          fi
+        # No continue-on-error — failures are real and must fail the job
+
+      - name: Upload .node artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: celestial-js-${{ runner.os }}-node${{ matrix.node }}
+          path: bindings/js/*.node
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,15 @@
+[package]
+name        = "celestial-core"
+version.workspace = true
+edition     = "2021"
+description = "Pure-Rust astronomical engine: planets, houses, ayanamsa, rise/set"
+license     = "AGPL-3.0-or-later"
+repository  = "https://github.com/example/celestial-workspace"
+
+[dependencies]
+
+
+
+[[bench]]
+name    = "celestial_bench"
+harness = false

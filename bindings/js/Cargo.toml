@@ -1,0 +1,17 @@
+[package]
+name        = "celestial-js"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Node.js/TypeScript bindings for Swiss Ephemeris via napi-rs"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+celestial-core = { path = "../../core" }
+napi          = { workspace = true }
+napi-derive   = { workspace = true }
+
+[build-dependencies]
+napi-build = "2"

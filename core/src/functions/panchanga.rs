@@ -1,0 +1,461 @@
+//! Hindu Panchānga — the five elements of the traditional Hindu almanac.
+//!
+//! The five elements (Pancha = five, Anga = limb) are:
+//! 1. **Tithi** — lunar day (1–30), each 12° of Moon–Sun elongation
+//! 2. **Vara** — weekday (0=Sunday … 6=Saturday)
+//! 3. **Nakshatra** — lunar mansion (0–26), Moon's position in 27 equal segments
+//! 4. **Yoga** — sum of Sun and Moon longitudes / 13.333°, 27 yogas
+//! 5. **Karana** — half-tithi (1–60), each 6° of Moon–Sun elongation
+//!
+//! All calculations use the sidereal (Lahiri) frame, consistent with the
+//! existing `long_to_nakshatra` function.
+//!
+//! # Examples
+//! ```
+//! # use celestial_core::body::Calendar;
+//! use celestial_core::{panchanga, julday};
+//! let jd = julday(2025, 3, 20, 6.0, Calendar::Gregorian);
+//! let p = panchanga(jd);
+//! assert!(p.tithi >= 1 && p.tithi <= 30);
+//! assert!(p.nakshatra <= 26);
+//! ```
+
+use crate::body::{Body, CalcFlags, Calendar};
+use crate::calc_ut;
+
+/// The 30 Tithis in order.
+pub const TITHI_NAMES: [&str; 30] = [
+    "Pratipada",
+    "Dwitiya",
+    "Tritiya",
+    "Chaturthi",
+    "Panchami",
+    "Shashthi",
+    "Saptami",
+    "Ashtami",
+    "Navami",
+    "Dashami",
+    "Ekadashi",
+    "Dwadashi",
+    "Trayodashi",
+    "Chaturdashi",
+    "Purnima", // Shukla 1-15
+    "Pratipada",
+    "Dwitiya",
+    "Tritiya",
+    "Chaturthi",
+    "Panchami",
+    "Shashthi",
+    "Saptami",
+    "Ashtami",
+    "Navami",
+    "Dashami",
+    "Ekadashi",
+    "Dwadashi",
+    "Trayodashi",
+    "Chaturdashi",
+    "Amavasya", // Krishna 1-15
+];
+
+/// The 27 Nakshatras.
+pub const NAKSHATRA_NAMES: [&str; 27] = [
+    "Ashwini",
+    "Bharani",
+    "Krittika",
+    "Rohini",
+    "Mrigashirsha",
+    "Ardra",
+    "Punarvasu",
+    "Pushya",
+    "Ashlesha",
+    "Magha",
+    "Purva Phalguni",
+    "Uttara Phalguni",
+    "Hasta",
+    "Chitra",
+    "Swati",
+    "Vishakha",
+    "Anuradha",
+    "Jyeshtha",
+    "Mula",
+    "Purva Ashadha",
+    "Uttara Ashadha",
+    "Shravana",
+    "Dhanishtha",
+    "Shatabhisha",
+    "Purva Bhadrapada",
+    "Uttara Bhadrapada",
+    "Revati",
+];
+
+/// The 27 Yogas.
+pub const YOGA_NAMES: [&str; 27] = [
+    "Vishkambha",
+    "Priti",
+    "Ayushman",
+    "Saubhagya",
+    "Shobhana",
+    "Atiganda",
+    "Sukarman",
+    "Dhriti",
+    "Shula",
+    "Ganda",
+    "Vriddhi",
+    "Dhruva",
+    "Vyaghata",
+    "Harshana",
+    "Vajra",
+    "Siddhi",
+    "Vyatipata",
+    "Variyana",
+    "Parigha",
+    "Shiva",
+    "Siddha",
+    "Sadhya",
+    "Shubha",
+    "Shukla",
+    "Brahma",
+    "Indra",
+    "Vaidhriti",
+];
+
+/// The 11 Karanas (half-tithis), cycling through 60 karanas total.
+/// The first Karana is fixed (Kimstughna), karanas 2–57 cycle through 7 moveable ones,
+/// and the last 4 are fixed (Shakuni, Chatushpada, Naga, Kishtughna).
+pub const KARANA_NAMES: [&str; 11] = [
+    "Bava",
+    "Balava",
+    "Kaulava",
+    "Taitila",
+    "Garaja",
+    "Vanija",
+    "Vishti (Bhadra)", // 7 moveable
+    "Shakuni",
+    "Chatushpada",
+    "Naga",
+    "Kimstughna", // 4 fixed
+];
+
+/// The 7 Varas (weekdays) starting from Sunday.
+pub const VARA_NAMES: [&str; 7] = [
+    "Ravivara (Sunday)",
+    "Somavara (Monday)",
+    "Mangalavara (Tuesday)",
+    "Budhavara (Wednesday)",
+    "Guruvara (Thursday)",
+    "Shukravara (Friday)",
+    "Shanivara (Saturday)",
+];
+
+/// Whether a Tithi is in the waxing (Shukla) or waning (Krishna) fortnight.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Paksha {
+    /// Waxing moon (Shukla Paksha), Tithis 1–15.
+    Shukla,
+    /// Waning moon (Krishna Paksha), Tithis 16–30.
+    Krishna,
+}
+
+/// Complete Panchānga for a given Julian day.
+#[derive(Debug, Clone)]
+pub struct Panchanga {
+    /// Tithi number (1–30).
+    pub tithi: u8,
+    /// Tithi name.
+    pub tithi_name: &'static str,
+    /// Paksha (Shukla or Krishna fortnight).
+    pub paksha: Paksha,
+    /// Vara (0=Sunday … 6=Saturday).
+    pub vara: u8,
+    /// Vara name.
+    pub vara_name: &'static str,
+    /// Nakshatra (0–26).
+    pub nakshatra: u8,
+    /// Nakshatra name.
+    pub nakshatra_name: &'static str,
+    /// Pada within Nakshatra (1–4).
+    pub nakshatra_pada: u8,
+    /// Yoga number (0–26).
+    pub yoga: u8,
+    /// Yoga name.
+    pub yoga_name: &'static str,
+    /// Karana number (1–60).
+    pub karana: u8,
+    /// Karana name.
+    pub karana_name: &'static str,
+    /// Sun sidereal longitude (degrees).
+    pub sun_lon: f64,
+    /// Moon sidereal longitude (degrees).
+    pub moon_lon: f64,
+    /// Moon–Sun elongation (degrees, 0–360).
+    pub elongation: f64,
+}
+
+use crate::norm_deg;
+
+/// Compute the Karana name for a given karana number (1–60).
+pub fn karana_name(karana: u8) -> &'static str {
+    match karana {
+        1 => "Kimstughna",
+        60 => "Abhijit",
+        k => {
+            let idx = ((k - 2) % 7) as usize;
+            KARANA_NAMES[idx]
+        }
+    }
+}
+
+/// Compute the full Panchānga for a given Julian day.
+///
+/// Uses Lahiri (Chitrapaksha) ayanamsa for sidereal positions.
+pub fn panchanga(jd: f64) -> Panchanga {
+    // Save sidereal mode and set Lahiri
+    crate::set_sid_mode(crate::body::SiderealMode::LAHIRI, 0.0, 0.0);
+    let flags = CalcFlags::BUILTIN | CalcFlags::SIDEREAL | CalcFlags::SPEED;
+
+    let sun = calc_ut(jd, Body::SUN, flags).unwrap_or(crate::PlanetPos {
+        lon: 0.0,
+        lat: 0.0,
+        dist: 0.0,
+        speed_lon: 0.0,
+        speed_lat: 0.0,
+        speed_dist: 0.0,
+        ret_flags: 0,
+    });
+    let moon = calc_ut(jd, Body::MOON, flags).unwrap_or(crate::PlanetPos {
+        lon: 0.0,
+        lat: 0.0,
+        dist: 0.0,
+        speed_lon: 0.0,
+        speed_lat: 0.0,
+        speed_dist: 0.0,
+        ret_flags: 0,
+    });
+
+    let sun_lon = norm_deg(sun.lon);
+    let moon_lon = norm_deg(moon.lon);
+    let elongation = norm_deg(moon_lon - sun_lon);
+
+    // ── Tithi ─────────────────────────────────────────────────────────────
+    let tithi_raw = elongation / 12.0;
+    let tithi = (tithi_raw.floor() as u8 % 30) + 1;
+    let paksha = if tithi <= 15 {
+        Paksha::Shukla
+    } else {
+        Paksha::Krishna
+    };
+
+    // ── Nakshatra ─────────────────────────────────────────────────────────
+    let nak_size = 360.0 / 27.0; // 13.333...°
+    let nak_idx = (moon_lon / nak_size).floor() as u8;
+    let nak_pada_raw = (moon_lon % nak_size) / (nak_size / 4.0);
+    let nak_pada = (nak_pada_raw.floor() as u8) + 1;
+
+    // ── Yoga ──────────────────────────────────────────────────────────────
+    let yoga_sum = norm_deg(sun_lon + moon_lon);
+    let yoga = (yoga_sum / nak_size).floor() as u8 % 27;
+
+    // ── Karana ────────────────────────────────────────────────────────────
+    let karana_raw = elongation / 6.0;
+    let karana = (karana_raw.floor() as u8) + 1; // 1-60
+
+    // ── Vara ──────────────────────────────────────────────────────────────
+    // JD 0.0 = Monday, so day_of_week = (jd + 1.5) % 7, 0=Sunday
+    let vara = ((jd + 1.5) as i64).rem_euclid(7) as u8;
+
+    Panchanga {
+        tithi,
+        tithi_name: TITHI_NAMES[(tithi - 1) as usize],
+        paksha,
+        vara,
+        vara_name: VARA_NAMES[vara as usize],
+        nakshatra: nak_idx,
+        nakshatra_name: NAKSHATRA_NAMES[nak_idx as usize],
+        nakshatra_pada: nak_pada,
+        yoga,
+        yoga_name: YOGA_NAMES[yoga as usize],
+        karana,
+        karana_name: karana_name(karana),
+        sun_lon,
+        moon_lon,
+        elongation,
+    }
+}
+
+/// Major Hindu festivals for a Gregorian year (approximate dates via Tithi/Nakshatra).
+///
+/// Returns a list of (name, gregorian_month, gregorian_day, description).
+/// Note: Hindu festival dates shift year to year; these are algorithmic approximations
+/// based on the Tithi at solar noon for each day. Exact observance may vary by tradition.
+#[derive(Debug, Clone)]
+pub struct HinduFestival {
+    pub name: &'static str,
+    pub description: &'static str,
+    /// Julian day of the festival.
+    pub jd: f64,
+}
+
+/// Scan a Gregorian year and return major Hindu festivals.
+///
+/// Checks each day and identifies festival conditions.
+pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
+    use crate::julday;
+
+    let mut festivals = Vec::new();
+    let start_jd = julday(gregorian_year, 1, 1, 6.0, Calendar::Gregorian);
+    let end_jd = julday(gregorian_year, 12, 31, 6.0, Calendar::Gregorian);
+
+    let mut jd = start_jd;
+    while jd <= end_jd {
+        let p = panchanga(jd);
+
+        // Diwali: Krishna Chaturdashi (tithi 29) in Kartik/Ashwin (Oct/Nov area)
+        // Using Amavasya (tithi 30) in Kartik as Diwali night
+        if p.tithi == 29
+            && p.paksha == Paksha::Krishna
+            && jd > julday(gregorian_year, 10, 1, 0.0, Calendar::Gregorian)
+            && jd < julday(gregorian_year, 12, 1, 0.0, Calendar::Gregorian)
+        {
+            festivals.push(HinduFestival {
+                name: "Naraka Chaturdashi (Choti Diwali)",
+                description: "Eve of Diwali, Krishna Chaturdashi of Kartik",
+                jd,
+            });
+        }
+
+        if p.tithi == 30
+            && p.paksha == Paksha::Krishna
+            && jd > julday(gregorian_year, 10, 1, 0.0, Calendar::Gregorian)
+            && jd < julday(gregorian_year, 12, 1, 0.0, Calendar::Gregorian)
+        {
+            festivals.push(HinduFestival {
+                name: "Diwali (Lakshmi Puja)",
+                description: "Festival of Lights, Amavasya of Kartik",
+                jd,
+            });
+        }
+
+        // Holi: Purnima (Tithi 15) in Phalguna (Feb-Mar)
+        if p.tithi == 15
+            && p.paksha == Paksha::Shukla
+            && jd > julday(gregorian_year, 2, 1, 0.0, Calendar::Gregorian)
+            && jd < julday(gregorian_year, 4, 1, 0.0, Calendar::Gregorian)
+        {
+            festivals.push(HinduFestival {
+                name: "Holi (Holika Dahan)",
+                description: "Festival of Colors, Purnima of Phalguna",
+                jd,
+            });
+        }
+
+        // Maha Shivaratri: Krishna Chaturdashi (tithi 29) in Phalguna (Feb-Mar)
+        if p.tithi == 29
+            && p.paksha == Paksha::Krishna
+            && jd > julday(gregorian_year, 2, 1, 0.0, Calendar::Gregorian)
+            && jd < julday(gregorian_year, 4, 1, 0.0, Calendar::Gregorian)
+        {
+            festivals.push(HinduFestival {
+                name: "Maha Shivaratri",
+                description: "Great Night of Shiva, Krishna Chaturdashi of Phalguna",
+                jd,
+            });
+        }
+
+        // Raksha Bandhan: Shravana Purnima (Tithi 15, Aug area)
+        if p.tithi == 15
+            && p.paksha == Paksha::Shukla
+            && jd > julday(gregorian_year, 7, 15, 0.0, Calendar::Gregorian)
+            && jd < julday(gregorian_year, 9, 15, 0.0, Calendar::Gregorian)
+        {
+            festivals.push(HinduFestival {
+                name: "Raksha Bandhan",
+                description: "Bond of Protection, Purnima of Shravana",
+                jd,
+            });
+        }
+
+        // Janmashtami: Krishna Ashtami (tithi 23) in Bhadrapada (Aug-Sep)
+        if p.tithi == 23
+            && p.paksha == Paksha::Krishna
+            && jd > julday(gregorian_year, 8, 1, 0.0, Calendar::Gregorian)
+            && jd < julday(gregorian_year, 10, 1, 0.0, Calendar::Gregorian)
+        {
+            festivals.push(HinduFestival {
+                name: "Janmashtami (Krishna Jayanti)",
+                description: "Birth of Lord Krishna, Krishna Ashtami of Bhadrapada",
+                jd,
+            });
+        }
+
+        // Navratri (Sharada): Shukla Pratipada (tithi 1) in Ashwin (Sep-Oct)
+        if p.tithi == 1
+            && p.paksha == Paksha::Shukla
+            && jd > julday(gregorian_year, 9, 1, 0.0, Calendar::Gregorian)
+            && jd < julday(gregorian_year, 11, 1, 0.0, Calendar::Gregorian)
+        {
+            festivals.push(HinduFestival {
+                name: "Navratri (Sharada) begins",
+                description: "Nine nights of Goddess Durga, Ashwin Shukla Pratipada",
+                jd,
+            });
+        }
+
+        jd += 1.0;
+    }
+
+    festivals.dedup_by(|a, b| a.name == b.name);
+    festivals
+}
+
+// ─── Tests ────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::julday;
+
+    #[test]
+    fn panchanga_ranges() {
+        let jd = julday(2025, 3, 20, 6.0, Calendar::Gregorian);
+        let p = panchanga(jd);
+        assert!(p.tithi >= 1 && p.tithi <= 30, "tithi={}", p.tithi);
+        assert!(p.nakshatra <= 26, "nak={}", p.nakshatra);
+        assert!(p.yoga <= 26, "yoga={}", p.yoga);
+        assert!(p.vara <= 6, "vara={}", p.vara);
+        assert!(p.karana >= 1 && p.karana <= 60, "karana={}", p.karana);
+        assert!(p.elongation >= 0.0 && p.elongation < 360.0);
+    }
+
+    #[test]
+    fn panchanga_full_moon() {
+        // At full moon, elongation ≈ 180°, tithi should be ~15 (Purnima)
+        let jd = julday(2025, 1, 13, 22.0, Calendar::Gregorian); // Full moon Jan 13, 2025
+        let p = panchanga(jd);
+        // Elongation near 180°
+        assert!(
+            p.elongation > 140.0 && p.elongation < 220.0,
+            "elongation={}",
+            p.elongation
+        );
+        assert!(
+            p.paksha == Paksha::Shukla || p.tithi >= 14,
+            "tithi={}",
+            p.tithi
+        );
+    }
+
+    #[test]
+    fn tithi_names_count() {
+        assert_eq!(TITHI_NAMES.len(), 30);
+        assert_eq!(NAKSHATRA_NAMES.len(), 27);
+        assert_eq!(YOGA_NAMES.len(), 27);
+    }
+
+    #[test]
+    fn vara_sunday_known() {
+        // J2000.0 = Jan 1.5, 2000 = Saturday
+        let jd = 2_451_545.0;
+        let p = panchanga(jd);
+        assert_eq!(p.vara, 6, "J2000 should be Saturday (6)");
+    }
+}

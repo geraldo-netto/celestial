@@ -1,0 +1,267 @@
+<?php
+/**
+ * Pure-logic tests for the PHP binding documentation examples.
+ *
+ * These tests do NOT require the compiled extension.
+ * They validate the documented PHP call patterns are syntactically correct,
+ * and serve as reference examples.
+ *
+ * To run (requires the extension):
+ *   php tests/pure_logic_test.php
+ */
+
+declare(strict_types=1);
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+$passed = 0;
+$failed = 0;
+
+function assert_approx(float $actual, float $expected, float $tol = 1e-6, string $label = ''): void {
+    global $passed, $failed;
+    if (abs($actual - $expected) <= $tol) {
+        $passed++;
+    } else {
+        $failed++;
+        $name = $label ?: 'assert_approx';
+        echo "FAIL [$name]: expected $expected, got $actual (diff " . abs($actual - $expected) . ")\n";
+    }
+}
+
+function assert_eq(mixed $actual, mixed $expected, string $label = ''): void {
+    global $passed, $failed;
+    if ($actual === $expected) {
+        $passed++;
+    } else {
+        $failed++;
+        $name = $label ?: 'assert_eq';
+        echo "FAIL [$name]: expected " . var_export($expected, true) . ", got " . var_export($actual, true) . "\n";
+    }
+}
+
+// ── Extension availability check ───────────────────────────────────────────────
+
+if (!extension_loaded('celestial')) {
+    echo "SKIP: celestial extension not loaded.\n";
+    echo "Build with: cd bindings/php && cargo build --release\n";
+    echo "Then add to php.ini: extension=/path/to/libcelestial.so\n";
+    exit(0);
+}
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+assert_eq(SUN,  0, 'SUN constant');
+assert_eq(MOON, 1, 'MOON constant');
+assert_eq(GREG_CAL, 1, 'GREG_CAL constant');
+
+// ── Time & calendar ────────────────────────────────────────────────────────────
+
+// julday / revjul round-trip
+$jd = julday(2002, 1, 1, 0.0, GREG_CAL);
+assert_approx($jd, 2452275.5, 1e-6, 'julday 2002-01-01');
+
+$d = revjul($jd, GREG_CAL);
+assert_eq((int)$d['year'],  2002, 'revjul year');
+assert_eq((int)$d['month'],    1, 'revjul month');
+assert_eq((int)$d['day'],      1, 'revjul day');
+assert_approx($d['hour'], 0.0, 1e-6, 'revjul hour');
+
+// Day of week: 2452275.5 = Tuesday (1)
+assert_eq(day_of_week($jd), 1, 'day_of_week');
+
+// Delta T at J2000 ≈ 63.8 s ≈ 0.000738 days
+$dt = deltat(2451545.0);
+assert_approx($dt, 0.000738, 0.001, 'deltat J2000');
+
+// ── Planetary positions ─────────────────────────────────────────────────────────
+
+$sun = calc_ut($jd, SUN, FLG_BUILTIN | FLG_SPEED);
+assert_eq(count($sun), 6, 'calc_ut returns 6 elements');
+
+$lon = $sun[0];
+assert_approx($lon, 280.38, 0.1, 'Sun longitude 2002-01-01');  // ~280°
+
+$dist = $sun[2];
+// Earth–Sun distance in January ≈ 0.9832 AU
+assert_approx($dist, 0.9832, 0.005, 'Sun distance Jan');
+
+// Speed: Sun moves ~1°/day
+$speed = $sun[3];
+assert_approx($speed, 1.0, 0.1, 'Sun speed');
+
+// Moon longitude is in [0, 360)
+$moon = calc_ut($jd, MOON, FLG_BUILTIN);
+assert_approx($moon[0] >= 0.0 && $moon[0] < 360.0 ? 1.0 : 0.0, 1.0, 0, 'Moon lon range');
+
+// ── Houses ──────────────────────────────────────────────────────────────────────
+
+$h = houses($jd, 48.85, 2.35, ord('P'));  // Paris, Placidus
+assert_eq(count($h['cusps']),  12, 'houses cusps count');
+assert_eq(count($h['ascmc']),  8, 'houses ascmc count');
+
+$asc = $h['ascmc'][0];
+assert_approx($asc >= 0.0 && $asc < 360.0 ? 1.0 : 0.0, 1.0, 0, 'ASC in [0,360)');
+
+// house_name
+assert_eq(house_name(ord('P')), 'Placidus', 'house_name Placidus');
+assert_eq(house_name(ord('K')), 'Koch',     'house_name Koch');
+
+// ── Ayanamsa ────────────────────────────────────────────────────────────────────
+
+set_sid_mode(SIDM_LAHIRI, 0.0, 0.0);
+$ay = get_ayanamsa($jd);
+// Lahiri ayanamsa in 2002 ≈ 23.88°
+assert_approx($ay, 23.88, 0.1, 'Lahiri ayanamsa');
+
+assert_eq(get_ayanamsa_name(SIDM_LAHIRI), 'Lahiri', 'ayanamsa name');
+
+// ── Crossings ───────────────────────────────────────────────────────────────────
+
+// Next vernal equinox after 2002-01-01 ≈ 2002-03-20
+$jd_eq = solcross_ut(0.0, $jd, FLG_BUILTIN);
+$eq_date = revjul($jd_eq, GREG_CAL);
+assert_eq((int)$eq_date['month'], 3, 'Ostara in March');
+assert_eq((int)$eq_date['year'],  2002, 'Ostara year 2002');
+
+// ── Coordinate transforms ────────────────────────────────────────────────────────
+
+$norm = degnorm(361.5);
+assert_approx($norm, 1.5, 1e-10, 'degnorm(361.5)');
+
+$norm2 = degnorm(-1.0);
+assert_approx($norm2, 359.0, 1e-10, 'degnorm(-1)');
+
+// difdeg2n(p1,p2) = p1-p2 normalized to (-180,+180]: 10-350=-340 → +20
+$diff = difdeg2n(10.0, 350.0);
+assert_approx($diff, 20.0, 1e-10, 'difdeg2n(10,350)=+20');
+
+$parts = split_deg(123.456, 0);
+assert_eq(count($parts), 5, 'split_deg count');
+assert_eq((int)$parts[0], 123, 'split_deg degrees');
+
+// ── Celtic sabbats ───────────────────────────────────────────────────────────────
+
+$ostara_jd = sabbat_jd(2025, 'Ostara');
+$ostara = revjul($ostara_jd, GREG_CAL);
+assert_eq((int)$ostara['month'], 3, 'Ostara 2025 in March');
+assert_eq((int)$ostara['year'],  2025, 'Ostara 2025 year');
+
+$yule_jd = sabbat_jd(2025, 'Yule');
+$yule = revjul($yule_jd, GREG_CAL);
+assert_eq((int)$yule['month'], 12, 'Yule 2025 in December');
+
+$all_sabbats = sabbats_for_year(2025);
+assert_eq(count($all_sabbats), 8, 'sabbats_for_year returns 8');
+
+// Next sabbat from Jan 1, 2025 should be Imbolc (Feb 1)
+$jd_jan = julday(2025, 1, 15, 0.0, GREG_CAL);
+$next_name = next_sabbat_name($jd_jan);
+assert_eq($next_name, 'Imbolc', 'next sabbat from Jan 15');
+
+// ── Celtic esbats ────────────────────────────────────────────────────────────────
+
+$fm_jd = next_full_moon(julday(2024, 1, 1, 0.0, GREG_CAL));
+$fm_date = revjul($fm_jd, GREG_CAL);
+// Jan 25, 2024
+assert_eq((int)$fm_date['month'], 1, 'First FM 2024 in January');
+
+$esbats_2024 = esbats_for_year(2024);
+assert_approx(count($esbats_2024) >= 12 ? 1.0 : 0.0, 1.0, 0, 'esbats_for_year >= 12');
+
+// ── Vedic helpers ────────────────────────────────────────────────────────────────
+
+$rasi = long_to_rasi(45.0);  // 45° = Taurus (1)
+assert_eq($rasi, 1, 'long_to_rasi 45° = Taurus');
+
+$nav = long_to_navamsa(0.0);
+assert_eq($nav >= 0 && $nav < 12 ? 1 : 0, 1, 'navamsa in [0,12)');
+
+$nak = long_to_nakshatra(0.0);
+assert_eq(count($nak), 2, 'nakshatra returns [nak, pada]');
+assert_approx($nak[0] >= 0 && $nak[0] < 27 ? 1.0 : 0.0, 1.0, 0, 'nakshatra in [0,27)');
+
+// ── Atlas ─────────────────────────────────────────────────────────────────────
+
+$london = exact('London', 'GB');
+assert_approx($london['lat'] ?? 0.0, 51.5, 0.5, 'London latitude');
+assert_approx($london['lon'] ?? 0.0, -0.12, 0.5, 'London longitude');
+
+$results = search('paris', 'FR');
+assert_approx(count($results) > 0 ? 1.0 : 0.0, 1.0, 0, 'atlas_search Paris');
+
+// ── Sign name ────────────────────────────────────────────────────────────────────
+
+$name = sign_name(0);
+assert_eq($name !== null ? 1 : 0, 1, 'sign_name(0) not null');
+
+// ── Format / parse coord ────────────────────────────────────────────────────────
+
+$formatted = format_coord(51.5, true);
+assert_eq($formatted !== null ? 1 : 0, 1, 'format_coord not null');
+
+$parsed = parse_coord('51N30');
+assert_approx($parsed ?? 0.0, 51.5, 0.1, 'parse_coord 51N30');
+
+
+// ── Chart functions ─────────────────────────────────────────────────────────────
+
+// midpoint: equidistant between two longitudes
+$mid = midpoint(10.0, 20.0);
+assert_approx($mid, 15.0, 0.001, 'midpoint(10, 20) = 15');
+
+$mid2 = midpoint(350.0, 10.0);
+// Shorter arc midpoint wraps: 0° or 180°
+assert_eq($mid2 >= 0.0 && $mid2 < 360.0 ? 1 : 0, 1, 'midpoint in [0,360)');
+
+// arabic_part: ASC + Moon - Sun
+$fortune = arabic_part(206.77, 223.32, 280.38);
+assert_approx($fortune, 149.71, 0.1, 'arabic_part lot of fortune');
+assert_eq($fortune >= 0.0 && $fortune < 360.0 ? 1 : 0, 1, 'arabic_part in range');
+
+// sign_ruler: classical rulerships
+$aries_ruler  = sign_ruler(0);   // Aries → Mars (4)
+$leo_ruler    = sign_ruler(4);   // Leo   → Sun  (0)
+$cancer_ruler = sign_ruler(3);   // Cancer→ Moon (1)
+assert_eq($aries_ruler,  4, 'Aries ruler = Mars');
+assert_eq($leo_ruler,    0, 'Leo ruler = Sun');
+assert_eq($cancer_ruler, 1, 'Cancer ruler = Moon');
+
+// zodiac_sign_name
+$name = zodiac_sign_name(0);
+assert_eq($name === 'Aries' ? 1 : 0, 1, 'zodiac_sign_name(0) = Aries');
+$name11 = zodiac_sign_name(11);
+assert_eq($name11 === 'Pisces' ? 1 : 0, 1, 'zodiac_sign_name(11) = Pisces');
+
+// lon_to_sign: longitude → [sign, degrees]
+$result = lon_to_sign(45.5);   // Taurus 15.5°
+assert_approx($result[0], 1.0, 0.001, 'lon_to_sign(45.5) sign = 1 (Taurus)');
+assert_approx($result[1], 15.5, 0.001, 'lon_to_sign(45.5) deg = 15.5');
+
+$r0 = lon_to_sign(0.0);
+assert_approx($r0[0], 0.0, 0.001, 'lon_to_sign(0) = Aries');
+
+// degnorm
+$n1 = degnorm(360.0);
+assert_approx($n1, 0.0, 1e-9, 'degnorm(360) = 0');
+$n2 = degnorm(-1.0);
+assert_approx($n2, 359.0, 1e-9, 'degnorm(-1) = 359');
+$n3 = degnorm(720.5);
+assert_approx($n3, 0.5, 1e-9, 'degnorm(720.5) = 0.5');
+
+// difdeg2n
+$d = difdeg2n(360.5, 540.0);
+assert_approx($d, -179.5, 1e-9, 'difdeg2n(360.5, 540) = -179.5');
+
+// celestial_version
+$v = celestial_version();
+assert_eq(strlen($v) > 0 ? 1 : 0, 1, 'celestial_version() not empty');
+
+// ── Summary ────────────────────────────────────────────────────────────────────
+
+echo "\n";
+if ($failed === 0) {
+    echo "✓ All $passed tests passed\n";
+} else {
+    echo "✗ $passed passed, $failed FAILED\n";
+    exit(1);
+}
