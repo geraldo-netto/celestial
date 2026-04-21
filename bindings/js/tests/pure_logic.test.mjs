@@ -44,7 +44,7 @@ function expect(val) {
         throw new Error(`Expected ${exp} ± ${tol}, got ${val} (diff ${Math.abs(val - exp)})`);
     },
     toThrow: () => {
-      throw new Error("Use expectThrows()");
+      throw new Error("Use _expectThrows()");
     },
     toHaveLength: (n) => {
       if (val.length !== n) throw new Error(`Expected length ${n}, got ${val.length}`);
@@ -65,11 +65,11 @@ function expect(val) {
   };
 }
 
-function expectThrows(fn, msgPart = "") {
+function _expectThrows(fn, msgPart = "") {
   let threw = false;
   try {
     fn();
-  } catch (e) {
+  } catch {
     threw = true;
   }
   if (!threw) throw new Error(`Expected throw${msgPart ? ` containing "${msgPart}"` : ""}`);
@@ -641,7 +641,7 @@ describe("lonToSign", () => {
     return [Math.floor(l / 30), l % 30];
   }
 
-  const signNames = [
+  const _signNames = [
     "Aries",
     "Taurus",
     "Gemini",
@@ -790,7 +790,7 @@ test("jewish: 5785 is not a leap year", () => {
 
 test("jewish: Shavuot is 49 days after Passover (Sivan 6)", () => {
   // 15 Nisan + 50 days = 5 Sivan + 1 = 6 Sivan
-  const passoverDay = 15;
+  const _passoverDay = 15;
   const shavuotDay = 6;
   const shavuotMonth = 3; // Sivan
   expect(shavuotDay).toBe(6);
@@ -832,7 +832,7 @@ test("easter: 2024 = March 31", () => {
 test("easter: Ash Wednesday is 46 days before Easter", () => {
   const e = easterGregorianPure(2025); // Easter Apr 20
   // Apr 20 - 46 days = Mar 5
-  const easterJd = e.day + (e.month === 4 ? 31 + 28 + 31 : 0); // approx
+  const _easterJd = e.day + (e.month === 4 ? 31 + 28 + 31 : 0); // approx
   expect(46).toBe(46); // structural
 });
 
@@ -861,7 +861,7 @@ function isHijriLeap(year) {
   return (11 * year + 14) % 30 < 11;
 }
 
-function hijriNewYearJd(year) {
+function _hijriNewYearJd(year) {
   return HIJRI_EPOCH + (year - 1) * 354 + Math.floor((11 * year + 3) / 30);
 }
 

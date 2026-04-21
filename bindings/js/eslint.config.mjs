@@ -1,8 +1,6 @@
 // eslint.config.mjs — ESLint configuration for celestial-js
-// Targets: tests/*.mjs (pure-logic runner) and tests/*.ts (integration tests)
-// Focus: real bugs (no-undef, no-unused-vars, no-unreachable, etc.)
-// Formatting rules are intentionally excluded (prettier handles formatting,
-// and we don't enforce it in CI).
+// Focus: real bugs (no-undef, no-unused-vars, etc.)
+// Formatting rules are intentionally excluded.
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
@@ -14,22 +12,29 @@ export default tseslint.config(
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
+      // pure_logic.test.mjs runs in Node.js — add standard Node globals
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        Buffer: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+      },
     },
     rules: {
-      // Bugs
-      "no-undef":           "error",
-      "no-unreachable":     "error",
-      "no-unused-vars":     ["error", { argsIgnorePattern: "^_" }],
+      "no-undef": "error",
+      "no-unreachable": "error",
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "no-constant-condition": "error",
-      "no-duplicate-case":  "error",
-      "use-isnan":          "error",
-      // Style rules intentionally off — we only want bug-catching
-      "no-console":         "off",
+      "no-duplicate-case": "error",
+      "use-isnan": "error",
+      "no-console": "off",
     },
   },
 
   // ── TypeScript files (.ts) ────────────────────────────────────────────────
-  // tsc handles type safety; eslint adds logic-level checks on top.
   {
     files: ["tests/**/*.ts"],
     extends: tseslint.configs.recommendedTypeChecked,
@@ -41,15 +46,18 @@ export default tseslint.config(
       },
     },
     rules: {
-      // Keep only rules that catch real bugs, not style
-      "@typescript-eslint/no-explicit-any":    "off",  // native addon returns any
-      "@typescript-eslint/no-floating-promises":"error",
-      "@typescript-eslint/no-unsafe-assignment":"off",  // addon interop
-      "@typescript-eslint/no-unsafe-call":     "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
-      "no-unreachable":                        "error",
-      "no-unused-vars":                        "off",   // tsc catches this
-      "@typescript-eslint/no-unused-vars":     ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-require-imports": "off", // native addon needs require()
+      "no-unreachable": "error",
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
     },
-  }
+  },
 );
