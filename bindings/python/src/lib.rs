@@ -1148,7 +1148,7 @@ fn omer_declaration(day: i32) -> String {
 
 // ─── Module registration ──────────────────────────────────────────────────────
 
-/// Register the `celestial_py` Python extension module.
+// Register the `celestial_py` Python extension module.
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Phase 5–8 bindings: Hellenistic, Persian, Chinese, Mesoamerican, Indigenous
