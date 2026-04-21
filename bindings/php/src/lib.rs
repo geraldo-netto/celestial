@@ -190,9 +190,6 @@ pub fn calc(tjdet: f64, planet: i64, flags: i64) -> PhpResult<Vec<f64>> {
     ])
 }
 
-/// Planetocentric position (position relative to a center body).
-#[php_function]
-
 /// Nutation in longitude and obliquity (degrees) at a JDE (TT).
 /// Returns [dpsi_degrees, deps_degrees]. Multiply by 3600 for arcseconds.
 /// Uses the IAU 2000B luni-solar series (~1 mas accuracy).
