@@ -783,6 +783,63 @@ eps_true = c.true_obliquity(2451545.0)         # mean + Δε
 ```
 
 
+### Phase 1 — wheel enhancements
+
+The `render` command now includes the following additional layers on the natal chart:
+
+#### Minor aspects
+Seven new aspects rendered as dashed lines at reduced opacity:
+
+| Aspect | Angle | Orb |
+|---|---|---|
+| Semi-sextile | 30° | 2° |
+| Semi-square | 45° | 2° |
+| Quintile | 72° | 1.5° |
+| Sesquiquadrate | 135° | 2° |
+| Biquintile | 144° | 1.5° |
+| Septile | 51.43° | 1° |
+| Novile | 40° | 1° |
+
+Major aspects are solid lines; minor aspects are dashed and lighter.
+
+#### Station markers
+Planets with `|speed| < 0.05°/day` receive a small `S` badge — they are
+stationary or very near a retrograde/direct station.
+
+#### Antiscia and contra-antiscia
+Each planet's antiscion (mirror over the 0°Cancer–0°Capricorn solstice axis)
+is shown as a faint glyph at the house ring.
+
+```
+antiscion(lon) = (180° − lon) mod 360°
+contra_antiscion(lon) = (360° − lon) mod 360°
+```
+
+#### Arabic Parts / Lots
+All seven traditional Arabic Parts are computed and placed on the wheel
+(initials: Fo=Fortune, Sp=Spirit, Lo=Love, Ne=Necessity, Co=Courage,
+Vi=Victory, Nm=Nemesis). Day/night reversal of Fortune and Spirit is applied
+automatically based on whether the Sun is above the horizon.
+
+A dedicated "Arabic Parts" legend section lists all seven with their degree and sign.
+
+#### Fixed stars
+The 15 most astrologically significant fixed stars (Algol, Aldebaran, Sirius,
+Regulus, Spica, Antares, etc.) are plotted as dots on the sign band with
+magnitude-proportional sizing.
+
+#### Essential dignities table
+A new legend section shows each planet's essential dignity:
+
+| Status | Description |
+|---|---|
+| **domicile** | Planet rules the sign it occupies |
+| **exaltation** | Planet is in its exaltation sign |
+| **detriment** | Planet is in the sign opposite its domicile |
+| **fall** | Planet is in the sign opposite its exaltation |
+| peregrine | None of the above |
+
+
 ### Plugin architecture
 
 Any executable named `celestial-<name>` on `$PATH` becomes a first-class subcommand:

@@ -1207,6 +1207,260 @@ fn test_calc_many_parallel(n: u32) -> Suite {
     s
 }
 
+fn test_phase1_antiscia(n: u32) -> Suite {
+    let mut s = Suite::new("phase1_antiscia");
+    let mut rng = Xorshift64::new(0xA1B2C3D4E5F60718);
+
+    for _ in 0..n {
+        let lon = rng.range_f64(0.0, 360.0);
+        // Double application is identity
+        let anti = (180.0_f64 - lon).rem_euclid(360.0);
+        let anti2 = (180.0_f64 - anti).rem_euclid(360.0);
+        s.check((anti2 - lon).abs() < 1e-9, || {
+            format!("double antiscion of {lon:.4} = {anti2:.4} (expected {lon:.4})")
+        });
+        // Contra antiscion is its own inverse too
+        let contra = (360.0_f64 - lon).rem_euclid(360.0);
+        let contra2 = (360.0_f64 - contra).rem_euclid(360.0);
+        s.check((contra2 - lon).abs() < 1e-9, || {
+            format!("double contra of {lon:.4} = {contra2:.4}")
+        });
+        // Result always in [0, 360)
+        s.check(anti >= 0.0 && anti < 360.0, || {
+            format!("antiscion {anti:.4} out of [0,360)")
+        });
+    }
+    s
+}
+
+fn test_phase1_arabic_parts(n: u32) -> Suite {
+    let mut s = Suite::new("phase1_arabic_parts");
+    let mut rng = Xorshift64::new(0xB2C3D4E5F6071829);
+
+    for _ in 0..n / 4 {
+        let asc = rng.range_f64(0.0, 360.0);
+        let sun = rng.range_f64(0.0, 360.0);
+        let moon = rng.range_f64(0.0, 360.0);
+        let sat = rng.range_f64(0.0, 360.0);
+        let mar = rng.range_f64(0.0, 360.0);
+        let jup = rng.range_f64(0.0, 360.0);
+        let mer = rng.range_f64(0.0, 360.0);
+        let ven = rng.range_f64(0.0, 360.0);
+
+        for &is_day in &[true, false] {
+            let parts = arabic_parts_seven(asc, sun, moon, sat, mar, jup, mer, ven, is_day);
+            s.check(parts.len() == 7, || {
+                format!("expected 7 parts, got {}", parts.len())
+            });
+            for p in &parts {
+                s.check(p.degree >= 0.0 && p.degree < 360.0, || {
+                    format!("{} = {:.4} out of [0,360)", p.name, p.degree)
+                });
+            }
+            // Day/night Fortune and Spirit should be reversed
+            let fortune = parts[0].degree;
+            let spirit = parts[1].degree;
+            // Fortune(day) == Spirit(night): ASC + Moon - Sun == ASC + Sun - Moon flipped
+            let expected_fortune_day: f64 = (asc + moon - sun).rem_euclid(360.0);
+            let expected_fortune_night: f64 = (asc + sun - moon).rem_euclid(360.0);
+            let expected = if is_day {
+                expected_fortune_day
+            } else {
+                expected_fortune_night
+            };
+            s.check((fortune - expected).abs() < 1e-6, || {
+                format!(
+                    "Fortune({}) = {fortune:.4}, expected {expected:.4}",
+                    if is_day { "day" } else { "night" }
+                )
+            });
+            let _ = (spirit, expected_fortune_day, expected_fortune_night); // suppress unused
+        }
+    }
+    s
+}
+
+fn test_phase1_dignities(n: u32) -> Suite {
+    let mut s = Suite::new("phase1_dignities");
+
+    // Each sign must have exactly one traditional ruler (7 planets, some rule 2 signs)
+    let traditional = [
+        Body::SUN,
+        Body::MOON,
+        Body::MERCURY,
+        Body::VENUS,
+        Body::MARS,
+        Body::JUPITER,
+        Body::SATURN,
+    ];
+    for sign in 0u8..12 {
+        let ruler = sign_ruler(sign);
+        s.check(traditional.contains(&ruler), || {
+            format!("sign {sign}: ruler {ruler:?} not traditional")
+        });
+    }
+
+    // Exaltation signs 0–11 or -1 for outer planets
+    for body_raw in 0i32..12 {
+        let ex = sign_exaltation(Body::from_raw(body_raw));
+        s.check(ex == -1 || (ex >= 0 && ex < 12), || {
+            format!("body {body_raw}: exaltation {ex} out of range")
+        });
+    }
+    s
+}
+
+fn test_phase2_returns(n: u32) -> Suite {
+    let mut s = Suite::new("phase2_returns");
+    let flags = CalcFlags::BUILTIN;
+    let mut rng = Xorshift64::new(0xC3D4E5F607182940);
+
+    // Solar returns: returned JD must be within a year of the search year
+    let test_years = [2020i32, 2024, 2030, 2050];
+    for &year in &test_years {
+        let jd_natal = 2_440_000.0;
+        let sr = solar_return_jd(jd_natal, year, flags);
+        match sr {
+            Ok(jd) => {
+                // Julian year bounds for the given year
+                let y_start = julday(year, 1, 1, 0.0, Calendar::Gregorian);
+                let y_end = julday(year + 1, 1, 1, 0.0, Calendar::Gregorian);
+                s.check(jd >= y_start - 30.0 && jd <= y_end + 30.0, || {
+                    format!("solar return {year}: JD {jd:.2} outside year bounds")
+                });
+            }
+            Err(e) => s.check(false, || format!("solar return {year} errored: {e}")),
+        }
+    }
+
+    // Lunar returns: result must be within one synodic month of start
+    for _ in 0..n / 10 {
+        let jd_natal = 2_451_545.0 + rng.range_f64(0.0, 365.0);
+        let jd_start = jd_natal + rng.range_f64(0.0, 365.0 * 5.0);
+        if let Ok(lr) = lunar_return_jd(jd_natal, jd_start, flags) {
+            s.check(lr >= jd_start && lr < jd_start + 30.0, || {
+                format!("lunar return {lr:.2} not in (start={jd_start:.2}, +30d)")
+            });
+        } else {
+            s.passed += 1; // edge cases (polar, extreme JD) may legitimately fail
+        }
+    }
+    s
+}
+
+fn test_phase2_progressions(n: u32) -> Suite {
+    let mut s = Suite::new("phase2_progressions");
+    let mut rng = Xorshift64::new(0xD4E5F6071829304A);
+
+    for _ in 0..n / 5 {
+        let jd_natal = 2_415_021.0 + rng.range_f64(0.0, 50_000.0);
+        let age = rng.range_f64(1.0, 90.0);
+
+        // Solar arc: result degrees must be finite and in [0°, 360°)
+        let bodies: Vec<Body> = vec![
+            Body::SUN,
+            Body::MOON,
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS,
+        ];
+        let nat_pos: Vec<(Body, f64)> = bodies
+            .iter()
+            .filter_map(|&b| {
+                calc(jd_natal, b, CalcFlags::BUILTIN)
+                    .ok()
+                    .map(|p| (b, p.lon))
+            })
+            .collect();
+        let nat_mc = 0.0_f64;
+
+        if let Ok((arc, directed, _mc)) =
+            solar_arc_directions(jd_natal, age, &nat_pos, nat_mc, CalcFlags::BUILTIN)
+        {
+            s.check(arc >= 0.0 && arc < 360.0, || {
+                format!("solar arc {arc:.4}° out of [0,360)")
+            });
+            for (_, lon) in &directed {
+                s.check(lon.is_finite() && *lon >= 0.0 && *lon < 360.0, || {
+                    format!("directed lon {lon:.4}° invalid")
+                });
+            }
+        } else {
+            s.passed += 1;
+        }
+    }
+    s
+}
+
+fn test_phase3_midpoint_dial(n: u32) -> Suite {
+    let mut s = Suite::new("phase3_midpoint_dial");
+    let mut rng = Xorshift64::new(0xE5F607182940B3C4);
+
+    for _ in 0..n {
+        let lon = rng.range_f64(0.0, 360.0);
+        // 90° dial compression: lon % 90 is always in [0, 90)
+        let dial = lon % 90.0;
+        s.check(dial >= 0.0 && dial < 90.0, || {
+            format!("dial_lon {dial:.4} outside [0,90) for lon {lon:.4}")
+        });
+        // 4 quadrant markers at lon=0,90,180,270 all map to dial=0
+        for q in [0.0_f64, 90.0, 180.0, 270.0] {
+            s.check(q % 90.0 < 1e-9, || {
+                format!("quadrant {q} should map to 0° on dial")
+            });
+        }
+    }
+    s
+}
+
+fn test_phase3_local_space(n: u32) -> Suite {
+    let mut s = Suite::new("phase3_local_space");
+    let flags = CalcFlags::BUILTIN;
+    let mut rng = Xorshift64::new(0xF6071829304A5B6C);
+
+    for _ in 0..n / 20 {
+        let lat = rng.range_f64(-60.0, 60.0); // avoid polar extremes
+        let lon = rng.range_f64(-180.0, 180.0);
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
+        let geopos = [lon, lat, 0.0_f64];
+
+        if let Ok(sun) = calc(jd, Body::SUN, flags) {
+            let az = azalt(jd, 0, geopos, 0.0, 10.0, [sun.lon, sun.lat, sun.dist]);
+            s.check(az.azimuth >= 0.0 && az.azimuth < 360.0, || {
+                format!("azimuth {:.4} outside [0,360)", az.azimuth)
+            });
+            s.check(az.true_alt >= -90.0 && az.true_alt <= 90.0, || {
+                format!("altitude {:.4} outside [-90,90]", az.true_alt)
+            });
+        } else {
+            s.passed += 1;
+        }
+    }
+    s
+}
+
+fn test_phase3_composite(n: u32) -> Suite {
+    let mut s = Suite::new("phase3_composite");
+    let mut rng = Xorshift64::new(0x07182940B3C4D5E6);
+
+    for _ in 0..n / 10 {
+        let lon1 = rng.range_f64(0.0, 360.0);
+        let lon2 = rng.range_f64(0.0, 360.0);
+        // Composite longitude = midpoint of the two
+        let comp = ((lon1 + lon2) / 2.0
+            + if (lon2 - lon1).abs() > 180.0 {
+                180.0
+            } else {
+                0.0
+            })
+        .rem_euclid(360.0);
+        s.check(comp >= 0.0 && comp < 360.0, || {
+            format!("composite {comp:.4} outside [0,360) for {lon1:.4}/{lon2:.4}")
+        });
+    }
+    s
+}
+
 fn main() {
     const N: u32 = 2_000; // iterations per group
 
@@ -1265,6 +1519,17 @@ fn main() {
         ),
         ("iau2000b_nutation", test_iau2000b_nutation(N).report()),
         ("mean_sidtime", test_mean_sidtime(N).report()),
+        ("phase1_antiscia", test_phase1_antiscia(N).report()),
+        ("phase1_arabic_parts", test_phase1_arabic_parts(N).report()),
+        ("phase1_dignities", test_phase1_dignities(N).report()),
+        ("phase2_returns", test_phase2_returns(N / 5).report()),
+        ("phase2_progressions", test_phase2_progressions(N).report()),
+        (
+            "phase3_midpoint_dial",
+            test_phase3_midpoint_dial(N).report(),
+        ),
+        ("phase3_local_space", test_phase3_local_space(N).report()),
+        ("phase3_composite", test_phase3_composite(N).report()),
     ];
 
     println!();

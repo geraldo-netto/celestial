@@ -1263,3 +1263,87 @@ class TestIAU2000BNutationPureLogic(unittest.TestCase):
         eps0_arcsec = 84_381.406 - 46.836769 * t - 0.0001831 * t**2 + 0.00200340 * t**3
         eps0_deg = eps0_arcsec / 3600.0
         self.assertAlmostEqual(eps0_deg, 23.44094, delta=0.001)
+
+
+class TestPhase1AntisciaPureLogic(unittest.TestCase):
+    """Pure-logic tests for antiscia and contra-antiscia (Phase 1)."""
+
+    @staticmethod
+    def antiscion(lon):
+        return (180.0 - lon) % 360.0
+
+    @staticmethod
+    def contra_antiscion(lon):
+        return (360.0 - lon) % 360.0
+
+    def test_aries_15_antiscion_is_virgo_15(self):
+        self.assertAlmostEqual(self.antiscion(15.0), 165.0, places=9)
+
+    def test_cancer_0_antiscion_is_self(self):
+        self.assertAlmostEqual(self.antiscion(90.0), 90.0, places=9)
+
+    def test_capricorn_0_antiscion_is_self(self):
+        self.assertAlmostEqual(self.antiscion(270.0), 270.0, places=9)
+
+    def test_double_application_is_identity(self):
+        for lon in [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0]:
+            self.assertAlmostEqual(self.antiscion(self.antiscion(lon)), lon, places=9)
+
+    def test_contra_antiscion_double_is_identity(self):
+        for lon in [0.0, 45.0, 90.0, 180.0, 270.0]:
+            self.assertAlmostEqual(
+                self.contra_antiscion(self.contra_antiscion(lon)), lon, places=9
+            )
+
+    def test_result_always_in_range(self):
+
+        for i in range(360):
+            a = self.antiscion(float(i))
+            self.assertGreaterEqual(a, 0.0)
+            self.assertLess(a, 360.0)
+
+
+class TestPhase1MinorAspectsPureLogic(unittest.TestCase):
+    """Verify minor aspect angle values (Phase 1)."""
+
+    def test_quintile_is_72(self):
+        self.assertAlmostEqual(360.0 / 5.0, 72.0, places=9)
+
+    def test_biquintile_is_144(self):
+        self.assertAlmostEqual(2 * 360.0 / 5.0, 144.0, places=9)
+
+    def test_septile_approx_51_43(self):
+        self.assertAlmostEqual(360.0 / 7.0, 51.4286, delta=0.001)
+
+    def test_novile_is_40(self):
+        self.assertAlmostEqual(360.0 / 9.0, 40.0, places=9)
+
+    def test_semi_square_is_45(self):
+        self.assertAlmostEqual(360.0 / 8.0, 45.0, places=9)
+
+    def test_sesquiquadrate_is_135(self):
+        self.assertAlmostEqual(3 * 360.0 / 8.0, 135.0, places=9)
+
+
+class TestPhase1ArabicPartsPureLogic(unittest.TestCase):
+    """Pure-math verification of Arabic Parts formulas (Phase 1)."""
+
+    def test_lot_of_fortune_day(self):
+        # ASC + Moon - Sun, day chart
+        asc, sun, moon = 0.0, 30.0, 120.0
+        expected = (asc + moon - sun) % 360.0
+        self.assertAlmostEqual(expected, 90.0, places=9)
+
+    def test_lot_of_fortune_night_reversed(self):
+        # Night: ASC + Sun - Moon
+        asc, sun, moon = 0.0, 30.0, 120.0
+        expected = (asc + sun - moon) % 360.0
+        self.assertAlmostEqual(expected, 270.0, places=9)
+
+    def test_all_parts_in_range(self):
+
+        for asc in [0, 45, 90, 180, 270]:
+            sun, moon = 30.0, 120.0
+            fortune = (asc + moon - sun) % 360.0
+            self.assertGreaterEqual(fortune, 0.0)
+            self.assertLess(fortune, 360.0)

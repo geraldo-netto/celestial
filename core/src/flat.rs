@@ -212,3 +212,14 @@ pub fn jdet_to_utc(jd_et: f64, calendar: i32) -> crate::functions::time::UtcDate
 pub fn jdut1_to_utc(jd_ut: f64, calendar: i32) -> crate::functions::time::UtcDate {
     crate::functions::time::jd_ut_to_utc(jd_ut, Calendar::from(calendar))
 }
+
+// ─── Phase 3 exports ──────────────────────────────────────────────────────────
+pub use crate::functions::chart::{midpoint_table, MidpointEntry};
+pub use crate::functions::utils::{azalt, azalt_rev, AzAlt};
+
+// ─── Vedic / Jyotish exports (Phase 4) ───────────────────────────────────────
+pub use crate::functions::chart::{vimshottari_dasha, DashaLevel};
+pub use crate::functions::vedic::{
+    long_to_nakshatra, long_to_navamsa, long_to_rasi, naisargika_relation, nakshatra_name,
+    ochchabala, raman_houses, rasi_diff, rasi_norm, residential_strength, tatkalika_relation,
+};

@@ -330,6 +330,42 @@ assert_eq(abs($contrib_arcsec) > 3.0 && abs($contrib_arcsec) < 4.0 ? 1 : 0, 1,
     'IAU 2000B dominant Δψ term at 1987-Apr-10 ≈ -3.36"');
 
 
+
+// ── Phase 1: antiscia pure-logic ─────────────────────────────────────────────
+
+$a = (180.0 - 15.0) % 360.0;
+assert_approx($a, 165.0, 1e-9, '15° Aries antiscion = 15° Virgo (165°)');
+
+$a = (180.0 - 90.0) % 360.0;
+assert_approx($a, 90.0, 1e-9, '0°Cancer antiscion = itself');
+
+$a = (180.0 - 270.0 + 360.0) % 360.0;
+assert_approx($a, 270.0, 1e-9, '0°Capricorn antiscion = itself');
+
+// Double application is identity
+foreach ([0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0] as $lon) {
+    $a  = (180.0 - $lon  + 360.0) % 360.0;
+    $a2 = (180.0 - $a    + 360.0) % 360.0;
+    assert_approx($a2, $lon, 1e-9, "double antiscion of $lon");
+}
+
+// ── Phase 1: minor aspects pure-logic ────────────────────────────────────────
+
+assert_approx(360.0 / 5.0, 72.0,  1e-9, 'quintile = 72°');
+assert_approx(360.0 / 9.0, 40.0,  1e-9, 'novile = 40°');
+assert_approx(360.0 / 8.0, 45.0,  1e-9, 'semi-square = 45°');
+assert_approx(3 * 360.0 / 8.0, 135.0, 1e-9, 'sesquiquadrate = 135°');
+assert_approx(360.0 / 7.0, 51.4286, 0.001, 'septile ≈ 51.43°');
+
+// ── Phase 1: arabic parts formula check ──────────────────────────────────────
+
+$asc = 0.0; $sun = 30.0; $moon = 120.0;
+$fortune_day = fmod($asc + $moon - $sun + 360.0, 360.0);
+assert_approx($fortune_day, 90.0, 1e-9, 'Lot of Fortune day = ASC+Moon-Sun');
+$fortune_night = fmod($asc + $sun - $moon + 360.0, 360.0);
+assert_approx($fortune_night, 270.0, 1e-9, 'Lot of Fortune night = ASC+Sun-Moon');
+
+
 // ── Summary ────────────────────────────────────────────────────────────────────
 
 echo "\n";
