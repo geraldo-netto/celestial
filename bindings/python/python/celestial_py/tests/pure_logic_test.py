@@ -11,6 +11,8 @@ Run:   python3 tests/pure_logic_test.py
 """
 
 import math
+import json as _json
+import pathlib as _pathlib
 import unittest
 
 # ─── Pure-Python reimplementations ───────────────────────────────────────────
@@ -1832,3 +1834,170 @@ class TestPhase8IndigenousPureLogic(unittest.TestCase):
     def test_4_elements_in_medicine_wheel(self):
         elements = {"Fire", "Earth", "Air", "Water"}
         self.assertEqual(len(elements), 4)
+
+
+# ── Shared fixture-driven cross-language tests ────────────────────────────────
+
+
+def _load_fixtures():
+    p = (
+        _pathlib.Path(__file__).parents[5]
+        / "tests"
+        / "fixtures"
+        / "reference_values.json"
+    )
+    with open(p) as f:
+        return _json.load(f)
+
+
+class TestSharedFixtures(unittest.TestCase):
+    """Validates pure-logic against the canonical reference_values.json fixture.
+    These same fixtures are loaded by the JS and PHP test suites too."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.fx = _load_fixtures()
+
+    # ── Antiscia ──────────────────────────────────────────────────────────────
+    def _antiscion(self, lon):
+        return (180.0 - lon) % 360.0
+
+    def _contra_antiscion(self, lon):
+        return (360.0 - lon) % 360.0
+
+    def test_antiscia_from_fixture(self):
+        for case in self.fx["antiscia"]:
+            got = self._antiscion(case["input_lon"])
+            self.assertAlmostEqual(
+                got,
+                case["antiscion"],
+                places=9,
+                msg=f"antiscion at {case['input_lon']}",
+            )
+            got_c = self._contra_antiscion(case["input_lon"])
+            self.assertAlmostEqual(
+                got_c,
+                case["contra"],
+                places=9,
+                msg=f"contra_antiscion at {case['input_lon']}",
+            )
+
+    # ── Egyptian terms ─────────────────────────────────────────────────────────
+    _TERMS = [
+        [(6, "Jupiter"), (12, "Venus"), (20, "Mercury"), (25, "Mars"), (30, "Saturn")],
+        [(8, "Venus"), (14, "Mercury"), (22, "Jupiter"), (27, "Saturn"), (30, "Mars")],
+        [(6, "Mercury"), (12, "Jupiter"), (17, "Venus"), (24, "Mars"), (30, "Saturn")],
+        [(7, "Mars"), (13, "Venus"), (19, "Mercury"), (26, "Jupiter"), (30, "Saturn")],
+        [(6, "Jupiter"), (11, "Venus"), (18, "Saturn"), (24, "Mercury"), (30, "Mars")],
+        [(7, "Mercury"), (17, "Venus"), (21, "Jupiter"), (28, "Mars"), (30, "Saturn")],
+        [(6, "Saturn"), (14, "Mercury"), (21, "Jupiter"), (28, "Venus"), (30, "Mars")],
+        [(7, "Mars"), (11, "Venus"), (19, "Mercury"), (24, "Jupiter"), (30, "Saturn")],
+        [(12, "Jupiter"), (17, "Venus"), (21, "Mercury"), (26, "Saturn"), (30, "Mars")],
+        [(7, "Mercury"), (14, "Jupiter"), (22, "Venus"), (26, "Saturn"), (30, "Mars")],
+        [(7, "Mercury"), (13, "Venus"), (20, "Jupiter"), (25, "Mars"), (30, "Saturn")],
+        [(12, "Venus"), (16, "Jupiter"), (19, "Mercury"), (28, "Mars"), (30, "Saturn")],
+    ]
+
+    def _terms_ruler(self, lon):
+        sign = int(lon / 30) % 12
+        deg = lon % 30
+        for end, planet in self._TERMS[sign]:
+            if deg < end:
+                return planet
+        return "Saturn"
+
+    def test_egyptian_terms_from_fixture(self):
+        for case in self.fx["egyptian_terms"]:
+            got = self._terms_ruler(case["lon"])
+            self.assertEqual(
+                got, case["ruler"], msg=f"lon={case['lon']} ({case.get('comment', '')})"
+            )
+
+    # ── Tonalpohualli ──────────────────────────────────────────────────────────
+    _GMT = 584283
+
+    def _tonalpohualli(self, jd):
+        day = (int(jd) - self._GMT) % 260
+        return (day % 13 + 1, day % 20)
+
+    def test_tonalpohualli_from_fixture(self):
+        for case in self.fx["tonalpohualli"]:
+            t, s = self._tonalpohualli(case["jd"])
+            self.assertEqual(t, case["trecena"], msg=f"trecena at jd={case['jd']}")
+            self.assertEqual(s, case["sign_idx"], msg=f"sign at jd={case['jd']}")
+
+    # ── Profections ────────────────────────────────────────────────────────────
+    def test_profections_from_fixture(self):
+        for case in self.fx["profections"]:
+            house = (case["age"] % 12) + 1
+            self.assertEqual(house, case["house"], msg=f"age {case['age']}")
+
+    # ── Solar terms ───────────────────────────────────────────────────────────
+    def test_solar_terms_from_fixture(self):
+        TERMS = [
+            (0.0, "Chūnfēn"),
+            (15.0, "Qīngmíng"),
+            (30.0, "Gǔyǔ"),
+            (45.0, "Lìxià"),
+            (60.0, "Xiǎomǎn"),
+            (75.0, "Mángzhòng"),
+            (90.0, "Xiàzhì"),
+            (105.0, "Xiǎoshǔ"),
+            (120.0, "Dàshǔ"),
+            (135.0, "Lìqiū"),
+            (150.0, "Chǔshǔ"),
+            (165.0, "Báilù"),
+            (180.0, "Qiūfēn"),
+            (195.0, "Hánlù"),
+            (210.0, "Shuāngjiàng"),
+            (225.0, "Lìdōng"),
+            (240.0, "Xiǎoxuě"),
+            (255.0, "Dàxuě"),
+            (270.0, "Dōngzhì"),
+            (285.0, "Xiǎohán"),
+            (300.0, "Dàhán"),
+            (315.0, "Lìchūn"),
+            (330.0, "Yǔshuǐ"),
+            (345.0, "Jīngzhé"),
+        ]
+        for case in self.fx["solar_terms"]:
+            lon, name = TERMS[case["idx"]]
+            self.assertAlmostEqual(lon, case["lon"], places=9)
+            self.assertEqual(name, case["pinyin"])
+
+    # ── Medicine Wheel ────────────────────────────────────────────────────────
+    _TOTEMS = [
+        (300.0, 330.0, "Snow Goose", "Earth", "Turtle", "Winter"),
+        (330.0, 360.0, "Otter", "Air", "Butterfly", "Winter"),
+        (0.0, 30.0, "Cougar", "Air", "Butterfly", "Spring"),
+        (30.0, 60.0, "Red Hawk", "Fire", "Thunderbird", "Spring"),
+        (60.0, 90.0, "Beaver", "Earth", "Turtle", "Spring"),
+        (90.0, 120.0, "Deer", "Air", "Butterfly", "Summer"),
+        (120.0, 150.0, "Flicker", "Water", "Frog", "Summer"),
+        (150.0, 180.0, "Sturgeon", "Fire", "Thunderbird", "Summer"),
+        (180.0, 210.0, "Brown Bear", "Earth", "Turtle", "Autumn"),
+        (210.0, 240.0, "Raven", "Air", "Butterfly", "Autumn"),
+        (240.0, 270.0, "Snake", "Water", "Frog", "Autumn"),
+        (270.0, 300.0, "Elk", "Fire", "Thunderbird", "Winter"),
+    ]
+
+    def _totem(self, lon):
+        lon = lon % 360
+        for lo, hi, animal, element, clan, season in self._TOTEMS:
+            if lo < hi:
+                if lo <= lon < hi:
+                    return (animal, element, clan, season)
+            else:
+                if lon >= lo or lon < hi:
+                    return (animal, element, clan, season)
+        return ("Snow Goose", "Earth", "Turtle", "Winter")
+
+    def test_medicine_wheel_from_fixture(self):
+        for case in self.fx["medicine_wheel"]:
+            got = self._totem(case["sun_lon"])
+            self.assertEqual(
+                got[0], case["animal"], msg=f"animal at lon={case['sun_lon']}"
+            )
+            self.assertEqual(got[1], case["element"])
+            self.assertEqual(got[2], case["clan"])
+            self.assertEqual(got[3], case["season"])

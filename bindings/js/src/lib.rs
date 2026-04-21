@@ -2068,3 +2068,30 @@ pub fn egyptian_decan(lon: f64) -> Vec<String> {
     let (i, n, s) = celestial::egyptian_decan(lon);
     vec![i.to_string(), n.to_string(), s.to_string()]
 }
+
+/// Whether a chart is a day chart (Sun above horizon).
+#[napi]
+pub fn is_day_chart(sun_lon: f64, cusps: Vec<f64>) -> bool {
+    if cusps.len() < 13 {
+        return false;
+    }
+    let mut arr = [0.0f64; 13];
+    for (i, &v) in cusps.iter().take(13).enumerate() {
+        arr[i] = v;
+    }
+    celestial::is_day_chart(sun_lon, &arr)
+}
+
+/// Mean sidereal time for a Julian Day (returns degrees).
+#[napi]
+pub fn mean_sidtime(jd: f64) -> f64 {
+    celestial::mean_sidtime(jd)
+}
+
+/// Triplicity rulers for an ecliptic longitude.
+/// Returns [day_ruler_raw, night_ruler_raw, participating_ruler_raw].
+#[napi]
+pub fn triplicity_rulers(lon: f64) -> Vec<i32> {
+    let (d, n, p) = celestial::triplicity_rulers(lon);
+    vec![d.as_raw(), n.as_raw(), p.as_raw()]
+}

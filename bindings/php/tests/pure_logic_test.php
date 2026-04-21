@@ -506,6 +506,72 @@ assert(count(["Snow Goose","Otter","Cougar","Red Hawk","Beaver","Deer",
        "Medicine Wheel should have 12 totems");
 
 
+
+// ── Shared fixture-driven cross-language tests ────────────────────────────────
+
+$fixture_path = __DIR__ . '/../../../tests/fixtures/reference_values.json';
+$fx = json_decode(file_get_contents($fixture_path), true);
+assert($fx !== null, "Could not load reference_values.json");
+
+$GMT = 584283;
+
+// Antiscia
+foreach ($fx['antiscia'] as $case) {
+    $lon = $case['input_lon'];
+    $got  = fmod(180.0 - $lon + 360.0, 360.0);
+    $gotc = fmod(360.0 - $lon + 360.0, 360.0);
+    assert(abs($got  - $case['antiscion']) < 1e-9, "antiscion mismatch at lon=$lon");
+    assert(abs($gotc - $case['contra'])    < 1e-9, "contra mismatch at lon=$lon");
+}
+
+// Tonalpohualli
+foreach ($fx['tonalpohualli'] as $case) {
+    $jd  = $case['jd'];
+    $day = (($jd - $GMT) % 260 + 260) % 260;
+    $t   = $day % 13 + 1;
+    $s   = $day % 20;
+    assert($t == $case['trecena'],  "trecena at jd=$jd");
+    assert($s == $case['sign_idx'], "sign at jd=$jd");
+}
+
+// Profections
+foreach ($fx['profections'] as $case) {
+    $house = ($case['age'] % 12) + 1;
+    assert($house === $case['house'], "profection house mismatch for age {$case['age']}");
+}
+
+// Medicine Wheel
+$TOTEMS = [
+    [300,330,'Snow Goose','Earth','Turtle','Winter'],
+    [330,360,'Otter','Air','Butterfly','Winter'],
+    [0,30,'Cougar','Air','Butterfly','Spring'],
+    [30,60,'Red Hawk','Fire','Thunderbird','Spring'],
+    [60,90,'Beaver','Earth','Turtle','Spring'],
+    [90,120,'Deer','Air','Butterfly','Summer'],
+    [120,150,'Flicker','Water','Frog','Summer'],
+    [150,180,'Sturgeon','Fire','Thunderbird','Summer'],
+    [180,210,'Brown Bear','Earth','Turtle','Autumn'],
+    [210,240,'Raven','Air','Butterfly','Autumn'],
+    [240,270,'Snake','Water','Frog','Autumn'],
+    [270,300,'Elk','Fire','Thunderbird','Winter'],
+];
+function get_totem($lon, $TOTEMS) {
+    $lon = fmod(fmod($lon, 360) + 360, 360);
+    foreach ($TOTEMS as [$lo, $hi, $animal, $element, $clan, $season]) {
+        if ($lo < $hi ? ($lon >= $lo && $lon < $hi) : ($lon >= $lo || $lon < $hi))
+            return [$animal, $element, $clan, $season];
+    }
+    return ['Snow Goose','Earth','Turtle','Winter'];
+}
+foreach ($fx['medicine_wheel'] as $case) {
+    [$animal, $element, $clan, $season] = get_totem($case['sun_lon'], $TOTEMS);
+    assert($animal  === $case['animal'],  "animal mismatch at lon={$case['sun_lon']}");
+    assert($element === $case['element'], "element mismatch");
+    assert($clan    === $case['clan'],    "clan mismatch");
+    assert($season  === $case['season'],  "season mismatch");
+}
+
+
 // ── Summary ────────────────────────────────────────────────────────────────────
 
 echo "\n";

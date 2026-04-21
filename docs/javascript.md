@@ -1,0 +1,284 @@
+# celestial — JavaScript / TypeScript binding
+
+**Package:** `celestial-js` (napi-rs)  
+**Platforms:** Node.js ≥ 18, pre-built `.node` addon  
+**Types:** Full TypeScript declarations in `bindings/js/index.d.ts`
+
+## Installation
+
+```bash
+cd bindings/js
+npm install
+npm run build        # compiles the native addon via napi-rs
+```
+
+Or from a pre-built release:
+
+```bash
+npm install celestial-js
+```
+
+---
+
+## Import
+
+```typescript
+import * as celestial from "celestial-js";
+// or
+const celestial = require("celestial-js");
+```
+
+---
+
+## Constants
+
+### Body indices
+
+```typescript
+const SUN = 0, MOON = 1, MERCURY = 2, VENUS = 3, MARS = 4;
+const JUPITER = 5, SATURN = 6, URANUS = 7, NEPTUNE = 8, PLUTO = 9;
+const MEAN_NODE = 10, TRUE_NODE = 11, CHIRON = 15;
+```
+
+### Calculation flags
+
+```typescript
+const FLG_BUILTIN    = 2;    // use built-in ephemeris (always include)
+const FLG_SPEED      = 256;  // include daily speed
+const FLG_SIDEREAL   = 64;   // sidereal positions
+const FLG_EQUATORIAL = 2048; // equatorial coordinates
+const FLG_HELCTR     = 8;    // heliocentric
+```
+
+### Sidereal modes
+
+```typescript
+const SIDM_FAGAN_BRADLEY = 0;
+const SIDM_LAHIRI        = 1;
+const SIDM_RAMAN         = 3;
+const SIDM_KRISHNAMURTI  = 5;
+```
+
+---
+
+## TypeScript types
+
+```typescript
+interface PlanetPos {
+  lon:       number;  // ecliptic longitude (degrees)
+  lat:       number;  // ecliptic latitude
+  dist:      number;  // distance (AU)
+  speed_lon: number;  // daily speed in longitude (°/day)
+  speed_lat: number;
+  speed_dist: number;
+}
+
+interface HouseResult {
+  cusps:  number[];   // [0..12], cusps[1..12] are the house cusps
+  ascmc:  number[];   // [0]=ASC [1]=MC [2]=ARMC [3]=Vertex
+}
+
+interface NutationResult {
+  dpsi:     number;   // nutation in longitude (degrees)
+  deps:     number;   // nutation in obliquity
+  eps_true: number;   // true obliquity
+}
+```
+
+---
+
+## Core functions
+
+### Time
+
+```typescript
+// Calendar → Julian Day
+const jd = celestial.julday(2025, 3, 20, 9.0, 1);  // 1 = GREG_CAL
+
+// Julian Day → calendar date
+const date = celestial.revjul(jd, 1);
+console.log(`${date.year}-${date.month}-${date.day}`);
+
+// Current JD
+const now = celestial.jdnow();
+```
+
+### Planetary positions
+
+```typescript
+// Single body
+const sun: PlanetPos = celestial.calc_ut(jd, 0, 2 | 256);  // FLG_BUILTIN | FLG_SPEED
+console.log(`Sun lon=${sun.lon.toFixed(4)}°  dist=${sun.dist.toFixed(6)} AU`);
+
+// Multiple bodies in parallel
+const planets = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15];
+const results: PlanetPos[] = celestial.calc_many(jd, planets, 2 | 256);
+// results[i] corresponds to planets[i]
+
+// Nutation (IAU 2000B, 77 terms)
+const nut: NutationResult = celestial.nutation(jd, 2);
+console.log(`dpsi=${nut.dpsi.toFixed(6)}°  eps_true=${nut.eps_true.toFixed(4)}°`);
+
+// Mean sidereal time
+const gmst: number = celestial.mean_sidtime(jd);  // degrees
+```
+
+### Houses
+
+```typescript
+// Placidus
+const h: HouseResult = celestial.houses_ex(jd, 0, 48.85, 2.35, "P".charCodeAt(0));
+console.log(`ASC=${h.ascmc[0].toFixed(2)}°  MC=${h.ascmc[1].toFixed(2)}°`);
+// h.cusps[1..12] are the twelve house cusps
+
+// With sidereal flag
+const hSid = celestial.houses_ex(jd, 64, 48.85, 2.35, "P".charCodeAt(0));
+```
+
+**House system codes:** `"P".charCodeAt(0)` Placidus · `"K"` Koch · `"E"` Equal · `"W"` Whole-Sign · `"O"` Porphyry · `"R"` Regiomontanus
+
+### Sidereal positions
+
+```typescript
+celestial.set_sid_mode(1, 0, 0);  // SIDM_LAHIRI
+const moonSid = celestial.calc_ut(jd, 1, 2 | 64);  // FLG_BUILTIN | FLG_SIDEREAL
+console.log(`Moon (Lahiri) = ${moonSid.lon.toFixed(4)}°`);
+
+const ayan: number = celestial.ayanamsa_ut(jd);
+```
+
+---
+
+## Moon phases
+
+```typescript
+const phase  = celestial.moon_phase(jd);           // number (phase variant)
+const illum  = celestial.moon_illumination(jd);    // 0.0–1.0
+const elong  = celestial.moon_elongation(jd);      // 0°–360°
+const info   = celestial.moon_phase_info(jd);
+
+console.log(`${info.phase_name}  ${(info.illumination * 100).toFixed(1)}%`);
+
+const newMoon  = celestial.next_new_moon(jd);
+const fullMoon = celestial.next_full_moon_phase(jd);
+```
+
+---
+
+## Phase 5 — Hellenistic / Persian
+
+```typescript
+const sun = celestial.calc_ut(jd, 0, 2 | 256);
+const h   = celestial.houses_ex(jd, 0, 48.85, 2.35, "P".charCodeAt(0));
+
+// Day or night chart
+const isDay: boolean = celestial.is_day_chart(sun.lon, h.cusps);
+
+// Egyptian terms ruler (returns planet index 0–6)
+const ruler: number = celestial.egyptian_terms_ruler(sun.lon);
+
+// Chaldean decan ruler
+const decan: number = celestial.decan_ruler(sun.lon);
+
+// Triplicity rulers [day, night, participating]
+const [dayR, nightR, partR]: number[] = celestial.triplicity_rulers(sun.lon);
+
+// Full dignity [dignityName, score]
+const [dignityName, score]: [string, number] = celestial.full_dignity(0, sun.lon, isDay);
+
+// Almuten [bodyRaw, score]
+const [almutenBody, almutenScore]: [number, number] = celestial.almuten(sun.lon, isDay);
+
+// Firdaria periods → array of [majorRaw, minorRaw, startJd, endJd, years]
+const periods: number[][] = celestial.firdaria(jd, isDay, 75.0);
+for (const [major, minor, start, end, years] of periods.slice(0, 3)) {
+  console.log(`Major: ${major}  Minor: ${minor}  Start JD: ${start.toFixed(1)}`);
+}
+
+// Annual profection → [houseNumber, profectedLon]
+const [houseNum, profLon]: [number, number] = celestial.annual_profection(h.cusps, 35);
+console.log(`Age 35 → House ${houseNum} (${profLon.toFixed(2)}°)`);
+```
+
+---
+
+## Phase 6 — Chinese astrology (Ba Zi)
+
+```typescript
+const sun = celestial.calc_ut(jd, 0, 2);
+
+// Four Pillars → [[stemName, branchName, animal, stemElement, branchElement, polarity], ×4]
+const pillars: string[][] = celestial.four_pillars(jd, 9.0, sun.lon);
+const [year, month, day2, hour] = pillars;
+console.log(`Year pillar: ${year[0]} ${year[1]} (${year[2]})`);
+
+// Solar term position → [currentIdx, degInto, nextIdx, degToNext]
+const [curIdx, degInto, nextIdx, degToNext]: number[] = celestial.solar_term_position(sun.lon);
+```
+
+---
+
+## Phase 7 — Mesoamerican calendars
+
+```typescript
+// Aztec Tonalpohualli → [trecena, signIdx, nahuatlName, english]
+const [trecena, signIdx, nahuatl, english]: [number, number, string, string] =
+  celestial.tonalpohualli(jd);
+console.log(`Tonalpohualli: ${trecena} ${nahuatl} (${english})`);
+
+// Aztec Xiuhpohualli → [monthIdx, day, name, english]
+const [monthIdx, dayNum, monthName, monthEn]: [number, number, string, string] =
+  celestial.xiuhpohualli(jd);
+
+// Maya Tzolkin → [trecena, signIdx, mayanName, english]
+const tzolkin: [number, number, string, string] = celestial.tzolkin(jd);
+
+// Maya Haab → [monthIdx, day, name]
+const haab: [number, number, string] = celestial.haab(jd);
+
+// Calendar Round → [tzTrecena, tzSign, haabDay, haabMonth]
+const cr: [number, number, number, number] = celestial.calendar_round(jd);
+```
+
+---
+
+## Phase 8 — Indigenous / Egyptian
+
+```typescript
+const sun = celestial.calc_ut(jd, 0, 2);
+
+// Medicine Wheel → [animal, element, clan, season]
+const [animal, element, clan, season]: string[] = celestial.medicine_wheel_totem(sun.lon);
+console.log(`Totem: ${animal} — ${element} element, ${clan} clan, ${season}`);
+
+// Egyptian decan → [idx, decanName, risingStar]
+const [decanIdx, decanName, risingStar]: [number, string, string] =
+  celestial.egyptian_decan(sun.lon);
+console.log(`Decan ${decanIdx + 1}: ${decanName} (${risingStar})`);
+```
+
+---
+
+## Error handling
+
+Functions throw `Error` with a descriptive message on failure:
+
+```typescript
+try {
+  const pos = celestial.calc_ut(jd, 0, 2);
+} catch (e) {
+  console.error("Calculation failed:", (e as Error).message);
+}
+```
+
+---
+
+## TypeScript strict mode
+
+All exported functions have full TypeScript declarations in `index.d.ts`. The
+binding was built with napi-rs; function names use `snake_case` to match the
+Rust/Python APIs.
+
+```typescript
+import type { PlanetPos, HouseResult, NutationResult } from "celestial-js";
+```

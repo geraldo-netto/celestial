@@ -169,3 +169,4 @@ function celestial_medicine_wheel_totem(float $sun_lon): array {}
 function celestial_egyptian_decan(float $lon): array {}
 function celestial_fixstar_ut(string $star, float $jd, int $flags): ?array {}
 function celestial_firdaria(float $jd_birth, bool $is_day, float $span): array {}
+function celestial_is_day_chart(float $sun_lon, array $cusps): bool {}

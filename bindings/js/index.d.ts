@@ -907,3 +907,6 @@ export declare function haab(jd: number): [string, string, string];
 export declare function calendar_round(jd: number): [string, string, string, string];
 export declare function medicine_wheel_totem(sun_lon: number): [string, string, string, string];
 export declare function egyptian_decan(lon: number): [string, string, string];
+export declare function is_day_chart(sun_lon: number, cusps: number[]): boolean;
+export declare function mean_sidtime(jd: number): number;
+export declare function triplicity_rulers(lon: number): [number, number, number];

@@ -1713,3 +1713,16 @@ pub fn celestial_firdaria(jd_birth: f64, is_day: bool, span_years: f64) -> Vec<V
         })
         .collect()
 }
+
+/// Whether a chart is a day chart (Sun above horizon).
+#[php_function]
+pub fn celestial_is_day_chart(sun_lon: f64, cusps: Vec<f64>) -> bool {
+    if cusps.len() < 13 {
+        return false;
+    }
+    let mut arr = [0.0f64; 13];
+    for (i, &v) in cusps.iter().take(13).enumerate() {
+        arr[i] = v;
+    }
+    celestial::is_day_chart(sun_lon, &arr)
+}

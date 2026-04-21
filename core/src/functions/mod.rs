@@ -15,10 +15,14 @@ pub mod phenomena; // pheno, heliacal, gauquelin sector
 // ─── Helper library (ex-swephelp) ─────────────────────────────────────────────
 pub mod aspects;
 pub mod chart;
+pub mod chinese; // Phase 6: Ba Zi, solar terms
 pub mod easter;
 pub mod geoformat;
+pub mod hellenistic; // Phase 5: terms, decans, dignity, almuten, firdaria
+pub mod indigenous; // Phase 8: Medicine Wheel, Egyptian decans
 pub mod islamic;
 pub mod jewish;
+pub mod mesoamerican; // Phase 7: Tonalpohualli, Tzolkin, Haab, Calendar Round
 pub mod moon_phases;
 pub mod nowruz;
 pub mod omer;

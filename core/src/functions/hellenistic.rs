@@ -1,0 +1,453 @@
+//! Auto-split from chart.rs — do not edit section headers.
+
+use crate::body::Body;
+#[allow(unused_imports)]
+use crate::functions::calc::calc_ut;
+use crate::functions::chart::{sign_exaltation, sign_ruler, sign_ruler_modern};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Phase 5 — Hellenistic / Persian functions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Sect ─────────────────────────────────────────────────────────────────────
+
+/// Determine whether a chart is a day chart (Sun above horizon).
+///
+/// In classical Hellenistic astrology, a "day chart" (diurnal) has the Sun
+/// in houses 7–12 (above the horizon); "night chart" (nocturnal) has it in
+/// houses 1–6 (below the horizon).
+///
+/// # Arguments
+/// * `sun_lon` — Sun's ecliptic longitude (degrees)
+/// * `cusps`   — 13-element house cusp array from `houses()` (index 1–12 used)
+pub fn is_day_chart(sun_lon: f64, cusps: &[f64; 13]) -> bool {
+    // Find which house (1–12) the Sun occupies
+    let house = planet_house_number(sun_lon, cusps);
+    house >= 7
+}
+
+/// Returns the sect benefic/malefic status of a planet for a day or night chart.
+///
+/// Classical assignment:
+/// * Day sect: Sun, Jupiter, Saturn (day benefics/malefics)
+/// * Night sect: Moon, Venus, Mars
+/// * Mercury: diurnal if morning star (oriental), nocturnal if evening star (occidental)
+///
+/// Returns `true` if the planet is of the *same* sect as the chart.
+pub fn same_sect(body: Body, is_day: bool) -> bool {
+    match body {
+        Body::SUN | Body::JUPITER | Body::SATURN => is_day,
+        Body::MOON | Body::VENUS | Body::MARS => !is_day,
+        _ => true, // Mercury and outer planets are sect-neutral
+    }
+}
+
+// ─── Essential dignities — terms (bounds) ────────────────────────────────────
+
+/// The five essential dignity levels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Dignity {
+    Domicile,
+    Exaltation,
+    Triplicity,
+    Term,
+    Decan,
+    Peregrine,
+    Detriment,
+    Fall,
+}
+
+impl std::fmt::Display for Dignity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Dignity::Domicile => "domicile",
+            Dignity::Exaltation => "exaltation",
+            Dignity::Triplicity => "triplicity",
+            Dignity::Term => "term",
+            Dignity::Decan => "decan",
+            Dignity::Peregrine => "peregrine",
+            Dignity::Detriment => "detriment",
+            Dignity::Fall => "fall",
+        })
+    }
+}
+
+/// Egyptian term (bound) ruler for a given ecliptic longitude.
+///
+/// Each sign is divided into five unequal sections (terms), each assigned
+/// to one of the five non-luminary planets. This uses the Egyptian bounds
+/// as compiled by Ptolemy (Tetrabiblos I.20).
+///
+/// Returns the ruling `Body` for the given longitude.
+pub fn egyptian_terms_ruler(lon: f64) -> Body {
+    let sign = (lon / 30.0) as usize % 12;
+    let deg = lon % 30.0;
+    // Each sign: (planet, cumulative_end_degree)
+    // Source: Ptolemy / Vettius Valens Egyptian terms
+    const TERMS: &[[(Body, u8); 5]; 12] = &[
+        // Aries
+        [
+            (Body::JUPITER, 6),
+            (Body::VENUS, 12),
+            (Body::MERCURY, 20),
+            (Body::MARS, 25),
+            (Body::SATURN, 30),
+        ],
+        // Taurus
+        [
+            (Body::VENUS, 8),
+            (Body::MERCURY, 14),
+            (Body::JUPITER, 22),
+            (Body::SATURN, 27),
+            (Body::MARS, 30),
+        ],
+        // Gemini
+        [
+            (Body::MERCURY, 6),
+            (Body::JUPITER, 12),
+            (Body::VENUS, 17),
+            (Body::MARS, 24),
+            (Body::SATURN, 30),
+        ],
+        // Cancer
+        [
+            (Body::MARS, 7),
+            (Body::VENUS, 13),
+            (Body::MERCURY, 19),
+            (Body::JUPITER, 26),
+            (Body::SATURN, 30),
+        ],
+        // Leo
+        [
+            (Body::JUPITER, 6),
+            (Body::VENUS, 11),
+            (Body::SATURN, 18),
+            (Body::MERCURY, 24),
+            (Body::MARS, 30),
+        ],
+        // Virgo
+        [
+            (Body::MERCURY, 7),
+            (Body::VENUS, 17),
+            (Body::JUPITER, 21),
+            (Body::MARS, 28),
+            (Body::SATURN, 30),
+        ],
+        // Libra
+        [
+            (Body::SATURN, 6),
+            (Body::MERCURY, 14),
+            (Body::JUPITER, 21),
+            (Body::VENUS, 28),
+            (Body::MARS, 30),
+        ],
+        // Scorpio
+        [
+            (Body::MARS, 7),
+            (Body::VENUS, 11),
+            (Body::MERCURY, 19),
+            (Body::JUPITER, 24),
+            (Body::SATURN, 30),
+        ],
+        // Sagittarius
+        [
+            (Body::JUPITER, 12),
+            (Body::VENUS, 17),
+            (Body::MERCURY, 21),
+            (Body::SATURN, 26),
+            (Body::MARS, 30),
+        ],
+        // Capricorn
+        [
+            (Body::MERCURY, 7),
+            (Body::JUPITER, 14),
+            (Body::VENUS, 22),
+            (Body::SATURN, 26),
+            (Body::MARS, 30),
+        ],
+        // Aquarius
+        [
+            (Body::MERCURY, 7),
+            (Body::VENUS, 13),
+            (Body::JUPITER, 20),
+            (Body::MARS, 25),
+            (Body::SATURN, 30),
+        ],
+        // Pisces
+        [
+            (Body::VENUS, 12),
+            (Body::JUPITER, 16),
+            (Body::MERCURY, 19),
+            (Body::MARS, 28),
+            (Body::SATURN, 30),
+        ],
+    ];
+    for (planet, end_deg) in TERMS[sign] {
+        if deg < end_deg as f64 {
+            return planet;
+        }
+    }
+    Body::SATURN // fallback (should not reach)
+}
+
+/// Decan (face) ruler for an ecliptic longitude.
+///
+/// Each sign is divided into three 10° faces. The ruler sequence follows
+/// the Chaldean order: Mars, Sun, Venus, Mercury, Moon, Saturn, Jupiter
+/// cycling through the 36 faces.
+///
+/// Returns the ruling `Body`.
+pub fn decan_ruler(lon: f64) -> Body {
+    let decan_idx = (lon / 10.0) as usize % 36;
+    // Chaldean decan sequence (Firmicus Maternus / Ptolemy)
+    const DECAN_RULERS: [Body; 36] = [
+        Body::MARS,
+        Body::SUN,
+        Body::VENUS, // Aries
+        Body::MERCURY,
+        Body::MOON,
+        Body::SATURN, // Taurus
+        Body::JUPITER,
+        Body::MARS,
+        Body::SUN, // Gemini
+        Body::VENUS,
+        Body::MERCURY,
+        Body::MOON, // Cancer
+        Body::SATURN,
+        Body::JUPITER,
+        Body::MARS, // Leo
+        Body::SUN,
+        Body::VENUS,
+        Body::MERCURY, // Virgo
+        Body::MOON,
+        Body::SATURN,
+        Body::JUPITER, // Libra
+        Body::MARS,
+        Body::SUN,
+        Body::VENUS, // Scorpio
+        Body::MERCURY,
+        Body::MOON,
+        Body::SATURN, // Sagittarius
+        Body::JUPITER,
+        Body::MARS,
+        Body::SUN, // Capricorn
+        Body::VENUS,
+        Body::MERCURY,
+        Body::MOON, // Aquarius
+        Body::SATURN,
+        Body::JUPITER,
+        Body::MARS, // Pisces
+    ];
+    DECAN_RULERS[decan_idx]
+}
+
+/// Triplicity rulers (day, night, participating) for an ecliptic longitude.
+///
+/// Fire triplicity (Aries, Leo, Sagittarius):    Sun / Jupiter / Saturn
+/// Earth triplicity (Taurus, Virgo, Capricorn):  Venus / Moon / Mars
+/// Air triplicity (Gemini, Libra, Aquarius):     Saturn / Mercury / Jupiter
+/// Water triplicity (Cancer, Scorpio, Pisces):   Venus / Mars / Moon
+///
+/// Returns `(day_ruler, night_ruler, participating_ruler)`.
+pub fn triplicity_rulers(lon: f64) -> (Body, Body, Body) {
+    let sign = (lon / 30.0) as usize % 12;
+    match sign % 4 {
+        0 => (Body::SUN, Body::JUPITER, Body::SATURN), // fire
+        1 => (Body::VENUS, Body::MOON, Body::MARS),    // earth
+        2 => (Body::SATURN, Body::MERCURY, Body::JUPITER), // air
+        3 => (Body::VENUS, Body::MARS, Body::MOON),    // water
+        _ => unreachable!(),
+    }
+}
+
+/// Compute the full dignity score for a planet at a given longitude.
+///
+/// Returns the highest-ranking `Dignity` and a numeric score:
+/// Domicile=5, Exaltation=4, Triplicity=3, Term=2, Decan=1,
+/// Peregrine=0, Detriment=−5, Fall=−4.
+pub fn full_dignity(body: Body, lon: f64, is_day: bool) -> (Dignity, i8) {
+    let sign = (lon / 30.0) as u8 % 12;
+    let opp = (sign + 6) % 12;
+    let _raw = body.as_raw(); // reserved for future term table lookup
+
+    // Detriment
+    if sign_ruler(sign) == body || sign_ruler_modern(sign) == body {}
+    // (checked below via domicile)
+
+    // Domicile
+    if sign_ruler(sign) == body || sign_ruler_modern(sign) == body {
+        return (Dignity::Domicile, 5);
+    }
+    // Detriment (opposite domicile)
+    if sign_ruler(opp) == body || sign_ruler_modern(opp) == body {
+        return (Dignity::Detriment, -5);
+    }
+    // Exaltation
+    let ex = sign_exaltation(body);
+    if ex >= 0 && ex as u8 == sign {
+        return (Dignity::Exaltation, 4);
+    }
+    // Fall (opposite exaltation)
+    if ex >= 0 && (ex as u8 + 6) % 12 == sign {
+        return (Dignity::Fall, -4);
+    }
+    // Triplicity
+    let (day_r, night_r, part_r) = triplicity_rulers(lon);
+    if body == day_r || body == night_r || body == part_r {
+        // Stronger if same sect
+        return (
+            Dignity::Triplicity,
+            if same_sect(body, is_day) { 3 } else { 2 },
+        );
+    }
+    // Term
+    if egyptian_terms_ruler(lon) == body {
+        return (Dignity::Term, 2);
+    }
+    // Decan/Face
+    if decan_ruler(lon) == body {
+        return (Dignity::Decan, 1);
+    }
+    // Peregrine
+    (Dignity::Peregrine, 0)
+}
+
+// ─── Almuten ──────────────────────────────────────────────────────────────────
+
+/// Compute the Almuten (lord of the chart) for a given longitude.
+///
+/// The Almuten is the planet with the highest sum of dignity scores at a degree.
+/// Scores: domicile=5, exaltation=4, triplicity=3/2, term=2, decan=1.
+///
+/// Returns `(almuten_body, score)`.
+pub fn almuten(lon: f64, is_day: bool) -> (Body, i8) {
+    let planets = [
+        Body::SUN,
+        Body::MOON,
+        Body::MERCURY,
+        Body::VENUS,
+        Body::MARS,
+        Body::JUPITER,
+        Body::SATURN,
+    ];
+    let mut best_body = Body::SUN;
+    let mut best_score = i8::MIN;
+    for &body in &planets {
+        let (_, score) = full_dignity(body, lon, is_day);
+        if score > best_score {
+            best_score = score;
+            best_body = body;
+        }
+    }
+    (best_body, best_score)
+}
+
+// ─── Firdaria ─────────────────────────────────────────────────────────────────
+
+/// A single Firdaria period.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FirdariaPeriod {
+    /// The major lord (primary planet).
+    pub major_lord: Body,
+    /// The minor (sub-period) lord.
+    pub minor_lord: Body,
+    /// Start Julian Day (UT).
+    pub start: f64,
+    /// End Julian Day (UT).
+    pub end: f64,
+    /// Duration in years.
+    pub years: f64,
+}
+
+/// Compute Firdaria periods for a chart (Persian planetary period system).
+///
+/// Each of the 7 planets rules for a fixed number of years in a fixed sequence.
+/// Day charts start with the Sun; night charts start with the Moon.
+/// Each major period is subdivided into 7 minor periods.
+///
+/// The sequence and durations (from Abū Maʿshar):
+/// Sun=10, Venus=8, Mercury=13, Moon=9, Saturn=11, Jupiter=12, Mars=7  
+/// Then North Node=3, South Node=2 (for a 75-year cycle).
+///
+/// # Arguments
+/// * `jd_birth` — Julian Day of birth
+/// * `is_day`   — true for day chart (Sun above horizon)
+/// * `span`     — how many years forward to generate periods
+pub fn firdaria(jd_birth: f64, is_day: bool, span: f64) -> Vec<FirdariaPeriod> {
+    // Major period durations (years)
+    const DAY_SEQ: &[(Body, f64)] = &[
+        (Body::SUN, 10.0),
+        (Body::VENUS, 8.0),
+        (Body::MERCURY, 13.0),
+        (Body::MOON, 9.0),
+        (Body::SATURN, 11.0),
+        (Body::JUPITER, 12.0),
+        (Body::MARS, 7.0),
+        (Body::MEAN_NODE, 3.0), // North Node
+        (Body::TRUE_NODE, 2.0), // South Node (Ketu proxy)
+    ];
+    const NIGHT_SEQ: &[(Body, f64)] = &[
+        (Body::MOON, 9.0),
+        (Body::SATURN, 11.0),
+        (Body::MERCURY, 13.0),
+        (Body::VENUS, 8.0),
+        (Body::JUPITER, 12.0),
+        (Body::MARS, 7.0),
+        (Body::SUN, 10.0),
+        (Body::MEAN_NODE, 3.0),
+        (Body::TRUE_NODE, 2.0),
+    ];
+    let seq = if is_day { DAY_SEQ } else { NIGHT_SEQ };
+    const DAYS_PER_YEAR: f64 = 365.25;
+
+    let mut periods = Vec::new();
+    let mut jd = jd_birth;
+    let jd_end = jd_birth + span * DAYS_PER_YEAR;
+
+    'outer: for &(major_lord, major_years) in seq.iter().cycle() {
+        let major_end = jd + major_years * DAYS_PER_YEAR;
+        let minor_dur = major_years / 7.0;
+        // Sub-periods: same planet sequence, starting from major lord
+        let start_idx = seq.iter().position(|(b, _)| *b == major_lord).unwrap_or(0);
+        for i in 0..7 {
+            let minor_lord = seq[(start_idx + i) % seq.len()].0;
+            let period_start = jd + i as f64 * minor_dur * DAYS_PER_YEAR;
+            let period_end = (period_start + minor_dur * DAYS_PER_YEAR).min(major_end);
+            periods.push(FirdariaPeriod {
+                major_lord,
+                minor_lord,
+                start: period_start,
+                end: period_end,
+                years: minor_dur,
+            });
+            if period_end >= jd_end {
+                break 'outer;
+            }
+        }
+        jd = major_end;
+        if jd >= jd_end {
+            break;
+        }
+    }
+    periods
+}
+
+// ─── Helper (used internally) ─────────────────────────────────────────────────
+
+/// Which house (1–12) does a planet longitude fall in given house cusps?
+/// Returns 1 if not determinable.
+fn planet_house_number(lon: f64, cusps: &[f64; 13]) -> usize {
+    for h in 1..=12usize {
+        let lo = cusps[h];
+        let hi = cusps[if h == 12 { 1 } else { h + 1 }];
+        let contained = if lo <= hi {
+            lon >= lo && lon < hi
+        } else {
+            lon >= lo || lon < hi
+        };
+        if contained {
+            return h;
+        }
+    }
+    1
+}

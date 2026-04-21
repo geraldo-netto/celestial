@@ -1171,9 +1171,89 @@ describe("calc_many / calcMany — parallel multi-body", () => {
   });
 });
 
-console.log(`Results: ${passed} passed, ${failed} failed`);
 if (failures.length > 0) {
   console.log("\nFailed tests:");
   failures.forEach((f) => console.log(`  • ${f.name}\n    ${f.message}`));
   process.exit(1);
 }
+
+// ── Shared fixture-driven cross-language tests ────────────────────────────────
+
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname2 = dirname(fileURLToPath(import.meta.url));
+const _fx = JSON.parse(
+  readFileSync(resolve(__dirname2, '../../../tests/fixtures/reference_values.json'), 'utf8')
+);
+
+const _GMT = 584283;
+const _antiscion         = (lon) => ((180 - lon) % 360 + 360) % 360;
+const _contraAntiscion   = (lon) => ((360 - lon) % 360 + 360) % 360;
+const _tonalpohualli     = (jd)  => { const d = ((jd - _GMT) % 260 + 260) % 260; return [d % 13 + 1, d % 20]; };
+const _profectionHouse   = (age) => (age % 12) + 1;
+const _approxEq          = (a, b, places) => Math.abs(a - b) < Math.pow(10, -places);
+
+// Antiscia
+for (const c of _fx.antiscia) {
+  test(`fixture antiscion(${c.input_lon}) = ${c.antiscion}`, () => {
+    const got = _antiscion(c.input_lon);
+    if (!_approxEq(got, c.antiscion, 9))
+      throw new Error(`antiscion(${c.input_lon}): expected ${c.antiscion}, got ${got}`);
+    const gotC = _contraAntiscion(c.input_lon);
+    if (!_approxEq(gotC, c.contra, 9))
+      throw new Error(`contra(${c.input_lon}): expected ${c.contra}, got ${gotC}`);
+  });
+}
+
+// Tonalpohualli
+for (const c of _fx.tonalpohualli) {
+  test(`fixture tonal jd=${c.jd} → ${c.trecena} ${c.name}`, () => {
+    const [t, s] = _tonalpohualli(c.jd);
+    if (t !== c.trecena) throw new Error(`trecena at jd=${c.jd}: expected ${c.trecena}, got ${t}`);
+    if (s !== c.sign_idx) throw new Error(`sign at jd=${c.jd}: expected ${c.sign_idx}, got ${s}`);
+  });
+}
+
+// Profections
+for (const c of _fx.profections) {
+  test(`fixture profection age ${c.age} → house ${c.house}`, () => {
+    const h = _profectionHouse(c.age);
+    if (h !== c.house) throw new Error(`age ${c.age}: expected house ${c.house}, got ${h}`);
+  });
+}
+
+// Medicine Wheel
+const _TOTEMS_FX = [
+  [300,330,'Snow Goose','Earth','Turtle','Winter'],
+  [330,360,'Otter','Air','Butterfly','Winter'],
+  [0,30,'Cougar','Air','Butterfly','Spring'],
+  [30,60,'Red Hawk','Fire','Thunderbird','Spring'],
+  [60,90,'Beaver','Earth','Turtle','Spring'],
+  [90,120,'Deer','Air','Butterfly','Summer'],
+  [120,150,'Flicker','Water','Frog','Summer'],
+  [150,180,'Sturgeon','Fire','Thunderbird','Summer'],
+  [180,210,'Brown Bear','Earth','Turtle','Autumn'],
+  [210,240,'Raven','Air','Butterfly','Autumn'],
+  [240,270,'Snake','Water','Frog','Autumn'],
+  [270,300,'Elk','Fire','Thunderbird','Winter'],
+];
+const _totemFx = (lon) => {
+  lon = ((lon % 360) + 360) % 360;
+  for (const [lo, hi, ...rest] of _TOTEMS_FX) {
+    if (lo < hi ? (lon >= lo && lon < hi) : (lon >= lo || lon < hi)) return rest;
+  }
+  return ['Snow Goose','Earth','Turtle','Winter'];
+};
+for (const c of _fx.medicine_wheel) {
+  test(`fixture totem(${c.sun_lon}) = ${c.animal}`, () => {
+    const [animal, element, clan, season] = _totemFx(c.sun_lon);
+    if (animal !== c.animal) throw new Error(`animal: expected ${c.animal}, got ${animal}`);
+    if (element !== c.element) throw new Error(`element: expected ${c.element}, got ${element}`);
+    if (clan !== c.clan) throw new Error(`clan: expected ${c.clan}, got ${clan}`);
+    if (season !== c.season) throw new Error(`season: expected ${c.season}, got ${season}`);
+  });
+}
+
+console.log(`Results: ${passed} passed, ${failed} failed`);

@@ -1,0 +1,358 @@
+{
+  "_comment": "Canonical reference values for cross-language pure-logic tests. Do not edit by hand.",
+  "_generated_by": "celestial-workspace/tests/generate_fixtures.py",
+  "antiscia": [
+    {
+      "input_lon": 15.0,
+      "antiscion": 165.0,
+      "contra": 345.0
+    },
+    {
+      "input_lon": 45.0,
+      "antiscion": 135.0,
+      "contra": 315.0
+    },
+    {
+      "input_lon": 90.0,
+      "antiscion": 90.0,
+      "contra": 270.0
+    },
+    {
+      "input_lon": 180.0,
+      "antiscion": 0.0,
+      "contra": 180.0
+    },
+    {
+      "input_lon": 270.0,
+      "antiscion": 270.0,
+      "contra": 90.0
+    },
+    {
+      "input_lon": 350.0,
+      "antiscion": 190.0,
+      "contra": 10.0
+    }
+  ],
+  "egyptian_terms": [
+    {
+      "lon": 3.0,
+      "sign": 0,
+      "ruler": "Jupiter",
+      "comment": "Aries 0-6°"
+    },
+    {
+      "lon": 7.0,
+      "sign": 0,
+      "ruler": "Venus",
+      "comment": "Aries 6-12°"
+    },
+    {
+      "lon": 30.5,
+      "sign": 1,
+      "ruler": "Venus",
+      "comment": "Taurus 0-8°"
+    },
+    {
+      "lon": 301.0,
+      "sign": 10,
+      "ruler": "Mercury",
+      "comment": "Aquarius 0-7°"
+    }
+  ],
+  "decan_rulers": [
+    {
+      "lon": 5.0,
+      "ruler": "Mars",
+      "decan_idx": 0,
+      "comment": "Aries 1st decan"
+    },
+    {
+      "lon": 15.0,
+      "ruler": "Sun",
+      "decan_idx": 1,
+      "comment": "Aries 2nd decan"
+    },
+    {
+      "lon": 25.0,
+      "ruler": "Venus",
+      "decan_idx": 2,
+      "comment": "Aries 3rd decan"
+    },
+    {
+      "lon": 35.0,
+      "ruler": "Mercury",
+      "decan_idx": 3,
+      "comment": "Taurus 1st decan"
+    },
+    {
+      "lon": 90.5,
+      "ruler": "Saturn",
+      "decan_idx": 9,
+      "comment": "Cancer 1st decan (sign 3, decan 0)"
+    }
+  ],
+  "tonalpohualli": [
+    {
+      "jd": 584283,
+      "trecena": 1,
+      "sign_idx": 0,
+      "name": "Cipactli",
+      "english": "Crocodile"
+    },
+    {
+      "jd": 584284,
+      "trecena": 2,
+      "sign_idx": 1,
+      "name": "Ehecatl",
+      "english": "Wind"
+    },
+    {
+      "jd": 584295,
+      "trecena": 13,
+      "sign_idx": 12,
+      "name": "Acatl",
+      "english": "Reed"
+    },
+    {
+      "jd": 584296,
+      "trecena": 1,
+      "sign_idx": 13,
+      "name": "Ocelotl",
+      "english": "Ocelot"
+    },
+    {
+      "jd": 584542,
+      "trecena": 13,
+      "sign_idx": 19,
+      "name": "Xochitl",
+      "english": "Flower"
+    },
+    {
+      "jd": 584543,
+      "trecena": 1,
+      "sign_idx": 0,
+      "name": "Cipactli",
+      "english": "Crocodile",
+      "comment": "cycle repeats at 260"
+    }
+  ],
+  "tzolkin": [
+    {
+      "jd": 584283,
+      "trecena": 1,
+      "sign_idx": 0,
+      "name": "Imix",
+      "english": "Water Lily"
+    },
+    {
+      "jd": 584284,
+      "trecena": 2,
+      "sign_idx": 1,
+      "name": "Ik",
+      "english": "Wind"
+    },
+    {
+      "jd": 584542,
+      "trecena": 13,
+      "sign_idx": 19,
+      "name": "Ahau",
+      "english": "Sun"
+    }
+  ],
+  "calendar_round_cycle": 18980,
+  "profections": [
+    {
+      "age": 0,
+      "house": 1
+    },
+    {
+      "age": 1,
+      "house": 2
+    },
+    {
+      "age": 11,
+      "house": 12
+    },
+    {
+      "age": 12,
+      "house": 1,
+      "comment": "returns to house 1"
+    },
+    {
+      "age": 23,
+      "house": 12
+    },
+    {
+      "age": 35,
+      "house": 12
+    },
+    {
+      "age": 36,
+      "house": 1
+    }
+  ],
+  "solar_terms": [
+    {
+      "idx": 0,
+      "lon": 0.0,
+      "pinyin": "Chūnfēn",
+      "english": "Spring Equinox"
+    },
+    {
+      "idx": 6,
+      "lon": 90.0,
+      "pinyin": "Xiàzhì",
+      "english": "Summer Solstice"
+    },
+    {
+      "idx": 12,
+      "lon": 180.0,
+      "pinyin": "Qiūfēn",
+      "english": "Autumn Equinox"
+    },
+    {
+      "idx": 18,
+      "lon": 270.0,
+      "pinyin": "Dōngzhì",
+      "english": "Winter Solstice"
+    },
+    {
+      "idx": 21,
+      "lon": 315.0,
+      "pinyin": "Lìchūn",
+      "english": "Start of Spring"
+    }
+  ],
+  "heavenly_stems": [
+    {
+      "idx": 0,
+      "name": "Jiǎ",
+      "element": "Wood",
+      "yang": true
+    },
+    {
+      "idx": 1,
+      "name": "Yǐ",
+      "element": "Wood",
+      "yang": false
+    },
+    {
+      "idx": 2,
+      "name": "Bǐng",
+      "element": "Fire",
+      "yang": true
+    },
+    {
+      "idx": 9,
+      "name": "Guǐ",
+      "element": "Water",
+      "yang": false
+    }
+  ],
+  "earthly_branches": [
+    {
+      "idx": 0,
+      "name": "Zǐ",
+      "animal": "Rat",
+      "element": "Water"
+    },
+    {
+      "idx": 2,
+      "name": "Yín",
+      "animal": "Tiger",
+      "element": "Wood"
+    },
+    {
+      "idx": 11,
+      "name": "Hài",
+      "animal": "Pig",
+      "element": "Water"
+    }
+  ],
+  "sexagenary": [
+    {
+      "idx": 0,
+      "stem": "Jiǎ",
+      "animal": "Rat"
+    },
+    {
+      "idx": 1,
+      "stem": "Yǐ",
+      "animal": "Ox"
+    },
+    {
+      "idx": 59,
+      "stem": "Rén",
+      "animal": "Dog"
+    },
+    {
+      "idx": 60,
+      "stem": "Jiǎ",
+      "animal": "Rat",
+      "comment": "wraps at 60"
+    }
+  ],
+  "medicine_wheel": [
+    {
+      "sun_lon": 305.0,
+      "animal": "Snow Goose",
+      "element": "Earth",
+      "clan": "Turtle",
+      "season": "Winter"
+    },
+    {
+      "sun_lon": 335.0,
+      "animal": "Otter",
+      "element": "Air",
+      "clan": "Butterfly",
+      "season": "Winter"
+    },
+    {
+      "sun_lon": 15.0,
+      "animal": "Cougar",
+      "element": "Air",
+      "clan": "Butterfly",
+      "season": "Spring"
+    },
+    {
+      "sun_lon": 135.0,
+      "animal": "Flicker",
+      "element": "Water",
+      "clan": "Frog",
+      "season": "Summer"
+    },
+    {
+      "sun_lon": 285.0,
+      "animal": "Elk",
+      "element": "Fire",
+      "clan": "Thunderbird",
+      "season": "Winter"
+    }
+  ],
+  "egyptian_decans": [
+    {
+      "lon": 5.0,
+      "idx": 0,
+      "name": "Khontarty",
+      "star": "Alphard"
+    },
+    {
+      "lon": 15.0,
+      "idx": 1,
+      "name": "Khontarty II",
+      "star": "Alphard"
+    },
+    {
+      "lon": 25.0,
+      "idx": 2,
+      "name": "Sirius",
+      "star": "Sirius"
+    },
+    {
+      "lon": 355.0,
+      "idx": 35,
+      "name": "Wȝḫ",
+      "star": "Fomalhaut"
+    }
+  ]
+}

@@ -1773,6 +1773,7 @@ fn main() {
     println!("╚═══════════════════════════════════════════════════╝\n");
 
     let suites: &[(&str, bool)] = &[
+        ("calc_tt_precision", test_calc_tt_precision(N).report()),
         ("math", test_math(N).report()),
         ("time", test_time(N).report()),
         ("houses", test_houses(N).report()),

@@ -125,6 +125,10 @@ pub const ECL_NUT: i32 = -1;
 pub const MEAN_APOG: i32 = 12;
 pub const OSCU_APOG: i32 = 13;
 
+// ── All chart, vedic, utils, phenomena, and tradition functions are already
+// ── exported via the pub use wildcards above (chart::*, vedic::*, utils::*, etc.).
+// ── No explicit re-exports are needed here.
+
 // ── Deprecated backward-compat aliases for renamed functions ─────────────────
 // These will emit a compiler warning when used; prefer the new names.
 
@@ -212,30 +216,3 @@ pub fn jdet_to_utc(jd_et: f64, calendar: i32) -> crate::functions::time::UtcDate
 pub fn jdut1_to_utc(jd_ut: f64, calendar: i32) -> crate::functions::time::UtcDate {
     crate::functions::time::jd_ut_to_utc(jd_ut, Calendar::from(calendar))
 }
-
-// ─── Phase 3 exports ──────────────────────────────────────────────────────────
-pub use crate::functions::chart::{midpoint_table, MidpointEntry};
-pub use crate::functions::utils::{azalt, azalt_rev, AzAlt};
-
-// ─── Vedic / Jyotish exports (Phase 4) ───────────────────────────────────────
-pub use crate::functions::chart::{vimshottari_dasha, DashaLevel};
-pub use crate::functions::vedic::{
-    long_to_nakshatra, long_to_navamsa, long_to_rasi, naisargika_relation, nakshatra_name,
-    ochchabala, raman_houses, rasi_diff, rasi_norm, residential_strength, tatkalika_relation,
-};
-
-// ─── Phase 5 exports ──────────────────────────────────────────────────────────
-pub use crate::functions::chart::{
-    almuten, decan_ruler, egyptian_terms_ruler, firdaria, full_dignity, is_day_chart, same_sect,
-    triplicity_rulers, Dignity, FirdariaPeriod,
-};
-
-// Phase 6: four_pillars, BaZiPillar etc. covered by pub use chart::* above
-
-// ─── Phase 7 exports (Mesoamerican) ──────────────────────────────────────────
-// Phase 8 exports (Indigenous/Egyptian) are also here
-// (all covered by pub use crate::functions::chart::* above, explicit for clarity)
-pub use crate::functions::chart::{
-    calendar_round, egyptian_decan, haab, medicine_wheel_totem, tonalpohualli, tzolkin,
-    xiuhpohualli, GMT_CORRELATION, TONALPOHUALLI_SIGNS, TZOLKIN_SIGNS, XIUHPOHUALLI_MONTHS,
-};
