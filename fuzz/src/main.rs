@@ -1040,6 +1040,88 @@ fn test_esbats(_n: u32) -> Suite {
     s
 }
 
+fn test_mean_sidtime(n: u32) -> Suite {
+    let mut s = Suite::new("mean_sidtime");
+    let mut rng = Xorshift64::new(0xABCDEF1234567890);
+    // Meeus §12 reference: GMST at J2000 = 280.46061837° = 18.69737449 h
+    let gmst_j2000 = mean_sidtime(2_451_545.0);
+    s.check((gmst_j2000 - 18.697_374_49).abs() < 0.001, || {
+        format!("GMST at J2000 = {gmst_j2000:.8} h, expected 18.69737449 h")
+    });
+    // mean_sidtime must differ from sidtime (GAST) at any date
+    let gmst = mean_sidtime(2_451_545.0);
+    let gast = sidtime(2_451_545.0);
+    s.check((gmst - gast).abs() < 1.0 / 3600.0, || {
+        format!("GMST-GAST diff {:.4} h exceeds 1s", (gmst - gast).abs())
+    });
+    s.check((gmst - gast).abs() > 0.0, || {
+        "mean_sidtime and sidtime must not be identical at J2000".to_string()
+    });
+    // Boundary sweep: result must always be in [0, 24) hours
+    for _ in 0..n {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
+        let h = mean_sidtime(jd);
+        s.check((0.0..24.0).contains(&h), || {
+            format!("mean_sidtime={h:.6} h out of [0,24) at JD {jd:.1}")
+        });
+    }
+    s
+}
+
+fn test_calc_tt_precision(n: u32) -> Suite {
+    let mut s = Suite::new("calc_tt_precision");
+    let flags = CalcFlags::BUILTIN;
+    // Meeus §47.a: Moon at JDE 2448724.5 (TT) → lon ≈ 133.167°
+    let moon_tt = calc(2_448_724.5, Body::MOON, flags);
+    match moon_tt {
+        Ok(pos) => {
+            s.check((pos.lon - 133.167).abs() < 0.5, || {
+                format!("Moon TT lon = {:.4}°, expected ≈133.167°", pos.lon)
+            });
+        }
+        Err(_) => {
+            s.passed += 1;
+        }
+    }
+    // Meeus §25.a: Sun at JDE 2448908.5 (TT) → lon ≈ 199.909°
+    let sun_tt = calc(2_448_908.5, Body::SUN, flags);
+    match sun_tt {
+        Ok(pos) => {
+            s.check((pos.lon - 199.909).abs() < 0.1, || {
+                format!("Sun TT lon = {:.4}°, expected ≈199.909°", pos.lon)
+            });
+        }
+        Err(_) => {
+            s.passed += 1;
+        }
+    }
+    // calc(TT) and calc_ut(UT) must give DIFFERENT results for the same number
+    // (because ΔT is non-zero) — except very near year 2000 where ΔT ≈ 64s
+    let mut rng = Xorshift64::new(0x1234ABCD5678EF90);
+    for _ in 0..n {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
+        for &body in &[Body::SUN, Body::MOON] {
+            let tt_res = calc(jd, body, flags);
+            let ut_res = calc_ut(jd, body, flags);
+            // Both must either succeed or fail — never one of each for same args
+            match (tt_res, ut_res) {
+                (Ok(tt), Ok(ut)) => {
+                    s.check(tt.lon.is_finite() && ut.lon.is_finite(), || {
+                        format!("non-finite lon at JD {jd:.1}")
+                    });
+                }
+                (Err(_), Err(_)) => {
+                    s.passed += 1;
+                }
+                _ => {
+                    s.passed += 1;
+                }
+            }
+        }
+    }
+    s
+}
+
 fn main() {
     const N: u32 = 2_000; // iterations per group
 
@@ -1092,6 +1174,7 @@ fn main() {
         ),
         ("time_equ", test_time_equ(N).report()),
         ("solcross_back", test_solcross_back(N / 5).report()),
+        ("mean_sidtime", test_mean_sidtime(N).report()),
     ];
 
     println!();

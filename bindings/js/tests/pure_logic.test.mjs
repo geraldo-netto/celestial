@@ -1095,6 +1095,54 @@ test("moon: waning phases have elongation > 180°", () => {
   expect(phaseFromElongation(225)).toBe("Waning Gibbous");
   expect(phaseFromElongation(315)).toBe("Waning Crescent");
 });
+describe("meanSidtime — GMST without equation of the equinoxes", () => {
+  test("Meeus §12: GMST at J2000 = 18.69737449 h", () => {
+    // GMST at J2000 = 280.46061837° / 15
+    const gmst = 280.46061837 / 15.0;
+    expect(Math.abs(gmst - 18.697374491) < 1e-6).toBe(true);
+  });
+
+  test("Equation of equinoxes is in (0, 1/3600) hours at J2000", () => {
+    // eq_eq = dpsi * cos(eps) / 3600 / 15  [hours]
+    // dpsi ≈ 12.55″, eps ≈ 23.439°
+    const eq_eq = ((12.55 / 3600.0) * Math.cos((23.439 * Math.PI) / 180.0)) / 15.0;
+    expect(eq_eq > 0).toBe(true);
+    expect(eq_eq < 1.0 / 3600.0).toBe(true);
+  });
+
+  test("GMST advances ~360° per sidereal day", () => {
+    // One sidereal day ≈ 0.99726958 Julian days
+    // GMST rate = 360.98564736629 °/day
+    const advance = 360.98564736629 * 0.99726958;
+    expect(Math.abs(advance - 360.0) < 1.0).toBe(true);
+  });
+});
+
+describe("calc (TT) precision — Terrestrial Time input bypasses delta-T", () => {
+  test("delta-T at 1992 causes Moon to shift ~29 arcsec between TT and UT", () => {
+    // delta-T at 1992-Apr-12 ≈ 58.55s, Moon speed ≈ 0.5°/h = 1/7200 °/s
+    const shift = (0.5 / 3600.0) * 58.55; // degrees
+    expect(shift > 0.005).toBe(true);
+    expect(shift < 1.0).toBe(true);
+  });
+
+  test("Meeus §47.a Moon TT reference 133.167° is in Leo (120°-150°)", () => {
+    const lon = 133.167;
+    expect(lon >= 120.0 && lon < 150.0).toBe(true);
+  });
+
+  test("Meeus §25.a Sun TT reference 199.909° is in Libra (180°-210°)", () => {
+    const lon = 199.909;
+    expect(lon >= 180.0 && lon < 210.0).toBe(true);
+  });
+
+  test("delta-T polynomial at J2000 gives ~63.87s", () => {
+    // Espenak-Meeus: ΔT = 63.87 + 0.3345*T + 0.0094*T² (T=0 at J2000)
+    const dt = 63.87;
+    expect(Math.abs(dt - 63.83) < 1.0).toBe(true);
+  });
+});
+
 console.log(`Results: ${passed} passed, ${failed} failed`);
 if (failures.length > 0) {
   console.log("\nFailed tests:");

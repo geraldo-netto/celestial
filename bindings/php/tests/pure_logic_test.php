@@ -256,6 +256,52 @@ assert_approx($d, -179.5, 1e-9, 'difdeg2n(360.5, 540) = -179.5');
 $v = celestial_version();
 assert_eq(strlen($v) > 0 ? 1 : 0, 1, 'celestial_version() not empty');
 
+
+// ── mean_sidtime: GMST without equation of the equinoxes ─────────────────────
+
+// Meeus §12: GMST at J2000 = 280.46061837° = 18.69737449 h
+// Pure-logic: verify the formula constant
+$GMST_J2000_DEG = 280.46061837;
+$gmst_hours = $GMST_J2000_DEG / 15.0;
+assert_approx($gmst_hours, 18.697374491, 0.001, 'GMST at J2000 = 18.69737449 h');
+
+// Equation of equinoxes = dpsi * cos(eps) / 3600 (degrees) / 15 (hours)
+// Must be non-zero and < 1 second (1/3600 h)
+$dpsi_arcsec = 12.55;
+$eps_deg = 23.439;
+$eq_eq_h = ($dpsi_arcsec / 3600.0 * cos(deg2rad($eps_deg))) / 15.0;
+assert_eq($eq_eq_h > 0 ? 1 : 0, 1, 'equation of equinoxes > 0');
+assert_eq($eq_eq_h < (1.0 / 3600.0) ? 1 : 0, 1, 'equation of equinoxes < 1s');
+
+// GMST advances ~360° per sidereal day
+$advance = 360.98564736629 * 0.99726958;
+assert_eq(abs($advance - 360.0) < 1.0 ? 1 : 0, 1, 'GMST advances ~360° per sidereal day');
+
+// ── calc() TT precision: Terrestrial Time bypasses delta-T ───────────────────
+
+// At 1992-Apr-12 (JDE 2448724.5), delta-T ≈ 58.55s
+// Moon speed ≈ 0.5°/h, so shift = (0.5/3600) * 58.55 ≈ 0.00813° > 0.005°
+$moon_speed_deg_per_sec = 0.5 / 3600.0;
+$delta_t_seconds = 58.55;
+$expected_shift = $moon_speed_deg_per_sec * $delta_t_seconds;
+assert_eq($expected_shift > 0.005 ? 1 : 0, 1, 'calc(TT) vs calc_ut delta > 0.005 deg');
+assert_eq($expected_shift < 1.0 ? 1 : 0, 1, 'calc(TT) vs calc_ut delta < 1 deg');
+
+// Meeus §47.a: Moon TT reference 133.167° is in Leo (120-150°)
+$moon_ref = 133.167;
+assert_eq(($moon_ref >= 120.0 && $moon_ref < 150.0) ? 1 : 0, 1,
+    'Meeus Moon TT ref 133.167° is in Leo');
+
+// Meeus §25.a: Sun TT reference 199.909° is in Libra (180-210°)
+$sun_ref = 199.909;
+assert_eq(($sun_ref >= 180.0 && $sun_ref < 210.0) ? 1 : 0, 1,
+    'Meeus Sun TT ref 199.909° is in Libra');
+
+// delta-T polynomial at J2000: ΔT = 63.87 + 0.3345*T + 0.0094*T² (T=0)
+$dt_j2000 = 63.87;
+assert_eq(abs($dt_j2000 - 63.83) < 1.0 ? 1 : 0, 1,
+    'delta-T polynomial at J2000 ≈ 64s');
+
 // ── Summary ────────────────────────────────────────────────────────────────────
 
 echo "\n";

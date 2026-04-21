@@ -7,4 +7,5 @@ pub mod houses;
 pub mod jd;
 pub mod moon;
 pub mod omer;
+pub mod render;
 pub mod sabbats;

@@ -745,6 +745,79 @@ All phase timings use the same Newton + bisection engine as `next_full_moon`, ac
 
 ---
 
+
+### Plugin architecture
+
+Any executable named `celestial-<name>` on `$PATH` becomes a first-class subcommand:
+
+```bash
+celestial --list-plugins           # discover all installed plugins
+celestial synastry --date 1985-01-01 # runs celestial-synastry if on PATH
+```
+
+### `render` — template-driven charts
+
+
+### Example output
+
+![Celestial Chart — Paris J2000.0](docs/example_chart.svg)
+
+*Built-in SVG chart for Paris, 2000-01-01. Wheel shows zodiac sectors, house cusps,
+planet glyphs with degree labels, aspect lines (blue = soft, red = hard), and a
+three-column legend: Planets · Angles & Houses · Aspects.*
+
+```bash
+# Built-in SVG chart (dark theme, full legend):
+celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
+
+# Override palette and title:
+celestial render --date now --lat 48.85 --lon 2.35 \
+  --var "title=My Chart" --var "bg_color=#1a1a2e" --out chart.svg
+
+# TOML config file:
+celestial render --config chart.toml --out chart.svg
+
+# Bootstrap a custom template:
+celestial render --print-template > my_chart.tmpl
+
+# Inspect all available template variables as JSON:
+celestial render --date 2025-03-20 --print-context
+```
+
+`chart.toml` example:
+```toml
+[render]
+date  = "2025-03-20"
+lat   = 48.8566
+lon   = 2.3522
+hsys  = "P"
+
+[vars]
+title        = "Spring Equinox 2025"
+bg_color     = "#0d1117"
+ring_color   = "#58a6ff"
+my_custom_var = "hello"
+```
+
+Templates use [TinyTemplate](https://github.com/bheisler/TinyTemplate) syntax.
+All wheel geometry (planet x/y, cusp lines, aspect endpoints) is **pre-computed**
+in Rust — templates need no math, just `{planet.x}`, `{planet.y}`, etc.
+
+| Variable | Type | Description |
+|---|---|---|
+| `{date}` | string | ISO date |
+| `{jd}` | float | Julian Day |
+| `{asc}` / `{mc}` / `{ic}` / `{dsc}` | float | Angle longitudes |
+| `{asc_dms}` … | string | DMS formatted angles |
+| `{planets}` | list | 12 bodies with `.lon .lat .x .y .glyph .dms .retro` … |
+| `{signs}` | list | 12 sign sectors with `.spoke_x1 .spoke_y1 .glyph_x .glyph_y` |
+| `{houses}` | list | 12 cusps with `.x1 .y1 .x2 .y2 .num_x .num_y .dms` |
+| `{aspects}` | list | Active aspects with `.x1 .y1 .x2 .y2 .orb .applying .is_hard` |
+| `{moon_phase_name}` | string | Current lunar phase |
+| `{moon_illumination}` | float | Illumination 0–100% |
+| `{vars.key}` | string | Any `--var key=value` or `[vars] key = "value"` |
+
+
 ## Building from source
 
 ```bash

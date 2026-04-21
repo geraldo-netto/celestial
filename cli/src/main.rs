@@ -1,29 +1,17 @@
 //! `celestial` — command-line interface for the celestial astronomical engine.
 //!
-//! ```text
-//! celestial <COMMAND> [OPTIONS]
+//! Built-in commands:  calc  houses  chart  render  moon  crossing  eclipse
+//!                     jd  sabbats  esbats  omer  calendar
 //!
-//! Commands:
-//!   calc      Planetary positions
-//!   houses    House cusps and special angles
-//!   sabbats   Celtic Wheel of the Year
-//!   esbats    Named full moons
-//!   jd        Julian day ↔ calendar date conversion
-//!   crossing  Next ecliptic longitude crossing
-//!   eclipse   Solar and lunar eclipses
-//!   chart     Full astrological chart (JSON + SVG wheel)
-//!   moon      Moon phase, illumination, and phase timing
-//!   omer      Sefirat HaOmer — 49-day count
-//!   calendar  Religious/spiritual calendars (jewish|easter|islamic|panchanga|vesak|nowruz)
-//! ```
+//! Plugin commands: any `celestial-<n>` executable on $PATH becomes a subcommand.
+//! Run `celestial --list-plugins` to see discovered plugins.
 
 mod cmd;
 mod format;
 mod parse;
+mod plugin;
 
 use clap::{Parser, Subcommand};
-
-// ─── Top-level CLI ────────────────────────────────────────────────────────────
 
 #[derive(Parser)]
 #[command(
@@ -36,6 +24,10 @@ use clap::{Parser, Subcommand};
 struct Cli {
     #[command(subcommand)]
     command: Command,
+
+    /// List discovered celestial-* plugin executables on $PATH
+    #[arg(long, global = true)]
+    list_plugins: bool,
 }
 
 #[derive(Subcommand)]
@@ -54,19 +46,66 @@ enum Command {
     Crossing(cmd::crossing::CrossingArgs),
     /// Find solar or lunar eclipses
     Eclipse(cmd::eclipse::EclipseArgs),
-    /// Full astrological chart with aspects and SVG wheel
+    /// Full astrological chart with aspects
     Chart(cmd::chart::ChartArgs),
     /// Moon phase, illumination, and next principal phases
     Moon(cmd::moon::MoonArgs),
     /// Sefirat HaOmer — 49-day Omer count
     Omer(cmd::omer::OmerArgs),
-    /// Multi-tradition religious calendars (jewish|easter|islamic|panchanga|vesak|nowruz)
+    /// Multi-tradition religious calendars
     Calendar(cmd::calendar::CalendarArgs),
+    /// Render a Jinja2 template with celestial chart data (SVG, HTML, …)
+    Render(cmd::render::RenderArgs),
 }
 
-// ─── Entry point ──────────────────────────────────────────────────────────────
-
 fn main() {
+    let raw: Vec<String> = std::env::args().collect();
+
+    // --list-plugins
+    if raw.iter().any(|a| a == "--list-plugins") {
+        let plugins = plugin::discover();
+        if plugins.is_empty() {
+            eprintln!("No celestial-* plugins found on $PATH.");
+        } else {
+            println!("Discovered plugins:");
+            for p in &plugins {
+                println!("  celestial-{:<22} {}", p.name, p.path.display());
+            }
+        }
+        return;
+    }
+
+    // Plugin dispatch: if first arg is not a known built-in, try PATH lookup.
+    let sub = raw.get(1).map(String::as_str).unwrap_or("");
+    let is_builtin = matches!(
+        sub,
+        "calc"
+            | "houses"
+            | "sabbats"
+            | "esbats"
+            | "jd"
+            | "crossing"
+            | "eclipse"
+            | "chart"
+            | "moon"
+            | "omer"
+            | "calendar"
+            | "render"
+            | "--help"
+            | "-h"
+            | "--version"
+            | "-V"
+            | "--list-plugins"
+            | ""
+    );
+    if !is_builtin && !sub.starts_with('-') {
+        if let Err(msg) = plugin::try_exec(sub, &raw[2..].to_vec()) {
+            eprintln!("error: {msg}");
+            std::process::exit(1);
+        }
+    }
+
+    // Normal clap dispatch.
     let cli = Cli::parse();
     let result = match cli.command {
         Command::Calc(a) => cmd::calc::run(a),
@@ -80,6 +119,7 @@ fn main() {
         Command::Moon(a) => cmd::moon::run(a),
         Command::Omer(a) => cmd::omer::run(a),
         Command::Calendar(a) => cmd::calendar::run(a),
+        Command::Render(a) => cmd::render::run(a),
     };
     if let Err(e) = result {
         eprintln!("error: {e}");

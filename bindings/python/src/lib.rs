@@ -3,7 +3,6 @@
 //! Build with `maturin develop` (dev install) or `maturin build` (wheel).
 //! The module is exposed as `celestial_py`.
 
-
 use celestial::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core as celestial;
 use pyo3::exceptions::PyRuntimeError;

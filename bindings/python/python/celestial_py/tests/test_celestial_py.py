@@ -12,7 +12,6 @@ or, to skip tests that need ephemeris data files:
 """
 
 import os
-
 import pytest
 
 # ── import the compiled extension ─────────────────────────────────────────────
@@ -416,3 +415,69 @@ class TestInfo:
         parts = v.split(".")
         assert len(parts) == 3
         assert all(p.isdigit() for p in parts)
+
+
+@pytest.mark.skipif(not HAS_MODULE, reason="celestial_py not compiled")
+class TestMeanSidtime:
+    """Tests for mean_sidtime() — GMST without equation of the equinoxes."""
+
+    def test_j2000_reference(self):
+        """Meeus §12: GMST at J2000.0 = 280.46061837° = 18.69737449 h."""
+        gmst = celestial.mean_sidtime(2451545.0)
+        assert abs(gmst - 18.697374490) < 0.001, f"GMST at J2000 = {gmst:.8f} h"
+
+    def test_differs_from_gast(self):
+        """mean_sidtime (GMST) must differ from sidtime (GAST)."""
+        gmst = celestial.mean_sidtime(2451545.0)
+        gast = celestial.sidtime(2451545.0)
+        assert abs(gmst - gast) > 1e-6, "GMST and GAST should differ"
+        assert abs(gmst - gast) < 1.0 / 3600.0, (
+            f"GMST-GAST diff {abs(gmst-gast):.6f} h should be < 1 second"
+        )
+
+    def test_always_in_range(self):
+        """mean_sidtime must always be in [0, 24) hours."""
+        import random
+        rng = random.Random(42)
+        for _ in range(200):
+            jd = 2415021.0 + rng.uniform(0.0, 73049.0)
+            h = celestial.mean_sidtime(jd)
+            assert 0.0 <= h < 24.0, f"GMST={h:.4f} h out of [0,24) at JD {jd:.1f}"
+
+
+@pytest.mark.skipif(not HAS_MODULE, reason="celestial_py not compiled")
+class TestCalcTTPrecision:
+    """Tests for calc() — Terrestrial Time (TT) input, bypasses delta-T."""
+
+    def test_moon_meeus_47a(self):
+        """Meeus §47.a: Moon lon at JDE 2448724.5 (TT) ≈ 133.167°."""
+        pos = celestial.calc(2448724.5, celestial.MOON, celestial.FLG_BUILTIN)
+        lon = pos[0][0]
+        assert abs(lon - 133.167) < 0.5, f"Moon lon (TT) = {lon:.4f}°"
+
+    def test_sun_meeus_25a(self):
+        """Meeus §25.a: Sun lon at JDE 2448908.5 (TT) ≈ 199.909°."""
+        pos = celestial.calc(2448908.5, celestial.SUN, celestial.FLG_BUILTIN)
+        lon = pos[0][0]
+        assert abs(lon - 199.909) < 0.1, f"Sun lon (TT) = {lon:.4f}°"
+
+    def test_calc_tt_differs_from_calc_ut(self):
+        """calc(TT) and calc_ut(UT) give different results — delta-T shift."""
+        jde = 2448724.5  # 1992-Apr-12, delta-T ≈ 58.5s
+        lon_tt = celestial.calc(jde, celestial.MOON, celestial.FLG_BUILTIN)[0][0]
+        lon_ut = celestial.calc_ut(jde, celestial.MOON, celestial.FLG_BUILTIN)[0][0]
+        assert abs(lon_tt - lon_ut) > 0.005, (
+            f"calc(TT)={lon_tt:.6f}° and calc_ut(UT)={lon_ut:.6f}° "
+            f"should differ by delta-T shift (~29 arcsec)"
+        )
+
+    def test_calc_tt_all_planets_finite(self):
+        """calc(TT) must return finite values for all standard bodies."""
+        bodies = [celestial.SUN, celestial.MOON, celestial.MERCURY,
+                  celestial.VENUS, celestial.MARS, celestial.JUPITER,
+                  celestial.SATURN, celestial.URANUS, celestial.NEPTUNE,
+                  celestial.PLUTO]
+        for body in bodies:
+            pos = celestial.calc(2451545.0, body, celestial.FLG_BUILTIN)
+            lon = pos[0][0]
+            assert 0.0 <= lon < 360.0, f"body {body}: lon={lon} out of range"
