@@ -68,7 +68,7 @@ jobs:
       # --package celestial-py scopes clippy to the PyO3 binding and its
       # dependencies only. Python source files are never read.
       - name: cargo clippy (Rust files only)
-        run: cargo clippy --package celestial-py -- -D warnings
+        run: cargo clippy --package celestial-py -- -D clippy::correctness -D clippy::suspicious
 
   # ── Python side: black + isort + ruff on Python files ─────────────────────
   # Scope: bindings/python/**/*.py

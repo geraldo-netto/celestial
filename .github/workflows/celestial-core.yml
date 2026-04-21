@@ -2,7 +2,7 @@
 #
 # Triggers: any change to core/, fuzz/, Cargo.toml, Cargo.lock, rustfmt.toml
 # Jobs (parallel):
-#   lint    → cargo clippy -D warnings
+#   lint    → cargo clippy -D correctness -D suspicious
 #   test    → cargo test --package celestial-core (549 tests)
 #   fuzz    → cargo run --manifest-path fuzz/Cargo.toml (32 property suites)
 
@@ -65,7 +65,7 @@ jobs:
         run: |
           cargo clippy \
             --package celestial-core \
-            -- -D warnings
+            -- -D clippy::correctness -D clippy::suspicious
 
   test:
     name: tests

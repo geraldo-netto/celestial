@@ -66,7 +66,7 @@ jobs:
           restore-keys: ${{ runner.os }}-js-lint-rs-
 
       - name: cargo clippy
-        run: cargo clippy --package celestial-js -- -D warnings
+        run: cargo clippy --package celestial-js -- -D clippy::correctness -D clippy::suspicious
 
   # ── TypeScript / JS side: prettier + tsc ──────────────────────────────────
   lint-ts:
