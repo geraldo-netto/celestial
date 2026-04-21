@@ -127,8 +127,8 @@ pub fn nutation(jde: f64) -> Nutation {
 
     // Add the IAU 2000B planetary bias corrections (Mathews et al. 2002 §4):
     // These account for omitted planetary terms and bring accuracy to ~1 mas.
-    dpsi += -1.7_1996 * om.sin() - 0.17_74 * (2.0 * om).sin();
-    deps += 0.9_0325 * om.cos() + 0.08_9742 * (2.0 * om).cos();
+    dpsi += -1.719_96 * om.sin() - 0.17_74 * (2.0 * om).sin();
+    deps += 0.903_25 * om.cos() + 0.089_742 * (2.0 * om).cos();
 
     // Convert 0.1 μas → arcseconds (1 arcsec = 10_000_000 × 0.1 μas)
     Nutation {

@@ -650,7 +650,7 @@ pub fn build_vedic_context(
             let body_lon = planets
                 .iter()
                 .find(|p| {
-                    p["key"].as_str().map_or(false, |k| {
+                    p["key"].as_str().is_some_and(|k| {
                         k == [
                             "sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn",
                         ][raw as usize]
@@ -783,7 +783,7 @@ pub fn render_dasha_svg(ctx: &Value) -> String {
         let jd_yr =
             celestial_core::julday(yr, 1, 1, 0.0, celestial_core::body::Calendar::Gregorian);
         let x = LM + (jd_yr - jd_start) / span * W;
-        if x < LM || x > LM + W {
+        if !(LM..=LM + W).contains(&x) {
             continue;
         }
         let _ = writeln!(

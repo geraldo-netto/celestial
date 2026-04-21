@@ -271,7 +271,7 @@ pub fn full_dignity(body: Body, lon: f64, is_day: bool) -> (Dignity, i8) {
     let _raw = body.as_raw(); // reserved for future term table lookup
 
     // Detriment
-    if sign_ruler(sign) == body || sign_ruler_modern(sign) == body {}
+    let _ = sign_ruler(sign) == body || sign_ruler_modern(sign) == body;
     // (checked below via domicile)
 
     // Domicile

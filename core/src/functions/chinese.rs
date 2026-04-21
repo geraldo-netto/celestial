@@ -98,9 +98,9 @@ pub fn four_pillars(jd_ut: f64, hour_ut: f64, sun_lon: f64) -> [BaZiPillar; 4] {
     // For simplicity, approximate: Chinese year = Gregorian year - 1 if Sun < 315°
     // and month is Jan (before ~Feb 4)
     let chinese_year = if sun_lon < 315.0 && d.month as u8 == 1 {
-        d.year as i32 - 1
+        d.year - 1
     } else {
-        d.year as i32
+        d.year
     };
     // Sexagenary cycle: year 4 CE = cycle 0 (Jiǎ-Zǐ)
     let year_cycle = ((chinese_year - 4).rem_euclid(60)) as u8;

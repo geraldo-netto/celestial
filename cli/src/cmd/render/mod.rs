@@ -194,7 +194,7 @@ pub(super) fn moon_phase_str(jd: f64) -> &'static str {
     }
 }
 
-/// Format a Julian Day as "YYYY-MM-DD".
+// Format a Julian Day as "YYYY-MM-DD".
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Phase 5 — Hellenistic / Persian chart builders
@@ -318,7 +318,7 @@ pub(super) fn planet_dignity(body: Body, sign: u8) -> &'static str {
             6 => Some(9u8),  // Saturn:  Capricorn + Aquarius
             _ => None,
         };
-        also.map_or(false, |s2| s2 == s && sign_ruler(s2) == body)
+        also.is_some_and(|s2| s2 == s && sign_ruler(s2) == body)
     } {
         return "domicile";
     }
@@ -333,7 +333,7 @@ pub(super) fn planet_dignity(body: Body, sign: u8) -> &'static str {
             6 => Some((9u8 + 6) % 12),
             _ => None,
         };
-        also.map_or(false, |s2| s2 == s && sign_ruler((s2 + 6) % 12) == body)
+        also.is_some_and(|s2| s2 == s && sign_ruler((s2 + 6) % 12) == body)
     } {
         return "detriment";
     }
@@ -1336,7 +1336,7 @@ pub fn run(mut args: RenderArgs) -> Result<(), String> {
         }
         "lunar-return" | "lunar_return" => {
             let start = args.date2.as_deref()
-                .map(|d| crate::parse::parse_date(d))
+                .map(crate::parse::parse_date)
                 .transpose()?
                 .unwrap_or(jd);
             let lr_jd = lunar_return_jd(jd, start, CalcFlags::BUILTIN)
@@ -1674,6 +1674,7 @@ fn render_cosmogram_svg(ctx: &serde_json::Value) -> String {
     render_builtin_svg(ctx)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_biwheel_context(
     jd1: f64,
     jd2: f64,

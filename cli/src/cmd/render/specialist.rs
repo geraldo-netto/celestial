@@ -91,6 +91,7 @@ pub fn build_dial_context(
         "vars": Value::Object(palette.into_iter().collect())}))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn build_composite_context(
     jd1: f64,
     jd2: f64,
@@ -159,6 +160,7 @@ pub fn build_composite_context(
     Ok(ctx)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn build_triwheel_context(
     jd1: f64,
     jd2: f64,
@@ -307,7 +309,7 @@ pub fn build_graphic_ephemeris_context(
     vars.entry("title".to_string())
         .or_insert("Graphic Ephemeris".to_string());
 
-    let days = ((jd_end - jd_start) as usize).min(366).max(28);
+    let days = ((jd_end - jd_start) as usize).clamp(28, 366);
     let step = if days <= 31 { 1 } else { (days / 90).max(1) };
 
     // Sample planetary positions over the date range

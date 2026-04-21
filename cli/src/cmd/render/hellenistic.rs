@@ -34,9 +34,7 @@ pub fn build_hellenistic_context(
         .map_err(|e| e.to_string())?;
     let cusps_arr: [f64; 13] = {
         let mut a = [0.0f64; 13];
-        for i in 0..13 {
-            a[i] = h.cusps[i];
-        }
+        a.copy_from_slice(&h.cusps);
         a
     };
 
@@ -198,9 +196,7 @@ pub fn build_firdaria_context(
     let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8)).map_err(|e| e.to_string())?;
     let cusps_arr: [f64; 13] = {
         let mut a = [0.0f64; 13];
-        for i in 0..13 {
-            a[i] = h.cusps[i];
-        }
+        a.copy_from_slice(&h.cusps);
         a
     };
 
@@ -315,7 +311,7 @@ pub fn render_firdaria_svg(ctx: &Value) -> String {
         let jd_yr =
             celestial_core::julday(yr, 1, 1, 0.0, celestial_core::body::Calendar::Gregorian);
         let x = LM + (jd_yr - jd_start) / span * W;
-        if x < LM - 5.0 || x > LM + W + 5.0 {
+        if !(LM - 5.0..=LM + W + 5.0).contains(&x) {
             continue;
         }
         let _ = writeln!(
@@ -402,9 +398,7 @@ pub fn build_profection_context(
     let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8)).map_err(|e| e.to_string())?;
     let cusps_arr: [f64; 13] = {
         let mut a = [0.0f64; 13];
-        for i in 0..13 {
-            a[i] = h.cusps[i];
-        }
+        a.copy_from_slice(&h.cusps);
         a
     };
 
