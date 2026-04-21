@@ -208,3 +208,77 @@ pub fn orbit_max_min_true_distance(
     let dtrue = el.semi_major;
     Ok(OrbitalDistances { dmax, dmin, dtrue })
 }
+
+// ─── Parallel multi-body calculation ─────────────────────────────────────────
+
+/// Compute positions for multiple bodies in parallel using OS threads.
+///
+/// Spawns one thread per body (up to a cap) using [`std::thread::scope`],
+/// so all bodies are evaluated concurrently.  Ideal for full chart calculations
+/// (12 bodies) where the speedup is proportional to CPU cores.
+///
+/// Results are returned in the same order as the input `bodies` slice.
+///
+/// # Example
+/// ```rust
+/// use celestial_core::body::{Body, CalcFlags};
+/// use celestial_core::calc_many;
+/// let bodies = [Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS,
+///               Body::MARS, Body::JUPITER, Body::SATURN, Body::URANUS,
+///               Body::NEPTUNE, Body::PLUTO, Body::MEAN_NODE, Body::CHIRON];
+/// let results = calc_many(2451545.0, &bodies, CalcFlags::BUILTIN | CalcFlags::SPEED);
+/// ```
+pub fn calc_many(
+    jd_et: f64,
+    bodies: &[Body],
+    flags: CalcFlags,
+) -> Vec<crate::error::Result<PlanetPos>> {
+    parallel_calc(bodies, move |body| {
+        crate::astronomy::calc_tt(jd_et, body.as_raw(), flags.as_raw())
+    })
+}
+
+/// Compute positions for multiple bodies in parallel using UT input.
+///
+/// Same as [`calc_many`] but accepts Universal Time (auto-applies ΔT).
+pub fn calc_ut_many(
+    jd_ut: f64,
+    bodies: &[Body],
+    flags: CalcFlags,
+) -> Vec<crate::error::Result<PlanetPos>> {
+    parallel_calc(bodies, move |body| {
+        crate::astronomy::calc_ut(jd_ut, body.as_raw(), flags.as_raw())
+    })
+}
+
+/// Internal: evaluate `f(body)` for each body in parallel via scoped threads.
+///
+/// Uses [`std::thread::scope`] (stable since Rust 1.63) — no external crates needed.
+/// Each body gets its own OS thread; the function blocks until all complete.
+fn parallel_calc<F>(bodies: &[Body], f: F) -> Vec<crate::error::Result<PlanetPos>>
+where
+    F: Fn(Body) -> crate::error::Result<PlanetPos> + Sync + Send + 'static,
+{
+    // For ≤ 2 bodies just run sequentially — thread overhead isn't worth it.
+    if bodies.len() <= 2 {
+        return bodies.iter().map(|&b| f(b)).collect();
+    }
+    use std::sync::Arc;
+    let f = Arc::new(f);
+    std::thread::scope(|s| {
+        let handles: Vec<_> = bodies
+            .iter()
+            .map(|&body| {
+                let f = Arc::clone(&f);
+                s.spawn(move || f(body))
+            })
+            .collect();
+        handles
+            .into_iter()
+            .map(|h| {
+                h.join()
+                    .unwrap_or_else(|_| Err(crate::error::Error::Calc("thread panicked".into())))
+            })
+            .collect()
+    })
+}

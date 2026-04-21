@@ -491,3 +491,90 @@ class TestCalcTTPrecision:
             pos = celestial.calc(2451545.0, body, celestial.FLG_BUILTIN)
             lon = pos[0][0]
             assert 0.0 <= lon < 360.0, f"body {body}: lon={lon} out of range"
+
+
+@pytest.mark.skipif(not HAS_MODULE, reason="celestial_py not compiled")
+class TestCalcMany:
+    """Tests for calc_many() / calc_ut_many() and IAU 2000B nutation precision."""
+
+    def test_calc_many_same_as_sequential(self):
+        """calc_many() must give identical results to individual calc() calls."""
+        if not hasattr(celestial, "calc_many"):
+            pytest.skip("calc_many not available in this wheel (needs rebuild)")
+        jd = 2451545.0
+        planets = [
+            celestial.SUN,
+            celestial.MOON,
+            celestial.MERCURY,
+            celestial.VENUS,
+            celestial.MARS,
+            celestial.JUPITER,
+            celestial.SATURN,
+        ]
+        flags = celestial.FLG_BUILTIN
+        parallel = celestial.calc_many(jd, planets, flags)
+        for i, planet in enumerate(planets):
+            seq = celestial.calc(jd, planet, flags)
+            assert (
+                abs(parallel[i][0][0] - seq[0][0]) < 1e-9
+            ), f"planet {planet}: parallel={parallel[i][0][0]:.6f} seq={seq[0][0]:.6f}"
+
+    def test_calc_ut_many_same_as_sequential(self):
+        """calc_ut_many() must give identical results to individual calc_ut() calls."""
+        if not hasattr(celestial, "calc_ut_many"):
+            pytest.skip("calc_ut_many not available in this wheel (needs rebuild)")
+        jd = 2451545.0
+        planets = [celestial.SUN, celestial.MOON, celestial.MERCURY]
+        flags = celestial.FLG_BUILTIN
+        parallel = celestial.calc_ut_many(jd, planets, flags)
+        for i, planet in enumerate(planets):
+            seq = celestial.calc_ut(jd, planet, flags)
+            assert abs(parallel[i][0][0] - seq[0][0]) < 1e-9
+
+    def test_calc_many_preserves_order(self):
+        """Results must be in the same order as the input planets list."""
+        if not hasattr(celestial, "calc_many"):
+            pytest.skip("calc_many not available in this wheel (needs rebuild)")
+        jd = 2451545.0
+        planets = [
+            celestial.SUN,
+            celestial.MOON,
+            celestial.MERCURY,
+            celestial.VENUS,
+            celestial.MARS,
+            celestial.JUPITER,
+            celestial.SATURN,
+            celestial.URANUS,
+            celestial.NEPTUNE,
+            celestial.PLUTO,
+            celestial.MEAN_NODE,
+            celestial.CHIRON,
+        ]
+        results = celestial.calc_many(jd, planets, celestial.FLG_BUILTIN)
+        assert len(results) == len(
+            planets
+        ), f"got {len(results)} results for {len(planets)} planets"
+
+    def test_iau2000b_nutation_precision(self):
+        """IAU 2000B nutation must be within 0.05 arcsec of Meeus para 22 reference."""
+        if not hasattr(celestial, "nutation"):
+            pytest.skip("nutation not available in this wheel (needs rebuild)")
+        jde = 2446895.5  # 1987-Apr-10
+        dpsi_deg, deps_deg = celestial.nutation(jde)
+        dpsi_as = dpsi_deg * 3600.0
+        deps_as = deps_deg * 3600.0
+        assert (
+            abs(dpsi_as - (-3.788)) < 0.05
+        ), f"dpsi = {dpsi_as:.4f} arcsec (expected approx -3.788, tol 0.05)"
+        assert (
+            abs(deps_as - 9.443) < 0.05
+        ), f"deps = {deps_as:.4f} arcsec (expected approx +9.443, tol 0.05)"
+
+    def test_true_obliquity_meeus_22b(self):
+        """True obliquity at 1987-Apr-10 must match Meeus 22.b = 23.44357 deg."""
+        if not hasattr(celestial, "true_obliquity"):
+            pytest.skip("true_obliquity not available in this wheel (needs rebuild)")
+        eps = celestial.true_obliquity(2446895.5)
+        assert (
+            abs(eps - 23.44357) < 0.001
+        ), f"true obliquity = {eps:.5f} deg (expected 23.44357)"

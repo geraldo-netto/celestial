@@ -3,7 +3,7 @@
 # Triggers: changes to bindings/js/ or core/
 # Jobs:
 #   lint-rs  → cargo clippy on the Rust binding (celestial-js crate)
-#   lint-ts  → tsc --noEmit on the TS side
+#   lint-ts  → tsc --noEmit + eslint on the TS side
 #   test     → node pure_logic.test.mjs (no compiled addon, runs on all Node versions)
 #   fuzz     → fuzzing describe block + randomised runs across 5 seeds
 #   build    → napi build (.node addon) — matrix: Node 22 × 3 OS
@@ -66,11 +66,11 @@ jobs:
           restore-keys: ${{ runner.os }}-js-lint-rs-
 
       - name: cargo clippy
-        run: cargo clippy --package celestial-js -- -D clippy::correctness -D clippy::suspicious
+        run: cargo clippy --package celestial-js -- -D clippy::correctness -D clippy::suspicious -D clippy::perf
 
   # ── TypeScript / JS side: prettier + tsc ──────────────────────────────────
   lint-ts:
-    name: tsc (TypeScript)
+    name: tsc + eslint (TypeScript)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,6 +88,10 @@ jobs:
 
       - name: tsc --noEmit
         run: npx tsc --noEmit
+        working-directory: bindings/js
+
+      - name: eslint (logic & type rules)
+        run: npx eslint tests/
         working-directory: bindings/js
 
   # ── Pure-logic tests (no compiled addon needed) ────────────────────────────

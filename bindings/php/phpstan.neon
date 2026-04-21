@@ -1,0 +1,12 @@
+parameters:
+    level: 5
+    paths:
+        - tests
+    bootstrapFiles:
+        - phpstan-stubs.php
+    # Ignore "Function X not found" only for functions we've stubbed above
+    # (handles edge cases where phpstan still can't resolve some extension calls)
+    ignoreErrors:
+        - '#^Function (ok|exact|ord)\\(\\) not found\.#'
+    # The test files use declare(strict_types=1) and procedural style — no classes
+    reportUnmatchedIgnoredErrors: false

@@ -33,3 +33,10 @@ target-version = ["py38", "py39", "py310", "py311", "py312"]
 [tool.isort]
 profile = "black"
 line_length = 88
+
+[tool.mypy]
+python_version        = "3.8"
+ignore_missing_imports = true   # celestial_py is a native extension — no stubs
+check_untyped_defs    = true
+warn_redundant_casts  = true
+warn_unused_ignores   = true

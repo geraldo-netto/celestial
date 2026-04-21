@@ -90,6 +90,83 @@ fn calc_ut(py: Python<'_>, tjdut: f64, planet: i32, flags: i32) -> PyResult<PyOb
     Ok((xx, pos.ret_flags).into_py(py))
 }
 
+/// Nutation in longitude and obliquity at a JDE (TT).
+///
+/// Returns `(dpsi_degrees, deps_degrees)` — both in degrees.
+/// Multiply by 3600 to convert to arcseconds.
+/// Uses the IAU 2000B luni-solar series (77 terms, ~1 mas accuracy).
+#[pyfunction]
+#[pyo3(signature = (jde))]
+fn nutation(jde: f64) -> (f64, f64) {
+    celestial::nutation(jde)
+}
+
+/// Mean obliquity of the ecliptic in degrees (IAU 2006 formula).
+#[pyfunction]
+#[pyo3(signature = (jde))]
+fn mean_obliquity(jde: f64) -> f64 {
+    celestial::mean_obliquity(jde)
+}
+
+/// True (apparent) obliquity of the ecliptic in degrees.
+/// Equals mean obliquity + nutation in obliquity.
+#[pyfunction]
+#[pyo3(signature = (jde))]
+fn true_obliquity(jde: f64) -> f64 {
+    celestial::true_obliquity(jde)
+}
+
+/// Calculate positions for a list of bodies in parallel (ET / TT input).
+///
+/// Returns a list of ((lon, lat, dist, speed_lon, speed_lat, speed_dist), ret_flags)
+/// tuples in the same order as `planets`.
+#[pyfunction]
+#[pyo3(signature = (tjdet, planets, flags = 258))]
+fn calc_many(py: Python<'_>, tjdet: f64, planets: Vec<i32>, flags: i32) -> PyResult<PyObject> {
+    let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
+    let results = celestial::calc_many(tjdet, &bodies, CalcFlags(flags));
+    let list: Vec<PyObject> = results
+        .into_iter()
+        .map(|r| {
+            let pos = r.map_err(to_py)?;
+            let xx = (
+                pos.lon,
+                pos.lat,
+                pos.dist,
+                pos.speed_lon,
+                pos.speed_lat,
+                pos.speed_dist,
+            );
+            Ok::<PyObject, pyo3::PyErr>((xx, pos.ret_flags).into_py(py))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(list.into_py(py))
+}
+
+/// Calculate positions for a list of bodies in parallel (UT input).
+#[pyfunction]
+#[pyo3(signature = (tjdut, planets, flags = 258))]
+fn calc_ut_many(py: Python<'_>, tjdut: f64, planets: Vec<i32>, flags: i32) -> PyResult<PyObject> {
+    let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
+    let results = celestial::calc_ut_many(tjdut, &bodies, CalcFlags(flags));
+    let list: Vec<PyObject> = results
+        .into_iter()
+        .map(|r| {
+            let pos = r.map_err(to_py)?;
+            let xx = (
+                pos.lon,
+                pos.lat,
+                pos.dist,
+                pos.speed_lon,
+                pos.speed_lat,
+                pos.speed_dist,
+            );
+            Ok::<PyObject, pyo3::PyErr>((xx, pos.ret_flags).into_py(py))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(list.into_py(py))
+}
+
 /// Calculate planetocentric positions (ET).
 #[pyfunction]
 #[pyo3(signature = (tjdet, planet, center, flags = 258))]
@@ -1084,6 +1161,11 @@ fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_function(wrap_pyfunction!(calc, m)?)?;
     m.add_function(wrap_pyfunction!(calc_ut, m)?)?;
+    m.add_function(wrap_pyfunction!(nutation, m)?)?;
+    m.add_function(wrap_pyfunction!(mean_obliquity, m)?)?;
+    m.add_function(wrap_pyfunction!(true_obliquity, m)?)?;
+    m.add_function(wrap_pyfunction!(calc_many, m)?)?;
+    m.add_function(wrap_pyfunction!(calc_ut_many, m)?)?;
     m.add_function(wrap_pyfunction!(calc_pctr, m)?)?;
     m.add_function(wrap_pyfunction!(fixstar, m)?)?;
     m.add_function(wrap_pyfunction!(fixstar_ut, m)?)?;

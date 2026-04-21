@@ -215,6 +215,70 @@ pub fn calc_ut(tjdut: f64, planet: i32, flags: i32) -> napi::Result<PlanetPos> {
         .map_err(to_napi)
 }
 
+/// Nutation in longitude and obliquity at a JDE (TT).
+/// Returns [dpsi_degrees, deps_degrees].
+/// IAU 2000B luni-solar series — ~1 mas accuracy.
+#[napi(js_name = "nutation")]
+pub fn nutation(jde: f64) -> Vec<f64> {
+    let (dpsi, deps) = celestial::nutation(jde);
+    vec![dpsi, deps]
+}
+
+/// Mean obliquity of the ecliptic in degrees (IAU 2006).
+#[napi(js_name = "meanObliquity")]
+pub fn mean_obliquity(jde: f64) -> f64 {
+    celestial::mean_obliquity(jde)
+}
+
+/// True (apparent) obliquity in degrees (mean + nutation in obliquity).
+#[napi(js_name = "trueObliquity")]
+pub fn true_obliquity(jde: f64) -> f64 {
+    celestial::true_obliquity(jde)
+}
+
+/// Compute positions for multiple bodies in parallel (TT / ET input).
+/// Returns results in the same order as `planets`.
+#[napi(js_name = "calcMany")]
+pub fn calc_many(tjdet: f64, planets: Vec<i32>, flags: i32) -> napi::Result<Vec<PlanetPos>> {
+    let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
+    celestial::calc_many(tjdet, &bodies, CalcFlags(flags))
+        .into_iter()
+        .map(|r| {
+            r.map(|p| PlanetPos {
+                lon: p.lon,
+                lat: p.lat,
+                dist: p.dist,
+                speed_lon: p.speed_lon,
+                speed_lat: p.speed_lat,
+                speed_dist: p.speed_dist,
+                ret_flags: p.ret_flags,
+            })
+            .map_err(|e| napi::Error::from_reason(e.to_string()))
+        })
+        .collect()
+}
+
+/// Compute positions for multiple bodies in parallel (UT input).
+#[napi(js_name = "calcUtMany")]
+pub fn calc_ut_many(tjdut: f64, planets: Vec<i32>, flags: i32) -> napi::Result<Vec<PlanetPos>> {
+    let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
+    celestial::calc_ut_many(tjdut, &bodies, CalcFlags(flags))
+        .into_iter()
+        .map(|r| {
+            r.map(|p| PlanetPos {
+                lon: p.lon,
+                lat: p.lat,
+                dist: p.dist,
+                speed_lon: p.speed_lon,
+                speed_lat: p.speed_lat,
+                speed_dist: p.speed_dist,
+                ret_flags: p.ret_flags,
+            })
+            .map_err(|e| napi::Error::from_reason(e.to_string()))
+        })
+        .collect()
+}
+
 /// Planetocentric positions (ET).
 #[napi(js_name = "calcPctr")]
 pub fn calc_pctr(tjdet: f64, planet: i32, center: i32, flags: i32) -> napi::Result<PlanetPos> {

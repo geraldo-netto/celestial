@@ -1122,6 +1122,91 @@ fn test_calc_tt_precision(n: u32) -> Suite {
     s
 }
 
+fn test_iau2000b_nutation(n: u32) -> Suite {
+    let mut s = Suite::new("iau2000b_nutation");
+    let mut rng = Xorshift64::new(0x1A2B3C4D5E6F7890);
+
+    // Meeus §22: 1987-Apr-10, JDE 2446895.5
+    // public nutation() returns (dpsi_deg, deps_deg); convert to arcseconds
+    let (dpsi_deg, deps_deg) = nutation(2_446_895.5);
+    let dpsi_arcsec = dpsi_deg * 3600.0;
+    let deps_arcsec = deps_deg * 3600.0;
+    s.check((dpsi_arcsec - (-3.788)).abs() < 0.05, || {
+        format!("IAU 2000B Δψ = {dpsi_arcsec:.4}\" (expected ≈ -3.788\", tol 0.05\")")
+    });
+    s.check((deps_arcsec - 9.443).abs() < 0.05, || {
+        format!("IAU 2000B Δε = {deps_arcsec:.4}\" (expected ≈ +9.443\", tol 0.05\")")
+    });
+
+    // true_obliquity via the public API: Meeus 22.b → 23.44357°
+    let eps = true_obliquity(2_446_895.5);
+    s.check((eps - 23.443_57).abs() < 0.001, || {
+        format!("true obliquity = {eps:.5}° (expected 23.44357°)")
+    });
+
+    // Sweep: Δψ in [-20, +20] arcsec, Δε in [-10, +10] arcsec
+    for _ in 0..n {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
+        let (dp, de) = nutation(jd);
+        let dp_as = dp * 3600.0;
+        let de_as = de * 3600.0;
+        s.check(dp_as.abs() < 20.0, || {
+            format!("Δψ = {dp_as:.4}\" out of [-20,+20]\" at JD {jd:.1}")
+        });
+        s.check(de_as.abs() < 10.0, || {
+            format!("Δε = {de_as:.4}\" out of [-10,+10]\" at JD {jd:.1}")
+        });
+    }
+    s
+}
+
+fn test_calc_many_parallel(n: u32) -> Suite {
+    let mut s = Suite::new("calc_many_parallel");
+    let bodies = [
+        Body::SUN,
+        Body::MOON,
+        Body::MERCURY,
+        Body::VENUS,
+        Body::MARS,
+        Body::JUPITER,
+        Body::SATURN,
+        Body::URANUS,
+        Body::NEPTUNE,
+        Body::PLUTO,
+        Body::MEAN_NODE,
+        Body::CHIRON,
+    ];
+    let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    let mut rng = Xorshift64::new(0xFEDCBA9876543210);
+
+    for _ in 0..n {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
+
+        // calc_many must give identical results to sequential calc()
+        let par = calc_many(jd, &bodies, flags);
+        for (i, &body) in bodies.iter().enumerate() {
+            let seq = calc(jd, body, flags);
+            match (&par[i], &seq) {
+                (Ok(p), Ok(q)) => {
+                    s.check((p.lon - q.lon).abs() < 1e-9, || {
+                        format!(
+                            "body {i} parallel lon {:.6}° ≠ seq {:.6}° at JD {jd:.1}",
+                            p.lon, q.lon
+                        )
+                    });
+                }
+                (Err(_), Err(_)) => {
+                    s.passed += 1;
+                }
+                _ => {
+                    s.check(false, || format!("body {i} result mismatch at JD {jd:.1}"));
+                }
+            }
+        }
+    }
+    s
+}
+
 fn main() {
     const N: u32 = 2_000; // iterations per group
 
@@ -1174,6 +1259,11 @@ fn main() {
         ),
         ("time_equ", test_time_equ(N).report()),
         ("solcross_back", test_solcross_back(N / 5).report()),
+        (
+            "calc_many_parallel",
+            test_calc_many_parallel(N / 4).report(),
+        ),
+        ("iau2000b_nutation", test_iau2000b_nutation(N).report()),
         ("mean_sidtime", test_mean_sidtime(N).report()),
     ];
 

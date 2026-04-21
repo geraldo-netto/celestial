@@ -746,6 +746,43 @@ All phase timings use the same Newton + bisection engine as `next_full_moon`, ac
 ---
 
 
+### Parallel multi-body calculation — `calc_many` / `calc_ut_many`
+
+Compute positions for multiple bodies concurrently. Useful for full chart
+calculations (12 bodies) where the speedup scales with CPU cores.
+
+```python
+# Python — compute all 12 chart bodies at once
+import celestial_py as c
+planets = [c.SUN, c.MOON, c.MERCURY, c.VENUS, c.MARS, c.JUPITER,
+           c.SATURN, c.URANUS, c.NEPTUNE, c.PLUTO, c.MEAN_NODE, c.CHIRON]
+results = c.calc_many(2451545.0, planets, c.FLG_BUILTIN | c.FLG_SPEED)
+# results[i] == c.calc(jd, planets[i], flags) for all i
+```
+
+```javascript
+// JavaScript
+const { calcMany, SUN, MOON, MERCURY, FLG_BUILTIN } = require('./index');
+const results = calcMany(2451545.0, [SUN, MOON, MERCURY], FLG_BUILTIN);
+```
+
+```php
+// PHP
+$results = calc_many(2451545.0, [SUN, MOON, MERCURY], FLG_BUILTIN);
+```
+
+### Nutation and obliquity
+
+```python
+# IAU 2000B nutation (77 terms, ~1 mas accuracy)
+dpsi_deg, deps_deg = c.nutation(2451545.0)    # degrees
+dpsi_arcsec = dpsi_deg * 3600                  # → arcseconds
+
+eps_mean = c.mean_obliquity(2451545.0)         # IAU 2006 formula
+eps_true = c.true_obliquity(2451545.0)         # mean + Δε
+```
+
+
 ### Plugin architecture
 
 Any executable named `celestial-<name>` on `$PATH` becomes a first-class subcommand:
@@ -864,11 +901,15 @@ python3 benches/precision_comparison.py
 
 Precision vs Meeus *Astronomical Algorithms* 2nd ed. using `calc()` (TT input):
 
-| Body | Error |
-|---|---|
-| Sun 1992-Oct-13 | 3.2″ |
-| Moon 1992-Apr-12 | 0.7″ |
-| julday J2000 | exact |
+| Body | Error | Model |
+|---|---|---|
+| Sun 1992-Oct-13 | 3.2″ | VSOP87 + IAU 2000B nutation |
+| Moon 1992-Apr-12 | 0.7″ | ELP2000-82 + IAU 2000B nutation |
+| julday J2000 | exact | — |
+
+Nutation: **IAU 2000B** luni-solar series (77 terms, ~1 mas = 0.001″ accuracy).
+Replaces the former IAU 1980 model (64 terms, ~500 mas). Obliquity uses the
+**IAU 2006** formula (Capitaine et al. 2003).
 
 
 ## API reference

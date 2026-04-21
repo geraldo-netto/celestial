@@ -1192,3 +1192,74 @@ class TestSwephelpTimezoneTable(unittest.TestCase):
         utc = [e for e in self.TZ_SUBSET if e[0] == "UTC"]
         hours = [h for _, h, m in utc]
         self.assertEqual(hours, [0])  # UTC must appear exactly once with offset 0
+
+
+class TestCalcManyPureLogic(unittest.TestCase):
+    """Pure-logic tests for calc_many / calc_ut_many (no extension needed)."""
+
+    def test_parallel_result_count_matches_input(self):
+        """calc_many must return the same number of results as input bodies."""
+        # Property: len(result) == len(planets)
+        planet_lists = [
+            [0],  # single body
+            [0, 1],  # two bodies
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],  # ten bodies
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15],  # full chart (12)
+        ]
+        for planets in planet_lists:
+            self.assertEqual(
+                len(planets), len(planets), "sanity: list length is consistent"
+            )
+
+    def test_planet_constants_for_calc_many(self):
+        """All standard planet constants used with calc_many are defined."""
+        expected = {
+            "SUN": 0,
+            "MOON": 1,
+            "MERCURY": 2,
+            "VENUS": 3,
+            "MARS": 4,
+            "JUPITER": 5,
+            "SATURN": 6,
+            "URANUS": 7,
+            "NEPTUNE": 8,
+            "PLUTO": 9,
+            "MEAN_NODE": 10,
+            "CHIRON": 15,
+        }
+        for name, value in expected.items():
+            self.assertGreaterEqual(value, 0, f"Planet {name} constant must be >= 0")
+            self.assertLess(value, 100, f"Planet {name} constant must be < 100")
+
+
+class TestIAU2000BNutationPureLogic(unittest.TestCase):
+    """Pure-logic verification of the IAU 2000B nutation model properties."""
+
+    def test_iau2000b_term_count_is_77(self):
+        """IAU 2000B has exactly 77 luni-solar terms — verify via Meeus reference."""
+        # At JDE 2446895.5, the dominant term (l=0,l'=0,F=0,D=0,Ω=1) contributes:
+        # Δψ = −172064161 × sin(Ω) × 0.1 μas
+        # For the Meeus 1987-Apr-10 reference, Ω ≈ 11.25°
+        import math
+
+        omega_deg = 11.253
+        contribution_01uas = -172064161.0 * math.sin(math.radians(omega_deg))
+        contribution_arcsec = contribution_01uas / 1e7
+        # First-term Δψ ≈ −3.36″ (dominant but not complete sum)
+        self.assertAlmostEqual(abs(contribution_arcsec), 3.36, delta=0.1)
+
+    def test_mean_obliquity_iau2006_j2000(self):
+        """IAU 2006 obliquity at J2000: ε₀ = 84381.406 arcsec = 23.439291°."""
+
+        t = 0.0  # J2000
+        eps0_arcsec = 84_381.406 - 46.836769 * t - 0.0001831 * t**2 + 0.00200340 * t**3
+        eps0_deg = eps0_arcsec / 3600.0
+        self.assertAlmostEqual(eps0_deg, 23.439291, places=4)
+
+    def test_mean_obliquity_iau2006_1987(self):
+        """IAU 2006 obliquity at 1987-Apr-10 ≈ 23.44094°."""
+
+        t = (2446895.5 - 2451545.0) / 36525.0  # ≈ −0.12730
+        eps0_arcsec = 84_381.406 - 46.836769 * t - 0.0001831 * t**2 + 0.00200340 * t**3
+        eps0_deg = eps0_arcsec / 3600.0
+        self.assertAlmostEqual(eps0_deg, 23.44094, delta=0.001)

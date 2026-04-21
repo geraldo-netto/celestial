@@ -409,13 +409,11 @@ pub fn jd_to_iso_string(jd: f64, calendar: Calendar) -> String {
 // ─── Obliquity & nutation ─────────────────────────────────────────────────────
 
 /// Mean obliquity of the ecliptic in degrees at a Julian Ephemeris Day.
-#[allow(dead_code)]
 pub fn mean_obliquity(jde: f64) -> f64 {
     crate::astronomy::obliquity(jde)
 }
 
 /// True (apparent) obliquity of the ecliptic in degrees (includes nutation).
-#[allow(dead_code)]
 pub fn true_obliquity(jde: f64) -> f64 {
     crate::astronomy::obliquity_true(jde)
 }
@@ -423,7 +421,6 @@ pub fn true_obliquity(jde: f64) -> f64 {
 /// Nutation in longitude and obliquity (degrees) at a Julian Ephemeris Day.
 ///
 /// Returns `(nutation_longitude_deg, nutation_obliquity_deg)`.
-#[allow(dead_code)]
 pub fn nutation(jde: f64) -> (f64, f64) {
     let (nl, no) = crate::astronomy::get_nutation(jde);
     (nl / 3600.0, no / 3600.0)

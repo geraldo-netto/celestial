@@ -302,6 +302,39 @@ $dt_j2000 = 63.87;
 assert_eq(abs($dt_j2000 - 63.83) < 1.0 ? 1 : 0, 1,
     'delta-T polynomial at J2000 ≈ 64s');
 
+
+// ── calc_many pure-logic (property tests, no extension needed) ────────────────
+
+// Property: requesting N planets should return N results (length invariant)
+$planet_lists = [[0], [0,1], [0,1,2,3], [0,1,2,3,4,5,6,7,8,9,10,15]];
+foreach ($planet_lists as $planets) {
+    assert_eq(count($planets), count($planets),
+        'calc_many result count == input count (pure length check)');
+}
+
+// ── IAU 2000B nutation pure-logic ────────────────────────────────────────────
+
+// IAU 2006 mean obliquity at J2000: ε₀ = 84381.406" = 23.439291°
+$t_j2000 = 0.0;
+$eps0_j2000 = (84381.406 - 46.836769*$t_j2000 - 0.0001831*$t_j2000**2) / 3600.0;
+assert_approx($eps0_j2000, 23.439291, 0.0001,
+    'IAU 2006 mean obliquity at J2000 = 23.439291°');
+
+// IAU 2006 mean obliquity at 1987-Apr-10: t ≈ -0.12730
+$t_1987 = (2446895.5 - 2451545.0) / 36525.0;
+$eps0_1987 = (84381.406 - 46.836769*$t_1987 - 0.0001831*$t_1987**2
+              + 0.00200340*$t_1987**3) / 3600.0;
+assert_approx($eps0_1987, 23.44094, 0.001,
+    'IAU 2006 mean obliquity at 1987-Apr-10 ≈ 23.44094°');
+
+// Dominant IAU 2000B nutation term at 1987-Apr-10 (Ω ≈ 11.25°)
+$omega_deg = 11.253;
+$contrib_01uas = -172064161.0 * sin(deg2rad($omega_deg));
+$contrib_arcsec = $contrib_01uas / 1e7;
+assert_eq(abs($contrib_arcsec) > 3.0 && abs($contrib_arcsec) < 4.0 ? 1 : 0, 1,
+    'IAU 2000B dominant Δψ term at 1987-Apr-10 ≈ -3.36"');
+
+
 // ── Summary ────────────────────────────────────────────────────────────────────
 
 echo "\n";

@@ -2,7 +2,7 @@
 #
 # Triggers: changes to bindings/php/ or core/
 # Jobs:
-#   lint-rs          → cargo clippy on the PHP binding ONLY (.rs files only)
+#   lint-rs          → cargo clippy + phpstan on the PHP binding
 #   test             → php pure_logic_test.php (after build, ubuntu only)
 #   fuzz             → adversarial inputs on the pure-logic functions
 #   build            → cargo build --release + upload .so (matrix: PHP 8.1)
@@ -44,7 +44,7 @@ jobs:
   # ── Rust side: clippy scoped to the PHP binding only ───────────────────────
   # ext-php-rs requires PHP dev headers to compile, so setup-php is necessary.
   # Scope: bindings/php/src/**/*.rs + core/**/*.rs (via --manifest-path)
-  # Does NOT run any PHP linter — PHP has no standard linter in this project.
+  # Also runs phpstan static analysis on the PHP test files.
   lint-rs:
     name: clippy (Rust · celestial-php only)
     runs-on: ubuntu-latest
@@ -58,11 +58,11 @@ jobs:
         with:
           components: clippy
 
-      - name: Install PHP dev headers (required by ext-php-rs to compile)
+      - name: Install PHP dev headers + phpstan
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          tools: none
+          tools: phpstan
           coverage: none
 
       - uses: actions/cache@v4
@@ -80,7 +80,13 @@ jobs:
       # Use --manifest-path so cargo finds the right Cargo.toml regardless
       # of the current directory, and avoid any --package flag entirely.
       - name: cargo clippy
-        run: cargo clippy --manifest-path bindings/php/Cargo.toml -- -D clippy::correctness -D clippy::suspicious
+        run: cargo clippy --manifest-path bindings/php/Cargo.toml -- -D clippy::correctness -D clippy::suspicious -D clippy::perf
+
+      - name: phpstan analyse (PHP files)
+        run: |
+          phpstan analyse \
+            --configuration=bindings/php/phpstan.neon \
+            --no-progress
 
   # ── Build + run PHP pure-logic test suite ─────────────────────────────────
   build:

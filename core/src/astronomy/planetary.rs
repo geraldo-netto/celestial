@@ -47,11 +47,18 @@ pub fn apparent_planet(planet: Planet, jde: f64) -> GeocentricPos {
     let dz0 = zp0 - ze;
     let dist0 = (dx0 * dx0 + dy0 * dy0 + dz0 * dz0).sqrt();
 
-    // Light-time correction (τ = dist / c in days)
-    let tau = dist0 / LIGHT_SPEED_AU_DAY;
-    let jde_lt = jde - tau;
+    // Iterative light-time correction (3 passes → < 0.1″ residual).
+    let mut tau = dist0 / LIGHT_SPEED_AU_DAY;
+    let mut jde_lt = jde - tau;
+    for _ in 0..2 {
+        let p_tmp = heliocentric(planet, jde_lt);
+        let (xt, yt, zt) = ecliptic_rect(p_tmp.lon, p_tmp.lat, p_tmp.rad);
+        let d_tmp = ((xt - xe) * (xt - xe) + (yt - ye) * (yt - ye) + (zt - ze) * (zt - ze)).sqrt();
+        tau = d_tmp / LIGHT_SPEED_AU_DAY;
+        jde_lt = jde - tau;
+    }
 
-    // Corrected planet position
+    // Final corrected planet position
     let p = heliocentric(planet, jde_lt);
     let (xp, yp, zp) = ecliptic_rect(p.lon, p.lat, p.rad);
     let dx = xp - xe;

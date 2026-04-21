@@ -192,6 +192,71 @@ pub fn calc(tjdet: f64, planet: i64, flags: i64) -> PhpResult<Vec<f64>> {
 
 /// Planetocentric position (position relative to a center body).
 #[php_function]
+
+/// Nutation in longitude and obliquity (degrees) at a JDE (TT).
+/// Returns [dpsi_degrees, deps_degrees]. Multiply by 3600 for arcseconds.
+/// Uses the IAU 2000B luni-solar series (~1 mas accuracy).
+#[php_function]
+pub fn nutation(jde: f64) -> Vec<f64> {
+    let (dpsi, deps) = celestial::nutation(jde);
+    vec![dpsi, deps]
+}
+
+/// Mean obliquity of the ecliptic in degrees (IAU 2006).
+#[php_function]
+pub fn mean_obliquity(jde: f64) -> f64 {
+    celestial::mean_obliquity(jde)
+}
+
+/// True (apparent) obliquity of the ecliptic in degrees.
+#[php_function]
+pub fn true_obliquity(jde: f64) -> f64 {
+    celestial::true_obliquity(jde)
+}
+
+/// Compute positions for multiple bodies in parallel (TT / ET input).
+///
+/// `planets` is an array of planet constants (SUN=0, MOON=1, …).
+/// Returns an array of arrays, each [lon, lat, dist, speed_lon, speed_lat, speed_dist].
+#[php_function]
+pub fn calc_many(tjdet: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<Vec<f64>>> {
+    let bodies: Vec<_> = planets.iter().map(|&p| Body(p as i32)).collect();
+    celestial::calc_many(tjdet, &bodies, CalcFlags(flags as i32))
+        .into_iter()
+        .map(|r| {
+            let p = r.map_err(to_php)?;
+            Ok(vec![
+                p.lon,
+                p.lat,
+                p.dist,
+                p.speed_lon,
+                p.speed_lat,
+                p.speed_dist,
+            ])
+        })
+        .collect()
+}
+
+/// Compute positions for multiple bodies in parallel (UT input).
+#[php_function]
+pub fn calc_ut_many(tjdut: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<Vec<f64>>> {
+    let bodies: Vec<_> = planets.iter().map(|&p| Body(p as i32)).collect();
+    celestial::calc_ut_many(tjdut, &bodies, CalcFlags(flags as i32))
+        .into_iter()
+        .map(|r| {
+            let p = r.map_err(to_php)?;
+            Ok(vec![
+                p.lon,
+                p.lat,
+                p.dist,
+                p.speed_lon,
+                p.speed_lat,
+                p.speed_dist,
+            ])
+        })
+        .collect()
+}
+
 pub fn calc_pctr(tjdet: f64, planet: i64, center: i64, flags: i64) -> PhpResult<Vec<f64>> {
     let p = celestial::calc_pctr(
         tjdet,

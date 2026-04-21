@@ -194,6 +194,27 @@ export declare function calc(jdet: number, planet: number, flags: number): Plane
  */
 export declare function calcUt(jdut: number, planet: number, flags: number): PlanetPos;
 
+/** Nutation in longitude and obliquity at a Julian Ephemeris Day (TT).
+ *  Returns [dpsi_degrees, deps_degrees]. Multiply by 3600 for arcseconds.
+ *  Uses IAU 2000B luni-solar series (~1 mas accuracy).
+ */
+export declare function nutation(jde: number): [number, number];
+/** Mean obliquity of the ecliptic in degrees (IAU 2006 formula). */
+export declare function meanObliquity(jde: number): number;
+/** True (apparent) obliquity in degrees (includes nutation in obliquity). */
+export declare function trueObliquity(jde: number): number;
+
+/** Compute positions for multiple bodies in parallel (TT/ET input).
+ *  Equivalent to calling calc() for each body, but runs concurrently.
+ *  Returns results in the same order as the input planets array.
+ */
+export declare function calcMany(tjdet: number, planets: number[], flags: number): PlanetPos[];
+
+/** Compute positions for multiple bodies in parallel (UT input).
+ *  Equivalent to calling calcUt() for each body, but runs concurrently.
+ */
+export declare function calcUtMany(tjdut: number, planets: number[], flags: number): PlanetPos[];
+
 /**
  * Planetocentric positions (ET).
  */

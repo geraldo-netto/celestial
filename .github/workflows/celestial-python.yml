@@ -3,7 +3,7 @@
 # Triggers: changes to bindings/python/ or core/
 # Jobs:
 #   lint-rs  → cargo clippy on the PyO3 binding (.rs files only)
-#   lint-py  → ruff on Python files only (.py files only)
+#   lint-py  → ruff + mypy on Python files only (.py files only)
 #   test     → pytest pure_logic_test.py (no compiled extension needed)
 #   fuzz     → TestFuzzingBoundary + randomised full suite (no extension needed)
 #   build    → maturin build wheel + full test suite — matrix: Python 3.12 × 3 OS
@@ -68,13 +68,13 @@ jobs:
       # --package celestial-py scopes clippy to the PyO3 binding and its
       # dependencies only. Python source files are never read.
       - name: cargo clippy (Rust files only)
-        run: cargo clippy --package celestial-py -- -D clippy::correctness -D clippy::suspicious
+        run: cargo clippy --package celestial-py -- -D clippy::correctness -D clippy::suspicious -D clippy::perf
 
   # ── Python side: black + isort + ruff on Python files ─────────────────────
   # Scope: bindings/python/**/*.py
   # Does NOT install Rust, does NOT look at .rs files.
   lint-py:
-    name: ruff (Python · .py only)
+    name: ruff + mypy (Python · .py only)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +84,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install Python linters
-        run: pip install ruff
+        run: pip install ruff mypy
 
       # Each linter is explicitly scoped to .py files under bindings/python/.
       # No Rust toolchain is installed; .rs files are never touched.
@@ -93,6 +93,11 @@ jobs:
       - name: ruff check (Python files only)
         run: |
           ruff check \
+            bindings/python/python/
+
+      - name: mypy type check (Python files only)
+        run: |
+          mypy --ignore-missing-imports \
             bindings/python/python/
 
   # ── Pure-logic tests (no compiled extension needed) ────────────────────────

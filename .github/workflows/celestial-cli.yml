@@ -61,7 +61,7 @@ jobs:
         run: |
           cargo clippy \
             --package celestial-cli \
-            -- -D clippy::correctness -D clippy::suspicious
+            -- -D clippy::correctness -D clippy::suspicious -D clippy::perf
 
   test:
     name: tests
