@@ -12,6 +12,7 @@ or, to skip tests that need ephemeris data files:
 """
 
 import os
+
 import pytest
 
 # ── import the compiled extension ─────────────────────────────────────────────
@@ -431,13 +432,14 @@ class TestMeanSidtime:
         gmst = celestial.mean_sidtime(2451545.0)
         gast = celestial.sidtime(2451545.0)
         assert abs(gmst - gast) > 1e-6, "GMST and GAST should differ"
-        assert abs(gmst - gast) < 1.0 / 3600.0, (
-            f"GMST-GAST diff {abs(gmst-gast):.6f} h should be < 1 second"
-        )
+        assert (
+            abs(gmst - gast) < 1.0 / 3600.0
+        ), f"GMST-GAST diff {abs(gmst-gast):.6f} h should be < 1 second"
 
     def test_always_in_range(self):
         """mean_sidtime must always be in [0, 24) hours."""
         import random
+
         rng = random.Random(42)
         for _ in range(200):
             jd = 2415021.0 + rng.uniform(0.0, 73049.0)
@@ -473,10 +475,18 @@ class TestCalcTTPrecision:
 
     def test_calc_tt_all_planets_finite(self):
         """calc(TT) must return finite values for all standard bodies."""
-        bodies = [celestial.SUN, celestial.MOON, celestial.MERCURY,
-                  celestial.VENUS, celestial.MARS, celestial.JUPITER,
-                  celestial.SATURN, celestial.URANUS, celestial.NEPTUNE,
-                  celestial.PLUTO]
+        bodies = [
+            celestial.SUN,
+            celestial.MOON,
+            celestial.MERCURY,
+            celestial.VENUS,
+            celestial.MARS,
+            celestial.JUPITER,
+            celestial.SATURN,
+            celestial.URANUS,
+            celestial.NEPTUNE,
+            celestial.PLUTO,
+        ]
         for body in bodies:
             pos = celestial.calc(2451545.0, body, celestial.FLG_BUILTIN)
             lon = pos[0][0]

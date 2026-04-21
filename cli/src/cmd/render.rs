@@ -503,7 +503,7 @@ fn render_builtin_svg(ctx: &Value) -> String {
     let mut s = String::with_capacity(64 * 1024);
 
     // ── header ────────────────────────────────────────────────────────────────
-    let _ = write!(
+    let _ = writeln!(
         s,
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" width="900" height="1100">
@@ -531,7 +531,7 @@ fn render_builtin_svg(ctx: &Value) -> String {
     } else {
         let _ = write!(s, "{date} · JD {jd:.4}");
     }
-    let _ = write!(
+    let _ = writeln!(
         s,
         r#"</text>
 
@@ -540,9 +540,7 @@ fn render_builtin_svg(ctx: &Value) -> String {
   <circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>
   <circle cx="{CX}" cy="{CY}" r="{RI}" fill="none" stroke="{ring}" stroke-width="2.0" opacity=".55"/>
   <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>
-  <circle cx="{CX}" cy="{CY}" r="{RC}" fill="{bg}"  stroke="{ring}" stroke-width="2.0" opacity=".4"/>
-
-"#
+  <circle cx="{CX}" cy="{CY}" r="{RC}" fill="{bg}"  stroke="{ring}" stroke-width="2.0" opacity=".4"/>"#
     );
 
     // ── zodiac sign sectors ───────────────────────────────────────────────────
@@ -554,16 +552,15 @@ fn render_builtin_svg(ctx: &Value) -> String {
         let gx = sign["glyph_x"].as_f64().unwrap_or(0.0);
         let gy = sign["glyph_y"].as_f64().unwrap_or(0.0);
         let g = sign["glyph"].as_str().unwrap_or("");
-        let _ = write!(
+        let _ = writeln!(
             s,
             r#"  <line x1="{sx1:.2}" y1="{sy1:.2}" x2="{sx2:.2}" y2="{sy2:.2}" stroke="{ring}" stroke-width="1.5" opacity=".55"/>
-  <text x="{gx:.2}" y="{gy:.2}" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{ring}">{g}</text>
-"#
+  <text x="{gx:.2}" y="{gy:.2}" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{ring}">{g}</text>"#
         );
     }
 
     // ── house cusps ───────────────────────────────────────────────────────────
-    s.push_str("\n");
+    s.push('\n');
     for h in houses {
         let x1 = h["x1"].as_f64().unwrap_or(0.0);
         let y1 = h["y1"].as_f64().unwrap_or(0.0);
@@ -574,11 +571,10 @@ fn render_builtin_svg(ctx: &Value) -> String {
         let n = h["num"].as_u64().unwrap_or(0);
         let ang = h["is_angle"].as_bool().unwrap_or(false);
         let (sw, op) = if ang { ("3.0", ".85") } else { ("1.5", ".55") };
-        let _ = write!(
+        let _ = writeln!(
             s,
             r#"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{ring}" stroke-width="{sw}" opacity="{op}"/>
-  <text x="{nx:.2}" y="{ny:.2}" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">{n}</text>
-"#
+  <text x="{nx:.2}" y="{ny:.2}" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">{n}</text>"#
         );
     }
 
@@ -591,15 +587,14 @@ fn render_builtin_svg(ctx: &Value) -> String {
     ] {
         let lx = wx(CX, RI + 18.0, lon2, asc);
         let ly = wy(CY, RI + 18.0, lon2, asc) + dy;
-        let _ = write!(
+        let _ = writeln!(
             s,
-            r#"  <text x="{lx:.2}" y="{ly:.2}" text-anchor="{anchor}" font-size="12" font-weight="800" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{name}</text>
-"#
+            r#"  <text x="{lx:.2}" y="{ly:.2}" text-anchor="{anchor}" font-size="12" font-weight="800" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{name}</text>"#
         );
     }
 
     // ── aspect lines ─────────────────────────────────────────────────────────
-    s.push_str("\n");
+    s.push('\n');
     for asp in aspects {
         let x1 = asp["x1"].as_f64().unwrap_or(0.0);
         let y1 = asp["y1"].as_f64().unwrap_or(0.0);
@@ -609,15 +604,14 @@ fn render_builtin_svg(ctx: &Value) -> String {
         let hard = asp["is_hard"].as_bool().unwrap_or(false);
         let col = if hard { hard_c } else { soft_c };
         let op = if orb < 2.0 { ".55" } else { ".22" };
-        let _ = write!(
+        let _ = writeln!(
             s,
-            r#"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{col}" stroke-width="1.8" opacity="{op}"/>
-"#
+            r#"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{col}" stroke-width="1.8" opacity="{op}"/>"#
         );
     }
 
     // ── planet glyphs (collision-free label placement) ────────────────────────
-    s.push_str("\n");
+    s.push('\n');
 
     // Collect planet longitudes and compute non-overlapping label angles
     let planet_lons: Vec<f64> = planets
@@ -660,28 +654,25 @@ fn render_builtin_svg(ctx: &Value) -> String {
             drift += 360.0;
         }
         if drift.abs() > 3.5 {
-            let _ = write!(
+            let _ = writeln!(
                 s,
-                r#"  <line x1="{ax:.2}" y1="{ay:.2}" x2="{lx:.2}" y2="{ly:.2}" stroke="{pfg}" stroke-width="0.9" opacity=".45" stroke-dasharray="3,2"/>
-"#
+                r#"  <line x1="{ax:.2}" y1="{ay:.2}" x2="{lx:.2}" y2="{ly:.2}" stroke="{pfg}" stroke-width="0.9" opacity=".45" stroke-dasharray="3,2"/>"#
             );
         }
 
-        let _ = write!(
+        let _ = writeln!(
             s,
             r#"  <line x1="{tx1:.2}" y1="{ty1:.2}" x2="{tx2:.2}" y2="{ty2:.2}" stroke="{pfg}" stroke-width="1.0" opacity=".45"/>
   <text x="{px:.2}" y="{py:.2}" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}" filter="url(#glow)">{g}</text>
-  <text x="{lx:.2}" y="{ly:.2}" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{dl}</text>
-"#
+  <text x="{lx:.2}" y="{ly:.2}" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{dl}</text>"#
         );
     }
 
     // ── moon phase in centre ──────────────────────────────────────────────────
-    let _ = write!(
+    let _ = writeln!(
         s,
         r#"  <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="11" font-weight="500" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".9">{phase}</text>
   <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".65">{illum:.1}%</text>
-
 "#,
         CY - 12.0,
         CY + 6.0
@@ -695,11 +686,10 @@ fn render_builtin_svg(ctx: &Value) -> String {
     let rh2 = 16.0_f64;
 
     // ── col 1: planets ────────────────────────────────────────────────────────
-    let _ = write!(
+    let _ = writeln!(
         s,
         r#"  <text x="{c1x}" y="{ly:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Planets</text>
-  <line x1="{c1x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>
-"#,
+  <line x1="{c1x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"#,
         ly + 3.0,
         c1x + 272.0,
         ly + 3.0
@@ -714,13 +704,12 @@ fn render_builtin_svg(ctx: &Value) -> String {
         let col = if ret { retro_c } else { pfg };
         let scol = if ret { retro_c } else { ring };
         let sop = if ret { "1" } else { ".4" };
-        let _ = write!(
+        let _ = writeln!(
             s,
             r#"  <text x="{:.2}" y="{ry:.2}" font-size="14" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".75">{name}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{scol}" opacity="{sop}">{spd}</text>
-"#,
+  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{scol}" opacity="{sop}">{spd}</text>"#,
             c1x + 2.0,
             c1x + 20.0,
             c1x + 120.0,
@@ -729,12 +718,11 @@ fn render_builtin_svg(ctx: &Value) -> String {
     }
 
     // ── col 2: angles + houses ────────────────────────────────────────────────
-    let _ = write!(
+    let _ = writeln!(
         s,
         r#"
   <text x="{c2x}" y="{ly:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Angles &amp; Houses</text>
-  <line x1="{c2x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>
-"#,
+  <line x1="{c2x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"#,
         ly + 3.0,
         c2x + 250.0,
         ly + 3.0
@@ -749,34 +737,31 @@ fn render_builtin_svg(ctx: &Value) -> String {
     .enumerate()
     {
         let ry = ly + 16.0 + i as f64 * rh2;
-        let _ = write!(
+        let _ = writeln!(
             s,
             r#"  <text x="{:.2}" y="{ry:.2}" font-size="10" font-weight="700" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{name}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{lon2:.4}&#176;</text>
-"#,
+  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{lon2:.4}&#176;</text>"#,
             c2x + 2.0,
             c2x + 38.0,
             c2x + 150.0
         );
     }
     let sep_y = ly + 82.0;
-    let _ = write!(
+    let _ = writeln!(
         s,
-        r#"  <line x1="{c2x}" y1="{sep_y:.2}" x2="{:.2}" y2="{sep_y:.2}" stroke="{ring}" stroke-width=".3" opacity=".2"/>
-"#,
+        r#"  <line x1="{c2x}" y1="{sep_y:.2}" x2="{:.2}" y2="{sep_y:.2}" stroke="{ring}" stroke-width=".3" opacity=".2"/>"#,
         c2x + 250.0
     );
     for (i, h) in houses.iter().enumerate() {
         let ry = ly + 94.0 + i as f64 * rh2;
         let dms = h["dms"].as_str().unwrap_or("");
         let hlon = h["lon"].as_f64().unwrap_or(0.0);
-        let _ = write!(
+        let _ = writeln!(
             s,
             r#"  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".55">H{}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{hlon:.4}&#176;</text>
-"#,
+  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{hlon:.4}&#176;</text>"#,
             c2x + 2.0,
             i + 1,
             c2x + 28.0,
@@ -785,21 +770,19 @@ fn render_builtin_svg(ctx: &Value) -> String {
     }
 
     // ── col 3: aspects ────────────────────────────────────────────────────────
-    let _ = write!(
+    let _ = writeln!(
         s,
         r#"
   <text x="{c3x}" y="{ly:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Aspects</text>
-  <line x1="{c3x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>
-"#,
+  <line x1="{c3x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"#,
         ly + 3.0,
         c3x + 292.0,
         ly + 3.0
     );
     if aspects.is_empty() {
-        let _ = write!(
+        let _ = writeln!(
             s,
-            r#"  <text x="{:.2}" y="{:.2}" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">(no major aspects within orbs)</text>
-"#,
+            r#"  <text x="{:.2}" y="{:.2}" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">(no major aspects within orbs)</text>"#,
             c3x + 4.0,
             ly + 20.0
         );
@@ -819,15 +802,14 @@ fn render_builtin_svg(ctx: &Value) -> String {
         let b1s = &b1[..b1.len().min(3)];
         let b2s = &b2[..b2.len().min(3)];
         let an4 = &aname[..aname.len().min(4)];
-        let _ = write!(
+        let _ = writeln!(
             s,
             r#"  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g1}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g2}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{an4}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".7">{orb:.2}&#176;</text>
   <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".5">{aind}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{b1s}&#8211;{b2s}</text>
-"#,
+  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{b1s}&#8211;{b2s}</text>"#,
             c3x + 2.0,
             c3x + 18.0,
             c3x + 34.0,
@@ -838,14 +820,13 @@ fn render_builtin_svg(ctx: &Value) -> String {
     }
 
     // ── footer ────────────────────────────────────────────────────────────────
-    let _ = write!(
+    let _ = writeln!(
         s,
         r#"
   <text x="450" y="1090" text-anchor="middle" font-size="9"
         font-family="'Segoe UI',system-ui,sans-serif"
         fill="{ring}" opacity=".35">Generated by celestial render · {date}</text>
-</svg>
-"#
+</svg>"#
     );
 
     s

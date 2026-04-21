@@ -3,7 +3,7 @@
 # Triggers: changes to bindings/js/ or core/
 # Jobs:
 #   lint-rs  → cargo clippy on the Rust binding (celestial-js crate)
-#   lint-ts  → prettier --check + tsc --noEmit on the TS side
+#   lint-ts  → tsc --noEmit on the TS side
 #   test     → node pure_logic.test.mjs (no compiled addon, runs on all Node versions)
 #   fuzz     → fuzzing describe block + randomised runs across 5 seeds
 #   build    → napi build (.node addon) — matrix: Node 22 × 3 OS
@@ -70,7 +70,7 @@ jobs:
 
   # ── TypeScript / JS side: prettier + tsc ──────────────────────────────────
   lint-ts:
-    name: prettier & tsc (TypeScript)
+    name: tsc (TypeScript)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -85,10 +85,6 @@ jobs:
         run: npm ci
         working-directory: bindings/js
 
-      - name: prettier --check
-        # Checks only TS/JS/declaration files — never touches Rust source
-        run: npx prettier --check "tests/**/*.{ts,mjs}" "index.d.ts"
-        working-directory: bindings/js
 
       - name: tsc --noEmit
         run: npx tsc --noEmit

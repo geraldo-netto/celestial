@@ -4,7 +4,7 @@ version.workspace = true
 edition     = "2021"
 description = "Pure-Rust astronomical engine: planets, houses, ayanamsa, rise/set"
 license     = "AGPL-3.0-or-later"
-repository  = "https://github.com/example/celestial-workspace"
+repository  = "https://github.com/geraldo-netto/celestial"
 
 [dependencies]
 

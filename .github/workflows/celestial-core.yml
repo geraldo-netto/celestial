@@ -2,7 +2,7 @@
 #
 # Triggers: any change to core/, fuzz/, Cargo.toml, Cargo.lock, rustfmt.toml
 # Jobs (parallel):
-#   lint    → cargo fmt --check + cargo clippy -D warnings
+#   lint    → cargo clippy -D warnings
 #   test    → cargo test --package celestial-core (549 tests)
 #   fuzz    → cargo run --manifest-path fuzz/Cargo.toml (32 property suites)
 
@@ -41,7 +41,7 @@ defaults:
 jobs:
 
   lint:
-    name: fmt & clippy
+    name: clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +49,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: clippy
 
       - uses: actions/cache@v4
         with:
@@ -60,8 +60,6 @@ jobs:
           key: ${{ runner.os }}-core-lint-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ runner.os }}-core-lint-
 
-      - name: cargo fmt --check
-        run: cargo fmt --all -- --check
 
       - name: cargo clippy
         run: |

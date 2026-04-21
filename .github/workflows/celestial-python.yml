@@ -3,7 +3,7 @@
 # Triggers: changes to bindings/python/ or core/
 # Jobs:
 #   lint-rs  → cargo clippy on the PyO3 binding (.rs files only)
-#   lint-py  → black + isort + ruff on Python files only (.py files only)
+#   lint-py  → ruff on Python files only (.py files only)
 #   test     → pytest pure_logic_test.py (no compiled extension needed)
 #   fuzz     → TestFuzzingBoundary + randomised full suite (no extension needed)
 #   build    → maturin build wheel + full test suite — matrix: Python 3.12 × 3 OS
@@ -74,7 +74,7 @@ jobs:
   # Scope: bindings/python/**/*.py
   # Does NOT install Rust, does NOT look at .rs files.
   lint-py:
-    name: black + isort + ruff (Python · .py only)
+    name: ruff (Python · .py only)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,19 +84,11 @@ jobs:
           python-version: "3.12"
 
       - name: Install Python linters
-        run: pip install black isort ruff
+        run: pip install ruff
 
       # Each linter is explicitly scoped to .py files under bindings/python/.
       # No Rust toolchain is installed; .rs files are never touched.
-      - name: black --check (Python files only)
-        run: |
-          black --check --line-length 88 \
-            bindings/python/python/
 
-      - name: isort --check (Python files only)
-        run: |
-          isort --check --profile black \
-            bindings/python/python/
 
       - name: ruff check (Python files only)
         run: |

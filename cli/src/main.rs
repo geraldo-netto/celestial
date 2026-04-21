@@ -99,7 +99,7 @@ fn main() {
             | ""
     );
     if !is_builtin && !sub.starts_with('-') {
-        if let Err(msg) = plugin::try_exec(sub, &raw[2..].to_vec()) {
+        if let Err(msg) = plugin::try_exec(sub, &raw[2..]) {
             eprintln!("error: {msg}");
             std::process::exit(1);
         }
