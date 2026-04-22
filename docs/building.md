@@ -9,7 +9,7 @@ with all test, lint, and formatting commands.
 
 | Tool | Version | Install |
 |---|---|---|
-| Rust + Cargo | stable ≥ 1.75 | `curl https://sh.rustup.rs -sSf \| sh` |
+| Rust + Cargo | stable ≥ 1.75 | `curl https://sh.rustup.rs -sSf \| sh` (Linux/macOS) · [rustup.rs](https://rustup.rs) (Windows) |
 | Node.js | ≥ 18 | <https://nodejs.org> |
 | Python | ≥ 3.8 | <https://python.org> |
 | maturin | ≥ 1.4 | `pip install maturin` |
@@ -99,10 +99,13 @@ cd bindings/python
 
 # Development install (editable wheel, fastest iteration)
 pip install maturin
-maturin develop
+maturin develop                                       # Linux / macOS
+maturin develop --target x86_64-pc-windows-msvc       # Windows (MSVC) 
+maturin develop --target x86_64-pc-windows-gnu        # Windows (MinGW)
 
 # Release wheel
-maturin build --release
+maturin build --release                               # Linux / macOS
+maturin build --release --target x86_64-pc-windows-msvc  # Windows
 # Output: target/wheels/celestial_py-*.whl
 
 # Install the built wheel
