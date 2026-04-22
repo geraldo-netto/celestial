@@ -1846,7 +1846,7 @@ def _load_fixtures():
         / "fixtures"
         / "reference_values.json"
     )
-    with open(p) as f:
+    with open(p, encoding="utf-8") as f:
         return _json.load(f)
 
 
