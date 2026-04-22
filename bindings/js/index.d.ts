@@ -973,3 +973,26 @@ export declare function egyptian_decan(lon: number): [string, string, string];
 export declare function is_day_chart(sun_lon: number, cusps: number[]): boolean;
 export declare function mean_sidtime(jd: number): number;
 export declare function triplicity_rulers(lon: number): [number, number, number];
+
+// ── Legacy / compatibility aliases ───────────────────────────────────────────
+
+/** Normalise degrees to [0°, 360°). Legacy alias for normDeg(). */
+export declare function degnorm(d: number): number;
+
+/** Signed degree difference in (-180°, +180°]. Legacy alias for difDegSigned(). */
+export declare function difdeg2n(p1: number, p2: number): number;
+
+/** Ayanamsa at Julian Day ET. Legacy alias for ayanamsa(). */
+export declare function getAyanamsa(jdEt: number): number;
+
+/** Name of a sidereal mode by SIDM_* constant. Legacy alias for ayanamsaName(). */
+export declare function getAyanamsaName(sidMode: number): string;
+
+/** Name of the next sabbat after jdFrom. Legacy alias for nextSabbat(). */
+export declare function nextSabbatName(jdFrom: number): string;
+
+/** JD of the next full moon after jdStart. Legacy alias for nextFullMoonAfter(). */
+export declare function nextFullMoon(jdStart: number): number;
+
+/** JD when the Sun next crosses ecliptic longitude x2cross (UT). */
+export declare function solcrossUt(x2cross: number, jdUt: number, flags: number): number;

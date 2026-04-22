@@ -462,3 +462,22 @@ except Exception as e:
 | `tonalpohualli` | `(int, int, str, str)` — trecena, sign_idx, nahuatl name, english |
 | `medicine_wheel_totem` | `(str, str, str, str)` — animal, element, clan, season |
 | `egyptian_decan` | `(int, str, str)` — index, name, rising star |
+
+---
+
+## Legacy / compatibility aliases
+
+These SwissEph-compatible names are available alongside their canonical equivalents:
+
+```python
+from celestial_py import (
+    degnorm,          # → norm_deg()
+    difdeg2n,         # → diff_deg_signed()
+    get_ayanamsa,     # → ayanamsa()
+    get_ayanamsa_name,# → ayanamsa_name()
+    next_sabbat_name, # → next_sabbat() — returns name only
+    next_full_moon,   # → next_full_moon_after()
+    solcross_ut,      # finds when Sun crosses a given degree
+)
+```
+

@@ -40,6 +40,8 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
 
 ## Building from source
 
+# Time can also be provided separately:
+# celestial chart --date 1990-05-15 --time 14:30 --lat 48.85 --lon 2.35
 ```bash
 # Full workspace build
 cargo build
@@ -60,6 +62,8 @@ cd bindings/js && npm install && npm run build
 
 # PHP extension
 cd bindings/php && cargo build --release
+# Time can also be provided separately:
+# celestial chart --date 1990-05-15 --time 14:30 --lat 48.85 --lon 2.35
 ```
 
 ---

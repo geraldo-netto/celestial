@@ -393,3 +393,33 @@ def set_sid_mode(sid_mode: int, t0: float, ayan_t0: float) -> None: ...
 # ── Vedic ───────────────────────────────────────────────────────────────────────
 def vimshottari_dasha(jd_birth: float, moon_lon_sidereal: float, years_ahead: float) -> list[tuple]: ...
 
+
+# ── Legacy / compatibility aliases ───────────────────────────────────────────
+
+def degnorm(d: float) -> float:
+    """Normalise degrees to [0°, 360°). Legacy alias for norm_deg()."""
+    ...
+
+def difdeg2n(p1: float, p2: float) -> float:
+    """Signed degree difference in (-180°, +180°]. Legacy alias for diff_deg_signed()."""
+    ...
+
+def get_ayanamsa(jd_et: float) -> float:
+    """Ayanamsa at Julian Day ET. Legacy alias for ayanamsa()."""
+    ...
+
+def get_ayanamsa_name(sid_mode: int) -> str:
+    """Name of a sidereal mode by SIDM_* constant. Legacy alias for ayanamsa_name()."""
+    ...
+
+def next_sabbat_name(jd_from: float) -> str:
+    """Name of the next sabbat after jd_from. Legacy alias for next_sabbat()."""
+    ...
+
+def next_full_moon(jd_start: float) -> float:
+    """JD of the next full moon after jd_start. Legacy alias for next_full_moon_after()."""
+    ...
+
+def solcross_ut(x2cross: float, jd_ut: float, flags: int) -> float:
+    """JD when the Sun next crosses ecliptic longitude x2cross (UT)."""
+    ...

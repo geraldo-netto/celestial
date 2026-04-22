@@ -2,8 +2,8 @@
 //! Specialist chart builders — split from render.rs.
 
 use super::{
-    build_context, fmt_lon_dms, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI, RM, RO,
-    SI_CELLS,
+    build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI,
+    RM, RO, SI_CELLS,
 };
 use celestial_core::AzAlt;
 use celestial_core::{lon_to_sign, zodiac_sign_name};
@@ -84,7 +84,7 @@ pub fn build_dial_context(
     }
 
     Ok(json!({
-        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
+        "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
         "asc": (asc * 1e4).round() / 1e4,
         "planets": planet_entries,
         "midpoints": mp_entries,
@@ -558,7 +558,7 @@ pub fn build_local_space_context(
     }
 
     Ok(json!({
-        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
+        "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
         "planets": planets,
         "vars": Value::Object(palette.into_iter().collect())}))
 }

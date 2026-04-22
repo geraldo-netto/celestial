@@ -236,6 +236,22 @@ npx tsc --noEmit
 npx eslint tests/
 ```
 
+
+### Date and time input
+
+All commands accepting `--date` also accept a separate `--time` flag:
+
+```bash
+# Equivalent — time embedded in date string:
+celestial chart --date "1990-05-15 14:30" --lat 48.85 --lon 2.35
+
+# Or separated — easier for scripts:
+celestial chart --date 1990-05-15 --time 14:30 --lat 48.85 --lon 2.35
+
+# Seconds accepted; display truncates to HH:MM:
+celestial render --date 1990-05-15 --time 14:30:45  # shows "14:30 UT"
+```
+
 ---
 
 ## xtask — developer automation

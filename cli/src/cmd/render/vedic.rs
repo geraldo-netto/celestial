@@ -199,7 +199,7 @@ pub fn build_ashtakavarga_context(
     }
 
     Ok(json!({
-        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
+        "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
         "ashtakavarga_rows": row_vals,
         "sarvashtakavarga": totals.iter().map(|&b| json!(b)).collect::<Vec<_>>(),
         "vars": Value::Object(palette.into_iter().collect())}))
@@ -439,7 +439,7 @@ pub fn build_shadbala_context(
     }
 
     Ok(json!({
-        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
+        "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
         "shadbala": rows,
         "vars": Value::Object(palette.into_iter().collect())}))
 }
@@ -679,7 +679,7 @@ pub fn build_vedic_context(
     }
 
     Ok(json!({
-        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
+        "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
         "planets": planets, "dashas": dashas, "strengths": strengths,
         "moon_sid_lon": (moon_sid_lon * 1e4).round() / 1e4,
         "vars": Value::Object(palette.into_iter().collect())}))

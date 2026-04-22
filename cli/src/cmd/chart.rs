@@ -17,6 +17,10 @@ pub struct ChartArgs {
     #[arg(short, long, default_value = "now")]
     pub date: String,
 
+    /// Time of day UT (HH:MM or HH:MM:SS) — merged with --date if --date has no time
+    #[arg(long)]
+    pub time: Option<String>,
+
     /// Geographic latitude in decimal degrees (N positive)
     #[arg(long, allow_hyphen_values = true)]
     pub lat: f64,
@@ -657,7 +661,18 @@ fn print_table(chart: &ChartData, name: &str) {
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 pub fn run(args: ChartArgs) -> Result<(), String> {
-    let jd = parse::parse_date(&args.date)?;
+    // Merge --time into --date if provided and --date has no time component
+    let date_str = if let Some(ref t) = args.time {
+        let base = args.date.trim();
+        if base == "now" || base.parse::<f64>().is_ok() || base.contains(' ') {
+            args.date.clone() // already has time or is JD/now — ignore --time
+        } else {
+            format!("{base} {t}") // append time to bare date
+        }
+    } else {
+        args.date.clone()
+    };
+    let jd = parse::parse_date(&date_str)?;
     let hsys = parse::parse_hsys(&args.system)?;
     let chart = compute_chart(jd, args.lat, args.lon, hsys)?;
 

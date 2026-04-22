@@ -316,3 +316,20 @@ Rust/Python APIs.
 ```typescript
 import type { PlanetPos, HouseResult, NutationResult } from "celestial-js";
 ```
+
+---
+
+## Legacy / compatibility aliases
+
+```javascript
+import {
+  degnorm,          // → normDeg()
+  difdeg2n,         // → difDegSigned()
+  getAyanamsa,      // → ayanamsa()
+  getAyanamsaName,  // → ayanamsaName()
+  nextSabbatName,   // → nextSabbat() — name only
+  nextFullMoon,     // → nextFullMoonAfter()
+  solcrossUt,       // finds when Sun crosses a given degree
+} from "celestial-js";
+```
+

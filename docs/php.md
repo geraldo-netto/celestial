@@ -374,3 +374,21 @@ if ($pos === null) {
 | `celestial_tonalpohualli` | `[int $trecena, int $sign_idx, string $name, string $english]` |
 | `celestial_medicine_wheel_totem` | `[string $animal, string $element, string $clan, string $season]` |
 | `celestial_egyptian_decan` | `[int $idx, string $name, string $rising_star]` |
+
+---
+
+## Legacy / compatibility aliases
+
+These SwissEph-compatible names are available alongside the `celestial_`-prefixed versions:
+
+```php
+// All available as both bare and celestial_-prefixed:
+$norm  = degnorm(361.5);           // same as norm_deg()
+$diff  = difdeg2n(10.0, 350.0);   // same as diff_deg_signed()
+$ay    = get_ayanamsa($jd);        // same as ayanamsa()
+$name  = get_ayanamsa_name(SIDM_LAHIRI); // same as ayanamsa_name()
+$nm    = next_sabbat_name($jd);   // returns name string
+$fm    = next_full_moon($jd);     // same as next_full_moon_after()
+$cross = solcross_ut(0.0, $jd, FLG_BUILTIN); // vernal equinox JD
+```
+

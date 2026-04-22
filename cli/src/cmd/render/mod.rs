@@ -64,9 +64,13 @@ mod western;
 
 #[derive(Args, Debug)]
 pub struct RenderArgs {
-    /// Date to compute (YYYY-MM-DD or "now")
+    /// Date and optional time to compute (YYYY-MM-DD [HH:MM[:SS]] or "now")
     #[arg(long, default_value = "now")]
     pub date: String,
+
+    /// Time of day UT (HH:MM or HH:MM:SS) — merged with --date if --date has no time
+    #[arg(long)]
+    pub time: Option<String>,
 
     /// Geographic latitude in decimal degrees (N positive)
     #[arg(long, default_value = "0.0")]
@@ -100,7 +104,7 @@ pub struct RenderArgs {
     /// Format: YYYY-MM-DD
     #[arg(long)]
     pub date2: Option<String>,
-    /// Third date for tri-wheel ring 3
+    /// Third date (YYYY-MM-DD [HH:MM[:SS]]) for tri-wheel ring 3
     #[arg(long)]
     pub date3: Option<String>,
 
@@ -255,12 +259,24 @@ pub(super) fn key_to_body(key: &str) -> Option<Body> {
 
 // ─── 5. Local Space chart ─────────────────────────────────────────────────────
 
+/// Format a Julian Day as a date string, including HH:MM when the time is not midnight.
 pub(super) fn jd_to_date_str(jd: f64) -> String {
     let d = celestial_core::revjul(jd, celestial_core::body::Calendar::Gregorian);
-    format!(
-        "{:04}-{:02}-{:02}",
-        d.year as i32, d.month as u32, d.day as u32
-    )
+    let total_sec = (d.hour * 3600.0).round() as i32; // round to nearest second first
+    let total_min = total_sec / 60; // truncate seconds from display
+    let h = total_min / 60;
+    let m = total_min % 60;
+    if h == 0 && m == 0 {
+        format!(
+            "{:04}-{:02}-{:02}",
+            d.year as i32, d.month as u32, d.day as u32
+        )
+    } else {
+        format!(
+            "{:04}-{:02}-{:02} {:02}:{:02} UT",
+            d.year as i32, d.month as u32, d.day as u32, h, m
+        )
+    }
 }
 
 // ─── Planet table ─────────────────────────────────────────────────────────────
@@ -673,7 +689,10 @@ pub(super) fn build_context(
 
     // ── assemble ──────────────────────────────────────────────────────────────
     Ok(json!({
-        "date":                date_str,
+        // Derive canonical date+time from JD; fall back to caller label
+        // for composite/synastry/test strings that aren't plain dates.
+        "date": jd_to_date_str(jd),
+        "date_label":          date_str,
         "jd":                  (jd * 1e4).round() / 1e4,
         "lat":                 lat,
         "lon":                 lon,
@@ -795,10 +814,19 @@ pub(super) fn render_builtin_svg(ctx: &Value) -> String {
     let phase = ctx["moon_phase_name"].as_str().unwrap_or("");
     let illum = ctx["moon_illumination"].as_f64().unwrap_or(0.0);
 
-    let planets = ctx["planets"].as_array().unwrap();
-    let signs = ctx["signs"].as_array().unwrap();
-    let houses = ctx["houses"].as_array().unwrap();
-    let aspects = ctx["aspects"].as_array().unwrap();
+    let _empty: Vec<serde_json::Value> = vec![];
+    let planets = ctx["planets"]
+        .as_array()
+        .map_or(&_empty[..], |v| v.as_slice());
+    let signs = ctx["signs"]
+        .as_array()
+        .map_or(&_empty[..], |v| v.as_slice());
+    let houses = ctx["houses"]
+        .as_array()
+        .map_or(&_empty[..], |v| v.as_slice());
+    let aspects = ctx["aspects"]
+        .as_array()
+        .map_or(&_empty[..], |v| v.as_slice());
 
     let mut s = String::with_capacity(64 * 1024);
 
@@ -1301,7 +1329,18 @@ pub fn run(mut args: RenderArgs) -> Result<(), String> {
         user_vars.insert(k.to_string(), v.to_string());
     }
 
-    let jd = crate::parse::parse_date(&args.date)?;
+    // Merge --time into --date when provided
+    let date_str = if let Some(ref t) = args.time {
+        let base = args.date.trim();
+        if base == "now" || base.parse::<f64>().is_ok() || base.contains(' ') {
+            args.date.clone()
+        } else {
+            format!("{base} {t}")
+        }
+    } else {
+        args.date.clone()
+    };
+    let jd = crate::parse::parse_date(&date_str)?;
 
     // Dispatch to the appropriate chart-type builder
     let chart_type = args.chart_type.to_lowercase();
@@ -1850,7 +1889,7 @@ mod tests {
         );
         assert!(ctx.is_ok(), "build_context should succeed: {:?}", ctx.err());
         let v = ctx.unwrap();
-        assert_eq!(v["date"], "2000-01-01");
+        assert_eq!(v["date"], "2000-01-01 12:00 UT"); // J2000.0 = noon
         assert!((v["jd"].as_f64().unwrap() - 2451545.0).abs() < 0.1);
         // 12 planets
         assert_eq!(v["planets"].as_array().unwrap().len(), 12);

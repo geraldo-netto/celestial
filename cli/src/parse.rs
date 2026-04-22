@@ -14,8 +14,8 @@ use celestial_core::{
 /// Accepted formats:
 /// - `now`                     — current UTC time
 /// - `YYYY-MM-DD`              — midnight UT
-/// - `YYYY-MM-DD HH: MM`        — that time UT
-/// - `YYYY-MM-DD HH: MM: SS`     — that time UT
+/// - `YYYY-MM-DD HH:MM`        — that time UT
+/// - `YYYY-MM-DD HH:MM:SS`     — that time UT
 /// - a bare float              — Julian day number
 pub fn parse_date(s: &str) -> Result<f64, String> {
     let s = s.trim();
@@ -32,7 +32,7 @@ pub fn parse_date(s: &str) -> Result<f64, String> {
     // Split date and optional time
     let (date_s, time_s) = match s.split_once(' ') {
         Some((d, t)) => (d, t),
-        None => (s, "00: 00: 00"),
+        None => (s, "00:00:00"),
     };
 
     // Parse YYYY-MM-DD
@@ -46,9 +46,12 @@ pub fn parse_date(s: &str) -> Result<f64, String> {
 
     // Parse HH: MM[:SS]
     let tp: Vec<&str> = time_s.split(':').collect();
-    let hh: f64 = tp.first().and_then(|s| s.parse().ok()).unwrap_or(0.0);
-    let mm: f64 = tp.get(1).and_then(|s| s.parse().ok()).unwrap_or(0.0);
-    let ss: f64 = tp.get(2).and_then(|s| s.parse().ok()).unwrap_or(0.0);
+    let hh: f64 = tp
+        .first()
+        .and_then(|s| s.trim().parse().ok())
+        .unwrap_or(0.0);
+    let mm: f64 = tp.get(1).and_then(|s| s.trim().parse().ok()).unwrap_or(0.0);
+    let ss: f64 = tp.get(2).and_then(|s| s.trim().parse().ok()).unwrap_or(0.0);
     let hour = hh + mm / 60.0 + ss / 3600.0;
 
     Ok(julday(year, month, day, hour, Calendar::Gregorian))
@@ -57,7 +60,8 @@ pub fn parse_date(s: &str) -> Result<f64, String> {
 /// Format a Julian day as a `YYYY-MM-DD HH: MM UT` string.
 pub fn jd_to_str(jd: f64) -> String {
     let d = revjul(jd, Calendar::Gregorian);
-    let total_min = (d.hour * 60.0).round() as i32;
+    let total_sec = (d.hour * 3600.0).round() as i32; // round to nearest second first
+    let total_min = total_sec / 60; // truncate seconds from display
     let h = total_min / 60;
     let m = total_min % 60;
     format!(
