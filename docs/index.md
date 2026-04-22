@@ -97,9 +97,9 @@ celestial-workspace/
 │   │       ├── mesoamerican.rs Tonalpohualli, Tzolkin, Haab
 │   │       └── indigenous.rs   Medicine Wheel, Egyptian decans
 ├── cli/src/cmd/render/         24 SVG chart builders, one per tradition
-├── bindings/python/            PyO3 — 152 functions + celestial_py.pyi stubs
-├── bindings/js/                napi-rs — 73 functions + index.d.ts
-├── bindings/php/               ext-php-rs — 131 functions + phpstan stubs
+├── bindings/python/            PyO3 — 130 functions + celestial_py.pyi stubs
+├── bindings/js/                napi-rs — 172 functions + index.d.ts
+├── bindings/php/               ext-php-rs — 163 functions + phpstan stubs
 └── tests/fixtures/             reference_values.json — cross-language test fixture
 ```
 

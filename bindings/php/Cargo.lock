@@ -162,6 +162,9 @@ dependencies = [
 [[package]]
 name = "celestial-core"
 version = "0.1.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "celestial-php"

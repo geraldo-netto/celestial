@@ -1726,3 +1726,512 @@ pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
     // ── Refraction ────────────────────────────────────────────────────
     // ── split_deg flags ───────────────────────────────────────────────
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Hellenistic / Persian traditions
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Whether a chart is a day chart (Sun above horizon).
+/// @param float $sun_lon  Sun longitude (degrees)
+/// @param array $cusps    13-element house cusp array
+#[php_function]
+pub fn is_day_chart(sun_lon: f64, cusps: Vec<f64>) -> PhpResult<bool> {
+    let arr: [f64; 13] = cusps
+        .get(..13)
+        .and_then(|s| s.try_into().ok())
+        .ok_or_else(|| PhpException::default("cusps needs 13 elements".into()))?;
+    Ok(celestial::is_day_chart(sun_lon, &arr))
+}
+
+/// Essential dignity, detriment, fall, exaltation, or peregrine.
+/// Returns ["dignity" => string, "score" => int]
+/// @param int   $body    Body index
+/// @param float $lon     Ecliptic longitude
+/// @param bool  $is_day  Day chart flag
+#[php_function]
+pub fn full_dignity(body: i64, lon: f64, is_day: bool) -> HashMap<String, PhpZval> {
+    let (dig, score) = celestial::full_dignity(Body(body as i32), lon, is_day);
+    let mut m = HashMap::new();
+    m.insert(
+        "dignity".into(),
+        PhpZval::try_from(dig.to_string()).unwrap(),
+    );
+    m.insert("score".into(), PhpZval::try_from(score as i64).unwrap());
+    m
+}
+
+/// Almuten (planet with highest essential dignity score) for a degree.
+/// Returns [body_index, score]
+#[php_function]
+pub fn almuten(lon: f64, is_day: bool) -> Vec<i64> {
+    let (body, score) = celestial::almuten(lon, is_day);
+    vec![body.as_raw() as i64, score as i64]
+}
+
+/// Chaldean decan ruler for an ecliptic longitude.
+#[php_function]
+pub fn decan_ruler(lon: f64) -> i64 {
+    celestial::decan_ruler(lon).as_raw() as i64
+}
+
+/// Egyptian terms ruler for an ecliptic longitude.
+#[php_function]
+pub fn egyptian_terms_ruler(lon: f64) -> i64 {
+    celestial::egyptian_terms_ruler(lon).as_raw() as i64
+}
+
+/// Triplicity rulers (day, night, participating) for an ecliptic longitude.
+/// Returns [day_body, night_body, participating_body]
+#[php_function]
+pub fn triplicity_rulers(lon: f64) -> Vec<i64> {
+    let (d, n, p) = celestial::triplicity_rulers(lon);
+    vec![d.as_raw() as i64, n.as_raw() as i64, p.as_raw() as i64]
+}
+
+/// Firdaria periods for a lifespan.
+/// Returns array of ["major" => int, "minor" => int, "start" => float, "end" => float, "years" => float]
+#[php_function]
+pub fn firdaria(jd_birth: f64, is_day: bool, span_years: f64) -> Vec<Vec<f64>> {
+    celestial::firdaria(jd_birth, is_day, span_years)
+        .iter()
+        .map(|p| {
+            vec![
+                p.major_lord.as_raw() as f64,
+                p.minor_lord.as_raw() as f64,
+                p.start,
+                p.end,
+                p.years,
+            ]
+        })
+        .collect()
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Chinese astrology (Ba Zi)
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Current solar term position.
+/// Returns [term_index, degrees_into_term, next_term_index, degrees_to_next]
+#[php_function]
+pub fn solar_term_position(sun_lon: f64) -> Vec<f64> {
+    let (ti, d, ni, dn) = celestial::solar_term_position(sun_lon);
+    vec![ti as f64, d, ni as f64, dn]
+}
+
+/// Sexagenary cycle name (stem, branch) for a cycle index (0-59).
+/// Returns [stem, branch]
+#[php_function]
+pub fn sexagenary_name(cycle_index: i64) -> Vec<String> {
+    let (stem, branch) = celestial::sexagenary_name(cycle_index as u8);
+    vec![stem.to_string(), branch.to_string()]
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Mesoamerican calendars
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Aztec Tonalpohualli 260-day sacred calendar.
+/// Returns [trecena, sign_index, sign_name, trecena_lord_name]
+#[php_function]
+pub fn tonalpohualli(jd: f64) -> Vec<PhpZval> {
+    let (t, s, name, lord) = celestial::tonalpohualli(jd);
+    vec![
+        PhpZval::try_from(t as i64).unwrap(),
+        PhpZval::try_from(s as i64).unwrap(),
+        PhpZval::try_from(name.to_string()).unwrap(),
+        PhpZval::try_from(lord.to_string()).unwrap(),
+    ]
+}
+
+/// Aztec Xiuhpohualli 365-day solar calendar.
+/// Returns [month_index, day_in_month, month_name, day_name]
+#[php_function]
+pub fn xiuhpohualli(jd: f64) -> Vec<PhpZval> {
+    let (mi, d, mname, dname) = celestial::xiuhpohualli(jd);
+    vec![
+        PhpZval::try_from(mi as i64).unwrap(),
+        PhpZval::try_from(d as i64).unwrap(),
+        PhpZval::try_from(mname.to_string()).unwrap(),
+        PhpZval::try_from(dname.to_string()).unwrap(),
+    ]
+}
+
+/// Maya Tzolk'in 260-day calendar.
+/// Returns [trecena, sign_index, sign_name, day_lord]
+#[php_function]
+pub fn tzolkin(jd: f64) -> Vec<PhpZval> {
+    let (t, s, name, lord) = celestial::tzolkin(jd);
+    vec![
+        PhpZval::try_from(t as i64).unwrap(),
+        PhpZval::try_from(s as i64).unwrap(),
+        PhpZval::try_from(name.to_string()).unwrap(),
+        PhpZval::try_from(lord.to_string()).unwrap(),
+    ]
+}
+
+/// Maya Haab 365-day solar calendar.
+/// Returns [month_index, day_in_month, month_name]
+#[php_function]
+pub fn haab(jd: f64) -> Vec<PhpZval> {
+    let (mi, d, name) = celestial::haab(jd);
+    vec![
+        PhpZval::try_from(mi as i64).unwrap(),
+        PhpZval::try_from(d as i64).unwrap(),
+        PhpZval::try_from(name.to_string()).unwrap(),
+    ]
+}
+
+/// Maya Calendar Round (52-year cycle).
+/// Returns [tzolkin_num, tzolkin_name, haab_day, haab_name]
+#[php_function]
+pub fn calendar_round(jd: f64) -> Vec<PhpZval> {
+    let (tn, tname, hd, hname) = celestial::calendar_round(jd);
+    vec![
+        PhpZval::try_from(tn as i64).unwrap(),
+        PhpZval::try_from(tname.to_string()).unwrap(),
+        PhpZval::try_from(hd as i64).unwrap(),
+        PhpZval::try_from(hname.to_string()).unwrap(),
+    ]
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Indigenous / Egyptian
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Medicine Wheel birth totem for a Sun longitude.
+/// Returns [animal, element, clan, season]
+#[php_function]
+pub fn medicine_wheel_totem(sun_lon: f64) -> Vec<String> {
+    let (a, e, c, s) = celestial::medicine_wheel_totem(sun_lon);
+    vec![a.to_string(), e.to_string(), c.to_string(), s.to_string()]
+}
+
+/// Egyptian decan for an ecliptic longitude.
+/// Returns [decan_index, decan_name, rising_star]
+#[php_function]
+pub fn egyptian_decan(lon: f64) -> Vec<PhpZval> {
+    let (idx, name, star) = celestial::egyptian_decan(lon);
+    vec![
+        PhpZval::try_from(idx as i64).unwrap(),
+        PhpZval::try_from(name.to_string()).unwrap(),
+        PhpZval::try_from(star.to_string()).unwrap(),
+    ]
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Chart analysis
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Secondary progressions for a set of bodies.
+/// Returns [[body_index, lon, lat, dist, speed_lon], ...]
+#[php_function]
+pub fn secondary_progressions(
+    jd_natal: f64,
+    years: f64,
+    bodies: Vec<i64>,
+    lat: f64,
+    lon: f64,
+    hsys: i64,
+    flags: i64,
+) -> PhpResult<Vec<Vec<f64>>> {
+    let body_list: Vec<Body> = bodies.iter().map(|&b| Body(b as i32)).collect();
+    let (positions, _houses) = celestial::secondary_progressions(
+        jd_natal,
+        years,
+        &body_list,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        CalcFlags(flags as i32),
+    )
+    .map_err(to_php)?;
+    Ok(positions
+        .iter()
+        .map(|(b, p)| vec![b.as_raw() as f64, p.lon, p.lat, p.dist, p.speed_lon])
+        .collect())
+}
+
+/// Solar arc directions. Returns [arc_degrees, mc_arc, body, directed_lon, ...]
+#[php_function]
+pub fn solar_arc_directions(
+    jd_natal: f64,
+    years: f64,
+    natal_positions: Vec<f64>, // flat: [body, lon, body, lon, ...]
+    natal_mc: f64,
+    flags: i64,
+) -> PhpResult<Vec<f64>> {
+    let pos: Vec<(Body, f64)> = natal_positions
+        .chunks(2)
+        .map(|c| (Body(c[0] as i32), c[1]))
+        .collect();
+    let (arc, directed, mc_arc) =
+        celestial::solar_arc_directions(jd_natal, years, &pos, natal_mc, CalcFlags(flags as i32))
+            .map_err(to_php)?;
+    let mut result = vec![arc, mc_arc];
+    for (b, lon) in &directed {
+        result.push(b.as_raw() as f64);
+        result.push(*lon);
+    }
+    Ok(result)
+}
+
+/// Midpoint table. Returns [[body1, body2, midpoint_lon], ...]
+#[php_function]
+pub fn midpoint_table(
+    positions: Vec<f64>, // flat: [body, lon, body, lon, ...]
+    orb: f64,
+) -> Vec<Vec<f64>> {
+    let pos: Vec<(Body, f64)> = positions
+        .chunks(2)
+        .map(|c| (Body(c[0] as i32), c[1]))
+        .collect();
+    celestial::midpoint_table(&pos, orb)
+        .iter()
+        .map(|e| vec![e.0.as_raw() as f64, e.1.as_raw() as f64, e.2])
+        .collect()
+}
+
+/// Aspect table for a chart. Returns [[body1, body2, aspect, orb, applying], ...]
+#[php_function]
+pub fn calc_chart_aspects(
+    positions: Vec<f64>, // flat: [body, lon, speed, body, lon, speed, ...]
+    aspects: Vec<f64>,
+    orb: f64,
+) -> Vec<Vec<f64>> {
+    let pos: Vec<(Body, f64, f64)> = positions
+        .chunks(3)
+        .map(|c| (Body(c[0] as i32), c[1], c[2]))
+        .collect();
+    celestial::calc_chart_aspects(&pos, &aspects, orb)
+        .iter()
+        .map(|a| {
+            vec![
+                a.body1.as_raw() as f64,
+                a.body2.as_raw() as f64,
+                a.aspect,
+                a.orb,
+                if a.applying { 1.0 } else { 0.0 },
+            ]
+        })
+        .collect()
+}
+
+/// Aspect table using default orbs. Returns [[body1, body2, aspect, orb, applying], ...]
+#[php_function]
+pub fn calc_chart_aspects_auto(
+    positions: Vec<f64>, // flat: [body, lon, speed, body, lon, speed, ...]
+    aspects: Vec<f64>,
+) -> Vec<Vec<f64>> {
+    let pos: Vec<(Body, f64, f64)> = positions
+        .chunks(3)
+        .map(|c| (Body(c[0] as i32), c[1], c[2]))
+        .collect();
+    celestial::calc_chart_aspects_auto(&pos, &aspects)
+        .iter()
+        .map(|a| {
+            vec![
+                a.body1.as_raw() as f64,
+                a.body2.as_raw() as f64,
+                a.aspect,
+                a.orb,
+                if a.applying { 1.0 } else { 0.0 },
+            ]
+        })
+        .collect()
+}
+
+/// Monthly profection — house and degree for a given age in years + months.
+#[php_function]
+pub fn monthly_profection(cusps: Vec<f64>, age_years: i64, age_months: i64) -> PhpResult<Vec<f64>> {
+    let arr: [f64; 13] = cusps
+        .get(..13)
+        .and_then(|s| s.try_into().ok())
+        .ok_or_else(|| PhpException::default("cusps needs 13 elements".into()))?;
+    let (house, degree) = celestial::monthly_profection(&arr, age_years as u32, age_months as u32);
+    Ok(vec![house as f64, degree])
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Sabbats & Esbats
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// All eight sabbats for a given year. Returns [[jd, name], ...]
+#[php_function]
+pub fn sabbats_for_year(year: i64) -> PhpResult<Vec<Vec<PhpZval>>> {
+    let sabbats = celestial::sabbats_for_year(year as i32).map_err(to_php)?;
+    Ok(sabbats
+        .iter()
+        .map(|s| {
+            vec![
+                PhpZval::try_from(s.jd).unwrap(),
+                PhpZval::try_from(s.name.to_string()).unwrap(),
+            ]
+        })
+        .collect())
+}
+
+/// JD for a specific sabbat. kind: 0=Samhain,1=Yule,2=Imbolc,3=Ostara,
+///   4=Beltane,5=Litha,6=Lughnasadh,7=Mabon
+#[php_function]
+pub fn sabbat_jd(year: i64, kind: i64) -> PhpResult<f64> {
+    use celestial::SabbatKind;
+    let kinds = [
+        SabbatKind::Samhain,
+        SabbatKind::Yule,
+        SabbatKind::Imbolc,
+        SabbatKind::Ostara,
+        SabbatKind::Beltane,
+        SabbatKind::Litha,
+        SabbatKind::Lughnasadh,
+        SabbatKind::Mabon,
+    ];
+    let k = kinds
+        .get(kind as usize)
+        .ok_or_else(|| PhpException::default("invalid sabbat kind (0-7)".into()))?;
+    celestial::sabbat_jd(year as i32, *k).map_err(to_php)
+}
+
+/// Next sabbat from a given JD. Returns [jd, name]
+#[php_function]
+pub fn next_sabbat(jd_from: f64) -> PhpResult<Vec<PhpZval>> {
+    let s = celestial::next_sabbat(jd_from).map_err(to_php)?;
+    Ok(vec![
+        PhpZval::try_from(s.jd).unwrap(),
+        PhpZval::try_from(s.name.to_string()).unwrap(),
+    ])
+}
+
+/// All esbats (named full moons) for a given year. Returns array of JDs.
+#[php_function]
+pub fn esbats_for_year(year: i64) -> PhpResult<Vec<f64>> {
+    let esbats = celestial::esbats_for_year(year as i32).map_err(to_php)?;
+    Ok(esbats.iter().map(|e| e.jd).collect())
+}
+
+/// Next esbat (named full moon) JD from a given JD.
+#[php_function]
+pub fn next_esbat(jd_from: f64) -> PhpResult<f64> {
+    celestial::next_esbat(jd_from).map(|e| e.jd).map_err(to_php)
+}
+
+/// Next time a body reaches aspect to house cusp. Returns [jd, pos_lon] or null.
+#[allow(clippy::too_many_arguments)]
+#[php_function]
+pub fn next_aspect_cusp(
+    body: i64,
+    aspect: f64,
+    cusp: i64,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: i64,
+    backward: bool,
+    flags: i64,
+) -> Option<Vec<f64>> {
+    celestial::next_aspect_cusp(
+        Body(body as i32),
+        aspect,
+        cusp as usize,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        backward,
+        CalcFlags(flags as i32),
+    )
+    .map(|r| vec![r.jd, r.pos[0]])
+}
+
+#[php_function]
+fn ic_transit_ut(
+    planet: i64,
+    jd_natal: f64,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: i64,
+    flags: i64,
+    backward: bool,
+) -> PhpResult<f64> {
+    celestial::ic_transit_ut(
+        Body(planet as i32),
+        jd_natal,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        CalcFlags(flags as i32),
+        backward,
+    )
+    .map_err(|e| PhpException::from(e.to_string()))
+}
+
+#[php_function]
+fn asc_transit_ut(
+    planet: i64,
+    jd_natal: f64,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: i64,
+    flags: i64,
+    backward: bool,
+) -> PhpResult<f64> {
+    celestial::asc_transit_ut(
+        Body(planet as i32),
+        jd_natal,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        CalcFlags(flags as i32),
+        backward,
+    )
+    .map_err(|e| PhpException::from(e.to_string()))
+}
+
+#[php_function]
+fn dsc_transit_ut(
+    planet: i64,
+    jd_natal: f64,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: i64,
+    flags: i64,
+    backward: bool,
+) -> PhpResult<f64> {
+    celestial::dsc_transit_ut(
+        Body(planet as i32),
+        jd_natal,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        CalcFlags(flags as i32),
+        backward,
+    )
+    .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Four Pillars of Destiny (Ba Zi). Returns flat array:
+/// [stem0, branch0, stem_name0, branch_name0, animal0, yang0,
+///  stem1, branch1, stem_name1, branch_name1, animal1, yang1, ...]
+/// Pillars order: Year, Month, Day, Hour.
+#[php_function]
+fn four_pillars(jd_ut: f64, hour_ut: f64, sun_lon: f64) -> Vec<String> {
+    let pillars = celestial::four_pillars(jd_ut, hour_ut, sun_lon);
+    pillars
+        .iter()
+        .flat_map(|p| {
+            vec![
+                p.stem.to_string(),
+                p.branch.to_string(),
+                p.stem_name.to_string(),
+                p.branch_name.to_string(),
+                p.animal.to_string(),
+                (p.yang as u8).to_string(),
+            ]
+        })
+        .collect()
+}

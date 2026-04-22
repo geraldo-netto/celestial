@@ -577,6 +577,69 @@ export declare function mcTransitUt(
   backward?: boolean,
 ): number;
 
+/** Julian Day of the next time `planet` transits the IC of a natal chart. */
+export declare function icTransitUt(
+  planet: number,
+  jdNatal: number,
+  jdStart: number,
+  lat: number,
+  lon: number,
+  hsys: number,
+  flags: number,
+  backward?: boolean,
+): number;
+
+/** Julian Day of the next time `planet` transits the Ascendant of a natal chart. */
+export declare function ascTransitUt(
+  planet: number,
+  jdNatal: number,
+  jdStart: number,
+  lat: number,
+  lon: number,
+  hsys: number,
+  flags: number,
+  backward?: boolean,
+): number;
+
+/** Julian Day of the next time `planet` transits the Descendant of a natal chart. */
+export declare function dscTransitUt(
+  planet: number,
+  jdNatal: number,
+  jdStart: number,
+  lat: number,
+  lon: number,
+  hsys: number,
+  flags: number,
+  backward?: boolean,
+): number;
+
+/** Next time `planet` makes `aspect` to house cusp `cusp` (1–12).
+ * Returns `[jd]` or `null` if no event found. */
+export declare function nextAspectCusp(
+  body: number,
+  aspect: number,
+  cusp: number,
+  jdStart: number,
+  lat: number,
+  lon: number,
+  hsys: number,
+  backward: boolean,
+  flags: number,
+): number[] | null;
+
+/** Same as `nextAspectCusp` but uses the secondary cusp algorithm. */
+export declare function nextAspectCusp2(
+  body: number,
+  aspect: number,
+  cusp: number,
+  jdStart: number,
+  lat: number,
+  lon: number,
+  hsys: number,
+  backward: boolean,
+  flags: number,
+): number[] | null;
+
 /** Julian Day of the solar return for a given year. */
 export declare function solarReturnJd(jdNatal: number, returnYear: number, flags: number): number;
 

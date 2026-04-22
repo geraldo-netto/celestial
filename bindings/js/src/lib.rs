@@ -2097,3 +2097,324 @@ pub fn triplicity_rulers(lon: f64) -> Vec<i32> {
     let (d, n, p) = celestial::triplicity_rulers(lon);
     vec![d.as_raw(), n.as_raw(), p.as_raw()]
 }
+
+// ── Sabbats & Esbats ──────────────────────────────────────────────────────────
+
+#[napi(js_name = "sabbatsForYear")]
+pub fn sabbats_for_year(year: i32) -> napi::Result<Vec<Vec<f64>>> {
+    // Returns [[kind_index, jd], ...] — name accessible via sabbat_jd/kind
+    let sabbats =
+        celestial::sabbats_for_year(year).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(sabbats.iter().map(|s| vec![s.jd]).collect())
+}
+
+#[napi(js_name = "sabbatJd")]
+pub fn sabbat_jd(year: i32, kind: u8) -> napi::Result<f64> {
+    use celestial::SabbatKind;
+    let kinds = [
+        SabbatKind::Samhain,
+        SabbatKind::Yule,
+        SabbatKind::Imbolc,
+        SabbatKind::Ostara,
+        SabbatKind::Beltane,
+        SabbatKind::Litha,
+        SabbatKind::Lughnasadh,
+        SabbatKind::Mabon,
+    ];
+    let k = kinds
+        .get(kind as usize)
+        .ok_or_else(|| napi::Error::from_reason("invalid sabbat kind (0-7)"))?;
+    celestial::sabbat_jd(year, *k).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+#[napi(js_name = "nextSabbat")]
+pub fn next_sabbat(jd_from: f64) -> napi::Result<Vec<f64>> {
+    // Returns [jd] — name is available via the kind index
+    let s = celestial::next_sabbat(jd_from).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(vec![s.jd])
+}
+
+#[napi(js_name = "esbatsForYear")]
+pub fn esbats_for_year(year: i32) -> napi::Result<Vec<f64>> {
+    // Returns [jd, jd, ...] — one per esbat
+    let esbats =
+        celestial::esbats_for_year(year).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(esbats.iter().map(|e| e.jd).collect())
+}
+
+#[napi(js_name = "nextEsbat")]
+pub fn next_esbat(jd_from: f64) -> napi::Result<f64> {
+    celestial::next_esbat(jd_from)
+        .map(|e| e.jd)
+        .map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+// ── Chart analysis ────────────────────────────────────────────────────────────
+
+#[napi(js_name = "secondaryProgressions")]
+pub fn secondary_progressions(
+    jd_natal: f64,
+    years: f64,
+    bodies: Vec<i32>,
+    lat: f64,
+    lon: f64,
+    hsys: u8,
+    flags: i32,
+) -> napi::Result<Vec<Vec<f64>>> {
+    use celestial::{Body, CalcFlags, HouseSystem};
+    let body_list: Vec<Body> = bodies.iter().map(|&b| Body(b)).collect();
+    let (positions, _houses) = celestial::secondary_progressions(
+        jd_natal,
+        years,
+        &body_list,
+        lat,
+        lon,
+        HouseSystem(hsys),
+        CalcFlags(flags),
+    )
+    .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(positions
+        .iter()
+        .map(|(b, p)| vec![b.as_raw() as f64, p.lon, p.lat, p.dist, p.speed_lon])
+        .collect())
+}
+
+#[napi(js_name = "solarArcDirections")]
+pub fn solar_arc_directions(
+    jd_natal: f64,
+    years: f64,
+    natal_positions: Vec<f64>, // flat: [body, lon, body, lon, ...]
+    natal_mc: f64,
+    flags: i32,
+) -> napi::Result<Vec<f64>> {
+    use celestial::{Body, CalcFlags};
+    let pos: Vec<(Body, f64)> = natal_positions
+        .chunks(2)
+        .map(|c| (Body(c[0] as i32), c[1]))
+        .collect();
+    let (arc, directed, mc_arc) =
+        celestial::solar_arc_directions(jd_natal, years, &pos, natal_mc, CalcFlags(flags))
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    // Returns [arc, mc_arc, body, directed_lon, body, directed_lon, ...]
+    let mut result = vec![arc, mc_arc];
+    for (b, lon) in &directed {
+        result.push(b.as_raw() as f64);
+        result.push(*lon);
+    }
+    Ok(result)
+}
+
+#[napi(js_name = "midpointTable")]
+pub fn midpoint_table(
+    positions: Vec<f64>, // flat: [body, lon, body, lon, ...]
+    orb: f64,
+) -> Vec<Vec<f64>> {
+    use celestial::Body;
+    let pos: Vec<(Body, f64)> = positions
+        .chunks(2)
+        .map(|c| (Body(c[0] as i32), c[1]))
+        .collect();
+    celestial::midpoint_table(&pos, orb)
+        .iter()
+        .map(|e| vec![e.0.as_raw() as f64, e.1.as_raw() as f64, e.2])
+        .collect()
+}
+
+#[napi(js_name = "calcChartAspects")]
+pub fn calc_chart_aspects(
+    positions: Vec<f64>, // flat: [body, lon, speed, body, lon, speed, ...]
+    aspects: Vec<f64>,
+    orb: f64,
+) -> Vec<Vec<f64>> {
+    use celestial::Body;
+    let pos: Vec<(Body, f64, f64)> = positions
+        .chunks(3)
+        .map(|c| (Body(c[0] as i32), c[1], c[2]))
+        .collect();
+    celestial::calc_chart_aspects(&pos, &aspects, orb)
+        .iter()
+        .map(|a| {
+            vec![
+                a.body1.as_raw() as f64,
+                a.body2.as_raw() as f64,
+                a.aspect,
+                a.orb,
+                if a.applying { 1.0 } else { 0.0 },
+            ]
+        })
+        .collect()
+}
+
+#[napi(js_name = "calcChartAspectsAuto")]
+pub fn calc_chart_aspects_auto(
+    positions: Vec<f64>, // flat: [body, lon, speed, body, lon, speed, ...]
+    aspects: Vec<f64>,
+) -> Vec<Vec<f64>> {
+    use celestial::Body;
+    let pos: Vec<(Body, f64, f64)> = positions
+        .chunks(3)
+        .map(|c| (Body(c[0] as i32), c[1], c[2]))
+        .collect();
+    celestial::calc_chart_aspects_auto(&pos, &aspects)
+        .iter()
+        .map(|a| {
+            vec![
+                a.body1.as_raw() as f64,
+                a.body2.as_raw() as f64,
+                a.aspect,
+                a.orb,
+                if a.applying { 1.0 } else { 0.0 },
+            ]
+        })
+        .collect()
+}
+
+// ── Chinese sexagenary ────────────────────────────────────────────────────────
+
+#[napi(js_name = "sexagenaryName")]
+pub fn sexagenary_name(cycle_index: u8) -> Vec<String> {
+    let (stem, branch) = celestial::sexagenary_name(cycle_index);
+    vec![stem.to_string(), branch.to_string()]
+}
+
+// ── Monthly profection ────────────────────────────────────────────────────────
+
+#[napi(js_name = "monthlyProfection")]
+pub fn monthly_profection(
+    cusps: Vec<f64>,
+    age_years: u32,
+    age_months: u32,
+) -> napi::Result<Vec<f64>> {
+    let arr: [f64; 13] = cusps
+        .get(..13)
+        .and_then(|s| s.try_into().ok())
+        .ok_or_else(|| napi::Error::from_reason("cusps needs 13 elements"))?;
+    let (house, degree) = celestial::monthly_profection(&arr, age_years, age_months);
+    Ok(vec![house as f64, degree])
+}
+
+#[napi]
+pub fn ic_transit_ut(
+    planet: i32,
+    jd_natal: f64,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: u32,
+    flags: i32,
+    backward: bool,
+) -> napi::Result<f64> {
+    celestial::ic_transit_ut(
+        Body::from_raw(planet),
+        jd_natal,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        CalcFlags(flags),
+        backward,
+    )
+    .map_err(to_napi)
+}
+
+#[napi]
+pub fn asc_transit_ut(
+    planet: i32,
+    jd_natal: f64,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: u32,
+    flags: i32,
+    backward: bool,
+) -> napi::Result<f64> {
+    celestial::asc_transit_ut(
+        Body::from_raw(planet),
+        jd_natal,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        CalcFlags(flags),
+        backward,
+    )
+    .map_err(to_napi)
+}
+
+#[napi]
+pub fn dsc_transit_ut(
+    planet: i32,
+    jd_natal: f64,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: u32,
+    flags: i32,
+    backward: bool,
+) -> napi::Result<f64> {
+    celestial::dsc_transit_ut(
+        Body::from_raw(planet),
+        jd_natal,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        CalcFlags(flags),
+        backward,
+    )
+    .map_err(to_napi)
+}
+
+#[allow(clippy::too_many_arguments)]
+#[napi]
+pub fn next_aspect_cusp(
+    body: i32,
+    aspect: f64,
+    cusp: u32,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: u32,
+    backward: bool,
+    flags: i32,
+) -> Option<Vec<f64>> {
+    celestial::next_aspect_cusp(
+        Body::from_raw(body),
+        aspect,
+        cusp as usize,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        backward,
+        CalcFlags(flags),
+    )
+    .map(|r| vec![r.jd])
+}
+
+#[allow(clippy::too_many_arguments)]
+#[napi]
+pub fn next_aspect_cusp2(
+    body: i32,
+    aspect: f64,
+    cusp: u32,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: u32,
+    backward: bool,
+    flags: i32,
+) -> Option<Vec<f64>> {
+    celestial::next_aspect_cusp2(
+        Body::from_raw(body),
+        aspect,
+        cusp as usize,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        backward,
+        CalcFlags(flags),
+    )
+    .map(|r| vec![r.jd])
+}

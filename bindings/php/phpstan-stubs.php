@@ -170,3 +170,25 @@ function celestial_egyptian_decan(float $lon): array {}
 function celestial_fixstar_ut(string $star, float $jd, int $flags): ?array {}
 function celestial_firdaria(float $jd_birth, bool $is_day, float $span): array {}
 function celestial_is_day_chart(float $sun_lon, array $cusps): bool {}
+
+/** @return float */
+function celestial_ic_transit_ut(int $planet, float $jd_natal, float $jd_start,
+    float $lat, float $lon, int $hsys, int $flags, bool $backward): float {}
+
+/** @return float */
+function celestial_asc_transit_ut(int $planet, float $jd_natal, float $jd_start,
+    float $lat, float $lon, int $hsys, int $flags, bool $backward): float {}
+
+/** @return float */
+function celestial_dsc_transit_ut(int $planet, float $jd_natal, float $jd_start,
+    float $lat, float $lon, int $hsys, int $flags, bool $backward): float {}
+
+/**
+ * Four Pillars of Destiny (Ba Zi).
+ * Returns flat array of strings per pillar (Year, Month, Day, Hour):
+ * [stem, branch, stem_name, branch_name, animal, yang, ...]
+ * @return string[]
+ */
+function celestial_four_pillars(float $jd_ut, float $hour_ut, float $sun_lon): array {}
+
+

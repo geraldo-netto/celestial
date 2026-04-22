@@ -273,6 +273,24 @@ const [decanIdx, decanName, risingStar]: [number, string, string] =
 console.log(`Decan ${decanIdx + 1}: ${decanName} (${risingStar})`);
 ```
 
+
+---
+
+## Angle transits
+
+```typescript
+// Natal angle transits (ic / asc / dsc added alongside existing mcTransitUt)
+const jdMc  = celestial.mcTransitUt(planet, jdNatal, jdStart, lat, lon, hsys, flags);
+const jdIc  = celestial.icTransitUt(planet, jdNatal, jdStart, lat, lon, hsys, flags);
+const jdAsc = celestial.ascTransitUt(planet, jdNatal, jdStart, lat, lon, hsys, flags);
+const jdDsc = celestial.dscTransitUt(planet, jdNatal, jdStart, lat, lon, hsys, flags);
+
+// Aspect to a house cusp — returns [jd] or null
+const hit = celestial.nextAspectCusp(planet, 90.0, 10, jdStart,
+                                      lat, lon, hsys, false, flags);
+```
+
+
 ---
 
 ## Error handling

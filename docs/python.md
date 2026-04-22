@@ -300,6 +300,85 @@ decan_idx, decan_name, rising_star = celestial.egyptian_decan(pos.lon)
 print(f"Decan {decan_idx+1}: {decan_name} (rising star: {rising_star})")
 ```
 
+
+---
+
+## Sabbats & esbats
+
+```python
+# All eight sabbats for a year
+sabbats = celestial.sabbats_for_year(2025)
+for name, jd in sabbats:
+    print(f"{name}: JD {jd:.4f}")
+
+# Next sabbat from a given JD
+name, jd = celestial.next_sabbat(2_451_545.0)
+
+# Specific sabbat JD (kind 0-7: Samhain, Yule, Imbolc, Ostara,
+#                              Beltane, Litha, Lughnasadh, Mabon)
+jd_yule = celestial.sabbat_jd(2025, 1)
+
+# All esbats (named full moons) for a year
+esbats = celestial.esbats_for_year(2025)
+for name, jd in esbats:
+    print(f"{name}: JD {jd:.4f}")
+
+# Next esbat from a given JD
+name, jd = celestial.next_esbat(2_451_545.0)
+```
+
+---
+
+## Angle transits
+
+```python
+# Transit to natal angles (ic / asc / dsc added alongside existing mc_transit_ut)
+jd_mc  = celestial.mc_transit_ut(planet, jd_natal, jd_start, lat, lon, hsys, flags, False)
+jd_ic  = celestial.ic_transit_ut(planet, jd_natal, jd_start, lat, lon, hsys, flags, False)
+jd_asc = celestial.asc_transit_ut(planet, jd_natal, jd_start, lat, lon, hsys, flags, False)
+jd_dsc = celestial.dsc_transit_ut(planet, jd_natal, jd_start, lat, lon, hsys, flags, False)
+
+# Aspect to a house cusp — returns (jd, orb) or None
+hit = celestial.next_aspect_cusp(planet, 90.0, 10, jd_start,
+                                   lat, lon, hsys, False, flags)
+```
+
+---
+
+## Chart analysis
+
+```python
+# All aspects in a chart with auto orbs
+positions = [(celestial.SUN, sun_lon, sun_speed), (celestial.MOON, moon_lon, moon_speed), ...]
+aspects = celestial.calc_chart_aspects_auto(positions)
+for body1, body2, aspect, orb, applying in aspects:
+    print(f"{body1}/{body2}: {aspect:.0f}° orb {orb:.2f}° {'app' if applying else 'sep'}")
+
+# Custom aspect list and orb
+aspects = celestial.calc_chart_aspects(positions, [0.0, 60.0, 90.0, 120.0, 180.0], 8.0)
+
+# Midpoint table — returns [(body1, body2, midpoint_lon), ...]
+positions_2d = [(celestial.SUN, sun_lon), (celestial.MOON, moon_lon), ...]
+table = celestial.midpoint_table(positions_2d, 2.0)
+
+# Secondary progressions
+pos_list, cusps = celestial.secondary_progressions(
+    jd_natal, years=35.0, bodies=[celestial.SUN, celestial.MOON],
+    lat=48.85, lon=2.35, hsys=ord('P'), flags=celestial.FLG_BUILTIN
+)
+
+# Solar arc directions — returns (arc_degrees, directed_positions, mc_arc)
+arc, directed, mc_arc = celestial.solar_arc_directions(
+    jd_natal, years=35.0,
+    natal_positions=[(celestial.SUN, sun_lon), (celestial.MOON, moon_lon)],
+    natal_mc=mc, flags=celestial.FLG_BUILTIN
+)
+
+# Monthly profection (age in years + months)
+house, degree = celestial.monthly_profection(cusps, age_years=35, age_months=6)
+```
+
+
 ---
 
 ## Type stubs (`.pyi`)
@@ -307,7 +386,7 @@ print(f"Decan {decan_idx+1}: {decan_name} (rising star: {rising_star})")
 A full `celestial_py.pyi` stub file ships with the binding at
 `bindings/python/python/celestial_py/celestial_py.pyi`.
 
-It covers all 114 exported functions and the following named types:
+It covers all 130 exported functions and the following named types:
 
 | Class | Fields |
 |---|---|

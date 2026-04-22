@@ -1330,6 +1330,305 @@ impl Tap for pyo3::Bound<'_, pyo3::types::PyDict> {}
 fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // ── functions ──────────────────────────────────────────────────────────
     m.add_function(wrap_pyfunction!(set_ephe_path, m)?)?;
+    #[pyfunction]
+    fn ic_transit_ut(
+        planet: i32,
+        jd_natal: f64,
+        jd_start: f64,
+        lat: f64,
+        lon: f64,
+        hsys: u32,
+        flags: i32,
+        backward: bool,
+    ) -> PyResult<f64> {
+        celestial::ic_transit_ut(
+            Body::from_raw(planet),
+            jd_natal,
+            jd_start,
+            lat,
+            lon,
+            HouseSystem(hsys as u8),
+            CalcFlags(flags),
+            backward,
+        )
+        .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+
+    #[pyfunction]
+    fn asc_transit_ut(
+        planet: i32,
+        jd_natal: f64,
+        jd_start: f64,
+        lat: f64,
+        lon: f64,
+        hsys: u32,
+        flags: i32,
+        backward: bool,
+    ) -> PyResult<f64> {
+        celestial::asc_transit_ut(
+            Body::from_raw(planet),
+            jd_natal,
+            jd_start,
+            lat,
+            lon,
+            HouseSystem(hsys as u8),
+            CalcFlags(flags),
+            backward,
+        )
+        .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+
+    #[pyfunction]
+    fn dsc_transit_ut(
+        planet: i32,
+        jd_natal: f64,
+        jd_start: f64,
+        lat: f64,
+        lon: f64,
+        hsys: u32,
+        flags: i32,
+        backward: bool,
+    ) -> PyResult<f64> {
+        celestial::dsc_transit_ut(
+            Body::from_raw(planet),
+            jd_natal,
+            jd_start,
+            lat,
+            lon,
+            HouseSystem(hsys as u8),
+            CalcFlags(flags),
+            backward,
+        )
+        .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[pyfunction]
+    fn next_aspect_cusp(
+        body: i32,
+        aspect: f64,
+        cusp: usize,
+        jd_start: f64,
+        lat: f64,
+        lon: f64,
+        hsys: u32,
+        backward: bool,
+        flags: i32,
+    ) -> Option<(f64, f64)> {
+        celestial::next_aspect_cusp(
+            Body::from_raw(body),
+            aspect,
+            cusp,
+            jd_start,
+            lat,
+            lon,
+            HouseSystem(hsys as u8),
+            backward,
+            CalcFlags(flags),
+        )
+        .map(|r| (r.jd, r.pos[0]))
+    }
+
+    // ── Sabbats & Esbats ───────────────────────────────────────────────────────────
+
+    #[pyfunction]
+    fn sabbats_for_year(py: Python<'_>, year: i32) -> PyResult<PyObject> {
+        let sabbats = celestial::sabbats_for_year(year)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let result: Vec<PyObject> = sabbats.iter().map(|s| (s.name, s.jd).into_py(py)).collect();
+        Ok(result.into_py(py))
+    }
+
+    #[pyfunction]
+    fn next_sabbat(jd_from: f64) -> PyResult<(String, f64)> {
+        let s =
+            celestial::next_sabbat(jd_from).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        Ok((s.name.to_string(), s.jd))
+    }
+
+    #[pyfunction]
+    fn sabbat_jd(year: i32, kind: u8) -> PyResult<f64> {
+        use celestial::SabbatKind;
+        let kinds = [
+            SabbatKind::Samhain,
+            SabbatKind::Yule,
+            SabbatKind::Imbolc,
+            SabbatKind::Ostara,
+            SabbatKind::Beltane,
+            SabbatKind::Litha,
+            SabbatKind::Lughnasadh,
+            SabbatKind::Mabon,
+        ];
+        let k = kinds
+            .get(kind as usize)
+            .ok_or_else(|| PyRuntimeError::new_err("invalid sabbat kind (0-7)"))?;
+        celestial::sabbat_jd(year, *k).map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+
+    #[pyfunction]
+    fn esbats_for_year(py: Python<'_>, year: i32) -> PyResult<PyObject> {
+        let esbats =
+            celestial::esbats_for_year(year).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let result: Vec<PyObject> = esbats
+            .iter()
+            .map(|e| (e.display_name, e.jd).into_py(py))
+            .collect();
+        Ok(result.into_py(py))
+    }
+
+    #[pyfunction]
+    fn next_esbat(jd_from: f64) -> PyResult<(String, f64)> {
+        let e =
+            celestial::next_esbat(jd_from).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        Ok((e.display_name.to_string(), e.jd))
+    }
+
+    // ── Chart analysis ────────────────────────────────────────────────────────────
+
+    #[pyfunction]
+    fn secondary_progressions(
+        py: Python<'_>,
+        jd_natal: f64,
+        years: f64,
+        bodies: Vec<i32>,
+        lat: f64,
+        lon: f64,
+        hsys: u8,
+        flags: i32,
+    ) -> PyResult<PyObject> {
+        let body_list: Vec<celestial::Body> = bodies.iter().map(|&b| celestial::Body(b)).collect();
+        let (positions, houses) = celestial::secondary_progressions(
+            jd_natal,
+            years,
+            &body_list,
+            lat,
+            lon,
+            celestial::HouseSystem(hsys),
+            celestial::CalcFlags(flags),
+        )
+        .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let pos_list: Vec<PyObject> = positions
+            .iter()
+            .map(|(b, p)| (b.as_raw(), p.lon, p.lat, p.dist, p.speed_lon).into_py(py))
+            .collect();
+        let cusps: Vec<f64> = houses.cusps.to_vec();
+        Ok((pos_list, cusps).into_py(py))
+    }
+
+    #[pyfunction]
+    fn solar_arc_directions(
+        py: Python<'_>,
+        jd_natal: f64,
+        years: f64,
+        natal_positions: Vec<(i32, f64)>,
+        natal_mc: f64,
+        flags: i32,
+    ) -> PyResult<PyObject> {
+        let pos: Vec<(celestial::Body, f64)> = natal_positions
+            .iter()
+            .map(|&(b, lon)| (celestial::Body(b), lon))
+            .collect();
+        let (arc, directed, mc_arc) = celestial::solar_arc_directions(
+            jd_natal,
+            years,
+            &pos,
+            natal_mc,
+            celestial::CalcFlags(flags),
+        )
+        .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let directed_list: Vec<PyObject> = directed
+            .iter()
+            .map(|(b, lon)| (b.as_raw(), *lon).into_py(py))
+            .collect();
+        Ok((arc, directed_list, mc_arc).into_py(py))
+    }
+
+    #[pyfunction]
+    fn midpoint_table(py: Python<'_>, positions: Vec<(i32, f64)>, orb: f64) -> PyObject {
+        let pos: Vec<(celestial::Body, f64)> = positions
+            .iter()
+            .map(|&(b, lon)| (celestial::Body(b), lon))
+            .collect();
+        let table = celestial::midpoint_table(&pos, orb);
+        let result: Vec<PyObject> = table
+            .iter()
+            .map(|e| (e.0.as_raw(), e.1.as_raw(), e.2).into_py(py))
+            .collect();
+        result.into_py(py)
+    }
+
+    #[pyfunction]
+    fn calc_chart_aspects(
+        py: Python<'_>,
+        positions: Vec<(i32, f64, f64)>,
+        aspects: Vec<f64>,
+        orb: f64,
+    ) -> PyObject {
+        let pos: Vec<(celestial::Body, f64, f64)> = positions
+            .iter()
+            .map(|&(b, lon, spd)| (celestial::Body(b), lon, spd))
+            .collect();
+        let result: Vec<PyObject> = celestial::calc_chart_aspects(&pos, &aspects, orb)
+            .iter()
+            .map(|a| {
+                (
+                    a.body1.as_raw(),
+                    a.body2.as_raw(),
+                    a.aspect,
+                    a.orb,
+                    a.applying,
+                )
+                    .into_py(py)
+            })
+            .collect();
+        result.into_py(py)
+    }
+
+    #[pyfunction]
+    fn calc_chart_aspects_auto(
+        py: Python<'_>,
+        positions: Vec<(i32, f64, f64)>,
+        aspects: Vec<f64>,
+    ) -> PyObject {
+        let pos: Vec<(celestial::Body, f64, f64)> = positions
+            .iter()
+            .map(|&(b, lon, spd)| (celestial::Body(b), lon, spd))
+            .collect();
+        let result: Vec<PyObject> = celestial::calc_chart_aspects_auto(&pos, &aspects)
+            .iter()
+            .map(|a| {
+                (
+                    a.body1.as_raw(),
+                    a.body2.as_raw(),
+                    a.aspect,
+                    a.orb,
+                    a.applying,
+                )
+                    .into_py(py)
+            })
+            .collect();
+        result.into_py(py)
+    }
+
+    // ── Sexagenary / Chinese ──────────────────────────────────────────────────────
+
+    #[pyfunction]
+    fn sexagenary_name(cycle_index: u8) -> (String, String) {
+        let (stem, branch) = celestial::sexagenary_name(cycle_index);
+        (stem.to_string(), branch.to_string())
+    }
+
+    // ── Monthly profection ────────────────────────────────────────────────────────
+
+    #[pyfunction]
+    fn monthly_profection(cusps: Vec<f64>, age_years: u32, age_months: u32) -> PyResult<(u8, f64)> {
+        let arr: [f64; 13] = cusps
+            .get(..13)
+            .and_then(|s| s.try_into().ok())
+            .ok_or_else(|| PyRuntimeError::new_err("cusps needs 13 elements"))?;
+        Ok(celestial::monthly_profection(&arr, age_years, age_months))
+    }
+
     m.add_function(wrap_pyfunction!(set_jpl_file, m)?)?;
     m.add_function(wrap_pyfunction!(set_sid_mode, m)?)?;
     m.add_function(wrap_pyfunction!(set_topo, m)?)?;
@@ -1632,6 +1931,22 @@ fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(calendar_round, m)?)?;
     m.add_function(wrap_pyfunction!(medicine_wheel_totem, m)?)?;
     m.add_function(wrap_pyfunction!(egyptian_decan, m)?)?;
+    m.add_function(wrap_pyfunction!(sabbats_for_year, m)?)?;
+    m.add_function(wrap_pyfunction!(next_sabbat, m)?)?;
+    m.add_function(wrap_pyfunction!(sabbat_jd, m)?)?;
+    m.add_function(wrap_pyfunction!(esbats_for_year, m)?)?;
+    m.add_function(wrap_pyfunction!(next_esbat, m)?)?;
+    m.add_function(wrap_pyfunction!(ic_transit_ut, m)?)?;
+    m.add_function(wrap_pyfunction!(asc_transit_ut, m)?)?;
+    m.add_function(wrap_pyfunction!(dsc_transit_ut, m)?)?;
+    m.add_function(wrap_pyfunction!(next_aspect_cusp, m)?)?;
+    m.add_function(wrap_pyfunction!(secondary_progressions, m)?)?;
+    m.add_function(wrap_pyfunction!(solar_arc_directions, m)?)?;
+    m.add_function(wrap_pyfunction!(midpoint_table, m)?)?;
+    m.add_function(wrap_pyfunction!(calc_chart_aspects, m)?)?;
+    m.add_function(wrap_pyfunction!(calc_chart_aspects_auto, m)?)?;
+    m.add_function(wrap_pyfunction!(sexagenary_name, m)?)?;
+    m.add_function(wrap_pyfunction!(monthly_profection, m)?)?;
     Ok(())
 }
 

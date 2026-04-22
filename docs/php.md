@@ -312,6 +312,34 @@ $decan = celestial_egyptian_decan($sun[0]);
 printf("Decan %d: %s (rising star: %s)\n", $decan[0] + 1, $decan[1], $decan[2]);
 ```
 
+
+---
+
+## Angle transits
+
+```php
+// Natal angle transits (ic / asc / dsc added alongside existing mc_transit_ut)
+$jd_mc  = celestial_mc_transit_ut($planet, $jd_natal, $jd_start, $lat, $lon, $hsys, $flags, false);
+$jd_ic  = celestial_ic_transit_ut($planet, $jd_natal, $jd_start, $lat, $lon, $hsys, $flags, false);
+$jd_asc = celestial_asc_transit_ut($planet, $jd_natal, $jd_start, $lat, $lon, $hsys, $flags, false);
+$jd_dsc = celestial_dsc_transit_ut($planet, $jd_natal, $jd_start, $lat, $lon, $hsys, $flags, false);
+```
+
+---
+
+## Ba Zi — Four Pillars of Destiny
+
+```php
+// Returns flat string array per pillar (Year/Month/Day/Hour):
+// [stem_index, branch_index, stem_name, branch_name, animal, yang, ...]
+$pillars = celestial_four_pillars($jd_ut, $hour_ut, $sun_lon);
+for ($i = 0; $i < 4; $i++) {
+    $base = $i * 6;
+    echo $pillars[$base + 2] . " " . $pillars[$base + 3]; // e.g. "Jia Zi"
+}
+```
+
+
 ---
 
 ## Error handling
