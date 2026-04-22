@@ -7,8 +7,7 @@ supporting eight astrological traditions across 24 chart types.
 
 | File | Contents |
 |---|---|
-| [api_reference.md](api_reference.md) | Complete function reference — all 8 phases, all return types |
-| [api_reference.md](api_reference.md) | Rust crate API with extended code examples |
+| [api_reference.md](api_reference.md) | Complete Rust API reference — all 8 phases, return types, code examples |
 | [python.md](python.md) | Python (PyO3) binding — installation, all functions, constants |
 | [javascript.md](javascript.md) | JavaScript / TypeScript (napi-rs) — typed API, full guide |
 | [php.md](php.md) | PHP (ext-php-rs) — installation, phpstan stubs, all functions |
@@ -55,13 +54,6 @@ $pos = celestial_calc_ut($jd, SE_SUN, FLG_SPEED);
 echo "Sun longitude: " . round($pos[0], 4) . "°\n";
 ```
 
-### CLI
-
-```bash
-celestial calc --date 2025-03-20
-celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
-```
-
 ---
 
 ## Workspace layout
@@ -100,6 +92,13 @@ The public API is a **single flat namespace** — `use celestial_core::*` gives 
 ---
 
 ## CLI & plugins
+
+```bash
+celestial calc --date 2025-03-20
+celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
+```
+
+See [README.md](../README.md#cli) for the full command reference and all 24 chart types.
 
 ### Plugin architecture
 
