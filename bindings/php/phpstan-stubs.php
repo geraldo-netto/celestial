@@ -6,121 +6,121 @@
 define('SUN', 0);
 
 /** @var int */
-define('MOON', 0);
+define('MOON', 1);
 
 /** @var int */
-define('MERCURY', 0);
+define('MERCURY', 2);
 
 /** @var int */
-define('VENUS', 0);
+define('VENUS', 3);
 
 /** @var int */
-define('MARS', 0);
+define('MARS', 4);
 
 /** @var int */
-define('JUPITER', 0);
+define('JUPITER', 5);
 
 /** @var int */
-define('SATURN', 0);
+define('SATURN', 6);
 
 /** @var int */
-define('URANUS', 0);
+define('URANUS', 7);
 
 /** @var int */
-define('NEPTUNE', 0);
+define('NEPTUNE', 8);
 
 /** @var int */
-define('PLUTO', 0);
+define('PLUTO', 9);
 
 /** @var int */
-define('MEAN_NODE', 0);
+define('MEAN_NODE', 10);
 
 /** @var int */
-define('TRUE_NODE', 0);
+define('TRUE_NODE', 11);
 
 /** @var int */
-define('CHIRON', 0);
+define('CHIRON', 15);
 
 /** @var int */
-define('GREG_CAL', 0);
+define('GREG_CAL', 1);
 
 /** @var int */
 define('JUL_CAL', 0);
 
 /** @var int */
-define('FLG_BUILTIN', 0);
+define('FLG_BUILTIN', 2);
 
 /** @var int */
-define('FLG_JPL', 0);
+define('FLG_JPL', 1);
 
 /** @var int */
-define('FLG_MOSHIER', 0);
+define('FLG_MOSHIER', 4);
 
 /** @var int */
-define('FLG_SPEED', 0);
+define('FLG_SPEED', 256);
 
 /** @var int */
-define('FLG_SIDEREAL', 0);
+define('FLG_SIDEREAL', 65536);
 
 /** @var int */
-define('FLG_EQUATORIAL', 0);
+define('FLG_EQUATORIAL', 2048);
 
 /** @var int */
-define('FLG_TOPOCTR', 0);
+define('FLG_TOPOCTR', 32768);
 
 /** @var int */
-define('FLG_HELCTR', 0);
+define('FLG_HELCTR', 8);
 
 /** @var int */
-define('FLG_NONUT', 0);
+define('FLG_NONUT', 64);
 
 /** @var int */
-define('FLG_RADIANS', 0);
+define('FLG_RADIANS', 8192);
 
 /** @var int */
 define('SIDM_FAGAN_BRADLEY', 0);
 
 /** @var int */
-define('SIDM_LAHIRI', 0);
+define('SIDM_LAHIRI', 1);
 
 /** @var int */
-define('SIDM_RAMAN', 0);
+define('SIDM_RAMAN', 3);
 
 /** @var int */
-define('SIDM_KRISHNAMURTI', 0);
+define('SIDM_KRISHNAMURTI', 5);
 
 /** @var int */
-define('SIDM_USER', 0);
+define('SIDM_USER', 255);
 
 /** @var int */
-define('ECL_TOTAL', 0);
+define('ECL_TOTAL', 4);
 
 /** @var int */
-define('ECL_ANNULAR', 0);
+define('ECL_ANNULAR', 8);
 
 /** @var int */
-define('ECL_PARTIAL', 0);
+define('ECL_PARTIAL', 16);
 
 /** @var int */
-define('ECL_PENUMBRAL', 0);
+define('ECL_PENUMBRAL', 64);
 
 /** @var int */
-define('CALC_RISE', 0);
+define('CALC_RISE', 1);
 
 /** @var int */
-define('CALC_SET', 0);
+define('CALC_SET', 2);
 
 /** @var int */
 define('TRUE_TO_APP', 0);
 
 /** @var int */
-define('APP_TO_TRUE', 0);
+define('APP_TO_TRUE', 1);
 
 /** @var int */
-define('SPLIT_DEG_ROUND_SEC', 0);
+define('SPLIT_DEG_ROUND_SEC', 1);
 
 /** @var int */
-define('SPLIT_DEG_ZODIACAL', 0);
+define('SPLIT_DEG_ZODIACAL', 8);
 
 /** @return float */
 function julday(int $year, int $month, int $day, float $hour, int $calendar): float {}
@@ -128,10 +128,10 @@ function julday(int $year, int $month, int $day, float $hour, int $calendar): fl
 /** @return float */
 function celestial_julday(int $year, int $month, int $day, float $hour, int $calendar): float {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function revjul(float $jd, int $calendar): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_revjul(float $jd, int $calendar): array {}
 
 /** @return int */
@@ -236,10 +236,10 @@ function calc_pctr(float $tjdet, int $planet, int $center, int $flags): array {}
 /** @return float[] */
 function celestial_calc_pctr(float $tjdet, int $planet, int $center, int $flags): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function fixstar(string $star, float $tjdet, int $flags): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_fixstar(string $star, float $tjdet, int $flags): array {}
 
 /** @return float */
@@ -248,16 +248,16 @@ function fixstar_mag(string $star): float {}
 /** @return float */
 function celestial_fixstar_mag(string $star): float {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function houses(float $jdut, float $geolat, float $geolon, int $hsys): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_houses(float $jdut, float $geolat, float $geolon, int $hsys): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function houses_ex(float $jdut, int $flags, float $geolat, float $geolon, int $hsys): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_houses_ex(float $jdut, int $flags, float $geolat, float $geolon, int $hsys): array {}
 
 /** @return string */
@@ -272,22 +272,22 @@ function house_pos(float $armc, float $geolat, float $eps, int $hsys, float $lon
 /** @return float */
 function celestial_house_pos(float $armc, float $geolat, float $eps, int $hsys, float $lon, float $lat_body): float {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function sol_eclipse_when_glob(float $jd_start, int $flags, int $ecl_type, bool $backwards): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_sol_eclipse_when_glob(float $jd_start, int $flags, int $ecl_type, bool $backwards): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function lun_eclipse_when(float $jd_start, int $flags, int $ecl_type, bool $backwards): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_lun_eclipse_when(float $jd_start, int $flags, int $ecl_type, bool $backwards): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function rise_trans(float $tjdut, int $planet, int $flags, int $event_type, array $geopos, float $pressure_mb, float $temp_c): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_rise_trans(float $tjdut, int $planet, int $flags, int $event_type, array $geopos, float $pressure_mb, float $temp_c): array {}
 
 /** @return float */
@@ -326,10 +326,10 @@ function coord_transform(array $coords, float $eps): array {}
 /** @return float[] */
 function celestial_coord_transform(array $coords, float $eps): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function azalt(float $tjdut, int $calc_flag, array $geopos, float $pressure_mb, float $temp_c, array $xin): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_azalt(float $tjdut, int $calc_flag, array $geopos, float $pressure_mb, float $temp_c, array $xin): array {}
 
 /** @return float[] */
@@ -362,10 +362,10 @@ function esbats_for_year(int $year): array {}
 /** @return array */
 function celestial_esbats_for_year(int $year): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function match_aspect(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $orb): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_match_aspect(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $orb): array {}
 
 /** @return float|null */
@@ -512,10 +512,10 @@ function vimshottari_dasha(float $jd_birth, float $moon_lon_sidereal, float $yea
 /** @return array */
 function celestial_vimshottari_dasha(float $jd_birth, float $moon_lon_sidereal, float $years_ahead): array {}
 
-/** @return array|null */
+/** @return array<string,mixed>|null */
 function omer_from_jd(float $jd): ?array {}
 
-/** @return array|null */
+/** @return array<string,mixed>|null */
 function celestial_omer_from_jd(float $jd): ?array {}
 
 /** @return float|null */
@@ -542,10 +542,10 @@ function omer_declaration(int $day): string {}
 /** @return string */
 function celestial_omer_declaration(int $day): string {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function omer_period(float $jd): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_omer_period(float $jd): array {}
 
 /** @return array */
@@ -566,22 +566,22 @@ function hebrew_year_from_jd(float $jd): int {}
 /** @return int */
 function celestial_hebrew_year_from_jd(float $jd): int {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function jd_to_hebrew_date(float $jd): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_jd_to_hebrew_date(float $jd): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function easter_gregorian(int $year): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_easter_gregorian(int $year): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function easter_orthodox(int $year): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_easter_orthodox(int $year): array {}
 
 /** @return float */
@@ -608,10 +608,10 @@ function christian_fixed_feasts(int $year): array {}
 /** @return array */
 function celestial_christian_fixed_feasts(int $year): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function hijri_from_jd(float $jd): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_hijri_from_jd(float $jd): array {}
 
 /** @return float */
@@ -632,10 +632,10 @@ function islamic_observances(int $hijri_year): array {}
 /** @return array */
 function celestial_islamic_observances(int $hijri_year): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function panchanga(float $jd): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_panchanga(float $jd): array {}
 
 /** @return array */
@@ -674,10 +674,10 @@ function naw_ruz_jd(int $bahai_year): float {}
 /** @return float */
 function celestial_naw_ruz_jd(int $bahai_year): float {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function jd_to_bahai(float $jd): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_jd_to_bahai(float $jd): array {}
 
 /** @return array */
@@ -740,10 +740,10 @@ function moon_phases_for_month(int $year, int $month): array {}
 /** @return array */
 function celestial_moon_phases_for_month(int $year, int $month): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function moon_phase_info(float $jd): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_moon_phase_info(float $jd): array {}
 
 /** @return bool */

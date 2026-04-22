@@ -72,20 +72,60 @@ fn internal_fns() -> BTreeSet<String> {
 /// Codegen will never flag these as missing or generate new stubs for them.
 /// Maps alias_name → canonical_name.
 fn legacy_aliases() -> std::collections::BTreeMap<String, String> {
-    [
-        // SwissEph-compatible degree utilities
-        ("degnorm", "norm_deg"),
-        ("difdeg2n", "diff_deg_signed"),
-        // Ayanamsa — legacy get_ prefix
-        ("get_ayanamsa", "ayanamsa"),
-        ("get_ayanamsa_name", "ayanamsa_name"),
-        // Moon / sabbat convenience names
-        ("next_full_moon", "next_full_moon_after"),
-        ("next_sabbat_name", "next_sabbat"),
-    ]
-    .iter()
-    .map(|(a, c)| (a.to_string(), c.to_string()))
-    .collect()
+    // Auto-detect by scanning for #[php_function] wrappers that immediately delegate
+    // to celestial::<different_name>(...) — these are aliases by construction.
+    let root = workspace_root();
+    let php_src = fs::read_to_string(root.join("bindings/php/src/lib.rs")).unwrap_or_default();
+    let mut map = std::collections::BTreeMap::new();
+
+    // Pattern: #[php_function]\npub fn ALIAS(...) ... { celestial::REAL(
+    let lines: Vec<&str> = php_src.lines().collect();
+    let n = lines.len();
+    let mut i = 0;
+    while i < n {
+        let t = lines[i].trim();
+        if t == "#[php_function]" || t.starts_with("#[allow") {
+            // Scan forward for the fn name
+            let mut fn_name = None;
+            let mut j = i + 1;
+            while j < n.min(i + 5) {
+                let l = lines[j].trim();
+                let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "));
+                if let Some(rest) = rest {
+                    fn_name = rest.split('(').next().map(|s| s.trim().to_string());
+                    break;
+                }
+                j += 1;
+            }
+            // Scan forward for the single celestial:: call in the body
+            if let Some(ref fname) = fn_name {
+                let mut delegate = None;
+                let mut k = j + 1;
+                while k < n.min(j + 15) {
+                    let l = lines[k].trim();
+                    if let Some(after) = l.strip_prefix("celestial::") {
+                        let called: String = after
+                            .chars()
+                            .take_while(|c| c.is_alphanumeric() || *c == '_')
+                            .collect();
+                        if !called.is_empty() && &called != fname {
+                            delegate = Some(called);
+                        }
+                        break;
+                    }
+                    if l == "}" {
+                        break;
+                    } // end of fn body
+                    k += 1;
+                }
+                if let Some(real) = delegate {
+                    map.insert(fname.clone(), real);
+                }
+            }
+        }
+        i += 1;
+    }
+    map
 }
 
 // ─── parsing ─────────────────────────────────────────────────────────────────
@@ -345,6 +385,22 @@ fn extract_fn_body(src: &str, name: &str) -> Option<String> {
     Some(src[block_start..end].trim().to_string())
 }
 
+/// Count the number of parameters in a Rust function signature string.
+fn count_params(src: &str) -> usize {
+    if let (Some(open), Some(close)) = (src.find('('), src.rfind(')')) {
+        let params = &src[open + 1..close];
+        split_params(params)
+            .iter()
+            .filter(|p| {
+                let p = p.trim();
+                !p.is_empty() && p.contains(':')
+            })
+            .count()
+    } else {
+        0
+    }
+}
+
 // ─── stub converter ───────────────────────────────────────────────────────────
 
 fn convert_to(js_stub: &str, target: &str) -> String {
@@ -361,15 +417,50 @@ fn convert_to(js_stub: &str, target: &str) -> String {
     match target {
         "Python" => {
             let body = stripped
+                // Unwrap napi struct return types → Vec<f64> (pyo3 list encoding)
+                .replace("-> napi::Result<HouseResult>", "-> PyResult<Vec<f64>>")
+                .replace("-> napi::Result<AzAlt>", "-> PyResult<Vec<f64>>")
+                .replace("-> napi::Result<EclipseResult>", "-> PyResult<Vec<f64>>")
+                .replace("-> napi::Result<EclipseHow>", "-> PyResult<Vec<f64>>")
+                .replace(
+                    "-> napi::Result<EclipseResultAttr>",
+                    "-> PyResult<Vec<f64>>",
+                )
+                .replace("-> napi::Result<EclipseWhere>", "-> PyResult<Vec<f64>>")
+                .replace("-> napi::Result<Stations>", "-> PyResult<Vec<f64>>")
+                .replace("-> napi::Result<PlanetPos>", "-> PyResult<Vec<f64>>")
+                .replace("-> napi::Result<StarPos>", "-> PyResult<Vec<f64>>")
+                // napi::Either → PyObject
+                .replace("napi::Either<String, i32>", "PyObject")
+                // Standard napi → pyo3 mappings
                 .replace("-> napi::Result<", "-> PyResult<")
                 .replace("napi::Result<", "PyResult<")
                 .replace("napi::Error::from_reason(", "PyRuntimeError::new_err(")
                 .replace(".map_err(to_napi)", ".map_err(to_py)")
                 .replace("pub fn ", "fn ");
-            format!("#[pyfunction]\n{body}")
+            let allow = if count_params(&body) > 7 {
+                "#[allow(clippy::too_many_arguments)]\n"
+            } else {
+                ""
+            };
+            format!("{allow}#[pyfunction]\n{body}")
         }
         "PHP" => {
             let body = stripped
+                // Unwrap napi struct return types to Vec<f64> (flat array encoding)
+                .replace("-> napi::Result<HouseResult>",     "-> PhpResult<Vec<f64>>")
+                .replace("-> napi::Result<AzAlt>",           "-> PhpResult<Vec<f64>>")
+                .replace("-> napi::Result<EclipseResult>",   "-> PhpResult<Vec<f64>>")
+                .replace("-> napi::Result<EclipseHow>",      "-> PhpResult<Vec<f64>>")
+                .replace("-> napi::Result<EclipseResultAttr>","-> PhpResult<Vec<f64>>")
+                .replace("-> napi::Result<EclipseWhere>",    "-> PhpResult<Vec<f64>>")
+                .replace("-> napi::Result<Stations>",        "-> PhpResult<Vec<f64>>")
+                .replace("-> napi::Result<PlanetPos>",       "-> PhpResult<Vec<f64>>")
+                .replace("-> napi::Result<StarPos>",         "-> PhpResult<Vec<f64>>")
+                // napi::Either<A,B> → mixed
+                .replace("napi::Either<String, i32>", "mixed")
+                .replace("napi::Either<", "mixed /* was Either<")
+                // Standard napi error/result wrappers
                 .replace("-> napi::Result<", "-> PhpResult<")
                 .replace("napi::Result<", "PhpResult<")
                 .replace("napi::Error::from_reason(", "PhpException::from(")
@@ -380,7 +471,12 @@ fn convert_to(js_stub: &str, target: &str) -> String {
                 .replace(": i32", ": i64")
                 .replace(": u32", ": i64")
                 .replace("pub fn ", "fn ");
-            format!("#[php_function]\n{body}")
+            let allow = if count_params(&body) > 7 {
+                "#[allow(clippy::too_many_arguments)]\n"
+            } else {
+                ""
+            };
+            format!("{allow}#[php_function]\n{body}")
         }
         _ => stripped,
     }
@@ -389,13 +485,18 @@ fn convert_to(js_stub: &str, target: &str) -> String {
 /// Parse all `#[php_const] pub const NAME: type = value;` from the PHP binding source.
 /// Returns (name, php_type, php_value) tuples for use in phpstan define() stubs.
 fn parse_php_consts(src: &str) -> Vec<(String, String, String)> {
+    // Try to resolve actual constant values from core/src/constants.rs
+    // so phpstan stubs have real values instead of placeholder 0.
+    let root = workspace_root();
+    let consts_src = fs::read_to_string(root.join("core/src/constants.rs")).unwrap_or_default();
+    let core_vals = parse_core_constants(&consts_src);
+
     let mut out = Vec::new();
     let lines: Vec<&str> = src.lines().collect();
     let n = lines.len();
     let mut i = 0;
     while i < n {
         if lines[i].trim() == "#[php_const]" {
-            // Next non-blank line should be: pub const NAME: type = value;
             let j = i + 1;
             if j < n {
                 let l = lines[j].trim();
@@ -405,25 +506,17 @@ fn parse_php_consts(src: &str) -> Vec<(String, String, String)> {
                         let after = &rest[colon + 1..];
                         if let Some(eq) = after.find('=') {
                             let rust_type = after[..eq].trim();
-                            let value_raw = after[eq + 1..].trim().trim_end_matches(';');
-                            // Strip celestial::CONST_NAME to just the numeric value
-                            // We don't have the actual value here, so emit a placeholder
-                            // that phpstan accepts: use 0 as a generic int placeholder.
                             let php_type = if rust_type.contains("f64") || rust_type.contains("f32")
                             {
                                 "float"
                             } else {
                                 "int"
                             };
-                            // Try to extract a literal from the value
-                            let php_val =
-                                if value_raw.contains("as i64") || value_raw.contains("as i32") {
-                                    "0".to_string() // cast expression — use placeholder
-                                } else if value_raw.starts_with("celestial::") {
-                                    "0".to_string() // constant reference — use placeholder
-                                } else {
-                                    value_raw.to_string()
-                                };
+                            // Resolve actual value from core/src/constants.rs
+                            let php_val = core_vals
+                                .get(&name)
+                                .cloned()
+                                .unwrap_or_else(|| "0".to_string());
                             out.push((name, php_type.to_string(), php_val));
                         }
                     }
@@ -437,18 +530,42 @@ fn parse_php_consts(src: &str) -> Vec<(String, String, String)> {
     out
 }
 
+/// Parse `pub const NAME: type = value;` from a Rust constants file.
+/// Returns a map of name → value string.
+fn parse_core_constants(src: &str) -> std::collections::HashMap<String, String> {
+    let mut map = std::collections::HashMap::new();
+    for line in src.lines() {
+        let l = line.trim();
+        if let Some(rest) = l.strip_prefix("pub const ") {
+            if let Some(colon) = rest.find(':') {
+                let name = rest[..colon].trim().to_string();
+                let after = &rest[colon + 1..];
+                if let Some(eq) = after.find('=') {
+                    let value_raw = after[eq + 1..].trim().trim_end_matches(';');
+                    // Extract numeric literal — skip expressions like `AST_OFFSET + 20000`
+                    let val = if value_raw.contains('+')
+                        || value_raw.contains('*')
+                        || value_raw.starts_with("crate::")
+                        || !value_raw.chars().all(|c| c.is_ascii_digit() || c == '-')
+                    {
+                        // Try to evaluate simple integer literals only
+                        value_raw
+                            .parse::<i64>()
+                            .map(|v| v.to_string())
+                            .unwrap_or_else(|_| "0".to_string())
+                    } else {
+                        value_raw.to_string()
+                    };
+                    map.insert(name, val);
+                }
+            }
+        }
+    }
+    map
+}
+
 // ─── stubs command ────────────────────────────────────────────────────────────
 
-/// Regenerate `bindings/php/phpstan-stubs.php` from the PHP binding source.
-///
-/// Rules enforced:
-///  - Every exported `pub fn` gets a `function celestial_<n>(…): <type> {}` stub.
-///  - Return types: `Vec<*>` / `array` / `Result<Vec<*>>` → `array`; scalars pass through.
-///  - Nullable returns (`Option<T>`) → `?<phptype>`.
-///  - Typed array hints (`int[]`, `float[]`, `string[]`) are NEVER used in
-///    function signatures — only in `@return` docblocks where they are valid.
-///  - Parameter type `Vec<T>` / typed arrays → `array`.
-///  - Numeric or invalid variable names are sanitised.
 fn cmd_stubs() {
     let root = workspace_root();
     let php_src = fs::read_to_string(root.join("bindings/php/src/lib.rs"))
@@ -496,28 +613,19 @@ fn cmd_stubs() {
         }
     }
 
-    // ── 3. Legacy aliases — emit both bare and celestial_-prefixed stubs ────────
-    // These are SwissEph-compatible names wired as thin wrappers in the binding.
+    // ── 3. Legacy aliases ─────────────────────────────────────────────────────
     let aliases = legacy_aliases();
     for (alias, canonical) in &aliases {
-        // Look up the canonical function's params/return from what we already emitted
-        // We emit a minimal stub — phpstan just needs to know the function exists.
         let prefixed_alias = format!("celestial_{alias}");
         let doc = format!("/** Legacy alias for {canonical}(). @see {canonical} */");
         if seen.insert(alias.clone()) {
             out.push_str(&format!(
-                "
-{doc}
-function {alias}(mixed ...$args): mixed {{}}
-"
+                "\n{doc}\nfunction {alias}(mixed ...$args): mixed {{}}\n"
             ));
         }
         if seen.insert(prefixed_alias.clone()) {
             out.push_str(&format!(
-                "
-{doc}
-function {prefixed_alias}(mixed ...$args): mixed {{}}
-"
+                "\n{doc}\nfunction {prefixed_alias}(mixed ...$args): mixed {{}}\n"
             ));
         }
     }
@@ -528,11 +636,10 @@ function {prefixed_alias}(mixed ...$args): mixed {{}}
 
 struct PhpFnEntry {
     name: String,
-    params: Vec<(String, String)>, // (rust_type, param_name)
+    params: Vec<(String, String)>,
     ret: String,
 }
 
-/// Walk through the PHP binding source and extract all #[php_function] fn signatures.
 fn regex_find_php_fns(src: &str) -> Vec<PhpFnEntry> {
     let mut out = Vec::new();
     let lines: Vec<&str> = src.lines().collect();
@@ -809,6 +916,27 @@ fn php_array_doctype(rust: &str) -> &'static str {
                 "string[]"
             }
         }
+        t if t.starts_with("Vec<Vec<") => {
+            if nullable {
+                "array|null"
+            } else {
+                "array"
+            }
+        }
+        t if t.starts_with("HashMap<") => {
+            if nullable {
+                "array<string,mixed>|null"
+            } else {
+                "array<string,mixed>"
+            }
+        }
+        t if t.starts_with("Vec<HashMap") => {
+            if nullable {
+                "array|null"
+            } else {
+                "array"
+            }
+        }
         t if t.starts_with("Vec<") => {
             if nullable {
                 "array|null"
@@ -828,7 +956,7 @@ fn php_array_doctype(rust: &str) -> &'static str {
 }
 
 /// Sanitise a Rust parameter name to a valid PHP variable name.
-fn sanitise_var(name: &str) -> &'static str {
+fn sanitise_var(name: &str) -> String {
     // Leak is fine for a short-lived CLI tool.
     let s = name.trim().trim_start_matches('_');
     // If it starts with a digit or is empty, prefix with 'p'
@@ -842,7 +970,7 @@ fn sanitise_var(name: &str) -> &'static str {
     } else {
         s.to_string()
     };
-    Box::leak(fixed.into_boxed_str())
+    fixed
 }
 
 // ─── test-stubs command ───────────────────────────────────────────────────────
