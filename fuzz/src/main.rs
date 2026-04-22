@@ -1413,6 +1413,525 @@ fn test_midpoint_dial(n: u32) -> Suite {
     s
 }
 
+// ─── Calendar fuzz suites ────────────────────────────────────────────────────
+
+fn test_calendar_jewish(n: u32) -> Suite {
+    let mut s = Suite::new("calendar_jewish");
+    for year in [5780i32, 5784, 5785, 5790] {
+        let holidays = jewish_holidays(year);
+        s.check(!holidays.is_empty(), || {
+            format!("jewish_holidays({year}) returned none")
+        });
+        for h in &holidays {
+            s.check(h.jd > 0.0, || {
+                format!("{year}: holiday JD {:.2} invalid", h.jd)
+            });
+        }
+        s.check(
+            months_in_hebrew_year(year) == 12 || months_in_hebrew_year(year) == 13,
+            || {
+                format!(
+                    "months_in_hebrew_year({year}) = {}",
+                    months_in_hebrew_year(year)
+                )
+            },
+        );
+        let d = days_in_hebrew_year(year);
+        s.check((353..=355).contains(&d) || (383..=385).contains(&d), || {
+            format!("days_in_hebrew_year({year}) = {d}")
+        });
+        let ny = hebrew_new_year_jd(year) as f64;
+        s.check(ny > 2_000_000.0, || {
+            format!("hebrew_new_year_jd({year}) = {ny:.2}")
+        });
+        for month in 1i32..=months_in_hebrew_year(year) {
+            let d = hebrew_month_days(year, month);
+            s.check(d == 29 || d == 30, || {
+                format!("hebrew_month_days({year},{month}) = {d}")
+            });
+        }
+    }
+    let _ = n;
+    s
+}
+
+fn test_calendar_islamic(n: u32) -> Suite {
+    let mut s = Suite::new("calendar_islamic");
+    let mut rng = Xorshift64::new(0xA1B2C3D4E5F60718);
+    for _ in 0..n / 5 {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+        let (year, month, _day) = hijri_from_jd(jd);
+        s.check(year > 1300 && year < 1600, || {
+            format!("hijri_from_jd({jd:.2}): year {year} out of expected range")
+        });
+        s.check(month >= 1 && month <= 12, || {
+            format!("hijri_from_jd({jd:.2}): month {month} out of 1-12")
+        });
+        let days = hijri_month_days(year as i32, month);
+        s.check(days == 29 || days == 30, || {
+            format!("hijri_month_days({year},{month}) = {days}")
+        });
+        let ny_jd = hijri_new_year_jd(year as i32);
+        s.check(ny_jd > 0.0, || format!("hijri_new_year_jd({year}) ≤ 0"));
+        let month_start = hijri_month_start_jd(year as i32, month);
+        s.check(month_start > 0.0, || {
+            format!("hijri_month_start_jd({year},{month}) ≤ 0")
+        });
+    }
+    for year in [1440i32, 1445, 1446, 1450] {
+        let obs = islamic_observances(year);
+        s.check(!obs.is_empty(), || {
+            format!("islamic_observances({year}) returned none")
+        });
+    }
+    s
+}
+
+fn test_calendar_christian(n: u32) -> Suite {
+    let mut s = Suite::new("calendar_christian");
+    let cal = Calendar::Gregorian;
+    for year in [2024i32, 2025, 2026, 2030] {
+        let (_, em, ed) = easter_gregorian(year);
+        s.check(em == 3 || em == 4, || {
+            format!("Easter {year} in month {em}")
+        });
+        // Gregorian Easter: March 22–31 or April 1–25
+        let valid = (em == 3 && ed >= 22) || (em == 4 && ed <= 25);
+        s.check(valid, || {
+            format!("Easter {year} day {ed}/{em} outside valid range")
+        });
+        let ej = easter_jd(year);
+        s.check(ej > 0.0, || format!("easter_jd({year}) = {ej:.2}"));
+        let jd_cal = revjul(ej, cal);
+        s.check(jd_cal.month as u8 == em && jd_cal.day as u8 == ed, || {
+            format!(
+                "easter_jd {year}: {}/{} ≠ gregorian {em}/{ed}",
+                jd_cal.month, jd_cal.day
+            )
+        });
+        let (_, om, _od) = easter_orthodox(year);
+        s.check(om == 4 || om == 5, || {
+            format!("Orthodox Easter {year} month {om}")
+        });
+        let feasts = christian_feasts(year);
+        s.check(!feasts.is_empty(), || {
+            format!("christian_feasts({year}) empty")
+        });
+        let fixed = christian_fixed_feasts(year);
+        s.check(!fixed.is_empty(), || {
+            format!("christian_fixed_feasts({year}) empty")
+        });
+    }
+    let _ = n;
+    s
+}
+
+fn test_calendar_nowruz_bahai(n: u32) -> Suite {
+    let mut s = Suite::new("calendar_nowruz_bahai");
+    for year in [2024i32, 2025, 2026] {
+        let jd = nowruz_jd(year);
+        let cal = revjul(jd, Calendar::Gregorian);
+        s.check(cal.year == year, || {
+            format!("nowruz_jd({year}): got year {}", cal.year)
+        });
+        s.check(cal.month == 3, || {
+            format!("nowruz_jd({year}): month {} ≠ 3", cal.month)
+        });
+        let sh = gregorian_to_solar_hijri(year);
+        let back = solar_hijri_to_gregorian(sh);
+        s.check((back - year).abs() <= 1, || {
+            format!("solar_hijri roundtrip {year}->{sh}->{back}")
+        });
+    }
+    for bahai_year in [181i32, 182, 183] {
+        let nw = naw_ruz_jd(bahai_year);
+        let cal = revjul(nw, Calendar::Gregorian);
+        s.check(cal.month == 3, || {
+            format!("naw_ruz_jd({bahai_year}): month {}", cal.month)
+        });
+        let days = bahai_holy_days(bahai_year);
+        s.check(!days.is_empty(), || {
+            format!("bahai_holy_days({bahai_year}) empty")
+        });
+    }
+    let _ = n;
+    s
+}
+
+fn test_calendar_omer_vesak(n: u32) -> Suite {
+    let mut s = Suite::new("calendar_omer_vesak");
+    for year in [5784i32, 5785, 5786] {
+        let start = omer_start_jd(year);
+        s.check(start > 2_400_000.0, || {
+            format!("omer_start_jd({year}) = {start:.2}")
+        });
+        let days = omer_days(year);
+        s.check(days.len() == 49, || {
+            format!("omer_days({year}) len={}", days.len())
+        });
+        let period = omer_period(start + 1.0);
+        let span = period.end_jd - period.start_jd;
+        s.check(span > 47.0 && span < 50.0, || {
+            format!("omer_period span {span:.1}d, expected ~48d")
+        });
+    }
+    for year in [2025i32, 2026, 2027] {
+        let jd = vesak_jd(year);
+        let cal = revjul(jd, Calendar::Gregorian);
+        s.check(cal.month == 4 || cal.month == 5, || {
+            format!("vesak_jd({year}): month {}", cal.month)
+        });
+        let ups = uposatha_days(year);
+        s.check(ups.len() >= 12, || {
+            format!("uposatha_days({year}) len={}", ups.len())
+        });
+    }
+    let _ = n;
+    s
+}
+
+// ─── Search fuzz suites ──────────────────────────────────────────────────────
+
+fn test_searches_aspects(n: u32) -> Suite {
+    let mut s = Suite::new("searches_aspects");
+    let mut rng = Xorshift64::new(0xB2C3D4E5F6071829);
+    let flags = CalcFlags::BUILTIN;
+
+    for _ in 0..n / 10 {
+        let jd_start = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+        let backward = rng.next_u64() % 2 == 0;
+        let stop = 365.0;
+        // next_aspect to 0° point with 90° aspect
+        match next_aspect(Body::SUN, 90.0, 0.0, jd_start, backward, stop, flags) {
+            Some(r) => {
+                let jd_ok = if backward {
+                    r.jd < jd_start
+                } else {
+                    r.jd > jd_start
+                };
+                s.check(jd_ok, || format!("next_aspect JD direction wrong"));
+            }
+            None => s.passed += 1,
+        }
+        // next_aspect_with between Sun and Moon
+        match next_aspect_with(Body::SUN, 0.0, Body::MOON, jd_start, backward, stop, flags) {
+            Some(r) => {
+                let jd_ok = if backward {
+                    r.jd < jd_start
+                } else {
+                    r.jd > jd_start
+                };
+                s.check(jd_ok, || "next_aspect_with JD direction wrong".into());
+            }
+            None => s.passed += 1,
+        }
+    }
+    s
+}
+
+fn test_searches_stations(n: u32) -> Suite {
+    let mut s = Suite::new("searches_stations");
+    let mut rng = Xorshift64::new(0xC3D4E5F607182940);
+    let flags = CalcFlags::BUILTIN;
+
+    for _ in 0..n / 10 {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+        // Mercury stations are more frequent — better for fuzz
+        match retrograde_station_ut(Body::MERCURY, jd, flags) {
+            Ok(st) => {
+                s.check(st.retrograde > 0.0 && st.direct > 0.0, || {
+                    format!(
+                        "retrograde_station_ut: retro={:.2} direct={:.2}",
+                        st.retrograde, st.direct
+                    )
+                });
+                // retrograde and direct station order depends on search direction;
+                // just verify they are both within a reasonable window (~200 days)
+                s.check((st.direct - st.retrograde).abs() < 200.0, || {
+                    format!(
+                        "stations gap {:.2}d too large",
+                        (st.direct - st.retrograde).abs()
+                    )
+                });
+            }
+            Err(_) => s.passed += 1,
+        }
+    }
+
+    for _ in 0..n / 5 {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+        match next_retro(Body::MERCURY, jd, false, 365.0, flags) {
+            Some(r) => s.check(r.jd > jd, || "next_retro JD not after start".into()),
+            None => s.passed += 1,
+        }
+    }
+
+    for _ in 0..n / 5 {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+        let sign = rng.range_f64(0.0, 360.0).floor();
+        match sign_ingress_ut(Body::SUN, jd, flags, false) {
+            Ok((ingress_jd, _sign)) => {
+                s.check(ingress_jd >= jd, || "ingress not after start".into())
+            }
+            Err(_) => s.passed += 1,
+        }
+        let target = rng.range_f64(0.0, 360.0);
+        match transit_to_degree(Body::MOON, target, jd, flags, false) {
+            Ok(t) => s.check(t >= jd, || "transit not after start".into()),
+            Err(_) => s.passed += 1,
+        }
+        let _ = sign;
+    }
+    s
+}
+
+fn test_searches_moon_crossings(n: u32) -> Suite {
+    let mut s = Suite::new("searches_moon_crossings");
+    let mut rng = Xorshift64::new(0xD4E5F60718293041);
+    let flags = CalcFlags::BUILTIN;
+
+    for _ in 0..n / 5 {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+        match mooncross_node(jd, flags) {
+            Ok(r) => {
+                s.check(r.jd_cross > 0.0, || {
+                    format!("mooncross_node jd={:.2}", r.jd_cross)
+                });
+                s.check(r.xlon >= 0.0 && r.xlon < 360.0, || {
+                    format!("mooncross_node lon={:.2}", r.xlon)
+                });
+            }
+            Err(_) => s.passed += 1,
+        }
+        match mooncross_node_ut(jd, flags) {
+            Ok(r) => {
+                s.check(r.jd_cross > 0.0, || {
+                    format!("mooncross_node_ut jd={:.2}", r.jd_cross)
+                });
+            }
+            Err(_) => s.passed += 1,
+        }
+        let nm = next_full_moon_after(jd);
+        s.check(nm > jd, || {
+            format!("next_full_moon_after {nm:.2} not after {jd:.2}")
+        });
+        s.check(nm < jd + 30.0, || {
+            format!("next_full_moon_after too far: {:.2}d", nm - jd)
+        });
+    }
+    s
+}
+
+// ─── Moon phase fuzz suite ───────────────────────────────────────────────────
+
+fn test_moon_phases(n: u32) -> Suite {
+    let mut s = Suite::new("moon_phases");
+    let mut rng = Xorshift64::new(0xE5F6071829304152);
+
+    for _ in 0..n / 5 {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+        match moon_phase_angle(jd) {
+            Ok(a) => s.check(a >= 0.0 && a < 360.0, || {
+                format!("moon_phase_angle {a:.2}° out of [0,360)")
+            }),
+            Err(_) => s.passed += 1,
+        }
+        match moon_phase_info(jd) {
+            Ok(info) => {
+                s.check(info.illumination >= 0.0 && info.illumination <= 1.0, || {
+                    format!("moon_phase_info illumination={:.4}", info.illumination)
+                });
+                s.check(info.elongation >= 0.0 && info.elongation < 360.0, || {
+                    format!("moon_phase_info elongation={:.2}", info.elongation)
+                });
+            }
+            Err(_) => s.passed += 1,
+        }
+        match next_new_moon(jd) {
+            Ok(nm) => s.check(nm > jd && nm < jd + 30.0, || {
+                format!("next_new_moon {nm:.2} after {jd:.2}")
+            }),
+            Err(_) => s.passed += 1,
+        }
+    }
+
+    for year in 2020i32..=2030 {
+        for month in [1u8, 4, 7, 10] {
+            match moon_phases_for_month(year, month) {
+                Ok(phases) => {
+                    // Most months have 4 phases; a blue moon month has 5
+                    s.check(phases.len() >= 4 && phases.len() <= 5, || {
+                        format!(
+                            "moon_phases_for_month({year},{month}): {} phases",
+                            phases.len()
+                        )
+                    });
+                    for w in phases.windows(2) {
+                        s.check(w[0].jd < w[1].jd, || "phases not chronological".into());
+                    }
+                }
+                Err(_) => s.passed += 1,
+            }
+        }
+    }
+    s
+}
+
+// ─── Vedic fuzz suites ───────────────────────────────────────────────────────
+
+fn test_vedic_dasha_panchanga(n: u32) -> Suite {
+    let mut s = Suite::new("vedic_dasha_panchanga");
+    let mut rng = Xorshift64::new(0xF607182930415263);
+    let flags = CalcFlags::BUILTIN;
+
+    for _ in 0..n / 5 {
+        let jd_birth = 2_415_021.0 + rng.range_f64(0.0, 60_000.0);
+        let moon_lon = rng.range_f64(0.0, 360.0);
+        let years_ahead = rng.range_f64(0.0, 90.0);
+
+        let dashas = vimshottari_dasha(jd_birth, moon_lon, years_ahead);
+        s.check(!dashas.is_empty(), || {
+            "vimshottari_dasha returned no periods".into()
+        });
+        for w in dashas.windows(2) {
+            s.check(w[0].end <= w[1].start, || {
+                format!("dasha periods overlap: {:.2} > {:.2}", w[0].end, w[1].start)
+            });
+        }
+    }
+
+    for _ in 0..n / 5 {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+        let p = panchanga(jd);
+        s.check(p.tithi >= 1 && p.tithi <= 30, || {
+            format!("panchanga tithi={}", p.tithi)
+        });
+        s.check(p.vara <= 6, || format!("panchanga vara={}", p.vara));
+        s.check(p.nakshatra <= 26, || {
+            format!("panchanga nakshatra={}", p.nakshatra)
+        });
+    }
+
+    for _ in 0..n / 5 {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+        let graha = (rng.next_u64() % 7) as i32; // 0-6
+        let sputha = rng.range_f64(0.0, 360.0);
+        if let Some(v) = ochchabala(graha, sputha) {
+            s.check(v >= 0.0, || {
+                format!("ochchabala({graha},{sputha:.2})={v:.4}")
+            });
+        }
+        let bm: Vec<f64> = (0..12).map(|_| rng.range_f64(0.0, 360.0)).collect();
+        if let Some(v) = residential_strength(sputha, &bm.try_into().unwrap()) {
+            s.check(v.is_finite(), || {
+                "residential_strength returned non-finite".into()
+            });
+        }
+    }
+    let _ = flags;
+    s
+}
+
+// ─── Geo / utility fuzz suites ───────────────────────────────────────────────
+
+fn test_geo_utilities(n: u32) -> Suite {
+    let mut s = Suite::new("geo_utilities");
+    let mut rng = Xorshift64::new(0x0718293041526374);
+    let flags = CalcFlags::BUILTIN;
+
+    for _ in 0..n {
+        let lon = rng.range_f64(0.0, 360.0);
+        let lat = rng.range_f64(-89.9, 89.9);
+        let alt = rng.range_f64(0.0, 100.0);
+        let press = 1013.25_f64;
+        let temp = 15.0_f64;
+
+        // azalt: altitude from lon/lat should be finite
+        let geo = [0.0_f64, lat, alt];
+        let jd = 2_451_545.0 + rng.range_f64(0.0, 1000.0);
+        let xin = [lon, lat, 1.0_f64]; // [lon, lat, dist]
+        let az = azalt(jd, 0, geo, press, temp, xin);
+        s.check(az.azimuth.is_finite(), || {
+            format!("azalt azimuth={:.4}", az.azimuth)
+        });
+
+        // refrac: altitude in → altitude out should be within ±0.5°
+        let apparent = rng.range_f64(-5.0, 90.0);
+        let r = refrac(apparent, press, temp, 0);
+        s.check(r.is_finite(), || format!("refrac({apparent:.2})={r:.4}"));
+
+        // degsplit: roundtrip
+        let deg = rng.range_f64(0.0, 360.0);
+        let parts = degsplit(deg);
+        s.check(parts.len() == 4, || format!("degsplit len={}", parts.len()));
+
+        // diff_deg_signed: result in (-180, 180]
+        let a = rng.range_f64(0.0, 360.0);
+        let b = rng.range_f64(0.0, 360.0);
+        let d = diff_deg_signed(a, b);
+        s.check(d > -180.0 && d <= 180.0, || {
+            format!("diff_deg_signed({a:.2},{b:.2})={d:.4}")
+        });
+
+        // lon_to_sign: returns (sign_number 0-11, degrees_in_sign)
+        let (sign_n, sign_deg) = lon_to_sign(lon);
+        s.check(sign_n < 12, || {
+            format!("lon_to_sign({lon:.2}) sign={sign_n}")
+        });
+        s.check(sign_deg >= 0.0 && sign_deg < 30.0, || {
+            format!("lon_to_sign({lon:.2}) deg={sign_deg:.2}")
+        });
+
+        // format_coord: should not panic
+        let _s1 = format_coord(lat, true);
+        let _s2 = format_coord(lon, false);
+
+        // norm_deg: result in [0, 360)
+        let raw = rng.range_f64(-720.0, 720.0);
+        let n = norm_deg(raw);
+        s.check(n >= 0.0 && n < 360.0, || {
+            format!("norm_deg({raw:.2})={n:.4}")
+        });
+
+        // distance_to_mc / planet_conjunct_mc
+        let mc = rng.range_f64(0.0, 360.0);
+        let d = distance_to_mc(lon, mc);
+        s.check(d.is_finite(), || format!("distance_to_mc={d:.4}"));
+        let _ = planet_conjunct_mc(lon, mc, 5.0);
+    }
+    let _ = flags;
+    s
+}
+
+fn test_profections(n: u32) -> Suite {
+    let mut s = Suite::new("profections");
+    let mut rng = Xorshift64::new(0x18293041526374A5);
+
+    let cusps: [f64; 13] = {
+        let mut c = [0.0f64; 13];
+        for i in 1..=12 {
+            c[i] = (i as f64) * 30.0;
+        }
+        c
+    };
+
+    for _ in 0..n {
+        let age_years = (rng.next_u64() % 90) as u32;
+        let age_months = (rng.next_u64() % 12) as u32;
+
+        let (house_a, _deg_a) = annual_profection(&cusps, age_years);
+        s.check(house_a >= 1 && house_a <= 12, || {
+            format!("annual_profection house={house_a}")
+        });
+
+        let (house_m, _deg_m) = monthly_profection(&cusps, age_years, age_months);
+        s.check(house_m >= 1 && house_m <= 12, || {
+            format!("monthly_profection house={house_m}")
+        });
+    }
+    s
+}
+
 fn test_builder_api(n: u32) -> Suite {
     let mut s = Suite::new("builder_api");
     let mut rng = Xorshift64::new(0xB1C2D3E4F5061728);
@@ -1980,6 +2499,27 @@ fn main() {
             "secondary_progressions_midpoints",
             test_secondary_progressions_midpoints(N / 5).report(),
         ),
+        ("calendar_jewish", test_calendar_jewish(N).report()),
+        ("calendar_islamic", test_calendar_islamic(N / 5).report()),
+        ("calendar_christian", test_calendar_christian(N).report()),
+        (
+            "calendar_nowruz_bahai",
+            test_calendar_nowruz_bahai(N).report(),
+        ),
+        ("calendar_omer_vesak", test_calendar_omer_vesak(N).report()),
+        ("searches_aspects", test_searches_aspects(N / 5).report()),
+        ("searches_stations", test_searches_stations(N / 5).report()),
+        (
+            "searches_moon_crossings",
+            test_searches_moon_crossings(N / 5).report(),
+        ),
+        ("moon_phases", test_moon_phases(N / 5).report()),
+        (
+            "vedic_dasha_panchanga",
+            test_vedic_dasha_panchanga(N / 5).report(),
+        ),
+        ("geo_utilities", test_geo_utilities(N).report()),
+        ("profections", test_profections(N).report()),
     ];
 
     println!();

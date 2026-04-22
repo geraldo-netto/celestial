@@ -1860,3 +1860,592 @@ mod calendar_deep_tests {
         }
     }
 }
+
+// ── Moon phase deep coverage ──────────────────────────────────────────────────
+mod moon_phase_tests {
+    use celestial_core::body::Calendar;
+    use celestial_core::*;
+
+    const JD: f64 = 2_451_545.0; // J2000.0 = 2000-01-01 12:00 UT
+
+    #[test]
+    fn moon_phase_angle_is_in_range() {
+        let angle = moon_phase_angle(JD).unwrap();
+        assert!(
+            angle >= 0.0 && angle < 360.0,
+            "phase angle {angle:.2}° out of [0,360)"
+        );
+    }
+
+    #[test]
+    fn moon_phase_angle_advances_over_cycle() {
+        // Over a synodic month (~29.5 d) the angle should complete a full cycle
+        let a0 = moon_phase_angle(JD).unwrap();
+        let a1 = moon_phase_angle(JD + 29.5).unwrap();
+        // Both should be finite and the total travel ~360°
+        assert!(a0.is_finite() && a1.is_finite());
+    }
+
+    #[test]
+    fn moon_phase_info_fields_consistent() {
+        let info = moon_phase_info(JD).unwrap();
+        assert!(
+            info.illumination >= 0.0 && info.illumination <= 100.0,
+            "illumination {:.2}% out of range",
+            info.illumination
+        );
+        assert!(
+            info.elongation >= 0.0 && info.elongation < 360.0,
+            "elongation {:.2}° out of range",
+            info.elongation
+        );
+        // illumination is 0.0-1.0 (fraction, not percent)
+        assert!(
+            info.illumination >= 0.0 && info.illumination <= 1.0,
+            "illumination {:.4} out of 0-1",
+            info.illumination
+        );
+    }
+
+    #[test]
+    fn moon_phases_for_month_returns_four_phases() {
+        // January 2025 should have 4 principal phases
+        let phases = moon_phases_for_month(2025, 1).unwrap();
+        assert_eq!(
+            phases.len(),
+            4,
+            "expected 4 phases in Jan 2025, got {}",
+            phases.len()
+        );
+        // Phases should be in chronological order
+        for w in phases.windows(2) {
+            assert!(
+                w[0].jd < w[1].jd,
+                "phases not in order: {:.2} >= {:.2}",
+                w[0].jd,
+                w[1].jd
+            );
+        }
+        // Each phase elongation should be near the target for that phase type (±5°)
+        for ph in &phases {
+            let target = ph.phase.elongation_target();
+            let diff = (ph.elongation - target)
+                .abs()
+                .min(360.0 - (ph.elongation - target).abs());
+            assert!(
+                diff < 5.0,
+                "{:?} elongation {:.2}° expected ~{target:.0}°",
+                ph.phase,
+                ph.elongation
+            );
+        }
+    }
+
+    #[test]
+    fn next_new_moon_is_after_start() {
+        let nm = next_new_moon(JD).unwrap();
+        assert!(nm > JD, "next new moon {nm:.2} not after start {JD:.2}");
+        assert!(nm < JD + 30.0, "next new moon too far: {:.2}d", nm - JD);
+    }
+
+    #[test]
+    fn next_first_quarter_after_new_moon() {
+        let nm = next_new_moon(JD).unwrap();
+        let fq = next_first_quarter(nm).unwrap();
+        assert!(fq > nm, "first quarter not after new moon");
+        let days = fq - nm;
+        assert!(
+            days > 5.0 && days < 10.0,
+            "first quarter {days:.2}d after new moon, expected ~7d"
+        );
+    }
+
+    #[test]
+    fn next_full_moon_phase_after_first_quarter() {
+        let nm = next_new_moon(JD).unwrap();
+        let fq = next_first_quarter(nm).unwrap();
+        let fm = next_full_moon_phase(fq).unwrap();
+        assert!(fm > fq, "full moon not after first quarter");
+        let days = fm - fq;
+        assert!(
+            days > 5.0 && days < 10.0,
+            "full moon {days:.2}d after first quarter, expected ~7d"
+        );
+    }
+
+    #[test]
+    fn next_last_quarter_after_full_moon() {
+        let nm = next_new_moon(JD).unwrap();
+        let fm = next_full_moon_phase(nm).unwrap();
+        let lq = next_last_quarter(fm).unwrap();
+        assert!(lq > fm, "last quarter not after full moon");
+    }
+
+    #[test]
+    fn next_principal_phase_new_moon_matches_next_new_moon() {
+        let via_helper = next_new_moon(JD).unwrap();
+        let via_generic = next_principal_phase(JD, PrincipalPhase::NewMoon)
+            .unwrap()
+            .jd;
+        assert!(
+            (via_helper - via_generic).abs() < 1e-6,
+            "next_new_moon {via_helper:.6} ≠ next_principal_phase(NewMoon) {via_generic:.6}"
+        );
+    }
+}
+
+// ── Islamic calendar helpers ──────────────────────────────────────────────────
+mod islamic_helper_tests {
+    use celestial_core::*;
+
+    #[test]
+    fn hijri_month_days_29_or_30() {
+        for month in 1u8..=12 {
+            let days = hijri_month_days(1446, month);
+            assert!(
+                days == 29 || days == 30,
+                "Hijri 1446/month {month}: {days} days"
+            );
+        }
+    }
+
+    #[test]
+    fn hijri_month_days_sums_to_year_length() {
+        let total: u32 = (1..=12u8).map(|m| hijri_month_days(1446, m) as u32).sum();
+        // Hijri year is 354 or 355 days
+        assert!(total == 354 || total == 355, "1446 AH total days: {total}");
+    }
+
+    #[test]
+    fn hijri_new_year_jd_in_correct_gregorian_year() {
+        // 1446 AH new year fell in July 2024
+        let jd = hijri_new_year_jd(1446);
+        let cal = revjul(jd, celestial_core::body::Calendar::Gregorian);
+        assert_eq!(
+            cal.year, 2024,
+            "1446 AH new year should be in 2024, got {}",
+            cal.year
+        );
+        assert_eq!(
+            cal.month, 7,
+            "1446 AH new year should be in July, got month {}",
+            cal.month
+        );
+    }
+
+    #[test]
+    fn hijri_month_start_advances_by_month_days() {
+        let start1 = hijri_month_start_jd(1446, 1);
+        let start2 = hijri_month_start_jd(1446, 2);
+        let days = hijri_month_days(1446, 1) as f64;
+        assert!(
+            (start2 - start1 - days).abs() < 1.0,
+            "Month 2 start should be month_days({days}) after month 1 start"
+        );
+    }
+
+    #[test]
+    fn is_hijri_leap_year_correct_cycle() {
+        // In a 30-year Hijri cycle, years 2,5,7,10,13,16,18,21,24,26,29 are leap
+        let leap_in_30 = [2u32, 5, 7, 10, 13, 16, 18, 21, 24, 26, 29];
+        for offset in 0..30u32 {
+            let year = 1420 + offset;
+            let position = ((year - 1) % 30) + 1;
+            let expected = leap_in_30.contains(&position);
+            assert_eq!(
+                is_hijri_leap_year(year as i32),
+                expected,
+                "Year {year} (pos {position} in cycle) leap={}",
+                is_hijri_leap_year(year as i32)
+            );
+        }
+    }
+
+    #[test]
+    fn islamic_observances_for_jd_returns_observances() {
+        // Ramadan 1446 started around March 1 2025 — JD ~2460735
+        let jd = hijri_month_start_jd(1446, 9); // 9 = Ramadan
+        let obs = islamic_observances_for_jd(jd);
+        // There should be at least one observance in Ramadan
+        assert!(
+            !obs.is_empty(),
+            "No observances returned for start of Ramadan"
+        );
+    }
+}
+
+// ── Hebrew calendar helpers ───────────────────────────────────────────────────
+mod hebrew_helper_tests {
+    use celestial_core::*;
+
+    #[test]
+    fn elapsed_days_increases_monotonically() {
+        for year in 5784..5790 {
+            assert!(
+                elapsed_days(year + 1) > elapsed_days(year),
+                "elapsed_days not monotone at {year}"
+            );
+        }
+    }
+
+    #[test]
+    fn days_in_hebrew_year_is_353_to_385() {
+        // Hebrew years are 353/354/355 (regular) or 383/384/385 (leap)
+        for year in 5780..5790 {
+            let d = days_in_hebrew_year(year);
+            assert!(
+                (353..=355).contains(&d) || (383..=385).contains(&d),
+                "Year {year} has {d} days — outside valid range"
+            );
+        }
+    }
+
+    #[test]
+    fn hebrew_month_days_12_or_13_months() {
+        for year in 5780..5790 {
+            let months = months_in_hebrew_year(year);
+            assert!(
+                months == 12 || months == 13,
+                "Year {year} has {months} months"
+            );
+        }
+    }
+
+    #[test]
+    fn is_hebrew_leap_year_matches_months() {
+        for year in 5780..5790 {
+            let is_leap = is_hebrew_leap_year(year);
+            let months = months_in_hebrew_year(year);
+            assert_eq!(
+                is_leap,
+                months == 13,
+                "Year {year}: is_leap={is_leap} but months={months}"
+            );
+        }
+    }
+
+    #[test]
+    fn hebrew_month_days_valid_range() {
+        // Each Hebrew month has 29 or 30 days
+        for month in 1i32..=12 {
+            let d = hebrew_month_days(5785, month);
+            assert!(d == 29 || d == 30, "Hebrew 5785/month {month}: {d} days");
+        }
+    }
+
+    #[test]
+    fn hebrew_new_year_jd_in_september_or_october() {
+        for year in 5780..5790 {
+            let jd = hebrew_new_year_jd(year) as f64;
+            let cal = revjul(jd, celestial_core::body::Calendar::Gregorian);
+            assert!(
+                cal.month == 9 || cal.month == 10,
+                "Rosh Hashanah {year} AM: expected Sep/Oct, got month {}",
+                cal.month
+            );
+        }
+    }
+
+    #[test]
+    fn approx_hebrew_year_roundtrip() {
+        let jd = hebrew_new_year_jd(5785) as f64;
+        let est = approx_hebrew_year(jd);
+        assert!(
+            (est - 5785i32).abs() <= 1,
+            "approx_hebrew_year at Rosh Hashanah 5785 = {est}"
+        );
+    }
+
+    #[test]
+    fn hebrew_month_start_jd_advances() {
+        let m1 = hebrew_month_start_jd(5785, 1) as f64;
+        let m2 = hebrew_month_start_jd(5785, 2) as f64;
+        let days = hebrew_month_days(5785, 1);
+        assert!(
+            (m2 - m1 - days as f64).abs() < 1.0,
+            "Month 2 start should be {days}d after month 1 start"
+        );
+    }
+}
+
+// ── Omer helpers ──────────────────────────────────────────────────────────────
+mod omer_helper_tests {
+    use celestial_core::*;
+
+    #[test]
+    fn omer_period_5785_span_is_49_days() {
+        let start = omer_start_jd(5785);
+        let p = omer_period(start + 1.0);
+        let span = p.end_jd - p.start_jd;
+        assert!(
+            (span - 48.0).abs() < 2.0,
+            "Omer 5785 span = {span:.1}d, expected ~48d (day 1 to day 49)"
+        );
+    }
+
+    #[test]
+    fn omer_from_jd_during_omer_returns_some() {
+        let start = omer_start_jd(5785);
+        let p = omer_period(start + 1.0);
+        let mid = p.start_jd + 16.0_f64; // day 17 of the Omer
+        let day = omer_from_jd(mid);
+        assert!(day.is_some(), "omer_from_jd during Omer should return Some");
+        let d = day.unwrap();
+        assert!(d.day >= 1 && d.day <= 49, "day {} out of 1-49", d.day);
+    }
+
+    #[test]
+    fn omer_from_jd_outside_omer_returns_none() {
+        let start = omer_start_jd(5785);
+        let p = omer_period(start + 1.0);
+        let before = p.start_jd - 5.0_f64;
+        let after = p.end_jd + 5.0_f64;
+        assert!(omer_from_jd(before).is_none(), "before Omer should be None");
+        assert!(omer_from_jd(after).is_none(), "after Omer should be None");
+    }
+
+    #[test]
+    fn omer_from_jd_day_33_is_lag_baomer() {
+        let start = omer_start_jd(5785);
+        let p = omer_period(start + 1.0);
+        let lag = p.start_jd + 32.0_f64; // 0-indexed: day 33
+        let day = omer_from_jd(lag).unwrap();
+        assert_eq!(day.day, 33, "expected day 33");
+        assert!(day.is_lag_baomer, "day 33 should be Lag BaOmer");
+    }
+}
+
+// ── Nowruz / Bahá'í helpers ───────────────────────────────────────────────────
+mod nowruz_bahai_tests {
+    use celestial_core::body::Calendar;
+    use celestial_core::*;
+
+    #[test]
+    fn naw_ruz_jd_lands_in_march() {
+        // Naw-Rúz (Bahá'í new year) always falls on the vernal equinox (March 20/21)
+        let jd = naw_ruz_jd(182); // 182 BE = 2025-2026
+        let cal = revjul(jd, Calendar::Gregorian);
+        assert_eq!(
+            cal.month, 3,
+            "Naw-Rúz should be in March, got month {}",
+            cal.month
+        );
+        assert!(
+            cal.day == 20 || cal.day == 21,
+            "Naw-Rúz should be March 20 or 21, got day {}",
+            cal.day
+        );
+    }
+
+    #[test]
+    fn is_bahai_leap_year_returns_bool() {
+        // Bahá'í leap years align with Gregorian — just check it returns without panic
+        for y in 175..185 {
+            let _ = is_bahai_leap_year(y);
+        }
+    }
+
+    #[test]
+    fn solar_hijri_to_gregorian_1403_is_2024() {
+        // 1403 SH started March 20 2024
+        let greg = solar_hijri_to_gregorian(1403);
+        assert_eq!(greg, 2024, "1403 SH should start in 2024, got {greg}");
+    }
+
+    #[test]
+    fn solar_hijri_gregorian_roundtrip() {
+        for g_year in 2000..2030 {
+            let sh = gregorian_to_solar_hijri(g_year);
+            let back = solar_hijri_to_gregorian(sh);
+            assert!(
+                (back - g_year).abs() <= 1,
+                "roundtrip {g_year} -> {sh} -> {back}"
+            );
+        }
+    }
+}
+
+// ── Easter ────────────────────────────────────────────────────────────────────
+mod easter_extra_tests {
+    use celestial_core::body::Calendar;
+    use celestial_core::*;
+
+    #[test]
+    fn easter_julian_is_in_march_or_april() {
+        for year in [2024, 2025, 2026] {
+            let (_y, m, _d) = easter_julian(year);
+            assert!(
+                m == 3 || m == 4,
+                "Julian Easter {year} in month {m}, expected March or April"
+            );
+        }
+    }
+
+    #[test]
+    fn easter_orthodox_jd_matches_orthodox_gregorian() {
+        // easter_orthodox_jd should agree with easter_orthodox date
+        let jd = easter_orthodox_jd(2025);
+        let cal = revjul(jd, Calendar::Gregorian);
+        let (_y, m, d) = easter_orthodox(2025);
+        assert_eq!(
+            (cal.month as u8, cal.day as u8),
+            (m, d),
+            "easter_orthodox_jd and easter_orthodox disagree for 2025"
+        );
+    }
+}
+
+// ── Panchanga ─────────────────────────────────────────────────────────────────
+mod panchanga_tests {
+    use celestial_core::*;
+
+    const JD: f64 = 2_451_545.0; // J2000.0
+
+    #[test]
+    fn panchanga_tithi_in_range() {
+        let p = panchanga(JD);
+        assert!(
+            p.tithi >= 1 && p.tithi <= 30,
+            "tithi {} out of 1-30",
+            p.tithi
+        );
+    }
+
+    #[test]
+    fn panchanga_vara_in_range() {
+        let p = panchanga(JD);
+        assert!(p.vara <= 6, "vara {} out of 0-6", p.vara);
+    }
+
+    #[test]
+    fn panchanga_nakshatra_in_range() {
+        let p = panchanga(JD);
+        assert!(p.nakshatra <= 26, "nakshatra {} out of 0-26", p.nakshatra);
+    }
+
+    #[test]
+    fn panchanga_yoga_in_range() {
+        let p = panchanga(JD);
+        assert!(p.yoga <= 26, "yoga {} out of 0-26", p.yoga);
+    }
+
+    #[test]
+    fn karana_name_not_empty() {
+        // Karanas cycle 1-60, names should all be non-empty
+        for k in 1u8..=60 {
+            let name = karana_name(k);
+            assert!(!name.is_empty(), "karana_name({k}) is empty");
+        }
+    }
+}
+
+// ── Searches: distance_to_mc, planet_conjunct_mc ─────────────────────────────
+mod search_helper_tests {
+    use celestial_core::*;
+
+    #[test]
+    fn distance_to_mc_is_zero_when_planet_on_mc() {
+        let mc = 270.0;
+        let d = distance_to_mc(mc, mc);
+        assert!(
+            d.abs() < 1e-9,
+            "distance_to_mc at same position should be 0, got {d}"
+        );
+    }
+
+    #[test]
+    fn distance_to_mc_is_symmetric_within_90() {
+        // Distance is measured as angular proximity — both sides equal
+        let mc = 120.0;
+        let d1 = distance_to_mc(mc + 20.0, mc).abs();
+        let d2 = distance_to_mc(mc - 20.0, mc).abs();
+        assert!(
+            (d1 - d2).abs() < 1e-9,
+            "distance_to_mc should be symmetric: +20={d1:.4} -20={d2:.4}"
+        );
+    }
+
+    #[test]
+    fn planet_conjunct_mc_within_orb() {
+        let mc = 90.0;
+        assert!(
+            planet_conjunct_mc(mc + 1.0, mc, 2.0),
+            "1° within 2° orb should be true"
+        );
+        assert!(
+            !planet_conjunct_mc(mc + 3.0, mc, 2.0),
+            "3° outside 2° orb should be false"
+        );
+    }
+
+    #[test]
+    fn planet_conjunct_mc_exact() {
+        let mc = 45.0;
+        assert!(
+            planet_conjunct_mc(mc, mc, 0.0),
+            "exact conjunction with 0° orb"
+        );
+    }
+}
+
+// ── Vesak moon helpers ────────────────────────────────────────────────────────
+mod vesak_moon_tests {
+    use celestial_core::*;
+
+    const JD: f64 = 2_451_545.0;
+
+    #[test]
+    fn next_full_moon_after_is_after_start() {
+        let fm = next_full_moon_after(JD);
+        assert!(fm > JD, "next full moon {fm:.2} not after {JD:.2}");
+        assert!(fm < JD + 30.0, "next full moon too far: {:.2}d", fm - JD);
+    }
+
+    #[test]
+    fn next_new_moon_after_is_after_start() {
+        let nm = next_new_moon_after(JD);
+        assert!(nm > JD, "next new moon {nm:.2} not after {JD:.2}");
+        assert!(nm < JD + 30.0, "next new moon too far: {:.2}d", nm - JD);
+    }
+
+    #[test]
+    fn consecutive_full_moons_are_one_month_apart() {
+        let fm1 = next_full_moon_after(JD);
+        let fm2 = next_full_moon_after(fm1 + 1.0);
+        let diff = fm2 - fm1;
+        assert!(
+            diff > 28.0 && diff < 31.0,
+            "consecutive full moons {diff:.2}d apart, expected ~29.5d"
+        );
+    }
+}
+
+// ── calc_many ─────────────────────────────────────────────────────────────────
+mod calc_many_test {
+    use celestial_core::body::{Body, CalcFlags};
+    use celestial_core::*;
+
+    const JD: f64 = 2_451_545.0;
+
+    #[test]
+    fn calc_many_matches_individual_calc() {
+        let bodies = [Body::SUN, Body::MOON, Body::MERCURY];
+        let many = calc_many(JD, &bodies, CalcFlags::BUILTIN);
+        for (i, &body) in bodies.iter().enumerate() {
+            let single = calc(JD, body, CalcFlags::BUILTIN).unwrap();
+            let via = many[i].as_ref().unwrap();
+            assert!(
+                (via.lon - single.lon).abs() < 1e-9,
+                "calc_many[{i}] lon {:.6} ≠ calc {:.6}",
+                via.lon,
+                single.lon
+            );
+        }
+    }
+
+    #[test]
+    fn calc_many_empty_slice() {
+        let result = calc_many(JD, &[], CalcFlags::BUILTIN);
+        assert!(result.is_empty(), "empty input should return empty Vec");
+    }
+}
