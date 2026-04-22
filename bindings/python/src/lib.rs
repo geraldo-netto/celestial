@@ -1330,6 +1330,7 @@ impl Tap for pyo3::Bound<'_, pyo3::types::PyDict> {}
 fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // ── functions ──────────────────────────────────────────────────────────
     m.add_function(wrap_pyfunction!(set_ephe_path, m)?)?;
+    #[allow(clippy::too_many_arguments)]
     #[pyfunction]
     fn ic_transit_ut(
         planet: i32,
@@ -1354,6 +1355,7 @@ fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[pyfunction]
     fn asc_transit_ut(
         planet: i32,
@@ -1378,6 +1380,7 @@ fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[pyfunction]
     fn dsc_transit_ut(
         planet: i32,
@@ -1485,6 +1488,7 @@ fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // ── Chart analysis ────────────────────────────────────────────────────────────
 
+    #[allow(clippy::too_many_arguments)]
     #[pyfunction]
     fn secondary_progressions(
         py: Python<'_>,

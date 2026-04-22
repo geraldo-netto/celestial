@@ -50,7 +50,7 @@ pub fn sol_eclipse_when_glob(
 ) -> Result<EclipseResult> {
     ae::solar_eclipse_when_glob(tjd_start, ecl_type, backwards)
         .map(ec_to_result)
-        .ok_or_else(|| Error::NoEclipseFound { from_jd: tjd_start })
+        .ok_or(Error::NoEclipseFound { from_jd: tjd_start })
 }
 
 /// Next solar eclipse visible from a geographic location.
@@ -71,7 +71,7 @@ pub fn sol_eclipse_when_loc(
                 attr,
             }
         })
-        .ok_or_else(|| Error::NoEclipseFound { from_jd: tjd_start })
+        .ok_or(Error::NoEclipseFound { from_jd: tjd_start })
 }
 
 /// Solar eclipse attributes at a specific time and location.
@@ -102,7 +102,7 @@ pub fn sol_eclipse_where(jd_ut: f64, _flags: CalcFlags) -> Result<EclipseWhere> 
         // No central eclipse at this time — find the nearest one and use it
         // Return the point for the nearest solar eclipse
         let result = ae::solar_eclipse_when_glob(jd_ut, 0, false)
-            .ok_or_else(|| Error::NoEclipseFound { from_jd: jd_ut })?;
+            .ok_or(Error::NoEclipseFound { from_jd: jd_ut })?;
         let k2 = ae::k_from_jd(result.tret[0], true);
         let (_kind2, gamma2, u2) = ae::check_solar_eclipse(k2);
         let jde = result.tret[0];
@@ -156,7 +156,7 @@ pub fn lun_eclipse_when(
 ) -> Result<EclipseResult> {
     ae::lun_eclipse_when(tjd_start, ecl_type, backwards)
         .map(ec_to_result)
-        .ok_or_else(|| Error::NoEclipseFound { from_jd: tjd_start })
+        .ok_or(Error::NoEclipseFound { from_jd: tjd_start })
 }
 
 /// Next lunar eclipse visible from a geographic location.
@@ -172,7 +172,7 @@ pub fn lun_eclipse_when_loc(
             tret: e.tret,
             attr: [0.0; 20],
         })
-        .ok_or_else(|| Error::NoEclipseFound { from_jd: tjd_start })
+        .ok_or(Error::NoEclipseFound { from_jd: tjd_start })
 }
 
 /// Lunar eclipse attributes at a specific time.
