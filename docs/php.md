@@ -12,7 +12,7 @@ cd bindings/php && cargo build --release
 ```
 
 See **[docs/php.md](docs/php.md)** for all `celestial_` prefixed functions, return
-types, phpstan integration, and Phase 5–8 examples.
+types, phpstan integration, and tradition-specific examples.
 
 ---
 

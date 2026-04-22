@@ -92,14 +92,14 @@ celestial-workspace/
 │   │   ├── constants.rs        numeric constants (body indices, flags, modes)
 │   │   ├── error.rs            structured Error enum (#[non_exhaustive])
 │   │   └── functions/          pub(crate) implementation — 28 submodules
-│   │       ├── hellenistic.rs  Phase 5: dignity, almuten, firdaria
-│   │       ├── chinese.rs      Phase 6: Ba Zi, solar terms
-│   │       ├── mesoamerican.rs Phase 7: Tonalpohualli, Tzolkin, Haab
-│   │       └── indigenous.rs   Phase 8: Medicine Wheel, Egyptian decans
+│   │       ├── hellenistic.rs  dignity, almuten, firdaria
+│   │       ├── chinese.rs      Ba Zi, solar terms
+│   │       ├── mesoamerican.rs Tonalpohualli, Tzolkin, Haab
+│   │       └── indigenous.rs   Medicine Wheel, Egyptian decans
 ├── cli/src/cmd/render/         24 SVG chart builders, one per tradition
 ├── bindings/python/            PyO3 — 152 functions + celestial_py.pyi stubs
-├── bindings/js/                napi-rs — 155 functions + index.d.ts
-├── bindings/php/               ext-php-rs — 130 functions + phpstan stubs
+├── bindings/js/                napi-rs — 73 functions + index.d.ts
+├── bindings/php/               ext-php-rs — 131 functions + phpstan stubs
 └── tests/fixtures/             reference_values.json — cross-language test fixture
 ```
 

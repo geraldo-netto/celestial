@@ -892,7 +892,9 @@ pub fn antiscion(pos: Vec<f64>, axis: f64) -> napi::Result<Vec<f64>> {
     if pos.len() < 6 {
         return Err(napi::Error::from_reason("pos must have 6 elements"));
     }
-    let arr: [f64; 6] = pos[..6].try_into().unwrap();
+    let arr: [f64; 6] = pos[..6]
+        .try_into()
+        .expect("slice length guaranteed to be 6 by preceding guard");
     let r = celestial::antiscion(arr, axis);
     Ok(r.antiscion.to_vec())
 }

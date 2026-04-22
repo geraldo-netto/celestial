@@ -470,7 +470,7 @@ fn main() -> Result<()> {
     let (animal, element, clan, season) = medicine_wheel_totem(sun.lon);
     println!("Totem: {animal} ({element}, {clan}, {season})");
 
-    // Phase 5 — Hellenistic dignities
+    // Hellenistic dignities
     let (dig, score) = full_dignity(Body::SUN, sun.lon, is_day_chart(sun.lon, &h.cusps))?;
     println!("Sun dignity: {dig:?} (score {score})");
 

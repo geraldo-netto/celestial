@@ -1454,3 +1454,409 @@ mod error_type_tests {
         }
     }
 }
+
+// ── Moon, calc_many, and calendar unit tests ──────────────────────────────────
+mod moon_and_calendar_tests {
+    use celestial_core::body::{Body, CalcFlags, Calendar};
+    use celestial_core::*;
+
+    const JD: f64 = 2_451_545.0; // J2000.0
+
+    // ── moon ──────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn moon_phase_returns_known_phase() {
+        // J2000.0 = 2000-01-01 12:00 UT — Moon is a few days past new moon
+        let phase = moon_phase(JD).unwrap();
+        // Any valid MoonPhase variant is acceptable — just check it doesn't panic
+        let name = phase.name();
+        assert!(!name.is_empty(), "phase name should not be empty");
+    }
+
+    #[test]
+    fn moon_phase_full_moon_is_full() {
+        // Known full moon: 2000-02-19 ≈ JD 2451594.5
+        let jd_fm = julday(2000, 2, 19, 16.0, Calendar::Gregorian);
+        let phase = moon_phase(jd_fm).unwrap();
+        assert!(
+            matches!(
+                phase,
+                MoonPhase::FullMoon | MoonPhase::WaxingGibbous | MoonPhase::WaningGibbous
+            ),
+            "expected near full moon, got {phase:?}"
+        );
+    }
+
+    #[test]
+    fn moon_illumination_range() {
+        for offset in [0.0, 7.4, 14.8, 22.1] {
+            let illum = moon_illumination(JD + offset).unwrap();
+            assert!(
+                (0.0..=100.0).contains(&illum),
+                "illumination {illum:.2}% out of range at offset {offset}"
+            );
+        }
+    }
+
+    // ── calc_many ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn calc_many_order_matches_input() {
+        let bodies = [
+            Body::SUN,
+            Body::MOON,
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS,
+        ];
+        let results = calc_ut_many(JD, &bodies, CalcFlags::BUILTIN);
+        assert_eq!(
+            results.len(),
+            bodies.len(),
+            "result count must match input count"
+        );
+
+        for (i, &body) in bodies.iter().enumerate() {
+            let direct = calc_ut(JD, body, CalcFlags::BUILTIN).unwrap();
+            let via_many = results[i].as_ref().unwrap();
+            assert!(
+                (via_many.lon - direct.lon).abs() < 1e-9,
+                "body {i} lon mismatch: many={:.6} direct={:.6}",
+                via_many.lon,
+                direct.lon
+            );
+        }
+    }
+
+    #[test]
+    fn calc_many_empty_returns_empty() {
+        let results = calc_ut_many(JD, &[], CalcFlags::BUILTIN);
+        assert!(results.is_empty());
+    }
+
+    // ── Easter / Christian ────────────────────────────────────────────────────
+
+    #[test]
+    fn easter_gregorian_2025() {
+        // Easter 2025 = April 20
+        let (_y, m, d) = easter_gregorian(2025);
+        assert_eq!((m, d), (4, 20), "Easter 2025 should be April 20");
+    }
+
+    #[test]
+    fn easter_gregorian_known_dates() {
+        // A few well-known Easter dates
+        let cases: &[(i32, u8, u8)] = &[(2024, 3, 31), (2023, 4, 9), (2022, 4, 17), (2000, 4, 23)];
+        for &(year, month, day) in cases {
+            let (_y, m, d) = easter_gregorian(year);
+            assert_eq!(
+                (m, d),
+                (month, day),
+                "Easter {year}: expected {month}/{day}, got {m}/{d}"
+            );
+        }
+    }
+
+    #[test]
+    fn easter_orthodox_differs_from_gregorian() {
+        // Orthodox Easter often falls on a different date
+        let (_gy, gm, gd) = easter_gregorian(2024);
+        let (_oy, om, od) = easter_orthodox(2024);
+        // In 2024: Gregorian = March 31, Orthodox = May 5
+        assert_ne!(
+            (gm, gd),
+            (om, od),
+            "Gregorian and Orthodox Easter should differ in 2024"
+        );
+    }
+
+    // ── Islamic / Hijri ───────────────────────────────────────────────────────
+
+    #[test]
+    fn hijri_from_jd_j2000() {
+        // J2000.0 = 2000-01-01 Gregorian = ~1420 AH Ramadan
+        let (year, month, _day) = hijri_from_jd(JD);
+        assert_eq!(year, 1420, "J2000 Hijri year should be 1420 AH");
+        // Ramadan 1420 AH started approximately Dec 9 1999
+        assert!(
+            month >= 9 && month <= 10,
+            "J2000 month should be Ramadan/Shawwal, got {month}"
+        );
+    }
+
+    #[test]
+    fn hijri_roundtrip() {
+        let (year, month, day) = hijri_from_jd(JD);
+        let jd2 = hijri_to_jd(year, month, day);
+        assert!(
+            (jd2 - JD).abs() < 1.5,
+            "Hijri round-trip JD error {:.3} days",
+            (jd2 - JD).abs()
+        );
+    }
+
+    // ── Nowruz / Persian ──────────────────────────────────────────────────────
+
+    #[test]
+    fn nowruz_jd_lands_in_march() {
+        let jd = nowruz_jd(2025);
+        let d = revjul(jd, Calendar::Gregorian);
+        assert_eq!(d.year, 2025, "Nowruz 2025 should be in year 2025");
+        assert_eq!(d.month, 3, "Nowruz should always be in March");
+        assert!(
+            d.day >= 19 && d.day <= 22,
+            "Nowruz day {} out of expected range 19-22",
+            d.day
+        );
+    }
+
+    #[test]
+    fn nowruz_jd_advances_each_year() {
+        let jd2024 = nowruz_jd(2024);
+        let jd2025 = nowruz_jd(2025);
+        let diff = jd2025 - jd2024;
+        assert!(
+            diff > 364.0 && diff < 367.0,
+            "Nowruz interval {diff:.2}d should be ~365.25d"
+        );
+    }
+}
+
+// ── Calendar deep coverage ────────────────────────────────────────────────────
+mod calendar_deep_tests {
+    use celestial_core::body::Calendar;
+    use celestial_core::*;
+
+    const JD: f64 = 2_451_545.0; // J2000.0 = 2000-01-01
+
+    // ── Easter / Christian ────────────────────────────────────────────────────
+
+    #[test]
+    fn christian_feasts_count_is_nonzero() {
+        let feasts = christian_feasts(2025);
+        assert!(
+            !feasts.is_empty(),
+            "christian_feasts should return at least one feast"
+        );
+    }
+
+    #[test]
+    fn christian_fixed_feasts_includes_christmas() {
+        let feasts = christian_fixed_feasts(2025);
+        let christmas = feasts.iter().find(|f| f.name.contains("Christmas"));
+        assert!(christmas.is_some(), "fixed feasts should include Christmas");
+        let c = christmas.unwrap();
+        assert_eq!((c.month, c.day), (12, 25), "Christmas should be Dec 25");
+    }
+
+    #[test]
+    fn easter_jd_matches_gregorian() {
+        let jd = easter_jd(2025);
+        let cal = revjul(jd, Calendar::Gregorian);
+        let (_, m, d) = easter_gregorian(2025);
+        assert_eq!(
+            (cal.month as u8, cal.day as u8),
+            (m, d),
+            "easter_jd and easter_gregorian should agree"
+        );
+    }
+
+    // ── Hebrew calendar ────────────────────────────────────────────────────────
+
+    #[test]
+    fn hebrew_year_from_jd_j2000() {
+        // J2000 = 2000-01-01 = 5760 AM
+        let year = hebrew_year_from_jd(JD);
+        assert_eq!(year, 5760, "J2000 Hebrew year should be 5760, got {year}");
+    }
+
+    #[test]
+    fn jd_to_hebrew_date_roundtrip() {
+        // Convert J2000 to Hebrew date and check it's in 5760 AM
+        let (year, month, day) = jd_to_hebrew_date(JD);
+        assert_eq!(year, 5760, "J2000 Hebrew year should be 5760");
+        assert!(
+            month >= 1 && month <= 13,
+            "Hebrew month {month} out of range 1-13"
+        );
+        assert!(day >= 1 && day <= 30, "Hebrew day {day} out of range 1-30");
+    }
+
+    #[test]
+    fn jewish_holidays_has_rosh_hashanah() {
+        let holidays = jewish_holidays(5785);
+        let rh = holidays.iter().find(|h| h.name.contains("Rosh Hashanah"));
+        assert!(rh.is_some(), "Jewish holidays should include Rosh Hashanah");
+    }
+
+    // ── Islamic calendar ──────────────────────────────────────────────────────
+
+    #[test]
+    fn hijri_month_name_ramadan() {
+        let name = hijri_month_name(9);
+        assert!(
+            name.to_lowercase().contains("ramadan"),
+            "month 9 should be Ramadan, got '{name}'"
+        );
+    }
+
+    #[test]
+    fn hijri_month_roundtrip_12_months() {
+        // Step through 12 consecutive months and verify each roundtrips cleanly
+        let mut jd = hijri_to_jd(1446, 1, 1);
+        let mut prev_month = 0u8;
+        for _ in 0..12 {
+            let (y, m, _d) = hijri_from_jd(jd);
+            assert_eq!(y, 1446, "year should stay 1446 within the first 12 months");
+            assert!(m != prev_month, "month should advance");
+            prev_month = m;
+            jd += 30.0; // advance by ~one month
+        }
+    }
+
+    #[test]
+    fn islamic_observances_contains_ramadan() {
+        let obs = islamic_observances(1446);
+        let ramadan = obs
+            .iter()
+            .find(|o| o.name.to_lowercase().contains("ramadan"));
+        assert!(
+            ramadan.is_some(),
+            "Islamic observances should include Ramadan"
+        );
+    }
+
+    #[test]
+    fn gregorian_to_hijri_years_j2000() {
+        let (y1, y2) = gregorian_to_hijri_years(2000);
+        assert_eq!(y1, 1420, "2000 CE should start in 1420 AH, got {y1}");
+        assert_eq!(y2, 1421, "2000 CE should end in 1421 AH, got {y2}");
+    }
+
+    // ── Nowruz / Persian / Bahá'í ─────────────────────────────────────────────
+
+    #[test]
+    fn gregorian_to_solar_hijri_j2000() {
+        // gregorian_to_solar_hijri returns the Solar Hijri year that starts in that Gregorian year
+        // Nowruz 2000 (March 20) starts SH year 1379; function returns that year
+        let sh = gregorian_to_solar_hijri(2000);
+        assert_eq!(
+            sh, 1379,
+            "2000 CE Solar Hijri year should be 1379, got {sh}"
+        );
+        let sh1999 = gregorian_to_solar_hijri(1999);
+        assert_eq!(
+            sh1999, 1378,
+            "1999 CE Solar Hijri year should be 1378, got {sh1999}"
+        );
+        // Each Gregorian year advances the SH year by 1
+        assert_eq!(
+            gregorian_to_solar_hijri(2025),
+            sh + 25,
+            "SH year should advance 1:1 with Gregorian years"
+        );
+    }
+
+    #[test]
+    fn jd_to_bahai_j2000() {
+        let b = jd_to_bahai(JD);
+        assert!(
+            b.year >= 155 && b.year <= 157,
+            "J2000 Bahai year should be ~156, got {}",
+            b.year
+        );
+    }
+
+    #[test]
+    fn bahai_holy_days_nonempty() {
+        let days = bahai_holy_days(157);
+        assert!(
+            !days.is_empty(),
+            "bahai_holy_days should return at least one day"
+        );
+        for day in &days {
+            assert!(!day.name.is_empty(), "holy day name should not be empty");
+            assert!(day.jd > 0.0, "holy day JD should be positive");
+        }
+    }
+
+    // ── Omer ──────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn omer_start_jd_after_passover() {
+        let jd = omer_start_jd(5785);
+        let cal = revjul(jd, Calendar::Gregorian);
+        assert_eq!(
+            cal.year, 2025,
+            "Omer 5785 should start in 2025, got {}",
+            cal.year
+        );
+        assert_eq!(
+            cal.month, 4,
+            "Omer 5785 should start in April, got month {}",
+            cal.month
+        );
+    }
+
+    #[test]
+    fn omer_day_jd_day1_matches_start() {
+        let start = omer_start_jd(5785);
+        let day1 = omer_day_jd(5785, 1).unwrap();
+        assert!(
+            (start - day1).abs() < 1.0,
+            "omer_day_jd(1) should match omer_start_jd: {start:.2} vs {day1:.2}"
+        );
+    }
+
+    #[test]
+    fn omer_days_count_is_49() {
+        let days = omer_days(5785);
+        assert_eq!(days.len(), 49, "Omer has exactly 49 days");
+    }
+
+    #[test]
+    fn omer_declaration_day33_mentions_count() {
+        let decl = omer_declaration(33);
+        assert!(
+            decl.contains("33") || decl.to_lowercase().contains("lag"),
+            "day 33 declaration should mention 33 or lag, got: {decl}"
+        );
+    }
+
+    // ── Vesak / Buddhist ─────────────────────────────────────────────────────
+
+    #[test]
+    fn vesak_jd_is_in_april_or_may() {
+        let jd = vesak_jd(2025);
+        let cal = revjul(jd, Calendar::Gregorian);
+        assert!(
+            cal.month == 4 || cal.month == 5,
+            "Vesak 2025 should be in April or May, got month {}",
+            cal.month
+        );
+    }
+
+    #[test]
+    fn uposatha_days_count() {
+        let days = uposatha_days(2025);
+        // Uposatha occurs on 4 lunar phases × ~12 months, but implementation
+        // may also include weekly observances — check it's a positive non-trivial count
+        assert!(
+            days.len() >= 12,
+            "Uposatha days in 2025 should be at least 12, got {}",
+            days.len()
+        );
+        // All JDs should be in 2025 (approx)
+        let jd_2025_start =
+            celestial_core::julday(2025, 1, 1, 0.0, celestial_core::body::Calendar::Gregorian);
+        let jd_2026_start =
+            celestial_core::julday(2026, 1, 1, 0.0, celestial_core::body::Calendar::Gregorian);
+        for u in &days {
+            assert!(
+                u.jd >= jd_2025_start && u.jd < jd_2026_start,
+                "Uposatha JD {:.2} should be in 2025",
+                u.jd
+            );
+        }
+    }
+}

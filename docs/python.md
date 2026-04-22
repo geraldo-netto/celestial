@@ -10,7 +10,7 @@ cd bindings/python && pip install maturin && maturin develop
 ```
 
 See **[docs/python.md](docs/python.md)** for installation, all function signatures,
-return types, constants, and Phase 5–8 examples.
+return types, constants, and tradition-specific examples.
 
 ---
 

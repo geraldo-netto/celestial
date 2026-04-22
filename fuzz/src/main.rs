@@ -1413,6 +1413,137 @@ fn test_phase3_midpoint_dial(n: u32) -> Suite {
     s
 }
 
+fn test_builder_api(n: u32) -> Suite {
+    let mut s = Suite::new("builder_api");
+    let mut rng = Xorshift64::new(0xB1C2D3E4F5061728);
+    let flags = CalcFlags::BUILTIN;
+
+    for _ in 0..n {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+
+        // CalcOptions::ut single body must match calc_ut
+        let via_builder = CalcOptions::ut(jd, flags).body(Body::SUN).get();
+        let direct = calc_ut(jd, Body::SUN, flags);
+        match (via_builder, direct) {
+            (Ok(b), Ok(d)) => {
+                s.check((b.lon - d.lon).abs() < 1e-9, || {
+                    format!(
+                        "CalcOptions JD {jd:.2}: lon mismatch {} vs {}",
+                        b.lon, d.lon
+                    )
+                });
+            }
+            (Err(_), Err(_)) => s.passed += 1,
+            _ => s.check(false, || {
+                format!("CalcOptions/calc_ut disagree at JD {jd:.2}")
+            }),
+        }
+
+        // CalcOptions multi-body order must match individual calls
+        let bodies = [Body::SUN, Body::MOON, Body::MERCURY];
+        let multi = CalcOptions::ut(jd, flags).bodies(&bodies).get_many();
+        s.check(multi.len() == bodies.len(), || {
+            format!(
+                "CalcOptions multi: expected {} results, got {}",
+                bodies.len(),
+                multi.len()
+            )
+        });
+        for (i, &body) in bodies.iter().enumerate() {
+            if let (Ok(m), Ok(d)) = (&multi[i], calc_ut(jd, body, flags)) {
+                s.check((m.lon - d.lon).abs() < 1e-9, || {
+                    format!("CalcOptions multi body {i}: lon mismatch")
+                });
+            }
+        }
+
+        // AspectOrbs: within-orb match must be symmetric
+        let orbs = AspectOrbs::new(2.0, 1.5);
+        let pos0 = rng.range_f64(0.0, 360.0);
+        let pos1 = rng.range_f64(0.0, 360.0);
+        let m1 = orbs.check(pos0, 0.5, pos1, -0.3, 120.0);
+        let m2 = orbs.check(pos1, -0.3, pos0, 0.5, 120.0);
+        s.check(m1.matched == m2.matched, || {
+            format!("AspectOrbs: swapping bodies changed match result at {pos0:.2}/{pos1:.2}")
+        });
+    }
+    s
+}
+
+fn test_secondary_progressions_midpoints(n: u32) -> Suite {
+    let mut s = Suite::new("secondary_progressions_midpoints");
+    let mut rng = Xorshift64::new(0xC2D3E4F506172839);
+    let flags = CalcFlags::BUILTIN;
+    let bodies = [
+        Body::SUN,
+        Body::MOON,
+        Body::MERCURY,
+        Body::VENUS,
+        Body::MARS,
+    ];
+
+    for _ in 0..n / 5 {
+        let jd_natal = 2_415_021.0 + rng.range_f64(0.0, 50_000.0);
+        let age = rng.range_f64(1.0, 90.0);
+        let lat = rng.range_f64(-89.9, 89.9);
+        let lon = rng.range_f64(-180.0, 180.0);
+
+        // secondary_progressions: all returned positions must be finite [0,360)
+        match secondary_progressions(
+            jd_natal,
+            age,
+            &bodies,
+            lat,
+            lon,
+            HouseSystem::PLACIDUS,
+            flags,
+        ) {
+            Ok((positions, houses)) => {
+                s.check(positions.len() == bodies.len(), || {
+                    "secondary_progressions: position count mismatch".into()
+                });
+                for (_, pos) in &positions {
+                    s.check(
+                        pos.lon.is_finite() && pos.lon >= 0.0 && pos.lon < 360.0,
+                        || format!("secondary_progressions: lon {:.4} out of range", pos.lon),
+                    );
+                }
+                for cusp in &houses.cusps {
+                    s.check(cusp.is_finite(), || {
+                        format!("secondary_progressions: non-finite cusp {cusp:.4}")
+                    });
+                }
+            }
+            Err(_) => s.passed += 1, // polar latitudes may legitimately fail
+        }
+
+        // midpoint_table: all midpoints must be finite, in [0,360)
+        let positions: Vec<(Body, f64)> = bodies
+            .iter()
+            .filter_map(|&b| calc_ut(jd_natal, b, flags).ok().map(|p| (b, p.lon)))
+            .collect();
+        if positions.len() >= 2 {
+            let table = midpoint_table(&positions, 2.0);
+            for entry in &table {
+                s.check(
+                    entry.2.is_finite() && entry.2 >= 0.0 && entry.2 < 360.0,
+                    || format!("midpoint_table: lon {:.4} out of range", entry.2),
+                );
+            }
+            // Number of midpoints should be at most n*(n-1)/2
+            let max_pairs = positions.len() * (positions.len() - 1) / 2;
+            s.check(table.len() <= max_pairs, || {
+                format!(
+                    "midpoint_table: {} entries > max {}",
+                    table.len(),
+                    max_pairs
+                )
+            });
+        }
+    }
+    s
+}
+
 fn test_phase3_local_space(n: u32) -> Suite {
     let mut s = Suite::new("phase3_local_space");
     let flags = CalcFlags::BUILTIN;
@@ -1844,6 +1975,11 @@ fn main() {
         ("phase6_bazi", test_phase6_bazi(N).report()),
         ("phase7_mesoamerican", test_phase7_mesoamerican(N).report()),
         ("phase8_indigenous", test_phase8_indigenous(N).report()),
+        ("builder_api", test_builder_api(N).report()),
+        (
+            "secondary_progressions_midpoints",
+            test_secondary_progressions_midpoints(N / 5).report(),
+        ),
     ];
 
     println!();

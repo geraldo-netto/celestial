@@ -11,7 +11,7 @@ cd bindings/js && npm install && npm run build
 ```
 
 See **[docs/javascript.md](docs/javascript.md)** for TypeScript interfaces, all function
-signatures, and Phase 5–8 examples.
+signatures, and tradition-specific examples.
 
 ---
 
