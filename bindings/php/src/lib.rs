@@ -145,12 +145,6 @@ pub fn version() -> String {
     celestial::version()
 }
 
-/// Get the display name for a planet/body number.
-#[php_function]
-pub fn get_planet_name(planet: i64) -> String {
-    celestial::planet_name(Body(planet as i32)).to_string()
-}
-
 // ══════════════════════════════════════════════════════════════════════════════
 // Planetary positions
 // ══════════════════════════════════════════════════════════════════════════════
@@ -295,31 +289,6 @@ pub fn fixstar_mag(star: String) -> PhpResult<f64> {
     celestial::fixstar_mag(&star).map_err(to_php)
 }
 
-/// Nodes and apsides for a body.
-///
-/// @return array  ["nasc" => [6], "ndsc" => [6], "peri" => [6], "aphe" => [6]]
-#[php_function]
-pub fn nod_aps(
-    tjdet: f64,
-    planet: i64,
-    flags: i64,
-    method: i64,
-) -> PhpResult<HashMap<String, Vec<f64>>> {
-    let r = celestial::nod_aps(
-        tjdet,
-        Body(planet as i32),
-        CalcFlags(flags as i32),
-        method as i32,
-    )
-    .map_err(to_php)?;
-    let mut m = HashMap::new();
-    m.insert("nasc".into(), r.nasc.to_vec());
-    m.insert("ndsc".into(), r.ndsc.to_vec());
-    m.insert("peri".into(), r.peri.to_vec());
-    m.insert("aphe".into(), r.aphe.to_vec());
-    Ok(m)
-}
-
 // ══════════════════════════════════════════════════════════════════════════════
 // House systems
 // ══════════════════════════════════════════════════════════════════════════════
@@ -397,28 +366,6 @@ pub fn house_pos(
 ) -> PhpResult<f64> {
     celestial::house_pos(armc, geolat, eps, HouseSystem(hsys as u8), [lon, lat_body])
         .map_err(to_php)
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// Ayanamsa
-// ══════════════════════════════════════════════════════════════════════════════
-
-/// Ayanamsa for a Julian Ephemeris Day (TT), using the active sidereal mode.
-#[php_function]
-pub fn get_ayanamsa(tjdet: f64) -> f64 {
-    celestial::ayanamsa(tjdet)
-}
-
-/// Ayanamsa for a Julian Day (UT), using the active sidereal mode.
-#[php_function]
-pub fn get_ayanamsa_ut(tjdut: f64) -> f64 {
-    celestial::ayanamsa_ut(tjdut)
-}
-
-/// Name of a sidereal mode constant.
-#[php_function]
-pub fn get_ayanamsa_name(sid_mode: i64) -> String {
-    celestial::ayanamsa_name(sid_mode as i32).to_string()
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -518,45 +465,6 @@ pub fn rise_trans(
     m.insert("ret".into(), vec![r.ret_flags as f64]);
     m.insert("tret".into(), vec![r.tret]);
     Ok(m)
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// Crossings
-// ══════════════════════════════════════════════════════════════════════════════
-
-/// Find the next time the Sun crosses a given ecliptic longitude (UT).
-///
-/// @param float $x2cross  Longitude to cross (degrees)
-/// @param float $jd_ut    Julian day to start from (UT)
-/// @param int   $flags    Ephemeris flags
-#[php_function]
-pub fn solcross_ut(x2cross: f64, jd_ut: f64, flags: i64) -> PhpResult<f64> {
-    celestial::solcross_ut(x2cross, jd_ut, CalcFlags(flags as i32)).map_err(to_php)
-}
-
-/// Find the next time the Moon crosses a given ecliptic longitude (UT).
-#[php_function]
-pub fn mooncross_ut(x2cross: f64, jd_ut: f64, flags: i64) -> PhpResult<f64> {
-    celestial::mooncross_ut(x2cross, jd_ut, CalcFlags(flags as i32)).map_err(to_php)
-}
-
-/// Find the next heliocentric longitude crossing (UT).
-#[php_function]
-pub fn helio_cross_ut(
-    planet: i64,
-    x2cross: f64,
-    jd_ut: f64,
-    flags: i64,
-    dir: i64,
-) -> PhpResult<f64> {
-    celestial::helio_cross_ut(
-        Body(planet as i32),
-        x2cross,
-        jd_ut,
-        CalcFlags(flags as i32),
-        dir as i32,
-    )
-    .map_err(to_php)
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -697,24 +605,6 @@ pub fn sabbats_for_year(year: i64) -> PhpResult<Vec<HashMap<String, f64>>> {
         .collect())
 }
 
-/// Find the next sabbat at or after a given Julian day.
-///
-/// @return array  ["name" => string, "jd" => float, "solar_lon" => float]
-///                Note: "name" is encoded as the solar longitude in the return array;
-///                call get_sabbat_name($jd) for the display name.
-#[php_function]
-pub fn next_sabbat_jd(jd_from: f64) -> PhpResult<f64> {
-    let s = celestial::next_sabbat(jd_from).map_err(to_php)?;
-    Ok(s.jd)
-}
-
-/// Name of the next sabbat at or after `$jd_from`.
-#[php_function]
-pub fn next_sabbat_name(jd_from: f64) -> PhpResult<String> {
-    let s = celestial::next_sabbat(jd_from).map_err(to_php)?;
-    Ok(s.name.to_string())
-}
-
 /// Exact Julian day of a specific sabbat in a given year.
 ///
 /// @param int    $year      Gregorian year
@@ -740,16 +630,6 @@ pub fn sabbat_jd(year: i64, kind: String) -> PhpResult<f64> {
     celestial::sabbat_jd(year as i32, k).map_err(to_php)
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Celtic Wheel of the Year — Esbats (full moons)
-// ══════════════════════════════════════════════════════════════════════════════
-
-/// Julian day (UT) of the next full moon at or after `$jd_from`.
-#[php_function]
-pub fn next_full_moon(jd_from: f64) -> PhpResult<f64> {
-    celestial::next_full_moon(jd_from).map_err(to_php)
-}
-
 /// All full moons in a Gregorian year with their traditional names.
 ///
 /// @param int $year  Gregorian year
@@ -765,20 +645,6 @@ pub fn esbats_for_year(year: i64) -> PhpResult<Vec<HashMap<String, f64>>> {
             m
         })
         .collect())
-}
-
-/// Name of the next full moon (esbat) at or after `$jd_from`.
-#[php_function]
-pub fn next_esbat_name(jd_from: f64) -> PhpResult<String> {
-    let e = celestial::next_esbat(jd_from).map_err(to_php)?;
-    Ok(e.display_name.to_string())
-}
-
-/// JD of the next esbat at or after `$jd_from`.
-#[php_function]
-pub fn next_esbat_jd(jd_from: f64) -> PhpResult<f64> {
-    let e = celestial::next_esbat(jd_from).map_err(to_php)?;
-    Ok(e.jd)
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1129,13 +995,6 @@ pub fn vimshottari_dasha(jd_birth: f64, moon_lon_sidereal: f64, years_ahead: f64
         .iter()
         .map(|d| vec![d.body.as_raw() as f64, d.start, d.end, d.years])
         .collect()
-}
-
-/// Library version string.
-/// Library version string.
-#[php_function]
-pub fn celestial_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
 }
 
 // ─── Sefirat HaOmer ───────────────────────────────────────────────────────────
@@ -1580,134 +1439,6 @@ pub fn moon_phase_info(jd: f64) -> PhpResult<HashMap<String, String>> {
             m
         })
         .map_err(|e| PhpException::from(e.to_string()))
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Phase 5–8 bindings
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/// Egyptian terms ruler for a longitude. Returns planet index 0-6.
-#[php_function]
-pub fn celestial_egyptian_terms_ruler(lon: f64) -> i64 {
-    celestial::egyptian_terms_ruler(lon).as_raw() as i64
-}
-
-/// Chaldean decan ruler. Returns planet index 0-6.
-#[php_function]
-pub fn celestial_decan_ruler(lon: f64) -> i64 {
-    celestial::decan_ruler(lon).as_raw() as i64
-}
-
-/// Full dignity (body_raw, lon, is_day). Returns [dignity_name, score].
-#[php_function]
-pub fn celestial_full_dignity(body_raw: i64, lon: f64, is_day: bool) -> Vec<String> {
-    use celestial::body::Body;
-    let (dig, score) = celestial::full_dignity(Body::from_raw(body_raw as i32), lon, is_day);
-    vec![dig.to_string(), score.to_string()]
-}
-
-/// Almuten (lon, is_day). Returns [body_raw, score].
-#[php_function]
-pub fn celestial_almuten(lon: f64, is_day: bool) -> Vec<i64> {
-    let (body, score) = celestial::almuten(lon, is_day);
-    vec![body.as_raw() as i64, score as i64]
-}
-
-/// Four Pillars Ba Zi. Returns 4 arrays of [stem_name, branch_name, animal, element, yang].
-#[php_function]
-pub fn celestial_four_pillars(jd_ut: f64, hour_ut: f64, sun_lon: f64) -> Vec<Vec<String>> {
-    celestial::four_pillars(jd_ut, hour_ut, sun_lon)
-        .iter()
-        .map(|p| {
-            vec![
-                p.stem_name.to_string(),
-                p.branch_name.to_string(),
-                p.animal.to_string(),
-                p.stem_element.to_string(),
-                if p.yang { "yang" } else { "yin" }.to_string(),
-            ]
-        })
-        .collect()
-}
-
-/// Solar term position for Sun longitude. Returns [current_idx, deg_into, next_idx, deg_to].
-#[php_function]
-pub fn celestial_solar_term_position(sun_lon: f64) -> Vec<f64> {
-    let (c, i, n, t) = celestial::solar_term_position(sun_lon);
-    vec![c as f64, i, n as f64, t]
-}
-
-/// Aztec Tonalpohualli. Returns [trecena, sign_idx, name, english].
-#[php_function]
-pub fn celestial_tonalpohualli(jd: f64) -> Vec<String> {
-    let (t, i, n, e) = celestial::tonalpohualli(jd);
-    vec![t.to_string(), i.to_string(), n.to_string(), e.to_string()]
-}
-
-/// Maya Tzolkin. Returns [trecena, sign_idx, name, english].
-#[php_function]
-pub fn celestial_tzolkin(jd: f64) -> Vec<String> {
-    let (t, i, n, e) = celestial::tzolkin(jd);
-    vec![t.to_string(), i.to_string(), n.to_string(), e.to_string()]
-}
-
-/// Maya Haab. Returns [month_idx, day, name].
-#[php_function]
-pub fn celestial_haab(jd: f64) -> Vec<String> {
-    let (m, d, n) = celestial::haab(jd);
-    vec![m.to_string(), d.to_string(), n.to_string()]
-}
-
-/// Medicine Wheel totem. Returns [animal, element, clan, season].
-#[php_function]
-pub fn celestial_medicine_wheel_totem(sun_lon: f64) -> Vec<String> {
-    let (a, e, c, s) = celestial::medicine_wheel_totem(sun_lon);
-    vec![a.to_string(), e.to_string(), c.to_string(), s.to_string()]
-}
-
-/// Egyptian decan. Returns [idx, name, rising_star].
-#[php_function]
-pub fn celestial_egyptian_decan(lon: f64) -> Vec<String> {
-    let (i, n, s) = celestial::egyptian_decan(lon);
-    vec![i.to_string(), n.to_string(), s.to_string()]
-}
-
-/// Fixed star position (UT). Returns [lon, lat, dist, speed_lon].
-#[php_function]
-pub fn celestial_fixstar_ut(star: &str, tjdut: f64, flags: i32) -> Option<Vec<f64>> {
-    celestial::fixstar_ut(star, tjdut, celestial::body::CalcFlags(flags))
-        .ok()
-        .map(|p| vec![p.xx[0], p.xx[1], p.xx[2], p.xx[3]])
-}
-
-/// Firdaria planetary periods. Returns list of [major_raw, minor_raw, start_jd, end_jd, years].
-#[php_function]
-pub fn celestial_firdaria(jd_birth: f64, is_day: bool, span_years: f64) -> Vec<Vec<f64>> {
-    celestial::firdaria(jd_birth, is_day, span_years)
-        .iter()
-        .map(|p| {
-            vec![
-                p.major_lord.as_raw() as f64,
-                p.minor_lord.as_raw() as f64,
-                p.start,
-                p.end,
-                p.years,
-            ]
-        })
-        .collect()
-}
-
-/// Whether a chart is a day chart (Sun above horizon).
-#[php_function]
-pub fn celestial_is_day_chart(sun_lon: f64, cusps: Vec<f64>) -> bool {
-    if cusps.len() < 13 {
-        return false;
-    }
-    let mut arr = [0.0f64; 13];
-    for (i, &v) in cusps.iter().take(13).enumerate() {
-        arr[i] = v;
-    }
-    celestial::is_day_chart(sun_lon, &arr)
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

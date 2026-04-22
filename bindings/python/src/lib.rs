@@ -1326,6 +1326,53 @@ trait Tap: Sized {
 }
 impl Tap for pyo3::Bound<'_, pyo3::types::PyDict> {}
 
+#[pyfunction]
+fn house_name_str(hsys: u8) -> String {
+    celestial::house_name(HouseSystem(hsys))
+}
+
+#[pyfunction]
+fn mooncross_node(py: Python<'_>, jd_et: f64, flags: i32) -> PyResult<PyObject> {
+    let n = celestial::mooncross_node(jd_et, CalcFlags(flags)).map_err(to_py)?;
+    Ok((n.jd_cross, n.xlon).into_py(py))
+}
+
+#[pyfunction]
+fn mooncross_node_ut(py: Python<'_>, jd_ut: f64, flags: i32) -> PyResult<PyObject> {
+    let n = celestial::mooncross_node_ut(jd_ut, CalcFlags(flags)).map_err(to_py)?;
+    Ok((n.jd_cross, n.xlon).into_py(py))
+}
+
+#[allow(clippy::too_many_arguments)]
+#[pyfunction]
+fn next_aspect_cusp2(
+    py: Python<'_>,
+    body: i32,
+    aspect: f64,
+    cusp: usize,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: u32,
+    backward: bool,
+    flags: i32,
+) -> PyObject {
+    match celestial::next_aspect_cusp2(
+        Body::from_raw(body),
+        aspect,
+        cusp,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        backward,
+        CalcFlags(flags),
+    ) {
+        Some(r) => r.jd.into_py(py),
+        None => py.None(),
+    }
+}
+
 #[pymodule]
 fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // ── functions ──────────────────────────────────────────────────────────
@@ -1634,6 +1681,10 @@ fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     }
 
     m.add_function(wrap_pyfunction!(set_jpl_file, m)?)?;
+    m.add_function(wrap_pyfunction!(next_aspect_cusp2, m)?)?;
+    m.add_function(wrap_pyfunction!(mooncross_node_ut, m)?)?;
+    m.add_function(wrap_pyfunction!(mooncross_node, m)?)?;
+    m.add_function(wrap_pyfunction!(house_name_str, m)?)?;
     m.add_function(wrap_pyfunction!(set_sid_mode, m)?)?;
     m.add_function(wrap_pyfunction!(set_topo, m)?)?;
     m.add_function(wrap_pyfunction!(set_delta_t_userdef, m)?)?;
