@@ -1837,29 +1837,6 @@ pub fn ayanamsa_name(sid_mode: i64) -> String {
     celestial::ayanamsa_name(sid_mode as i32).to_string()
 }
 
-/// Planetocentric position. Returns [lon, lat, dist, speed_lon, speed_lat, speed_dist, ret_flags].
-#[php_function]
-pub fn calc_pctr(tjdet: f64, planet: i64, center: i64, flags: i64) -> PhpResult<Vec<f64>> {
-    celestial::calc_pctr(
-        tjdet,
-        Body(planet as i32),
-        Body(center as i32),
-        CalcFlags(flags as i32),
-    )
-    .map(|p| {
-        vec![
-            p.lon,
-            p.lat,
-            p.dist,
-            p.speed_lon,
-            p.speed_lat,
-            p.speed_dist,
-            p.ret_flags as f64,
-        ]
-    })
-    .map_err(|e| PhpException::from(e.to_string()))
-}
-
 /// Aztec Calendar Round. Returns [trecena, tzolkin_sign_idx, xiuhpohualli_day, xiuhpohualli_name].
 #[php_function]
 pub fn calendar_round(jd: f64) -> Vec<String> {
@@ -2349,7 +2326,7 @@ pub fn utc_to_jd(
         second,
     };
     celestial::utc_to_jd(&d, Calendar::from(calendar as i32))
-        .map(|p| vec![p.et, p.ut])
+        .map(|p| vec![p.et, p.ut1])
         .map_err(|e| PhpException::from(e.to_string()))
 }
 
