@@ -16,10 +16,11 @@ types, phpstan integration, and Phase 5–8 examples.
 
 ---
 
-
----
-
----
+> **Note on Rust builder structs:** `CalcOptions`, `RiseTransOptions`,
+> `SearchOptions`, and `AspectOrbs` are Rust-only builder structs. The PHP
+> extension exposes the underlying functions directly with the `celestial_`
+> prefix: `celestial_calc_ut`, `celestial_calc_many`, `celestial_rise_trans`,
+> `celestial_match_aspect3`, `celestial_match_aspect4`, etc.
 
 ## Installation
 

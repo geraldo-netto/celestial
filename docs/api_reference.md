@@ -7,6 +7,45 @@ All are available through the CLI and all three language bindings.
 
 ---
 
+## Error types
+
+```rust
+/// #[non_exhaustive] — match arms must include `_` wildcard.
+pub enum Error {
+    // Structured variants (carry typed fields for programmatic inspection)
+    BodyNotImplemented { body: i32 },
+    StarNotFound       { name: String },
+    PhaseNotFound      { phase: String, from_jd: f64 },
+    NoEclipseFound     { from_jd: f64 },
+    CircumpolarBody    { body: i32, lat: f64 },
+    HouseSystemFailed  { system: u8, lat: f64 },
+
+    // Legacy string variants (kept for backward compatibility)
+    Calc(String),
+    Houses(String),
+    Eclipse(String),
+    RiseTrans(String),
+    Date(String),
+}
+```
+
+All variants implement `Display` with a human-readable message, so `e.to_string()` always works regardless of which variant is returned.
+
+---
+
+## Serializable output types
+
+The following structs derive `serde::Serialize` and `serde::Deserialize` and can be used directly with `serde_json::to_value()` or any serde format:
+
+| Struct | Fields |
+|---|---|
+| `ChartAspect` | `body1`, `body2`, `aspect`, `orb`, `applying` |
+| `Stations` | `retrograde`, `direct` |
+| `ArabicPart` | `name`, `formula`, `degree` |
+| `DashaLevel` | `body`, `start`, `end`, `years` |
+
+---
+
 ## Time & calendar
 
 | Function | Signature | Description |
@@ -240,6 +279,80 @@ All are available through the CLI and all three language bindings.
 | `bahai_holy_days(bahai_year)` | 13 Bahá'í holy days |
 
 **`BahaiDate`:** `year` (BE) · `month` (1–19, 0=Ayyám-i-Há) · `day` · `month_name`
+
+---
+
+## Builder structs
+
+### `CalcOptions` — unified planetary calculation
+
+Replaces `calc_ut`, `calc`, `calc_many`, `calc_ut_many` with a single discoverable API.
+
+```rust
+use celestial_core::{CalcOptions, CalcStrategy, Body, CalcFlags};
+
+// Single body (UT)
+let pos = CalcOptions::ut(jd, CalcFlags::BUILTIN | CalcFlags::SPEED)
+    .body(Body::SUN)
+    .get()?;
+
+// Multiple bodies — Auto strategy (sequential ≤2, parallel >2)
+let results = CalcOptions::ut(jd, CalcFlags::BUILTIN)
+    .bodies(&[Body::SUN, Body::MOON, Body::MERCURY])
+    .get_many();
+
+// Force sequential
+let results = CalcOptions::ut(jd, CalcFlags::BUILTIN)
+    .strategy(CalcStrategy::Sequential)
+    .bodies(&[Body::SUN, Body::MOON])
+    .get_many();
+```
+
+**`CalcStrategy` variants:** `Sequential` · `Parallel` · `Auto` (default)
+
+### `RiseTransOptions` — rise/transit/set
+
+```rust
+use celestial_core::{RiseTransOptions, Body, CalcFlags};
+
+let result = RiseTransOptions::new(jd, Body::MOON, [lon, lat, alt_m])
+    .event(1)                      // 1=rise, 2=set, 4=upper transit
+    .atmosphere(1013.25, 15.0)     // pressure mb, temperature °C
+    .flags(CalcFlags::BUILTIN)
+    .search()?;
+println!("Rises at JD {}", result.tret);
+```
+
+### `SearchOptions` — cusp-aspect and angle-transit searches
+
+```rust
+use celestial_core::{SearchOptions, Body, CalcFlags, HouseSystem};
+
+// Aspect to house cusp
+let hit = SearchOptions::new(Body::SATURN, jd_start)
+    .aspect(90.0)
+    .cusp(10, lat, lon, HouseSystem::PLACIDUS)
+    .search_cusp();
+
+// Natal angle transits
+let jd = SearchOptions::new(Body::SATURN, jd_start)
+    .natal_chart(jd_natal, lat, lon, HouseSystem::PLACIDUS)
+    .search_mc_transit()?;
+// Also: .search_ic_transit() · .search_asc_transit() · .search_dsc_transit()
+```
+
+### `AspectOrbs` — fine-grained aspect matching
+
+```rust
+use celestial_core::AspectOrbs;
+
+let m = AspectOrbs::new(2.0, 1.5)   // applying_orb, separating_orb
+    .def_orb(2.0)
+    .check(pos0, speed0, pos1, speed1, 120.0);  // trine
+
+assert!(m.matched);
+println!("Orb: {:.2}°  Applying: {}", m.diff.abs(), m.diff < 0.0);
+```
 
 ---
 

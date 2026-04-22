@@ -18,6 +18,21 @@ quick-start examples for all languages.
 
 ---
 
+## New since initial release
+
+| Symbol | Location | Description |
+|---|---|---|
+| `CalcOptions` / `CalcStrategy` | `celestial_core` | Unified builder for single/multi-body calc with `Sequential`/`Parallel`/`Auto` strategy |
+| `RiseTransOptions` | `celestial_core` | Builder for rise/transit/set — replaces `rise_trans()` 8-arg call |
+| `SearchOptions` | `celestial_core` | Builder for cusp-aspect and angle-transit searches |
+| `AspectOrbs` | `celestial_core` | Builder for fine-grained aspect matching |
+| `Error::BodyNotImplemented` | `celestial_core` | Structured errors with typed fields; `#[non_exhaustive]` |
+| `ChartAspect`, `Stations`, `ArabicPart`, `DashaLevel` | `celestial_core` | `#[derive(Serialize, Deserialize)]` added |
+| `celestial_py.pyi` | `bindings/python` | Full Python type stubs for all 114 exported functions |
+| `tests/fixtures/reference_values.json` | `tests/` | Cross-language canonical test fixture (Python, JS, PHP) |
+
+---
+
 ## Quick start
 
 ### Rust
@@ -110,8 +125,6 @@ The public API is a **single flat namespace** — `use celestial_core::*` gives 
 
 ---
 
----
-
 ## Plugin architecture
 
 Any executable named `celestial-<n>` on `$PATH` becomes a first-class subcommand:
@@ -139,8 +152,21 @@ Five independent pipelines, each triggered on changes to its crate or `core/`:
 
 ---
 
----
-
 ## License
 
 AGPL-3.0, matching the Swiss Ephemeris it emulates.
+
+---
+
+## Benchmarks
+
+```bash
+# Rust micro-benchmarks
+cargo bench --package celestial-core
+
+# Precision + performance comparison vs pyephem and astropy
+pip install astropy pyephem
+python3 benches/precision_comparison.py
+```
+
+Precision vs Meeus benchmarks confirmed at ~3.2″ Sun / ~0.7″ Moon. `SYNODIC_MONTH = 29.530_588_853` days.

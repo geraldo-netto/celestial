@@ -14,10 +14,11 @@ return types, constants, and Phase 5–8 examples.
 
 ---
 
-
----
-
----
+> **Note on Rust builder structs:** `CalcOptions`, `RiseTransOptions`,
+> `SearchOptions`, and `AspectOrbs` are Rust-only builder structs and are
+> not currently exposed in the Python binding. The Python binding provides
+> the underlying functions directly: `calc_ut`, `calc_many`, `rise_trans`,
+> `next_aspect_cusp`, `match_aspect3`, `match_aspect4`, etc.
 
 ## Installation
 
@@ -297,6 +298,58 @@ print(f"Totem: {animal} — {element} element, {clan} clan, {season}")
 # Egyptian decan
 decan_idx, decan_name, rising_star = celestial.egyptian_decan(pos.lon)
 print(f"Decan {decan_idx+1}: {decan_name} (rising star: {rising_star})")
+```
+
+---
+
+## Type stubs (`.pyi`)
+
+A full `celestial_py.pyi` stub file ships with the binding at
+`bindings/python/python/celestial_py/celestial_py.pyi`.
+
+It covers all 114 exported functions and the following named types:
+
+| Class | Fields |
+|---|---|
+| `PlanetPos` | `lon`, `lat`, `dist`, `speed_lon`, `speed_lat`, `speed_dist`, `ret_flags` |
+| `HouseResult` | `cusps: list[float]` (13 elements), `ascmc: list[float]` (8 elements) |
+| `NutationResult` | `dpsi`, `deps`, `eps_true` |
+| `RiseTransResult` | `tret`, `trise`, `tset`, `ttransit` |
+| `BaZiPillar` | `stem_name`, `branch_name`, `animal`, `stem_element`, `branch_element`, `yang` |
+| `FirdariaPeriod` | `major_lord`, `minor_lord`, `start`, `end`, `years` |
+| `MoonPhaseInfo` | `phase_name`, `illumination`, `elongation`, `age_days`, `next_phase_name`, … |
+| `JewishHoliday` | `name`, `jd`, `days` |
+
+IDEs (VS Code, PyCharm, etc.) will pick this up automatically when the package is installed.
+You can also use it directly for type-checking:
+
+```bash
+# mypy
+mypy --ignore-missing-imports your_script.py
+
+# pyright
+pyright your_script.py
+```
+
+---
+
+## Parallel calculation
+
+The Python binding exposes `calc_many` for parallel multi-body computation:
+
+```python
+import celestial_py as celestial
+
+planets = [
+    celestial.SUN, celestial.MOON, celestial.MERCURY, celestial.VENUS,
+    celestial.MARS, celestial.JUPITER, celestial.SATURN,
+    celestial.URANUS, celestial.NEPTUNE, celestial.PLUTO,
+    celestial.MEAN_NODE, celestial.CHIRON,
+]
+# All 12 bodies computed in parallel — order preserved
+results = celestial.calc_many(jd, planets, celestial.FLG_BUILTIN | celestial.FLG_SPEED)
+sun = results[0]   # corresponds to planets[0] = SUN
+moon = results[1]  # corresponds to planets[1] = MOON
 ```
 
 ---

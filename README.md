@@ -12,8 +12,6 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
 
 ---
 
----
-
 ## Table of Contents
 
 - [Building from source](#building-from-source)
@@ -29,10 +27,7 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
   - [Chinese astrology](#chinese-astrology)
   - [Mesoamerican calendars](#mesoamerican-calendars)
   - [Indigenous / other traditions](#indigenous--other-traditions)
-- [JavaScript / TypeScript](#javascript--typescript)
 - [Accuracy](#accuracy)
-- [Benchmarks](#benchmarks)
-- [API reference](#api-reference)
 - **Documentation**
   - [docs/api\_reference.md](docs/api_reference.md) — complete function reference
   - [docs/rust.md](docs/rust.md) — Rust API guide
@@ -67,13 +62,6 @@ cd bindings/js && npm install && npm run build
 # PHP extension
 cd bindings/php && cargo build --release
 ```
-
-> **Upgrading from an older checkout?** Delete these files if they still exist locally:
-> ```bash
-> rm core/src/functions/crossings.rs   # merged into motion.rs
-> rm core/src/functions/rise_trans.rs  # merged into motion.rs
-> rm core/src/functions/datetime.rs    # merged into time.rs
-> ```
 
 ---
 
@@ -465,19 +453,6 @@ celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --type medicine-wheel
 
 ---
 
-## JavaScript / TypeScript
-
-```bash
-cd bindings/js && npm install && npm run build
-```
-
-See **[docs/javascript.md](docs/javascript.md)** for TypeScript interfaces, all function
-signatures, and Phase 5–8 examples.
-
----
-
----
-
 ## Accuracy
 
 | Body | Longitude | Latitude | Distance |
@@ -496,34 +471,6 @@ Precision vs Meeus *Astronomical Algorithms* 2nd ed. using `calc()` (TT input):
 | Sun 1992-Oct-13 | 3.2″ | VSOP87 + IAU 2000B nutation |
 | Moon 1992-Apr-12 | 0.7″ | ELP2000-82 + IAU 2000B nutation |
 | julday J2000 | exact | — |
-
----
-
----
-
-## Benchmarks
-
-```bash
-# Rust micro-benchmarks
-cargo bench --package celestial-core
-
-# Precision + performance comparison vs pyephem and astropy
-pip install astropy pyephem
-python3 benches/precision_comparison.py
-```
-
-Precision vs Meeus benchmarks confirmed at ~3.2″ Sun / ~0.7″ Moon. `SYNODIC_MONTH = 29.530_588_853` days.
-
----
-
----
-
-## API reference
-
-See **[docs/api_reference.md](docs/api_reference.md)** for the complete function
-reference — all 8 phases, all return types, all body/flag/house-system constants.
-
----
 
 ---
 

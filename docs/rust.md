@@ -2,9 +2,6 @@
 
 `celestial-core` is the pure-Rust computation engine with no C dependencies.
 
-
----
-
 ---
 
 ## Quick start
@@ -16,8 +13,6 @@ celestial-core = { path = "core" }
 
 See **[docs/rust.md](docs/rust.md)** for the full API reference, extended examples,
 and a complete chart calculation walkthrough.
-
----
 
 ---
 
@@ -39,20 +34,26 @@ use celestial_core::*;
 ## Error handling
 
 ```rust
+// Error is #[non_exhaustive] — always include _ in match arms
 pub enum Error {
-    Calc(String),      // planetary calculation failure
-    Houses(String),    // house system failure
-    Eclipse(String),   // eclipse search failure
-    RiseTrans(String), // rise/transit failure
-    Date(String),      // date conversion failure
+    // Structured variants (carry typed fields)
+    BodyNotImplemented { body: i32 },
+    StarNotFound       { name: String },
+    PhaseNotFound      { phase: String, from_jd: f64 },
+    NoEclipseFound     { from_jd: f64 },
+    CircumpolarBody    { body: i32, lat: f64 },
+    HouseSystemFailed  { system: u8, lat: f64 },
+    // Legacy string variants (backward-compatible)
+    Calc(String), Houses(String), Eclipse(String), RiseTrans(String), Date(String),
 }
 pub type Result<T> = std::result::Result<T, Error>;
 
-// Pattern match on errors
-match calc_ut(jd, SUN, FLG_BUILTIN) {
-    Ok(pos)               => println!("lon={:.4}", pos.lon),
-    Err(Error::Calc(msg)) => eprintln!("calculation failed: {msg}"),
-    Err(e)                => eprintln!("error: {e}"),
+// All variants impl Display — e.to_string() always works
+match calc_ut(jd, Body::SUN, CalcFlags::BUILTIN) {
+    Ok(pos) => println!("lon={:.4}", pos.lon),
+    Err(Error::StarNotFound { name }) => eprintln!("star '{name}' not found"),
+    Err(Error::BodyNotImplemented { body }) => eprintln!("body {body} unsupported"),
+    Err(e) => eprintln!("error: {e}"),  // _ catch-all required by #[non_exhaustive]
 }
 ```
 
@@ -126,6 +127,91 @@ println!("Mars (Lahiri) = {:.4}°", mars.lon);
 // Current ayanamsa value
 let ayan = ayanamsa_ut(jd);
 println!("Lahiri ayanamsa = {:.4}°", ayan);
+```
+
+---
+
+## Builder API
+
+### `CalcOptions` — unified calculation
+
+```rust
+use celestial_core::*;
+
+// Single body
+let sun = CalcOptions::ut(jd, CalcFlags::BUILTIN | CalcFlags::SPEED)
+    .body(Body::SUN)
+    .get()?;
+
+// Multiple bodies — Auto strategy (≤2 sequential, >2 parallel)
+let results = CalcOptions::ut(jd, CalcFlags::BUILTIN)
+    .bodies(&[Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS, Body::MARS])
+    .get_many();
+
+// Explicit strategy
+let results = CalcOptions::ut(jd, CalcFlags::BUILTIN)
+    .strategy(CalcStrategy::Parallel)
+    .bodies(&[Body::SUN, Body::MOON, Body::MERCURY])
+    .get_many();
+
+// TT (Terrestrial Time) input — for Meeus examples
+let moon_tt = CalcOptions::tt(jde, CalcFlags::BUILTIN).body(Body::MOON).get()?;
+```
+
+**`CalcStrategy` variants:** `Sequential` · `Parallel` · `Auto` (default)
+
+### `RiseTransOptions`
+
+```rust
+// Replaces the 8-argument rise_trans() free function
+let rise = RiseTransOptions::new(jd, Body::MOON, [2.35, 48.85, 35.0])
+    .event(1)                    // 1 = CALC_RISE
+    .atmosphere(1013.25, 15.0)
+    .search()?;
+println!("Moon rises at JD {:.4}", rise.tret);
+
+// For a fixed star
+let aldebaran = RiseTransOptions::new(jd, Body::SUN, [2.35, 48.85, 35.0])
+    .star("Aldebaran")
+    .event(1)
+    .search()?;
+```
+
+### `SearchOptions`
+
+```rust
+// Aspect to house cusp
+let hit = SearchOptions::new(Body::SATURN, jd)
+    .aspect(90.0)
+    .cusp(10, lat, lon, HouseSystem::PLACIDUS)
+    .search_cusp();
+
+// Natal angle transits
+let jd_mc = SearchOptions::new(Body::SATURN, jd_start)
+    .natal_chart(jd_natal, lat, lon, HouseSystem::PLACIDUS)
+    .search_mc_transit()?;
+let jd_asc = SearchOptions::new(Body::SATURN, jd_start)
+    .natal_chart(jd_natal, lat, lon, HouseSystem::PLACIDUS)
+    .search_asc_transit()?;
+
+// Backward search
+let jd_past = SearchOptions::new(Body::JUPITER, jd)
+    .natal_chart(jd_natal, lat, lon, HouseSystem::PLACIDUS)
+    .backward(true)
+    .search_mc_transit()?;
+```
+
+### `AspectOrbs`
+
+```rust
+// Replaces match_aspect3 / match_aspect4
+let m = AspectOrbs::new(2.0, 1.5)  // applying_orb, separating_orb
+    .check(pos0, speed0, pos1, speed1, 120.0);  // trine
+
+if m.matched {
+    println!("Trine  orb={:.2}°  {}", m.diff.abs(),
+        if m.diff < 0.0 { "applying" } else { "separating" });
+}
 ```
 
 ---
@@ -268,6 +354,16 @@ fn main() -> Result<()> {
     let (animal, element, clan, season) = medicine_wheel_totem(sun.lon);
     println!("Totem: {animal} ({element}, {clan}, {season})");
 
+    // Phase 5 — Hellenistic dignities
+    let (dig, score) = full_dignity(Body::SUN, sun.lon, is_day_chart(sun.lon, &h.cusps))?;
+    println!("Sun dignity: {dig:?} (score {score})");
+
+    let periods = firdaria(jd_natal, is_day_chart(sun.lon, &h.cusps), 75.0);
+    println!("First firdaria lord: {}", planet_name(periods[0].major_lord));
+
+    let (house, _) = annual_profection(&h.cusps, 35);
+    println!("Age 35 profection: house {house}");
+
     Ok(())
 }
 ```
@@ -297,4 +393,26 @@ println!("Mars direct:     JD {:.2}", stations.direct);
 // Sign ingress
 let (jd_ingress, sign) = sign_ingress_ut(SATURN, jd, FLG_BUILTIN, false)?;
 println!("Saturn enters {}: JD {jd_ingress:.2}", zodiac_sign_name(sign));
+```
+
+---
+
+## Serializable output types
+
+`ChartAspect`, `Stations`, `ArabicPart`, and `DashaLevel` derive
+`serde::Serialize` and `serde::Deserialize`:
+
+```rust
+use serde_json;
+
+let aspects = calc_chart_aspects(&positions, MAJOR_ASPECTS, 8.0);
+let json    = serde_json::to_string(&aspects)?;  // works directly
+```
+
+Add `serde` to your `Cargo.toml` to use this:
+
+```toml
+[dependencies]
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
 ```
