@@ -156,10 +156,10 @@ pub fn houses_from_armc(
     eps: f64,
     hsys: HouseSystem,
 ) -> Result<HouseResult> {
-    crate::astronomy::houses_from_armc(armc, geolat, eps, hsys.as_raw()).ok_or_else(|| {
-        Error::Houses(format!(
-            "houses_from_armc: unsupported system '{}'",
-            hsys.as_raw() as char
-        ))
-    })
+    crate::astronomy::houses_from_armc(armc, geolat, eps, hsys.as_raw()).ok_or(
+        Error::HouseSystemFailed {
+            system: hsys.as_raw(),
+            lat: geolat,
+        },
+    )
 }

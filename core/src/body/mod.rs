@@ -24,6 +24,10 @@ use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
+/// A celestial body or point identified by its index.
+///
+/// Use the associated constants (`Body::SUN`, `Body::MOON`, …)
+/// or `Body(n)` for custom asteroid indices.
 pub struct Body(pub i32);
 
 impl Body {

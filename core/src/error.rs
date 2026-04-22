@@ -73,6 +73,9 @@ pub enum Error {
     /// A rise/transit search failed.
     RiseTrans(String),
     /// A date/time conversion failed.
+    ///
+    /// Reserved for future use — the pure-Rust engine currently
+    /// returns `Calc` errors for invalid date inputs.
     Date(String),
 }
 

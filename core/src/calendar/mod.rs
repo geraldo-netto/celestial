@@ -18,21 +18,24 @@ pub mod hindu;
 pub mod islamic;
 pub mod persian;
 pub use crate::functions::easter::{
-    christian_feasts, christian_fixed_feasts, easter_gregorian, easter_jd, easter_orthodox,
-    easter_orthodox_jd, ChristianFeast,
+    christian_feasts, christian_fixed_feasts, easter_gregorian, easter_jd, easter_julian,
+    easter_orthodox, easter_orthodox_jd, ChristianFeast,
 };
 pub use crate::functions::islamic::{
-    gregorian_to_hijri_years, hijri_from_jd, hijri_month_name, hijri_to_jd, islamic_observances,
-    IslamicObservance,
+    gregorian_to_hijri_years, hijri_from_jd, hijri_month_days, hijri_month_name,
+    hijri_month_start_jd, hijri_new_year_jd, hijri_to_jd, is_hijri_leap_year, islamic_observances,
+    islamic_observances_for_jd, IslamicObservance,
 };
 pub use crate::functions::jewish::{
     hebrew_year_from_jd, jd_to_hebrew_date, jewish_holiday_jd, jewish_holidays, JewishHoliday,
 };
 pub use crate::functions::nowruz::{
-    bahai_holy_days, gregorian_to_solar_hijri, jd_to_bahai, naw_ruz_jd, nowruz_jd, BahaiDate,
-    BahaiHolyDay,
+    bahai_holy_days, gregorian_to_solar_hijri, is_bahai_leap_year, jd_to_bahai, naw_ruz_jd,
+    nowruz_jd, solar_hijri_to_gregorian, BahaiDate, BahaiHolyDay,
 };
 pub use crate::functions::omer::{
+    approx_hebrew_year, days_in_hebrew_year, elapsed_days, hebrew_month_days,
+    hebrew_month_start_jd, hebrew_new_year_jd, is_hebrew_leap_year, months_in_hebrew_year,
     omer_day_jd, omer_days, omer_declaration, omer_from_jd, omer_period, omer_start_jd, OmerDay,
     OmerPeriod,
 };

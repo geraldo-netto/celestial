@@ -29,6 +29,7 @@ fn approx_retro_time(body: Body) -> f64 {
     }
 }
 
+/// Result of a retrograde station search.
 pub struct RetroResult {
     pub jd: f64,
     pub pos: [f64; 6],

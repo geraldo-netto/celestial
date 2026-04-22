@@ -2077,6 +2077,560 @@ fn four_pillars(jd_ut: f64, hour_ut: f64, sun_lon: f64) -> Vec<String> {
 
 // ══════════════════════════════════════════════════════════════════════════════
 
+/// Antiscion of a planet. Returns [lon, lat, dist, speed_lon, speed_lat, speed_dist].
+#[php_function]
+pub fn antiscion(pos: Vec<f64>, axis: f64) -> PhpResult<Vec<f64>> {
+    let arr: [f64; 6] = pos
+        .get(..6)
+        .and_then(|s| s.try_into().ok())
+        .ok_or_else(|| PhpException::from("pos must have 6 elements".to_string()))?;
+    let r = celestial::antiscion(arr, axis);
+    Ok(r.antiscion.to_vec())
+}
+
+/// Ayanamsa value at Julian Day (ET).
+#[php_function]
+pub fn ayanamsa(jd_et: f64) -> f64 {
+    celestial::ayanamsa(jd_et)
+}
+
+/// Ayanamsa value at Julian Day (UT).
+#[php_function]
+pub fn ayanamsa_ut(jd_ut: f64) -> f64 {
+    celestial::ayanamsa_ut(jd_ut)
+}
+
+/// Name of a sidereal mode by index.
+#[php_function]
+pub fn ayanamsa_name(sid_mode: i64) -> String {
+    celestial::ayanamsa_name(sid_mode as i32).to_string()
+}
+
+/// Planetocentric position. Returns [lon, lat, dist, speed_lon, speed_lat, speed_dist, ret_flags].
+#[php_function]
+pub fn calc_pctr(tjdet: f64, planet: i64, center: i64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::calc_pctr(
+        tjdet,
+        Body(planet as i32),
+        Body(center as i32),
+        CalcFlags(flags as i32),
+    )
+    .map(|p| {
+        vec![
+            p.lon,
+            p.lat,
+            p.dist,
+            p.speed_lon,
+            p.speed_lat,
+            p.speed_dist,
+            p.ret_flags as f64,
+        ]
+    })
+    .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Aztec Calendar Round. Returns [trecena, tzolkin_sign_idx, xiuhpohualli_day, xiuhpohualli_name].
+#[php_function]
+pub fn calendar_round(jd: f64) -> Vec<String> {
+    let (t, s, d, m) = celestial::calendar_round(jd);
+    vec![t.to_string(), s.to_string(), d.to_string(), m.to_string()]
+}
+
+/// Split a degree value into [degrees, minutes, seconds, fraction].
+#[php_function]
+pub fn degsplit(pos: f64) -> Vec<i64> {
+    celestial::degsplit(pos).iter().map(|&x| x as i64).collect()
+}
+
+/// Egyptian decan for an ecliptic longitude. Returns [index, name, star].
+#[php_function]
+pub fn egyptian_decan(lon: f64) -> Vec<String> {
+    let (i, n, s) = celestial::egyptian_decan(lon);
+    vec![i.to_string(), n.to_string(), s.to_string()]
+}
+
+/// Fixed star position (epoch ET). Returns [lon, lat, dist, speed_lon, speed_lat, speed_dist, ret_flags].
+#[php_function]
+pub fn fixstar2(star: String, tjdet: f64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::fixstar2(&star, tjdet, CalcFlags(flags as i32))
+        .map(|r| r.xx.to_vec())
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Fixed star magnitude.
+#[php_function]
+pub fn fixstar2_mag(star: String) -> PhpResult<f64> {
+    celestial::fixstar2_mag(&star).map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Fixed star position (epoch UT). Returns [lon, lat, dist, speed_lon, speed_lat, speed_dist, ret_flags].
+#[php_function]
+pub fn fixstar2_ut(star: String, tjdut: f64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::fixstar2_ut(&star, tjdut, CalcFlags(flags as i32))
+        .map(|r| r.xx.to_vec())
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Fixed star position (UT, original API). Returns flat array.
+#[php_function]
+pub fn fixstar_ut(star: String, tjdut: f64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::fixstar_ut(&star, tjdut, CalcFlags(flags as i32))
+        .map(|r| r.xx.to_vec())
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Essential dignity score. Returns [dignity_string, score_int].
+#[php_function]
+pub fn full_dignity(body: i64, lon: f64, is_day: bool) -> Vec<String> {
+    let (dig, score) = celestial::full_dignity(Body(body as i32), lon, is_day);
+    vec![dig.to_string(), score.to_string()]
+}
+
+/// Gregorian year to Hijri years. Returns [year1, year2].
+#[php_function]
+pub fn gregorian_to_hijri_years(gregorian_year: i64) -> Vec<i64> {
+    let (y1, y2) = celestial::gregorian_to_hijri_years(gregorian_year as i32);
+    vec![y1 as i64, y2 as i64]
+}
+
+/// Aztec Haab (365-day solar calendar). Returns [month_idx, day, month_name].
+#[php_function]
+pub fn haab(jd: f64) -> Vec<String> {
+    let (m, d, n) = celestial::haab(jd);
+    vec![m.to_string(), d.to_string(), n.to_string()]
+}
+
+/// House system name by byte code.
+#[php_function]
+pub fn house_name_str(hsys: i64) -> String {
+    celestial::house_name(HouseSystem(hsys as u8))
+}
+
+/// House cusps with speeds. Returns [cusps_13, ascmc_10, cusp_speeds_13, ascmc_speeds_10].
+#[php_function]
+pub fn houses_ex2(tjdut: f64, lat: f64, lon: f64, hsys: i64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::houses_ex2(
+        tjdut,
+        CalcFlags(flags as i32),
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+    )
+    .map(|r| {
+        let mut v = r.cusps.to_vec();
+        v.extend_from_slice(&r.ascmc);
+        v.extend_from_slice(&r.cusp_speeds);
+        v.extend_from_slice(&r.ascmc_speeds);
+        v
+    })
+    .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Duration between two Julian Days. Returns [years, months, days, hours, minutes, seconds].
+#[php_function]
+pub fn jd_duration(jd_start: f64, jd_end: f64) -> Vec<i64> {
+    celestial::jd_duration(jd_start, jd_end)
+        .iter()
+        .map(|&x| x as i64)
+        .collect()
+}
+
+/// Lunar eclipse attributes at a specific time.
+#[php_function]
+pub fn lun_eclipse_how(jd_ut: f64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::lun_eclipse_how(jd_ut, CalcFlags(flags as i32), None)
+        .map(|r| {
+            let mut v = vec![r.ret_flags as f64];
+            v.extend_from_slice(&r.attr);
+            v
+        })
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Next lunar eclipse visible from a location.
+#[php_function]
+pub fn lun_eclipse_when_loc(
+    tjd_start: f64,
+    geopos: Vec<f64>,
+    flags: i64,
+    backwards: bool,
+) -> PhpResult<Vec<f64>> {
+    let gp: [f64; 3] = geopos
+        .get(..3)
+        .and_then(|s| s.try_into().ok())
+        .ok_or_else(|| PhpException::from("geopos needs 3 elements".to_string()))?;
+    celestial::lun_eclipse_when_loc(tjd_start, CalcFlags(flags as i32), gp, backwards)
+        .map(|r| {
+            let mut v = vec![r.ret_flags as f64];
+            v.extend_from_slice(&r.tret);
+            v
+        })
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Aspect match (applying/separating/exact). Returns [matched, diff, speed, factor].
+#[php_function]
+pub fn match_aspect2(
+    pos0: f64,
+    speed0: f64,
+    pos1: f64,
+    speed1: f64,
+    aspect: f64,
+    orb: f64,
+) -> Vec<f64> {
+    let r = celestial::match_aspect2(pos0, speed0, pos1, speed1, aspect, orb);
+    vec![if r.matched { 1.0 } else { 0.0 }, r.diff, r.speed, r.factor]
+}
+
+/// Aspect match with separate applying/separating orbs. Returns [matched, diff, speed, factor].
+#[php_function]
+pub fn match_aspect3(
+    pos0: f64,
+    speed0: f64,
+    pos1: f64,
+    speed1: f64,
+    aspect: f64,
+    app_orb: f64,
+    sep_orb: f64,
+) -> Vec<f64> {
+    let r = celestial::match_aspect3(
+        pos0,
+        speed0,
+        pos1,
+        speed1,
+        aspect,
+        app_orb,
+        sep_orb,
+        app_orb.max(sep_orb),
+    );
+    vec![if r.matched { 1.0 } else { 0.0 }, r.diff, r.speed, r.factor]
+}
+
+/// Aspect match with three orbs. Returns [matched, diff, speed, factor].
+#[php_function]
+pub fn match_aspect4(
+    pos0: f64,
+    speed0: f64,
+    pos1: f64,
+    speed1: f64,
+    aspect: f64,
+    app_orb: f64,
+    sep_orb: f64,
+) -> Vec<f64> {
+    let r = celestial::match_aspect4(
+        pos0,
+        speed0,
+        pos1,
+        speed1,
+        aspect,
+        app_orb,
+        sep_orb,
+        app_orb.max(sep_orb),
+    );
+    vec![if r.matched { 1.0 } else { 0.0 }, r.diff, r.speed, r.factor]
+}
+
+/// Mean sidereal time at Julian Day.
+#[php_function]
+pub fn mean_sidtime(jd: f64) -> f64 {
+    celestial::mean_sidtime(jd)
+}
+
+/// Next Moon crossing of a node (ET). Returns [jd_cross, lon].
+#[php_function]
+pub fn mooncross_node(jd_et: f64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::mooncross_node(jd_et, CalcFlags(flags as i32))
+        .map(|n| vec![n.jd_cross, n.xlon])
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Next Moon crossing of a node (UT). Returns [jd_cross, lon].
+#[php_function]
+pub fn mooncross_node_ut(jd_ut: f64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::mooncross_node_ut(jd_ut, CalcFlags(flags as i32))
+        .map(|n| vec![n.jd_cross, n.xlon])
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Natural (naisargika) relationship between two grahas. Returns -1, 0, or 1.
+#[php_function]
+pub fn naisargika_relation(gr1: i64, gr2: i64) -> PhpResult<i64> {
+    celestial::naisargika_relation(gr1 as i32, gr2 as i32)
+        .map(|v| v as i64)
+        .ok_or_else(|| PhpException::from("invalid graha".to_string()))
+}
+
+/// Next aspect to a fixed point. Returns [jd, lon1, lat1, dist1, speed1, lon2] or null.
+#[php_function]
+pub fn next_aspect(
+    planet: i64,
+    aspect: f64,
+    fixed_pt: f64,
+    jd_start: f64,
+    backward: bool,
+    stop_days: f64,
+    flags: i64,
+) -> Option<Vec<f64>> {
+    celestial::next_aspect(
+        Body(planet as i32),
+        aspect,
+        fixed_pt,
+        jd_start,
+        backward,
+        stop_days,
+        CalcFlags(flags as i32),
+    )
+    .map(|r| {
+        let mut v = vec![r.jd];
+        v.extend_from_slice(&r.pos1);
+        v.extend_from_slice(&r.pos2);
+        v
+    })
+}
+
+/// Next aspect cusp (secondary algorithm). Returns [jd] or null.
+#[php_function]
+pub fn next_aspect_cusp2(
+    body: i64,
+    aspect: f64,
+    cusp: i64,
+    jd_start: f64,
+    lat: f64,
+    lon: f64,
+    hsys: i64,
+    backward: bool,
+    flags: i64,
+) -> Option<Vec<f64>> {
+    celestial::next_aspect_cusp2(
+        Body(body as i32),
+        aspect,
+        cusp as usize,
+        jd_start,
+        lat,
+        lon,
+        HouseSystem(hsys as u8),
+        backward,
+        CalcFlags(flags as i32),
+    )
+    .map(|r| vec![r.jd])
+}
+
+/// Next aspect between two planets. Returns [jd, lon1, lon2] or null.
+#[php_function]
+pub fn next_aspect_with(
+    planet: i64,
+    aspect: f64,
+    other: i64,
+    jd_start: f64,
+    backward: bool,
+    stop_days: f64,
+    flags: i64,
+) -> Option<Vec<f64>> {
+    celestial::next_aspect_with(
+        Body(planet as i32),
+        aspect,
+        Body(other as i32),
+        jd_start,
+        backward,
+        stop_days,
+        CalcFlags(flags as i32),
+    )
+    .map(|r| vec![r.jd])
+}
+
+/// Next sabbat. Returns [jd].
+#[php_function]
+pub fn next_sabbat(jd_from: f64) -> PhpResult<Vec<f64>> {
+    celestial::next_sabbat(jd_from)
+        .map(|s| vec![s.jd])
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Ochchabala (exaltation strength). Returns strength value.
+#[php_function]
+pub fn ochchabala(graha: i64, sputha: f64) -> PhpResult<f64> {
+    celestial::ochchabala(graha as i32, sputha)
+        .ok_or_else(|| PhpException::from("graha out of range".to_string()))
+}
+
+/// Parse a datetime string. Returns [year, month, day, hour, minute, second] or null.
+#[php_function]
+pub fn parse_datetime(s: String) -> Option<Vec<i64>> {
+    celestial::parse_datetime(&s).map(|a| a.iter().map(|&x| x as i64).collect())
+}
+
+/// Planet name by index.
+#[php_function]
+pub fn planet_name(planet: i64) -> String {
+    celestial::planet_name(Body(planet as i32)).to_string()
+}
+
+/// Extended atmospheric refraction. Returns [result, dret array].
+#[php_function]
+pub fn refrac_extended(
+    altitude: f64,
+    geoalt: f64,
+    pressure_mb: f64,
+    temp_c: f64,
+    lapse_rate: f64,
+    calc_flag: i64,
+) -> Vec<f64> {
+    let (result, dret) = celestial::refrac_extended(
+        altitude,
+        geoalt,
+        pressure_mb,
+        temp_c,
+        lapse_rate,
+        calc_flag as i32,
+    );
+    let mut v = vec![result];
+    v.extend_from_slice(&dret);
+    v
+}
+
+/// Residential strength of a graha.
+#[php_function]
+pub fn residential_strength(graha: f64, bm: Vec<f64>) -> PhpResult<f64> {
+    let arr: [f64; 12] = bm
+        .get(..12)
+        .and_then(|s| s.try_into().ok())
+        .ok_or_else(|| PhpException::from("bm needs 12 elements".to_string()))?;
+    celestial::residential_strength(graha, &arr)
+        .ok_or_else(|| PhpException::from("graha out of range".to_string()))
+}
+
+/// Retrograde and direct station Julian Days. Returns [retrograde_jd, direct_jd].
+#[php_function]
+pub fn retrograde_station_ut(planet: i64, jd: f64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::retrograde_station_ut(Body(planet as i32), jd, CalcFlags(flags as i32))
+        .map(|s| vec![s.retrograde, s.direct])
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Reverse Julian Day with hours, minutes, seconds. Returns [year, month, day, hour, minute, second].
+#[php_function]
+pub fn revjul_hms(jd: f64, calendar: i64) -> Vec<i64> {
+    celestial::revjul_hms(jd, Calendar::from(calendar as i32))
+        .iter()
+        .map(|&x| x as i64)
+        .collect()
+}
+
+/// Saturn four stars positions. Returns flat float array.
+#[php_function]
+pub fn saturn_4_stars(jd: f64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::saturn_4_stars(jd, CalcFlags(flags as i32))
+        .map(|a| a.to_vec())
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Set JPL ephemeris file path.
+#[php_function]
+pub fn set_jpl_file(fname: String) -> PhpResult<()> {
+    celestial::set_jpl_file(&fname).map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Modern (outer planet) sign ruler by sign index.
+#[php_function]
+pub fn sign_ruler_modern(sign: i64) -> i64 {
+    celestial::sign_ruler_modern(sign as u8).as_raw() as i64
+}
+
+/// Solar eclipse attributes at a specific time and location.
+#[php_function]
+pub fn sol_eclipse_how(jd_ut: f64, geopos: Vec<f64>, flags: i64) -> PhpResult<Vec<f64>> {
+    let gp: [f64; 3] = geopos
+        .try_into()
+        .map_err(|_| PhpException::from("geopos must have 3 elements".to_string()))?;
+    celestial::sol_eclipse_how(jd_ut, CalcFlags(flags as i32), gp)
+        .map(|r| {
+            let mut v = vec![r.ret_flags as f64];
+            v.extend_from_slice(&r.attr);
+            v
+        })
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Next solar eclipse visible from a location.
+#[php_function]
+pub fn sol_eclipse_when_loc(
+    tjd_start: f64,
+    geopos: Vec<f64>,
+    flags: i64,
+    backwards: bool,
+) -> PhpResult<Vec<f64>> {
+    let gp: [f64; 3] = geopos
+        .try_into()
+        .map_err(|_| PhpException::from("geopos must have 3 elements".to_string()))?;
+    celestial::sol_eclipse_when_loc(tjd_start, CalcFlags(flags as i32), gp, backwards)
+        .map(|r| {
+            let mut v = vec![r.ret_flags as f64];
+            v.extend_from_slice(&r.tret);
+            v
+        })
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Geographic coordinates of a solar eclipse.
+#[php_function]
+pub fn sol_eclipse_where(tjd: f64, flags: i64) -> PhpResult<Vec<f64>> {
+    celestial::sol_eclipse_where(tjd, CalcFlags(flags as i32))
+        .map(|r| {
+            let mut v = vec![r.ret_flags as f64];
+            v.extend_from_slice(&r.geopos);
+            v.extend_from_slice(&r.attr);
+            v
+        })
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Aztec Tonalpohualli (260-day). Returns [trecena, sign_idx, day_name, day_lord].
+#[php_function]
+pub fn tonalpohualli(jd: f64) -> Vec<String> {
+    let (t, i, n, e) = celestial::tonalpohualli(jd);
+    vec![t.to_string(), i.to_string(), n.to_string(), e.to_string()]
+}
+
+/// Maya Tzolkin (260-day). Returns [trecena, sign_idx, day_name, day_lord].
+#[php_function]
+pub fn tzolkin(jd: f64) -> Vec<String> {
+    let (t, i, n, e) = celestial::tzolkin(jd);
+    vec![t.to_string(), i.to_string(), n.to_string(), e.to_string()]
+}
+
+/// UTC date to Julian Day pair. Returns [jd_et, jd_ut].
+#[php_function]
+pub fn utc_to_jd(
+    year: i64,
+    month: i64,
+    day: i64,
+    hour: i64,
+    minute: i64,
+    second: f64,
+    calendar: i64,
+) -> PhpResult<Vec<f64>> {
+    let d = celestial::UtcDate {
+        year: year as i32,
+        month: month as i32,
+        day: day as i32,
+        hour: hour as i32,
+        minute: minute as i32,
+        second,
+    };
+    celestial::utc_to_jd(&d, Calendar::from(calendar as i32))
+        .map(|p| vec![p.et, p.ut])
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Aztec Xiuhpohualli (365-day solar). Returns [month_idx, day, month_name, day_name].
+#[php_function]
+pub fn xiuhpohualli(jd: f64) -> Vec<String> {
+    let (m, d, n, e) = celestial::xiuhpohualli(jd);
+    vec![m.to_string(), d.to_string(), n.to_string(), e.to_string()]
+}
+
+/// next_aspect_cusp2 is defined above already.
+
 #[php_module]
 pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
     module

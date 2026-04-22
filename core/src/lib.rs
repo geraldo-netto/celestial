@@ -82,16 +82,29 @@ pub use error::{Error, Result};
 pub mod prelude {
     //! The most commonly used items, all in one place.
     //!
-    //! ```
+    //! ```no_run
     //! use celestial_core::prelude::*;
+    //!
+    //! let jd  = julday(2025, 3, 20, 9.0, Calendar::Gregorian);
+    //! let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    //! println!("Sun: {:.4}°", sun.lon);
     //! ```
     pub use crate::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
+    pub use crate::chart::AspectOrbs;
+    pub use crate::chart::{
+        calc_chart_aspects, calc_chart_aspects_auto, lunar_return_jd, solar_return_jd,
+    };
     pub use crate::error::{Error, Result};
     pub use crate::houses::houses;
-    pub use crate::moon::{moon_illumination, moon_phase, MoonPhase};
-    pub use crate::position::{ayanamsa, calc_ut, planet_name, set_sid_mode};
+    pub use crate::moon::{moon_illumination, moon_phase, moon_phases_for_month, MoonPhase};
+    pub use crate::motion::{
+        mooncross_ut, rise_trans, solcross_ut, RiseTransOptions, SearchOptions,
+    };
+    pub use crate::position::{
+        ayanamsa, calc_many, calc_ut, calc_ut_many, planet_name, set_sid_mode, CalcOptions,
+        CalcStrategy, PlanetPos,
+    };
     pub use crate::time::{jdnow, julday, revjul, CalDate};
-    pub use crate::types::PlanetPos;
 }
 
 // ── Implementation detail — not part of the public API ──────────────────────────

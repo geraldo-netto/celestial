@@ -1,5 +1,6 @@
 //! Timezone abbreviation table (port of swhtimezone.c).
 
+/// A timezone abbreviation (e.g. `"UTC"`, `"EST"`) with UTC offset.
 pub struct TzAbbr {
     pub name: &'static str,
     pub desc: &'static str,
