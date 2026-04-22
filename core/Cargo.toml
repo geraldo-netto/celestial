@@ -2,9 +2,18 @@
 name        = "celestial-core"
 version.workspace = true
 edition     = "2021"
-description = "Pure-Rust astronomical engine: planets, houses, ayanamsa, rise/set"
+description = "Pure-Rust astronomical engine — planets, houses, eclipses, calendars, and eight astrological traditions"
 license     = "AGPL-3.0-or-later"
 repository  = "https://github.com/geraldo-netto/celestial"
+documentation = "https://docs.rs/celestial-core"
+readme      = "../README.md"
+keywords    = ["astronomy", "astrology", "ephemeris", "julian-day", "swiss-ephemeris"]
+categories  = ["science", "date-and-time", "mathematics"]
+exclude     = ["tests/", "benches/", "fuzz/"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

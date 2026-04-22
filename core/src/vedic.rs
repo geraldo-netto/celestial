@@ -1,6 +1,13 @@
-//! `celestial_core::vedic` module.
+//! Vedic / Jyotish helpers: nakshatra, navamsa, Panchānga, Vimshottari dasha.
 //!
-//! Sources: vedic.rs + panchanga.rs.
+//! # Examples
+//!
+//! ```
+//! use celestial_core::vedic::{long_to_nakshatra, panchanga};
+//!
+//! let (nak, pada) = long_to_nakshatra(123.456);
+//! println!("Nakshatra {nak}, pada {pada}");
+//! ```
 
 pub use crate::functions::panchanga::*;
 pub use crate::functions::vedic::*;

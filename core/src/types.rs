@@ -7,7 +7,7 @@
 ///
 /// Coordinates are ecliptic (degrees) unless [`FLG_EQUATORIAL`] is set, in
 /// which case they are equatorial (RA / Dec).  Distance is in AU.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct PlanetPos {
     /// Ecliptic longitude or right ascension (degrees).
     pub lon: f64,
@@ -28,7 +28,7 @@ pub struct PlanetPos {
 // ─── Fixed star ───────────────────────────────────────────────────────────────
 
 /// Position (and optionally speed) of a fixed star.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FixStarPos {
     /// Six-element position/speed vector `[lon, lat, dist, speed_lon, speed_lat, speed_dist]`.
     pub xx: [f64; 6],
@@ -43,7 +43,7 @@ pub struct FixStarPos {
 /// Nodes and apsides for a planet's orbit.
 ///
 /// Each array is a six-element `[lon, lat, dist, speed_lon, speed_lat, speed_dist]`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct NodAps {
     /// Ascending node.
     pub nasc: [f64; 6],
@@ -60,7 +60,7 @@ pub struct NodAps {
 // ─── Orbital elements / distances ─────────────────────────────────────────────
 
 /// Full set of orbital elements for a planet.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct OrbitalElements {
     /// Semi-major axis (AU).
     pub semi_major_axis: f64,
@@ -83,7 +83,7 @@ pub struct OrbitalElements {
 }
 
 /// Maximum, minimum, and current true distance of a planet.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct OrbitalDistances {
     /// Aphelion distance (AU).
     pub dmax: f64,

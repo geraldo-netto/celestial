@@ -6,31 +6,47 @@
 
 // ─── Calendar flags ──────────────────────────────────────────────────────────
 
+/// Julian calendar flag — pass to `julday`, `revjul`, etc.
 pub const JUL_CAL: i32 = 0;
+/// Gregorian calendar flag — pass to `julday`, `revjul`, etc.
 pub const GREG_CAL: i32 = 1;
 
 // ─── Body numbers ────────────────────────────────────────────────────────────
 
+/// Ecliptic obliquity and nutation (special body index).
 pub const ECL_NUT: i32 = -1;
+/// The Sun.
 pub const SUN: i32 = 0;
 pub const MOON: i32 = 1;
+/// Mercury.
 pub const MERCURY: i32 = 2;
 pub const VENUS: i32 = 3;
+/// Mars.
 pub const MARS: i32 = 4;
 pub const JUPITER: i32 = 5;
+/// Saturn.
 pub const SATURN: i32 = 6;
 pub const URANUS: i32 = 7;
+/// Neptune.
 pub const NEPTUNE: i32 = 8;
 pub const PLUTO: i32 = 9;
+/// Mean lunar node (Rahu / Ketu axis, mean position).
 pub const MEAN_NODE: i32 = 10;
+/// True (osculating) lunar node.
 pub const TRUE_NODE: i32 = 11;
+/// Mean lunar apogee (Black Moon Lilith, mean).
 pub const MEAN_APOG: i32 = 12;
+/// Osculating lunar apogee (True Lilith).
 pub const OSCU_APOG: i32 = 13;
+/// Earth (heliocentric calculations).
 pub const EARTH: i32 = 14;
+/// Chiron.
 pub const CHIRON: i32 = 15;
 pub const PHOLUS: i32 = 16;
+/// Ceres.
 pub const CERES: i32 = 17;
 pub const PALLAS: i32 = 18;
+/// Juno.
 pub const JUNO: i32 = 19;
 pub const VESTA: i32 = 20;
 pub const INTP_APOG: i32 = 21;
@@ -91,31 +107,45 @@ pub const FLG_BUILTIN: i32 = 2;
 /// Use Moshier approximation (not yet implemented — treated as `FLG_BUILTIN`).
 pub const FLG_MOSHIER: i32 = 4;
 
+/// Heliocentric position (default: geocentric).
 pub const FLG_HELCTR: i32 = 8;
 pub const FLG_TRUEPOS: i32 = 16;
+/// No precession to current epoch (J2000 frame).
 pub const FLG_J2000: i32 = 32;
 /// Suppress nutation correction (not yet implemented — nutation always applied).
+/// No nutation.
 pub const FLG_NONUT: i32 = 64;
 pub const FLG_SPEED3: i32 = 128;
+/// Speed of the body (`pos.speed_lon`, etc.) — use this flag.
 pub const FLG_SPEED: i32 = 256;
+/// No gravitational deflection.
 pub const FLG_NOGDEFL: i32 = 512;
 pub const FLG_NOABERR: i32 = 1024;
+/// Astrometric position (no deflection, no aberration).
 pub const FLG_ASTROMETRIC: i32 = FLG_NOABERR | FLG_NOGDEFL;
+/// Equatorial output (right ascension + declination).
 pub const FLG_EQUATORIAL: i32 = 2048;
 /// Return Cartesian XYZ coordinates (not yet implemented).
 pub const FLG_XYZ: i32 = 4096;
 /// Return coordinates in radians (not yet implemented — degrees always returned).
+/// Output in radians instead of degrees.
 pub const FLG_RADIANS: i32 = 8192;
 pub const FLG_BARYCTR: i32 = 16384;
+/// Topocentric position (requires `set_topo` call).
 pub const FLG_TOPOCTR: i32 = 32768;
+/// Orbital elements using AA (Astronomical Almanac) method.
 pub const FLG_ORBEL_AA: i32 = FLG_TOPOCTR;
 pub const FLG_TROPICAL: i32 = 0;
+/// Sidereal position (requires `set_sid_mode` call).
 pub const FLG_SIDEREAL: i32 = 65536;
+/// ICRS frame (IERS reference frame).
 pub const FLG_ICRS: i32 = 131072;
 pub const FLG_DPSIDEPS_1980: i32 = 262144;
 pub const FLG_JPLHOR: i32 = 524288;
+/// Approximate JPL Horizons mode.
 pub const FLG_JPLHOR_APPROX: i32 = 1048576;
 pub const FLG_CENTER_BODY: i32 = 2097152;
+/// Test mode for planetary moons.
 pub const FLG_TEST_PLMOON: i32 = 0x80000000u32 as i32;
 
 // ─── Sidereal mode bits ──────────────────────────────────────────────────────
@@ -208,19 +238,28 @@ pub const ECL_ONE_TRY: i32 = 32 * 1024;
 
 // ─── Rise/transit flags ──────────────────────────────────────────────────────
 
+/// Event flag: compute rise time.
 pub const CALC_RISE: i32 = 1;
 pub const CALC_SET: i32 = 2;
+/// Event flag: upper (meridian) transit.
 pub const CALC_MTRANSIT: i32 = 4;
 pub const CALC_ITRANSIT: i32 = 8;
+/// Rise/set for centre of disc (not limb).
 pub const BIT_DISC_CENTER: i32 = 256;
+/// Rise/set for bottom edge of disc.
 pub const BIT_DISC_BOTTOM: i32 = 8192;
 pub const BIT_GEOCTR_NO_ECL_LAT: i32 = 128;
+/// No atmospheric refraction.
 pub const BIT_NO_REFRACTION: i32 = 512;
 pub const BIT_CIVIL_TWILIGHT: i32 = 1024;
+/// Nautical twilight (sun 12° below horizon).
 pub const BIT_NAUTIC_TWILIGHT: i32 = 2048;
+/// Astronomical twilight (sun 18° below horizon).
 pub const BIT_ASTRO_TWILIGHT: i32 = 4096;
+/// Use a fixed disc size.
 pub const BIT_FIXED_DISC_SIZE: i32 = 16384;
 pub const BIT_FORCE_SLOW_METHOD: i32 = 32768;
+/// Hindu rising method.
 pub const BIT_HINDU_RISING: i32 = BIT_DISC_CENTER | BIT_NO_REFRACTION | BIT_GEOCTR_NO_ECL_LAT;
 
 // ─── Nutation / apsis method ─────────────────────────────────────────────────

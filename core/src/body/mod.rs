@@ -40,17 +40,23 @@ impl Body {
     pub const PLUTO: Self = Body(9);
 
     // ── Lunar nodes & apsides ─────────────────────────────────────────────
+    /// Mean lunar node (Rahu/Ketu, mean position).
     pub const MEAN_NODE: Self = Body(10);
+    /// True (osculating) lunar node.
     pub const TRUE_NODE: Self = Body(11);
     pub const MEAN_APOGEE: Self = Body(12);
     pub const OSCULATING_APOGEE: Self = Body(13);
+    /// Earth — for heliocentric calculations.
     pub const EARTH: Self = Body(14);
 
     // ── Asteroids (also available at ASTEROID_OFFSET + n) ────────────────
+    /// Chiron.
     pub const CHIRON: Self = Body(15);
     pub const PHOLUS: Self = Body(16);
+    /// Ceres.
     pub const CERES: Self = Body(17);
     pub const PALLAS: Self = Body(18);
+    /// Juno.
     pub const JUNO: Self = Body(19);
     pub const VESTA: Self = Body(20);
 

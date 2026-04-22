@@ -1,33 +1,72 @@
-//! All safe wrapper sub-modules.
+//! Pure-Rust implementation layer — all `pub(crate)` to the outside world.
+//!
+//! Domain modules in `src/` re-export from here; callers should import
+//! via those modules rather than `functions::` directly.
 
+// ── Core ephemeris ────────────────────────────────────────────────────────────
+/// Planetary position calculations (`calc_ut`, `calc_many`, `CalcOptions`).
 pub mod calc;
+/// Engine configuration: ephemeris path, sidereal mode, topocentric origin.
 pub mod config;
+/// Solar and lunar eclipse searches, occultation windows.
 pub mod eclipses;
+/// Esbats (full-moon sabbats) and named lunations.
 pub mod esbats;
+/// House cusp systems (Placidus, Koch, Equal, Whole-sign …).
 pub mod houses;
-pub mod motion; // crossings + rise/set/transit
+/// Crossings, rise/set/transit, `RiseTransOptions`, heliacal phenomena.
+pub mod motion;
+/// Wheel of the Year sabbats and neo-pagan seasonal festivals.
 pub mod sabbats;
-pub mod time; // calendar, JD, UTC, display helpers
+/// Julian Day conversion, UTC, calendar arithmetic, `CalDate`.
+pub mod time;
+/// Degree/radian normalisation, coordinate transforms, centisecond helpers.
 pub mod utils;
 
-pub mod phenomena; // pheno, heliacal, gauquelin sector
+// ── Observational ─────────────────────────────────────────────────────────────
+/// Pheno, heliacal rising/setting, Gauquelin sector, limiting magnitude.
+pub mod phenomena;
 
-// ─── Helper library (ex-swephelp) ─────────────────────────────────────────────
+// ── Chart analysis ────────────────────────────────────────────────────────────
+/// Aspect matching, `AspectOrbs`, applying/separating detection.
 pub mod aspects;
+/// Progressions, returns, solar arc, midpoints, Arabic parts, `AspectOrbs`.
 pub mod chart;
-pub mod chinese; // Phase 6: Ba Zi, solar terms
-pub mod easter;
-pub mod geoformat;
-pub mod hellenistic; // Phase 5: terms, decans, dignity, almuten, firdaria
-pub mod indigenous; // Phase 8: Medicine Wheel, Egyptian decans
-pub mod islamic;
-pub mod jewish;
-pub mod mesoamerican; // Phase 7: Tonalpohualli, Tzolkin, Haab, Calendar Round
-pub mod moon_phases;
-pub mod nowruz;
-pub mod omer;
-pub mod panchanga;
+/// Aspect and angle transit searches, `SearchOptions`.
 pub mod searches;
+
+// ── Traditional astrology ─────────────────────────────────────────────────────
+/// Ba Zi four pillars, solar terms, sexagenary cycle.
+pub mod chinese;
+/// Essential dignities, triplicity, almuten, firdaria, annual profection.
+pub mod hellenistic;
+/// Medicine Wheel birth totems, Egyptian decans.
+pub mod indigenous;
+/// Tonalpohualli, Xiuhpohualli, Tzolkin, Haab, Calendar Round.
+pub mod mesoamerican;
+
+// ── Vedic ─────────────────────────────────────────────────────────────────────
+/// Panchānga (tithi, nakshatra, yoga, karana, vara).
+pub mod panchanga;
+/// Jyotish chart utilities: dignities, vargas, yogas, Shadbala.
+pub mod vedic;
+
+// ── Calendars & observances ───────────────────────────────────────────────────
+/// Easter (Gregorian + Orthodox), moveable and fixed Christian feasts.
+pub mod easter;
+/// Geographic coordinate formatting and DMS/centisecond display helpers.
+pub mod geoformat;
+/// Hijri conversion, Islamic observances (Ramadan, Eid, …).
+pub mod islamic;
+/// Hebrew calendar, Jewish holidays, Sefirat HaOmer.
+pub mod jewish;
+/// Moon phases, phase info, illumination, `moon_phases_for_month`.
+pub mod moon_phases;
+/// Nowruz, Solar Hijri, Bahá'í calendar and holy days.
+pub mod nowruz;
+/// Sefirat HaOmer daily count, periods, and declaration text.
+pub mod omer;
+/// Timezone lookup and JD ↔ local time conversion.
 pub mod timezone;
-pub mod vedic; // complete chart utilities
+/// Vesak and Uposatha day calculations.
 pub mod vesak;

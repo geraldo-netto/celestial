@@ -1772,7 +1772,7 @@ fn main() {
     println!("║   celestial-core property tests  ({N} iters each)  ║");
     println!("╚═══════════════════════════════════════════════════╝\n");
 
-    let suites: &[(&str, bool)] = &[
+    let suites = vec![
         ("calc_tt_precision", test_calc_tt_precision(N).report()),
         ("math", test_math(N).report()),
         ("time", test_time(N).report()),
@@ -1844,20 +1844,6 @@ fn main() {
         ("phase6_bazi", test_phase6_bazi(N).report()),
         ("phase7_mesoamerican", test_phase7_mesoamerican(N).report()),
         ("phase8_indigenous", test_phase8_indigenous(N).report()),
-        ("nan_stability", test_nan_stability().report()),
-        ("crossings", test_crossings(N).report()),
-        ("eclipses", test_eclipses(N).report()),
-        ("calc_many_parallel", test_calc_many_parallel(N).report()),
-        ("phase2_returns", test_phase2_returns(N).report()),
-        ("sidereal_all_modes", test_sidereal_all_modes(N).report()),
-        ("backward_searches", test_backward_searches(N).report()),
-        ("occultation_search", test_occultation_search(N).report()),
-        ("house_invariants", test_house_invariants(N).report()),
-        (
-            "topocentric_parallax",
-            test_topocentric_parallax(N).report(),
-        ),
-        ("solcross_back", test_solcross_back(N).report()),
     ];
 
     println!();

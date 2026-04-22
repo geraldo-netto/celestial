@@ -28,12 +28,14 @@ let jd  = julday(2025, 3, 20, 9.0, GREG_CAL);
 let pos = calc_ut(jd, SUN, FLG_SPEED).unwrap();
 println!("Sun longitude: {:.4}°", pos.lon);
 ```
+
 ### CLI
 
 ```bash
 celestial calc --date 2025-03-20
 celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
 ```
+
 Any executable named `celestial-<n>` on `$PATH` becomes a first-class subcommand:
 
 ```bash
@@ -117,7 +119,6 @@ python3 benches/precision_comparison.py
 ```
 
 Precision vs Meeus benchmarks confirmed at ~3.2″ Sun / ~0.7″ Moon. `SYNODIC_MONTH = 29.530_588_853` days.
-
 ## CI pipelines
 
 Five independent pipelines, each triggered on changes to its crate or `core/`:
