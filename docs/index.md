@@ -7,7 +7,7 @@ supporting eight astrological traditions across 24 chart types.
 
 | File | Contents |
 |---|---|
-| [api_reference.md](api_reference.md) | Complete Rust API reference — all 8 phases, return types, code examples |
+| [api_reference.md](api_reference.md) | Complete Rust API reference — return types, code examples |
 | [python.md](python.md) | Python (PyO3) binding — installation, all functions, constants |
 | [javascript.md](javascript.md) | JavaScript / TypeScript (napi-rs) — typed API, full guide |
 | [php.md](php.md) | PHP (ext-php-rs) — installation, phpstan stubs, all functions |
@@ -28,6 +28,20 @@ let jd  = julday(2025, 3, 20, 9.0, GREG_CAL);
 let pos = calc_ut(jd, SUN, FLG_SPEED).unwrap();
 println!("Sun longitude: {:.4}°", pos.lon);
 ```
+### CLI
+
+```bash
+celestial calc --date 2025-03-20
+celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
+```
+Any executable named `celestial-<n>` on `$PATH` becomes a first-class subcommand:
+
+```bash
+celestial --list-plugins              # discover all installed plugins
+celestial synastry --date 1985-01-01  # runs celestial-synastry if on PATH
+```
+
+See [README.md](../README.md#cli) for the full command reference and all 24 chart types.
 
 ### Python
 
@@ -91,26 +105,6 @@ The public API is a **single flat namespace** — `use celestial_core::*` gives 
 
 ---
 
-## CLI & plugins
-
-```bash
-celestial calc --date 2025-03-20
-celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
-```
-
-See [README.md](../README.md#cli) for the full command reference and all 24 chart types.
-
-### Plugin architecture
-
-Any executable named `celestial-<n>` on `$PATH` becomes a first-class subcommand:
-
-```bash
-celestial --list-plugins              # discover all installed plugins
-celestial synastry --date 1985-01-01  # runs celestial-synastry if on PATH
-```
-
----
-
 ## Benchmarks
 
 ```bash
@@ -123,6 +117,7 @@ python3 benches/precision_comparison.py
 ```
 
 Precision vs Meeus benchmarks confirmed at ~3.2″ Sun / ~0.7″ Moon. `SYNODIC_MONTH = 29.530_588_853` days.
+
 ## CI pipelines
 
 Five independent pipelines, each triggered on changes to its crate or `core/`:

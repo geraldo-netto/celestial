@@ -29,7 +29,7 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
   - [Indigenous / other traditions](#indigenous--other-traditions)
 - [Accuracy](#accuracy)
 - **Documentation**
-  - [docs/api\_reference.md](docs/api_reference.md) — complete Rust API reference, all 8 phases, code examples
+  - [docs/api\_reference.md](docs/api_reference.md) — complete Rust API reference, code examples
   - [docs/python.md](docs/python.md) — Python binding guide
   - [docs/javascript.md](docs/javascript.md) — JavaScript / TypeScript guide
   - [docs/php.md](docs/php.md) — PHP binding guide
