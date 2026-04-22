@@ -1207,8 +1207,8 @@ fn test_calc_many_parallel(n: u32) -> Suite {
     s
 }
 
-fn test_phase1_antiscia(n: u32) -> Suite {
-    let mut s = Suite::new("phase1_antiscia");
+fn test_antiscia(n: u32) -> Suite {
+    let mut s = Suite::new("antiscia");
     let mut rng = Xorshift64::new(0xA1B2C3D4E5F60718);
 
     for _ in 0..n {
@@ -1233,8 +1233,8 @@ fn test_phase1_antiscia(n: u32) -> Suite {
     s
 }
 
-fn test_phase1_arabic_parts(n: u32) -> Suite {
-    let mut s = Suite::new("phase1_arabic_parts");
+fn test_arabic_parts(n: u32) -> Suite {
+    let mut s = Suite::new("arabic_parts");
     let mut rng = Xorshift64::new(0xB2C3D4E5F6071829);
 
     for _ in 0..n / 4 {
@@ -1280,8 +1280,8 @@ fn test_phase1_arabic_parts(n: u32) -> Suite {
     s
 }
 
-fn test_phase1_dignities(_n: u32) -> Suite {
-    let mut s = Suite::new("phase1_dignities");
+fn test_dignities(_n: u32) -> Suite {
+    let mut s = Suite::new("dignities");
 
     // Each sign must have exactly one traditional ruler (7 planets, some rule 2 signs)
     let traditional = [
@@ -1310,8 +1310,8 @@ fn test_phase1_dignities(_n: u32) -> Suite {
     s
 }
 
-fn test_phase2_returns(n: u32) -> Suite {
-    let mut s = Suite::new("phase2_returns");
+fn test_returns(n: u32) -> Suite {
+    let mut s = Suite::new("returns");
     let flags = CalcFlags::BUILTIN;
     let mut rng = Xorshift64::new(0xC3D4E5F607182940);
 
@@ -1348,8 +1348,8 @@ fn test_phase2_returns(n: u32) -> Suite {
     s
 }
 
-fn test_phase2_progressions(n: u32) -> Suite {
-    let mut s = Suite::new("phase2_progressions");
+fn test_progressions(n: u32) -> Suite {
+    let mut s = Suite::new("progressions");
     let mut rng = Xorshift64::new(0xD4E5F6071829304A);
 
     for _ in 0..n / 5 {
@@ -1392,8 +1392,8 @@ fn test_phase2_progressions(n: u32) -> Suite {
     s
 }
 
-fn test_phase3_midpoint_dial(n: u32) -> Suite {
-    let mut s = Suite::new("phase3_midpoint_dial");
+fn test_midpoint_dial(n: u32) -> Suite {
+    let mut s = Suite::new("midpoint_dial");
     let mut rng = Xorshift64::new(0xE5F607182940B3C4);
 
     for _ in 0..n {
@@ -1544,8 +1544,8 @@ fn test_secondary_progressions_midpoints(n: u32) -> Suite {
     s
 }
 
-fn test_phase3_local_space(n: u32) -> Suite {
-    let mut s = Suite::new("phase3_local_space");
+fn test_local_space(n: u32) -> Suite {
+    let mut s = Suite::new("local_space");
     let flags = CalcFlags::BUILTIN;
     let mut rng = Xorshift64::new(0xF6071829304A5B6C);
 
@@ -1570,8 +1570,8 @@ fn test_phase3_local_space(n: u32) -> Suite {
     s
 }
 
-fn test_phase3_composite(n: u32) -> Suite {
-    let mut s = Suite::new("phase3_composite");
+fn test_composite(n: u32) -> Suite {
+    let mut s = Suite::new("composite");
     let mut rng = Xorshift64::new(0x07182940B3C4D5E6);
 
     for _ in 0..n / 10 {
@@ -1592,8 +1592,8 @@ fn test_phase3_composite(n: u32) -> Suite {
     s
 }
 
-fn test_phase4_ashtakavarga(n: u32) -> Suite {
-    let mut s = Suite::new("phase4_ashtakavarga");
+fn test_ashtakavarga(n: u32) -> Suite {
+    let mut s = Suite::new("ashtakavarga");
     let mut rng = Xorshift64::new(0x182940B3C4D5E6F7);
 
     // Test the core Vedic strength function used by Ashtakavarga:
@@ -1622,8 +1622,8 @@ fn test_phase4_ashtakavarga(n: u32) -> Suite {
     s
 }
 
-fn test_phase4_shadbala(n: u32) -> Suite {
-    let mut s = Suite::new("phase4_shadbala");
+fn test_shadbala(n: u32) -> Suite {
+    let mut s = Suite::new("shadbala");
     let _flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut rng = Xorshift64::new(0x2940B3C4D5E6F718);
 
@@ -1643,8 +1643,8 @@ fn test_phase4_shadbala(n: u32) -> Suite {
     s
 }
 
-fn test_phase4_north_indian(n: u32) -> Suite {
-    let mut s = Suite::new("phase4_north_indian");
+fn test_north_indian(n: u32) -> Suite {
+    let mut s = Suite::new("north_indian");
     let mut rng = Xorshift64::new(0x40B3C4D5E6F71829);
 
     // NI_CELLS geometry check: all 12 positions must be in a 540×540 grid
@@ -1693,8 +1693,8 @@ fn test_phase4_north_indian(n: u32) -> Suite {
     s
 }
 
-fn test_phase5_dignities(n: u32) -> Suite {
-    let mut s = Suite::new("phase5_dignities");
+fn test_hellenistic_dignities(n: u32) -> Suite {
+    let mut s = Suite::new("hellenistic_dignities");
     let mut rng = Xorshift64::new(0x5061736535446967);
 
     // Egyptian terms: every degree returns one of 5 traditional planets
@@ -1739,8 +1739,8 @@ fn test_phase5_dignities(n: u32) -> Suite {
     s
 }
 
-fn test_phase5_firdaria(n: u32) -> Suite {
-    let mut s = Suite::new("phase5_firdaria");
+fn test_firdaria(n: u32) -> Suite {
+    let mut s = Suite::new("firdaria");
     let mut rng = Xorshift64::new(0x5061736535466972);
 
     for _ in 0..n / 10 {
@@ -1779,8 +1779,8 @@ fn test_phase5_firdaria(n: u32) -> Suite {
     s
 }
 
-fn test_phase5_full_dignity(n: u32) -> Suite {
-    let mut s = Suite::new("phase5_full_dignity");
+fn test_full_dignity(n: u32) -> Suite {
+    let mut s = Suite::new("full_dignity");
     let mut rng = Xorshift64::new(0x506875436469676E);
     let bodies = [
         Body::SUN,
@@ -1816,8 +1816,8 @@ fn test_phase5_full_dignity(n: u32) -> Suite {
     s
 }
 
-fn test_phase6_bazi(n: u32) -> Suite {
-    let mut s = Suite::new("phase6_bazi");
+fn test_bazi(n: u32) -> Suite {
+    let mut s = Suite::new("bazi");
     let mut rng = Xorshift64::new(0x426142697A697A79);
 
     for _ in 0..n / 5 {
@@ -1843,8 +1843,8 @@ fn test_phase6_bazi(n: u32) -> Suite {
     s
 }
 
-fn test_phase7_mesoamerican(n: u32) -> Suite {
-    let mut s = Suite::new("phase7_mesoamerican");
+fn test_mesoamerican(n: u32) -> Suite {
+    let mut s = Suite::new("mesoamerican");
     let mut rng = Xorshift64::new(0x4D65736F616D6572);
 
     for _ in 0..n {
@@ -1875,8 +1875,8 @@ fn test_phase7_mesoamerican(n: u32) -> Suite {
     s
 }
 
-fn test_phase8_indigenous(n: u32) -> Suite {
-    let mut s = Suite::new("phase8_indigenous");
+fn test_indigenous(n: u32) -> Suite {
+    let mut s = Suite::new("indigenous");
     let mut rng = Xorshift64::new(0x496E64696765656E);
 
     for _ in 0..n {
@@ -1955,26 +1955,26 @@ fn main() {
         ),
         ("iau2000b_nutation", test_iau2000b_nutation(N).report()),
         ("mean_sidtime", test_mean_sidtime(N).report()),
-        ("phase1_antiscia", test_phase1_antiscia(N).report()),
-        ("phase1_arabic_parts", test_phase1_arabic_parts(N).report()),
-        ("phase1_dignities", test_phase1_dignities(N).report()),
-        ("phase2_returns", test_phase2_returns(N / 5).report()),
-        ("phase2_progressions", test_phase2_progressions(N).report()),
+        ("antiscia", test_antiscia(N).report()),
+        ("arabic_parts", test_arabic_parts(N).report()),
+        ("dignities", test_dignities(N).report()),
+        ("returns", test_returns(N / 5).report()),
+        ("progressions", test_progressions(N).report()),
+        ("midpoint_dial", test_midpoint_dial(N).report()),
+        ("local_space", test_local_space(N).report()),
+        ("composite", test_composite(N).report()),
+        ("ashtakavarga", test_ashtakavarga(N).report()),
+        ("shadbala", test_shadbala(N).report()),
+        ("north_indian", test_north_indian(N).report()),
         (
-            "phase3_midpoint_dial",
-            test_phase3_midpoint_dial(N).report(),
+            "hellenistic_dignities",
+            test_hellenistic_dignities(N).report(),
         ),
-        ("phase3_local_space", test_phase3_local_space(N).report()),
-        ("phase3_composite", test_phase3_composite(N).report()),
-        ("phase4_ashtakavarga", test_phase4_ashtakavarga(N).report()),
-        ("phase4_shadbala", test_phase4_shadbala(N).report()),
-        ("phase4_north_indian", test_phase4_north_indian(N).report()),
-        ("phase5_dignities", test_phase5_dignities(N).report()),
-        ("phase5_firdaria", test_phase5_firdaria(N).report()),
-        ("phase5_full_dignity", test_phase5_full_dignity(N).report()),
-        ("phase6_bazi", test_phase6_bazi(N).report()),
-        ("phase7_mesoamerican", test_phase7_mesoamerican(N).report()),
-        ("phase8_indigenous", test_phase8_indigenous(N).report()),
+        ("firdaria", test_firdaria(N).report()),
+        ("full_dignity", test_full_dignity(N).report()),
+        ("bazi", test_bazi(N).report()),
+        ("mesoamerican", test_mesoamerican(N).report()),
+        ("indigenous", test_indigenous(N).report()),
         ("builder_api", test_builder_api(N).report()),
         (
             "secondary_progressions_midpoints",

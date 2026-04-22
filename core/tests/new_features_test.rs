@@ -1,9 +1,9 @@
 // New-feature tests live in dedicated files:
-//   phase1_test.rs  — Phase 1 wheel enhancements (minor aspects, antiscia, dignities, Arabic Parts, fixed stars)
-//   phase5_test.rs  — Phase 5 Hellenistic/Persian (dignity scoring, Firdaria, Profections)
-//   phase6_test.rs  — Phase 6 Chinese (Ba Zi, solar terms)
-//   phase7_test.rs  — Phase 7 Mesoamerican (Tonalpohualli, Tzolkin, Haab, Calendar Round)
-//   phase8_test.rs  — Phase 8 Indigenous/Egyptian (Medicine Wheel, Egyptian decans)
+//   wheel_test.rs  — wheel enhancements (minor aspects, antiscia, dignities, Arabic Parts, fixed stars)
+//   hellenistic_test.rs  — Hellenistic/Persian (dignity scoring, Firdaria, Profections)
+//   chinese_test.rs  — Chinese astrology (Ba Zi, solar terms)
+//   mesoamerican_test.rs  — Mesoamerican calendars (Tonalpohualli, Tzolkin, Haab, Calendar Round)
+//   indigenous_test.rs  — Indigenous/Egyptian (Medicine Wheel, Egyptian decans)
 // This file retains the foundational Phase 2-4 tests.
 
 //! Integration tests for the newly implemented functions.
