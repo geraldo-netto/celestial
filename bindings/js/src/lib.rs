@@ -2418,3 +2418,42 @@ pub fn next_aspect_cusp2(
     )
     .map(|r| vec![r.jd])
 }
+
+// ── Legacy aliases (parity with PHP binding) ─────────────────────────────────
+
+#[napi(js_name = "degnorm")]
+pub fn degnorm(d: f64) -> f64 {
+    celestial::norm_deg(d)
+}
+
+#[napi(js_name = "difdeg2n")]
+pub fn difdeg2n(p1: f64, p2: f64) -> f64 {
+    celestial::diff_deg_signed(p1, p2)
+}
+
+#[napi(js_name = "getAyanamsa")]
+pub fn get_ayanamsa(jd_et: f64) -> f64 {
+    celestial::ayanamsa(jd_et)
+}
+
+#[napi(js_name = "getAyanamsaName")]
+pub fn get_ayanamsa_name(sid_mode: i32) -> String {
+    celestial::ayanamsa_name(sid_mode).to_string()
+}
+
+#[napi(js_name = "nextFullMoon")]
+pub fn next_full_moon(jd_start: f64) -> f64 {
+    celestial::next_full_moon_after(jd_start)
+}
+
+#[napi(js_name = "nextSabbatName")]
+pub fn next_sabbat_name(jd_from: f64) -> napi::Result<String> {
+    celestial::next_sabbat(jd_from)
+        .map(|s| s.name.to_string())
+        .map_err(to_napi)
+}
+
+#[napi(js_name = "solcrossUt")]
+pub fn solcross_ut(x2cross: f64, jd_ut: f64, flags: i32) -> napi::Result<f64> {
+    celestial::solcross_ut(x2cross, jd_ut, CalcFlags(flags)).map_err(to_napi)
+}

@@ -1373,6 +1373,45 @@ fn next_aspect_cusp2(
     }
 }
 
+// ── Legacy aliases (parity with PHP binding) ──────────────────────────────────
+
+#[pyfunction]
+fn degnorm(d: f64) -> f64 {
+    celestial::norm_deg(d)
+}
+
+#[pyfunction]
+fn difdeg2n(p1: f64, p2: f64) -> f64 {
+    celestial::diff_deg_signed(p1, p2)
+}
+
+#[pyfunction]
+fn get_ayanamsa(jd_et: f64) -> f64 {
+    celestial::ayanamsa(jd_et)
+}
+
+#[pyfunction]
+fn get_ayanamsa_name(sid_mode: i32) -> String {
+    celestial::ayanamsa_name(sid_mode).to_string()
+}
+
+#[pyfunction]
+fn next_full_moon(jd_start: f64) -> f64 {
+    celestial::next_full_moon_after(jd_start)
+}
+
+#[pyfunction]
+fn next_sabbat_name(jd_from: f64) -> PyResult<String> {
+    celestial::next_sabbat(jd_from)
+        .map(|s| s.name.to_string())
+        .map_err(to_py)
+}
+
+#[pyfunction]
+fn solcross_ut(x2cross: f64, jd_ut: f64, flags: i32) -> PyResult<f64> {
+    celestial::solcross_ut(x2cross, jd_ut, CalcFlags(flags)).map_err(to_py)
+}
+
 #[pymodule]
 fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // ── functions ──────────────────────────────────────────────────────────
@@ -2002,6 +2041,13 @@ fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(calc_chart_aspects_auto, m)?)?;
     m.add_function(wrap_pyfunction!(sexagenary_name, m)?)?;
     m.add_function(wrap_pyfunction!(monthly_profection, m)?)?;
+    m.add_function(wrap_pyfunction!(degnorm, m)?)?;
+    m.add_function(wrap_pyfunction!(difdeg2n, m)?)?;
+    m.add_function(wrap_pyfunction!(get_ayanamsa, m)?)?;
+    m.add_function(wrap_pyfunction!(get_ayanamsa_name, m)?)?;
+    m.add_function(wrap_pyfunction!(next_full_moon, m)?)?;
+    m.add_function(wrap_pyfunction!(next_sabbat_name, m)?)?;
+    m.add_function(wrap_pyfunction!(solcross_ut, m)?)?;
     Ok(())
 }
 

@@ -2340,6 +2340,57 @@ pub fn xiuhpohualli(jd: f64) -> Vec<String> {
 
 /// next_aspect_cusp2 is defined above already.
 
+// ── Legacy aliases (called by tests with SwissEph-compatible names) ────────────
+
+/// Legacy alias for `norm_deg`. Normalises a degree value to [0°, 360°).
+#[php_function]
+pub fn degnorm(d: f64) -> f64 {
+    celestial::norm_deg(d)
+}
+
+/// Legacy alias for `diff_deg_signed`. Returns the signed difference in (-180°, +180°].
+#[php_function]
+pub fn difdeg2n(p1: f64, p2: f64) -> f64 {
+    celestial::diff_deg_signed(p1, p2)
+}
+
+/// Ayanamsa value at Julian Day (ET), using the currently active sidereal mode.
+/// Legacy alias for `ayanamsa`.
+#[php_function]
+pub fn get_ayanamsa(jd_et: f64) -> f64 {
+    celestial::ayanamsa(jd_et)
+}
+
+/// Name of the currently active sidereal mode by SIDM_* constant.
+/// Legacy alias for `ayanamsa_name`.
+#[php_function]
+pub fn get_ayanamsa_name(sid_mode: i64) -> String {
+    celestial::ayanamsa_name(sid_mode as i32).to_string()
+}
+
+/// Next sabbat name after `jd_from`. Returns the sabbat name string.
+/// Legacy alias — use `next_sabbat` for the full JD+name result.
+#[php_function]
+pub fn next_sabbat_name(jd_from: f64) -> PhpResult<String> {
+    celestial::next_sabbat(jd_from)
+        .map(|s| s.name.to_string())
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
+/// Next full moon Julian Day after `jd_start`.
+/// Legacy alias for `next_full_moon_phase`.
+#[php_function]
+pub fn next_full_moon(jd_start: f64) -> f64 {
+    celestial::next_full_moon_after(jd_start)
+}
+
+/// Next solar longitude crossing. Returns JD of when the Sun next crosses `x2cross` degrees.
+#[php_function]
+pub fn solcross_ut(x2cross: f64, jd_ut: f64, flags: i64) -> PhpResult<f64> {
+    celestial::solcross_ut(x2cross, jd_ut, CalcFlags(flags as i32))
+        .map_err(|e| PhpException::from(e.to_string()))
+}
+
 #[php_module]
 pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
     module
