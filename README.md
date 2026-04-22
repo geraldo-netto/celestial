@@ -44,7 +44,7 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
 # Full workspace build
 cargo build
 
-# Tests — 737 unit/integration/doc + 53 property-test suites
+# Tests — 824 unit/integration + 67 property-test suites
 cargo test --package celestial-core -- --test-threads=1
 cargo test --package celestial-cli
 cargo run  --manifest-path fuzz/Cargo.toml

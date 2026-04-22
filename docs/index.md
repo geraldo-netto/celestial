@@ -98,9 +98,9 @@ celestial-workspace/
 │   │       ├── mesoamerican.rs Tonalpohualli, Tzolkin, Haab
 │   │       └── indigenous.rs   Medicine Wheel, Egyptian decans
 ├── cli/src/cmd/render/         24 SVG chart builders, one per tradition
-├── bindings/python/            PyO3 — 130 functions + celestial_py.pyi stubs
+├── bindings/python/            PyO3 — 172 functions + celestial_py.pyi stubs
 ├── bindings/js/                napi-rs — 172 functions + index.d.ts
-├── bindings/php/               ext-php-rs — 163 functions + phpstan stubs
+├── bindings/php/               ext-php-rs — 172 functions + phpstan stubs
 └── tests/fixtures/             reference_values.json — cross-language test fixture
 ```
 
@@ -126,7 +126,7 @@ Five independent pipelines, each triggered on changes to its crate or `core/`:
 
 | Pipeline | Jobs |
 |---|---|
-| **celestial-core** | `lint` (fmt + clippy) → `test` (737 unit tests) ‖ `fuzz` (53 suites) |
+| **celestial-core** | `lint` (fmt + clippy) → `test` (737 unit tests) ‖ `fuzz` (67 suites) |
 | **celestial-cli** | `lint` (clippy) → `test` (81 tests) → `build` (3 OS) |
 | **celestial-python** | `lint-rs` ‖ `lint-py` (black + ruff) → `test` (245 pure-logic) → `build` (maturin wheel) |
 | **celestial-js** | `lint-rs` ‖ `lint-ts` (eslint + tsc) → `test` (162 pure-logic) → `build` (napi-rs addon) |

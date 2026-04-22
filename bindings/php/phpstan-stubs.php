@@ -21,7 +21,7 @@ function celestial_sidtime(float $jd_ut): float {}
 function celestial_set_delta_t_userdef(float $dt): void {}
 
 /** @return void */
-function celestial_set_ephe_path(array $path): void {}
+function celestial_set_ephe_path(string $path): void {}
 
 /** @return void */
 function celestial_close(): void {}
@@ -345,16 +345,16 @@ function celestial_medicine_wheel_totem(float $sun_lon): array {}
 function celestial_secondary_progressions(float $jd_natal, float $years, array $bodies, float $lat, float $lon, int $hsys, int $flags): array {}
 
 /** @return float[] */
-function celestial_solar_arc_directions(float $jd_natal, float $years, array $natal_positions, array $// flat, float $...]     natal_mc, int $flags): array {}
+function celestial_solar_arc_directions(float $jd_natal, float $years, array $natal_positions, float $natal_mc, int $flags): array {}
 
 /** @return array */
-function celestial_midpoint_table(array $positions, array $// flat, float $...]     orb): array {}
+function celestial_midpoint_table(array $positions, float $orb): array {}
 
 /** @return array */
-function celestial_calc_chart_aspects(array $positions, array $// flat, array $...]     aspects, float $orb): array {}
+function celestial_calc_chart_aspects(array $positions, array $aspects, float $orb): array {}
 
 /** @return array */
-function celestial_calc_chart_aspects_auto(array $positions, array $// flat, array $...]     aspects): array {}
+function celestial_calc_chart_aspects_auto(array $positions, array $aspects): array {}
 
 /** @return float[] */
 function celestial_monthly_profection(array $cusps, int $age_years, int $age_months): array {}
@@ -492,7 +492,7 @@ function celestial_revjul_hms(float $jd, int $calendar): array {}
 function celestial_saturn_4_stars(float $jd, int $flags): array {}
 
 /** @return void */
-function celestial_set_jpl_file(array $fname): void {}
+function celestial_set_jpl_file(string $fname): void {}
 
 /** @return int */
 function celestial_sign_ruler_modern(int $sign): int {}

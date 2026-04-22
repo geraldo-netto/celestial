@@ -23,9 +23,10 @@ fn main() {
         Some("parity") => cmd_parity(),
         Some("codegen") => cmd_codegen(args.any(|a| a == "--apply")),
         Some("stubs") => cmd_stubs(),
+        Some("test-stubs") => cmd_test_stubs(),
         _ => {
             eprintln!(
-                "USAGE\n  cargo xtask parity\n  cargo xtask codegen [--apply]\n  cargo xtask stubs"
+                "USAGE\n  cargo xtask parity\n  cargo xtask codegen [--apply]\n  cargo xtask stubs\n  cargo xtask test-stubs"
             );
             std::process::exit(1);
         }
@@ -458,53 +459,113 @@ fn regex_find_php_fns(src: &str) -> Vec<PhpFnEntry> {
 }
 
 fn parse_fn_sig(sig: &str) -> Option<PhpFnEntry> {
-    // Match: `pub fn name(args) -> ret`  or `fn name(args) -> ret`
-    let sig_clean = sig.replace('\n', " ");
-    let re_name = sig_clean.find("fn ")?;
-    let after_fn = &sig_clean[re_name + 3..];
-    let name_end = after_fn.find('(')?;
-    let name = after_fn[..name_end].trim().to_string();
+    // Strip // inline comments from every line before joining
+    let sig_clean: String = sig
+        .lines()
+        .map(|l| l.find("//").map(|c| &l[..c]).unwrap_or(l))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let sig_clean = sig_clean.trim();
 
-    // Extract parameter list
-    let paren_start = sig_clean.find('(')?;
-    let paren_end = sig_clean.rfind(')')?;
-    let params_str = sig_clean[paren_start + 1..paren_end].trim();
+    // Extract function name
+    let fn_kw = sig_clean.find("fn ")?;
+    let after = &sig_clean[fn_kw + 3..];
+    let n_end = after.find('(')?;
+    let name = after[..n_end].trim().to_string();
+    if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        return None;
+    }
 
-    let params: Vec<(String, String)> = if params_str.is_empty() {
-        vec![]
-    } else {
-        params_str
-            .split(',')
-            .filter_map(|p| {
-                let p = p.trim();
-                if p.is_empty() {
-                    return None;
+    // Find matching parentheses for the parameter list
+    let p_open = sig_clean.find('(')?;
+    let mut depth = 0usize;
+    let mut p_close = None;
+    for (i, ch) in sig_clean[p_open..].char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    p_close = Some(p_open + i);
+                    break;
                 }
-                // Rust param: `name: Type` or `mut name: Type`
-                let p = p.trim_start_matches("mut").trim();
-                let colon = p.find(':')?;
-                let pname = p[..colon].trim().to_string();
-                let ptype = p[colon + 1..].trim().to_string();
-                // Skip the PyO3/pyo3 Python<'_> and lifetime params
-                if pname == "py" || ptype.starts_with("Python") {
-                    return None;
-                }
-                Some((ptype, pname))
-            })
-            .collect()
-    };
+            }
+            _ => {}
+        }
+    }
+    let p_close = p_close?;
+    let params_str = sig_clean[p_open + 1..p_close].trim();
 
-    // Extract return type
-    let ret = if let Some(arrow) = sig_clean.rfind("->") {
-        let after = &sig_clean[arrow + 2..];
-        // Strip up to the opening { or end of line
-        let end = after.find('{').unwrap_or(after.len());
-        after[..end].trim().to_string()
+    // Parse parameters — split on commas, respecting <> nesting
+    let params: Vec<(String, String)> = split_params(params_str)
+        .into_iter()
+        .filter_map(|p| {
+            let p = p.trim().trim_start_matches("mut").trim().to_string();
+            if p.is_empty() {
+                return None;
+            }
+            let colon = p.find(':')?;
+            let pname = p[..colon].trim().to_string();
+            let ptype = p[colon + 1..].trim().to_string();
+            // Skip pyo3 context and self
+            if pname == "py" || pname == "self" {
+                return None;
+            }
+            // Validate: must be a non-empty valid identifier (letters/digits/underscore,
+            // not starting with a digit)
+            if pname.is_empty()
+                || pname
+                    .chars()
+                    .next()
+                    .map(|c| c.is_ascii_digit())
+                    .unwrap_or(true)
+                || !pname.chars().all(|c| c.is_alphanumeric() || c == '_')
+            {
+                return None;
+            }
+            Some((ptype, pname))
+        })
+        .collect();
+
+    // Extract return type: text after `->` up to `{`
+    let ret = if let Some(arrow) = sig_clean[p_close..].find("->") {
+        let start = p_close + arrow + 2;
+        let chunk = &sig_clean[start..];
+        let end = chunk.find('{').unwrap_or(chunk.len());
+        chunk[..end].trim().to_string()
     } else {
         "()".to_string()
     };
 
     Some(PhpFnEntry { name, params, ret })
+}
+
+/// Split a parameter string on commas, respecting `<>`, `()`, `[]` nesting.
+fn split_params(s: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut cur = String::new();
+    let mut depth = 0usize;
+    for ch in s.chars() {
+        match ch {
+            '<' | '(' | '[' => {
+                depth += 1;
+                cur.push(ch);
+            }
+            '>' | ')' | ']' => {
+                depth = depth.saturating_sub(1);
+                cur.push(ch);
+            }
+            ',' if depth == 0 => {
+                parts.push(cur.trim().to_string());
+                cur.clear();
+            }
+            _ => cur.push(ch),
+        }
+    }
+    if !cur.trim().is_empty() {
+        parts.push(cur.trim().to_string());
+    }
+    parts
 }
 
 /// Convert a Rust type string to a PHP type hint (for use in function signatures).
@@ -675,4 +736,181 @@ fn sanitise_var(name: &str) -> &'static str {
         s.to_string()
     };
     Box::leak(fixed.into_boxed_str())
+}
+
+// ─── test-stubs command ───────────────────────────────────────────────────────
+
+/// Validate `phpstan-stubs.php` for PHP 8.0 syntax correctness without
+/// requiring a PHP binary. Checks every rule that has caused CI failures.
+/// Exits 1 on any error.
+fn cmd_test_stubs() {
+    let root = workspace_root();
+    let path = root.join("bindings/php/phpstan-stubs.php");
+    let src = fs::read_to_string(&path).expect("cannot read phpstan-stubs.php");
+
+    let mut errors: Vec<String> = Vec::new();
+
+    // ── Rule 1: must start with <?php ────────────────────────────────────────
+    if !src.starts_with("<?php") {
+        errors.push("missing <?php opening tag".into());
+    }
+
+    // ── Rule 2: no typed array hints in function signatures ───────────────────
+    // `int[]`, `float[]`, `string[]` are only valid in PHPDoc @return tags.
+    for (i, line) in src.lines().enumerate() {
+        let t = line.trim();
+        if t.starts_with("function ") {
+            // Check params and return type (not docblocks)
+            if let Some(start) = t.find('(') {
+                if let Some(end) = t.rfind(')') {
+                    let params_and_ret = &t[start..];
+                    if params_and_ret.contains("int[]")
+                        || params_and_ret.contains("float[]")
+                        || params_and_ret.contains("string[]")
+                    {
+                        errors.push(format!(
+                            "line {}: typed array hint in function signature: {}",
+                            i + 1,
+                            &t[..t.len().min(80)]
+                        ));
+                        let _ = end;
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Rule 3: no invalid variable names (starting with digit) ───────────────
+    let dollar_digit = regex_lite_find_dollar_digit(&src);
+    for (line_no, snippet) in dollar_digit {
+        errors.push(format!(
+            "line {line_no}: invalid variable name starting with digit: {snippet}"
+        ));
+    }
+
+    // ── Rule 4: no Rust type remnants in function signatures ──────────────────
+    let rust_types = [
+        "i32",
+        "u32",
+        "i64",
+        "u64",
+        "usize",
+        "Vec<",
+        "Option<",
+        "PhpResult",
+    ];
+    for rt in rust_types {
+        for (i, line) in src.lines().enumerate() {
+            let t = line.trim();
+            if t.starts_with("function ") && t.contains(rt) {
+                errors.push(format!(
+                    "line {}: Rust type {:?} in PHP stub: {}",
+                    i + 1,
+                    rt,
+                    &t[..t.len().min(80)]
+                ));
+            }
+        }
+    }
+
+    // ── Rule 5: no duplicate function names ───────────────────────────────────
+    let mut seen_fns: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for (i, line) in src.lines().enumerate() {
+        let t = line.trim();
+        if t.starts_with("function ") {
+            if let Some(paren) = t.find('(') {
+                let name = t["function ".len()..paren].trim().to_string();
+                if let Some(prev) = seen_fns.insert(name.clone(), i + 1) {
+                    errors.push(format!(
+                        "line {}: duplicate function {name} (first at line {prev})",
+                        i + 1
+                    ));
+                }
+            }
+        }
+    }
+
+    // ── Rule 6: no double-prefix celestial_celestial_ ─────────────────────────
+    for (i, line) in src.lines().enumerate() {
+        if line.contains("celestial_celestial_") {
+            errors.push(format!(
+                "line {}: double-prefix celestial_celestial_: {}",
+                i + 1,
+                line.trim().chars().take(80).collect::<String>()
+            ));
+        }
+    }
+
+    // ── Rule 7: every function must have a body {} ────────────────────────────
+    // (multiline signatures are fine — just check the whole file has balanced {})
+    // Simple check: count function declarations vs {} occurrences nearby
+    let fn_count = src
+        .lines()
+        .filter(|l| l.trim().starts_with("function "))
+        .count();
+    let body_count = src.matches("{}").count();
+    if body_count < fn_count {
+        errors.push(format!(
+            "{fn_count} function declarations but only {body_count} empty bodies ({{}})"
+        ));
+    }
+
+    // ── Rule 8: fuzz — check 20 random-ish lines for obvious garbage ─────────
+    let suspicious: Vec<_> = src
+        .lines()
+        .enumerate()
+        .filter(|(_, l)| {
+            let t = l.trim();
+            t.starts_with("function ")
+                && (t.contains("flat:")        // raw comment fragment
+                    || t.contains("...")        // raw comment fragment
+                    || t.contains("$//")        // $ before comment
+                    || t.contains(", $,")       // empty param name
+                    || t.contains("($,")) // empty first param
+        })
+        .collect();
+    for (i, line) in suspicious {
+        errors.push(format!(
+            "line {}: suspicious/malformed signature: {}",
+            i + 1,
+            line.trim().chars().take(80).collect::<String>()
+        ));
+    }
+
+    // ── Report ────────────────────────────────────────────────────────────────
+    let fn_total = seen_fns.len();
+    if errors.is_empty() {
+        println!("✓ phpstan-stubs.php: {fn_total} functions — all PHP 8.0 syntax checks passed");
+    } else {
+        eprintln!("✗ phpstan-stubs.php: {} error(s):\n", errors.len());
+        for e in &errors {
+            eprintln!("  {e}");
+        }
+        std::process::exit(1);
+    }
+}
+
+/// Find all `$<digit>` occurrences (invalid PHP variable names) and return
+/// (line_number, snippet) pairs.
+fn regex_lite_find_dollar_digit(src: &str) -> Vec<(usize, String)> {
+    let mut out = Vec::new();
+    for (i, line) in src.lines().enumerate() {
+        let t = line.trim();
+        if t.starts_with("/**") || t.starts_with('*') || t.starts_with("//") {
+            continue; // skip docblocks
+        }
+        let mut chars = line.chars().peekable();
+        let mut col = 0usize;
+        while let Some(ch) = chars.next() {
+            if ch == '$' {
+                if let Some(&next) = chars.peek() {
+                    if next.is_ascii_digit() {
+                        out.push((i + 1, line[col..].chars().take(20).collect::<String>()));
+                    }
+                }
+            }
+            col += ch.len_utf8();
+        }
+    }
+    out
 }
