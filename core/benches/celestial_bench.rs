@@ -259,6 +259,76 @@ fn main() {
         ));
     }));
 
+    hdr("hellenistic / persian (phase 5)");
+    all.push(bench("hellenistic::egyptian_terms_ruler", 5000, || {
+        black_box(celestial_core::egyptian_terms_ruler(black_box(123.456)));
+    }));
+    all.push(bench("hellenistic::decan_ruler", 5000, || {
+        black_box(celestial_core::decan_ruler(black_box(123.456)));
+    }));
+    all.push(bench("hellenistic::triplicity_rulers", 5000, || {
+        black_box(celestial_core::triplicity_rulers(black_box(123.456)));
+    }));
+    all.push(bench("hellenistic::full_dignity_sun", 5000, || {
+        black_box(celestial_core::full_dignity(
+            black_box(Body::SUN),
+            black_box(123.456),
+            true,
+        ));
+    }));
+    all.push(bench("hellenistic::almuten", 5000, || {
+        black_box(celestial_core::almuten(black_box(123.456), true));
+    }));
+    all.push(bench("hellenistic::firdaria_75y", 500, || {
+        black_box(celestial_core::firdaria(black_box(J2000), true, 75.0));
+    }));
+    all.push(bench("hellenistic::annual_profection", 10000, || {
+        let cusps = [
+            0f64, 0., 30., 60., 90., 120., 150., 180., 210., 240., 270., 300., 330.,
+        ];
+        black_box(celestial_core::annual_profection(&cusps, black_box(35)));
+    }));
+
+    hdr("chinese astrology (phase 6)");
+    all.push(bench("chinese::four_pillars", 1000, || {
+        black_box(celestial_core::four_pillars(
+            black_box(J2000),
+            black_box(12.0),
+            black_box(280.0),
+        ));
+    }));
+    all.push(bench("chinese::solar_term_position", 10000, || {
+        black_box(celestial_core::solar_term_position(black_box(123.456)));
+    }));
+    all.push(bench("chinese::sexagenary_name", 10000, || {
+        black_box(celestial_core::sexagenary_name(black_box(42)));
+    }));
+
+    hdr("mesoamerican calendars (phase 7)");
+    all.push(bench("mesoamerican::tonalpohualli", 10000, || {
+        black_box(celestial_core::tonalpohualli(black_box(J2000)));
+    }));
+    all.push(bench("mesoamerican::xiuhpohualli", 10000, || {
+        black_box(celestial_core::xiuhpohualli(black_box(J2000)));
+    }));
+    all.push(bench("mesoamerican::tzolkin", 10000, || {
+        black_box(celestial_core::tzolkin(black_box(J2000)));
+    }));
+    all.push(bench("mesoamerican::haab", 10000, || {
+        black_box(celestial_core::haab(black_box(J2000)));
+    }));
+    all.push(bench("mesoamerican::calendar_round", 10000, || {
+        black_box(celestial_core::calendar_round(black_box(J2000)));
+    }));
+
+    hdr("indigenous / egyptian (phase 8)");
+    all.push(bench("indigenous::medicine_wheel_totem", 10000, || {
+        black_box(celestial_core::medicine_wheel_totem(black_box(123.456)));
+    }));
+    all.push(bench("indigenous::egyptian_decan", 10000, || {
+        black_box(celestial_core::egyptian_decan(black_box(123.456)));
+    }));
+
     println!("\n{:═<78}", "");
     println!("RESULTS ({} benchmarks)", all.len());
     println!("{:═<78}", "");

@@ -1086,3 +1086,371 @@ fn next_aspect_with2_smoke() {
         assert!(res.jd > J2000);
     }
 }
+
+// ── Builder struct tests ───────────────────────────────────────────────────────
+mod builder_tests {
+    use celestial_core::body::{Body, CalcFlags, HouseSystem};
+    use celestial_core::*;
+
+    const JD: f64 = 2_451_545.0;
+
+    #[test]
+    fn rise_trans_options_rise_event() {
+        // Same result as calling rise_trans() directly
+        let geopos = [2.35, 48.85, 35.0];
+        let via_builder = RiseTransOptions::new(JD, Body::SUN, geopos)
+            .event(1) // CALC_RISE
+            .flags(CalcFlags::BUILTIN)
+            .search();
+        let direct = rise_trans(JD, Body::SUN, None, CalcFlags::BUILTIN, 1, geopos, 0.0, 0.0);
+        match (via_builder, direct) {
+            (Ok(b), Ok(d)) => assert!((b.tret - d.tret).abs() < 1e-9, "tret mismatch"),
+            (Err(_), Err(_)) => {} // both failed is acceptable
+            (Ok(_), Err(_)) | (Err(_), Ok(_)) => panic!("builder and direct disagree"),
+        }
+    }
+
+    #[test]
+    fn rise_trans_options_atmosphere() {
+        let geopos = [2.35, 48.85, 35.0];
+        // Setting atmosphere doesn't panic
+        let r = RiseTransOptions::new(JD, Body::MOON, geopos)
+            .event(2) // CALC_SET
+            .atmosphere(1013.25, 15.0)
+            .flags(CalcFlags::BUILTIN)
+            .search();
+        let _ = r; // Ok or Err both acceptable
+    }
+
+    #[test]
+    fn rise_trans_options_star() {
+        let geopos = [2.35, 48.85, 35.0];
+        let r = RiseTransOptions::new(JD, Body::SUN, geopos)
+            .star("Aldebaran")
+            .event(1)
+            .search();
+        let _ = r;
+    }
+
+    #[test]
+    fn search_options_mc_transit() {
+        // SearchOptions::search_mc_transit should match mc_transit_ut directly
+        let jd_start = JD + 365.0;
+        let via_builder = SearchOptions::new(Body::SATURN, jd_start)
+            .natal_chart(JD, 48.85, 2.35, HouseSystem::PLACIDUS)
+            .flags(CalcFlags::BUILTIN)
+            .search_mc_transit();
+        let direct = mc_transit_ut(
+            Body::SATURN,
+            JD,
+            jd_start,
+            48.85,
+            2.35,
+            HouseSystem::PLACIDUS,
+            CalcFlags::BUILTIN,
+            false,
+        );
+        match (via_builder, direct) {
+            (Ok(b), Ok(d)) => assert!((b - d).abs() < 1e-6, "MC transit mismatch"),
+            (Err(_), Err(_)) => {}
+            _ => panic!("builder and direct disagree on MC transit"),
+        }
+    }
+
+    #[test]
+    fn search_options_ic_transit() {
+        let r = SearchOptions::new(Body::JUPITER, JD + 100.0)
+            .natal_chart(JD, 48.85, 2.35, HouseSystem::PLACIDUS)
+            .search_ic_transit();
+        let _ = r;
+    }
+
+    #[test]
+    fn search_options_asc_dsc_transit() {
+        let asc = SearchOptions::new(Body::MARS, JD + 30.0)
+            .natal_chart(JD, 48.85, 2.35, HouseSystem::PLACIDUS)
+            .search_asc_transit();
+        let dsc = SearchOptions::new(Body::MARS, JD + 30.0)
+            .natal_chart(JD, 48.85, 2.35, HouseSystem::PLACIDUS)
+            .search_dsc_transit();
+        let _ = (asc, dsc);
+    }
+
+    #[test]
+    fn search_options_cusp_aspect() {
+        let r = SearchOptions::new(Body::SATURN, JD)
+            .aspect(90.0)
+            .cusp(10, 48.85, 2.35, HouseSystem::PLACIDUS)
+            .flags(CalcFlags::BUILTIN)
+            .search_cusp();
+        let _ = r; // Some or None both acceptable
+    }
+
+    #[test]
+    fn search_options_backward() {
+        // Backward search should find a result before jd_start
+        let r = SearchOptions::new(Body::SUN, JD)
+            .natal_chart(JD, 48.85, 2.35, HouseSystem::PLACIDUS)
+            .backward(true)
+            .search_mc_transit();
+        if let Ok(jd) = r {
+            assert!(
+                jd < JD,
+                "backward search result {jd} should be before start {JD}"
+            );
+        }
+    }
+
+    #[test]
+    fn aspect_orbs_check_exact_trine() {
+        // pos0=0°, pos1=120°: exactly trine (120°)
+        let m = AspectOrbs::new(2.0, 1.5).check(0.0, 0.5, 120.0, -0.4, 120.0);
+        assert!(m.matched, "exact trine should match");
+        assert!(m.diff.abs() < 0.001, "orb should be ~0 for exact aspect");
+    }
+
+    #[test]
+    fn aspect_orbs_check_outside_orb() {
+        // pos0=0°, pos1=125°: 5° from trine, orb=2°
+        let m = AspectOrbs::new(2.0, 2.0).check(0.0, 0.5, 125.0, -0.4, 120.0);
+        assert!(!m.matched, "5° outside orb should not match");
+    }
+
+    #[test]
+    fn aspect_orbs_check_simple_vs_check_same_result() {
+        // With def_orb == sep_orb, check_simple and check should agree
+        let orbs = AspectOrbs::new(2.0, 1.5).def_orb(1.5);
+        let m1 = orbs.check(0.0, 0.5, 60.0, -0.3, 60.0);
+        let m2 = orbs.check_simple(0.0, 0.5, 60.0, -0.3, 60.0);
+        assert_eq!(
+            m1.matched, m2.matched,
+            "check and check_simple should agree when def_orb=sep_orb"
+        );
+    }
+
+    #[test]
+    fn aspect_orbs_def_orb_defaults_to_max() {
+        // When def_orb is not set, it defaults to max(app_orb, sep_orb)
+        let orbs = AspectOrbs::new(2.0, 1.0);
+        // Verify by testing that a 1.5° orb matches when def_orb=2.0
+        let m = orbs.check(0.0, 0.5, 61.5, -0.3, 60.0); // 1.5° off sextile
+        assert!(m.matched, "1.5° should be within default def_orb of 2.0");
+    }
+}
+
+// ── CalcOptions builder tests ──────────────────────────────────────────────────
+mod calc_options_tests {
+    use celestial_core::body::{Body, CalcFlags};
+    use celestial_core::*;
+
+    const JD: f64 = 2_451_545.0;
+    const FLAGS: CalcFlags = CalcFlags::BUILTIN;
+
+    #[test]
+    fn single_body_ut_matches_calc_ut() {
+        let via_builder = CalcOptions::ut(JD, FLAGS).body(Body::SUN).get().unwrap();
+        let direct = calc_ut(JD, Body::SUN, FLAGS).unwrap();
+        assert!((via_builder.lon - direct.lon).abs() < 1e-9);
+        assert!((via_builder.dist - direct.dist).abs() < 1e-12);
+    }
+
+    #[test]
+    fn single_body_tt_matches_calc_tt() {
+        let via_builder = CalcOptions::tt(JD, FLAGS).body(Body::MOON).get().unwrap();
+        let direct = calc(JD, Body::MOON, FLAGS).unwrap();
+        assert!((via_builder.lon - direct.lon).abs() < 1e-9);
+    }
+
+    #[test]
+    fn multi_body_auto_matches_individual() {
+        let bodies = [
+            Body::SUN,
+            Body::MOON,
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS,
+        ];
+        let results = CalcOptions::ut(JD, FLAGS).bodies(&bodies).get_many();
+        assert_eq!(results.len(), bodies.len());
+        for (i, &body) in bodies.iter().enumerate() {
+            let direct = calc_ut(JD, body, FLAGS).unwrap();
+            let got = results[i].as_ref().unwrap();
+            assert!(
+                (got.lon - direct.lon).abs() < 1e-9,
+                "body {i} lon mismatch: {} vs {}",
+                got.lon,
+                direct.lon
+            );
+        }
+    }
+
+    #[test]
+    fn multi_body_sequential_matches_parallel() {
+        let bodies = [Body::SUN, Body::MOON, Body::MERCURY];
+        let seq = CalcOptions::ut(JD, FLAGS)
+            .strategy(CalcStrategy::Sequential)
+            .bodies(&bodies)
+            .get_many();
+        let par = CalcOptions::ut(JD, FLAGS)
+            .strategy(CalcStrategy::Parallel)
+            .bodies(&bodies)
+            .get_many();
+        assert_eq!(seq.len(), par.len());
+        for i in 0..seq.len() {
+            let s = seq[i].as_ref().unwrap();
+            let p = par[i].as_ref().unwrap();
+            assert!(
+                (s.lon - p.lon).abs() < 1e-9,
+                "body {i}: sequential={:.6} parallel={:.6}",
+                s.lon,
+                p.lon
+            );
+        }
+    }
+
+    #[test]
+    fn strategy_auto_uses_parallel_for_large_list() {
+        // Auto with 5 bodies should use parallel — verify same results as explicit parallel
+        let bodies = [
+            Body::SUN,
+            Body::MOON,
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS,
+        ];
+        let auto_res = CalcOptions::ut(JD, FLAGS).bodies(&bodies).get_many();
+        let par_res = CalcOptions::ut(JD, FLAGS)
+            .strategy(CalcStrategy::Parallel)
+            .bodies(&bodies)
+            .get_many();
+        for i in 0..bodies.len() {
+            let a = auto_res[i].as_ref().unwrap();
+            let p = par_res[i].as_ref().unwrap();
+            assert!((a.lon - p.lon).abs() < 1e-9);
+        }
+    }
+
+    #[test]
+    fn strategy_auto_uses_sequential_for_small_list() {
+        // Auto with 2 bodies should use sequential path
+        let bodies = [Body::SUN, Body::MOON];
+        let auto_res = CalcOptions::ut(JD, FLAGS).bodies(&bodies).get_many();
+        let seq_res = CalcOptions::ut(JD, FLAGS)
+            .strategy(CalcStrategy::Sequential)
+            .bodies(&bodies)
+            .get_many();
+        let a = auto_res[0].as_ref().unwrap();
+        let s = seq_res[0].as_ref().unwrap();
+        assert!((a.lon - s.lon).abs() < 1e-9);
+    }
+
+    #[test]
+    fn empty_bodies_returns_empty_vec() {
+        let results = CalcOptions::ut(JD, FLAGS).bodies(&[]).get_many();
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn single_body_in_multi_path() {
+        let bodies = [Body::SATURN];
+        let multi = CalcOptions::ut(JD, FLAGS).bodies(&bodies).get_many();
+        let single = CalcOptions::ut(JD, FLAGS).body(Body::SATURN).get().unwrap();
+        let m = multi[0].as_ref().unwrap();
+        assert!((m.lon - single.lon).abs() < 1e-9);
+    }
+}
+
+// ── Structured error type tests ────────────────────────────────────────────────
+mod error_type_tests {
+    use celestial_core::Error;
+
+    #[test]
+    fn body_not_implemented_display() {
+        let e = Error::BodyNotImplemented { body: 99 };
+        let s = e.to_string();
+        assert!(s.contains("99"), "error should mention body number");
+        assert!(
+            s.contains("implemented"),
+            "error should say not implemented"
+        );
+    }
+
+    #[test]
+    fn star_not_found_display() {
+        let e = Error::StarNotFound {
+            name: "Foobar".into(),
+        };
+        let s = e.to_string();
+        assert!(s.contains("Foobar"), "error should mention star name");
+        assert!(s.contains("catalog"), "error should mention catalog");
+    }
+
+    #[test]
+    fn phase_not_found_display() {
+        let e = Error::PhaseNotFound {
+            phase: "full moon".into(),
+            from_jd: 2_451_545.0,
+        };
+        let s = e.to_string();
+        assert!(s.contains("full moon"));
+        assert!(s.contains("2451545"));
+    }
+
+    #[test]
+    fn no_eclipse_found_display() {
+        let e = Error::NoEclipseFound {
+            from_jd: 2_451_545.0,
+        };
+        let s = e.to_string();
+        assert!(s.contains("eclipse"), "should mention eclipse");
+        assert!(s.contains("2451545"));
+    }
+
+    #[test]
+    fn circumpolar_body_display() {
+        let e = Error::CircumpolarBody { body: 1, lat: 89.5 };
+        let s = e.to_string();
+        assert!(s.contains("1"));
+        assert!(s.contains("89.5") || s.contains("circumpolar"));
+    }
+
+    #[test]
+    fn house_system_failed_display() {
+        let e = Error::HouseSystemFailed {
+            system: b'P',
+            lat: 91.0,
+        };
+        let s = e.to_string();
+        assert!(
+            s.contains("P") || s.contains("house"),
+            "should mention house system"
+        );
+    }
+
+    #[test]
+    fn legacy_string_variants_still_work() {
+        // Ensure backward-compat string variants compile and display correctly
+        let calc = Error::Calc("test calc".into());
+        let house = Error::Houses("test houses".into());
+        let ecl = Error::Eclipse("test eclipse".into());
+        let rt = Error::RiseTrans("test rise".into());
+        let date = Error::Date("test date".into());
+        assert!(calc.to_string().contains("test calc"));
+        assert!(house.to_string().contains("test houses"));
+        assert!(ecl.to_string().contains("test eclipse"));
+        assert!(rt.to_string().contains("test rise"));
+        assert!(date.to_string().contains("test date"));
+    }
+
+    #[test]
+    fn structured_error_emitted_for_bad_star() {
+        use celestial_core::body::CalcFlags;
+        let result =
+            celestial_core::fixstar_ut("NONEXISTENT_STAR_XYZ", 2_451_545.0, CalcFlags::BUILTIN);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::StarNotFound { name } => assert!(name.contains("NONEXISTENT")),
+            other => panic!("expected StarNotFound, got {other:?}"),
+        }
+    }
+}

@@ -814,3 +814,182 @@ pub fn lower_meridian_transit_ut(
         "lower meridian transit not found within 2 days".into(),
     ))
 }
+
+// ── SearchOptions builder ─────────────────────────────────────────────────────
+
+/// Builder for aspect and angle transit searches.
+///
+/// Replaces `next_aspect_cusp`, `next_aspect_cusp2`, `mc_transit_ut`,
+/// `ic_transit_ut`, `asc_transit_ut`, and `dsc_transit_ut` with a single
+/// discoverable, forward-compatible API.
+///
+/// # Example — planet aspecting a house cusp
+/// ```no_run
+/// # use celestial_core::*;
+/// # use celestial_core::body::{Body, CalcFlags, HouseSystem};
+/// let jd = SearchOptions::new(Body::SATURN, 2_451_545.0)
+///     .aspect(90.0)
+///     .cusp(10, 48.85, 2.35, HouseSystem::PLACIDUS)
+///     .flags(CalcFlags::BUILTIN)
+///     .search_cusp();
+/// if let Some(r) = jd { println!("Saturn square MC at JD {}", r.jd); }
+/// ```
+///
+/// # Example — planet transiting a natal angle
+/// ```no_run
+/// # use celestial_core::*;
+/// # use celestial_core::body::{Body, CalcFlags, HouseSystem};
+/// let jd = SearchOptions::new(Body::SATURN, 2_460_000.0)
+///     .natal_chart(2_451_545.0, 48.85, 2.35, HouseSystem::PLACIDUS)
+///     .flags(CalcFlags::BUILTIN)
+///     .search_mc_transit()
+///     .unwrap();
+/// println!("Saturn transits natal MC at JD {jd}");
+/// ```
+#[derive(Debug, Clone)]
+pub struct SearchOptions {
+    body: Body,
+    jd_start: f64,
+    aspect: f64,
+    backward: bool,
+    flags: CalcFlags,
+    // cusp search
+    cusp: Option<usize>,
+    lat: f64,
+    lon: f64,
+    hsys: HouseSystem,
+    // natal angle transit
+    jd_natal: Option<f64>,
+}
+
+impl SearchOptions {
+    /// Create a new builder with a body and start JD.
+    pub fn new(body: Body, jd_start: f64) -> Self {
+        Self {
+            body,
+            jd_start,
+            aspect: 0.0,
+            backward: false,
+            flags: crate::body::CalcFlags::BUILTIN,
+            cusp: None,
+            lat: 0.0,
+            lon: 0.0,
+            hsys: HouseSystem::PLACIDUS,
+            jd_natal: None,
+        }
+    }
+
+    /// Set the aspect angle in degrees (default: 0° = conjunction).
+    pub fn aspect(mut self, degrees: f64) -> Self {
+        self.aspect = degrees;
+        self
+    }
+
+    /// Search for an aspect to a house cusp.
+    ///
+    /// `cusp` is 1–12; lat/lon are the observer's geographic coordinates.
+    pub fn cusp(mut self, cusp: usize, lat: f64, lon: f64, hsys: HouseSystem) -> Self {
+        self.cusp = Some(cusp);
+        self.lat = lat;
+        self.lon = lon;
+        self.hsys = hsys;
+        self
+    }
+
+    /// Set the natal chart for angle transit searches.
+    pub fn natal_chart(mut self, jd_natal: f64, lat: f64, lon: f64, hsys: HouseSystem) -> Self {
+        self.jd_natal = Some(jd_natal);
+        self.lat = lat;
+        self.lon = lon;
+        self.hsys = hsys;
+        self
+    }
+
+    /// Search backwards in time (default: forward).
+    pub fn backward(mut self, back: bool) -> Self {
+        self.backward = back;
+        self
+    }
+
+    /// Set calculation flags (default: `CalcFlags::BUILTIN`).
+    pub fn flags(mut self, flags: CalcFlags) -> Self {
+        self.flags = flags;
+        self
+    }
+
+    /// Execute an aspect-to-house-cusp search.
+    ///
+    /// Requires `.cusp()` to have been called; returns `None` if no event is found.
+    pub fn search_cusp(self) -> Option<AspectCuspResult> {
+        let cusp = self.cusp.unwrap_or(1);
+        next_aspect_cusp(
+            self.body,
+            self.aspect,
+            cusp,
+            self.jd_start,
+            self.lat,
+            self.lon,
+            self.hsys,
+            self.backward,
+            self.flags,
+        )
+    }
+
+    /// Execute a Midheaven (MC) transit search.
+    ///
+    /// Requires `.natal_chart()` to have been called.
+    pub fn search_mc_transit(self) -> crate::Result<f64> {
+        mc_transit_ut(
+            self.body,
+            self.jd_natal.unwrap_or(self.jd_start),
+            self.jd_start,
+            self.lat,
+            self.lon,
+            self.hsys,
+            self.flags,
+            self.backward,
+        )
+    }
+
+    /// Execute an IC transit search.
+    pub fn search_ic_transit(self) -> crate::Result<f64> {
+        ic_transit_ut(
+            self.body,
+            self.jd_natal.unwrap_or(self.jd_start),
+            self.jd_start,
+            self.lat,
+            self.lon,
+            self.hsys,
+            self.flags,
+            self.backward,
+        )
+    }
+
+    /// Execute an Ascendant transit search.
+    pub fn search_asc_transit(self) -> crate::Result<f64> {
+        asc_transit_ut(
+            self.body,
+            self.jd_natal.unwrap_or(self.jd_start),
+            self.jd_start,
+            self.lat,
+            self.lon,
+            self.hsys,
+            self.flags,
+            self.backward,
+        )
+    }
+
+    /// Execute a Descendant transit search.
+    pub fn search_dsc_transit(self) -> crate::Result<f64> {
+        dsc_transit_ut(
+            self.body,
+            self.jd_natal.unwrap_or(self.jd_start),
+            self.jd_start,
+            self.lat,
+            self.lon,
+            self.hsys,
+            self.flags,
+            self.backward,
+        )
+    }
+}

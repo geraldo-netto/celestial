@@ -358,7 +358,10 @@ pub fn moon_phase_info(jd: f64) -> Result<MoonPhaseInfo> {
     .iter()
     .filter_map(|&p| next_principal_phase(jd, p).ok())
     .min_by(|a, b| a.jd.partial_cmp(&b.jd).unwrap())
-    .ok_or_else(|| Error::Calc("could not find next phase".into()))?;
+    .ok_or_else(|| Error::PhaseNotFound {
+        phase: "next".into(),
+        from_jd: jd,
+    })?;
 
     // Previous principal phase = next of the preceding lunation
     let prev_event = [
@@ -374,7 +377,10 @@ pub fn moon_phase_info(jd: f64) -> Result<MoonPhaseInfo> {
             .filter(|e| e.jd <= jd)
     })
     .max_by(|a, b| a.jd.partial_cmp(&b.jd).unwrap())
-    .ok_or_else(|| Error::Calc("could not find previous phase".into()))?;
+    .ok_or_else(|| Error::PhaseNotFound {
+        phase: "previous".into(),
+        from_jd: jd,
+    })?;
 
     let age_days = jd - prev_event.jd;
     let phase_name = phase.name();

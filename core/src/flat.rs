@@ -216,3 +216,8 @@ pub fn jdet_to_utc(jd_et: f64, calendar: i32) -> crate::functions::time::UtcDate
 pub fn jdut1_to_utc(jd_ut: f64, calendar: i32) -> crate::functions::time::UtcDate {
     crate::functions::time::jd_ut_to_utc(jd_ut, Calendar::from(calendar))
 }
+
+pub use crate::functions::aspects::AspectOrbs;
+pub use crate::functions::calc::{CalcOptions, CalcStrategy};
+pub use crate::functions::motion::RiseTransOptions;
+pub use crate::functions::searches::SearchOptions;

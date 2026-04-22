@@ -297,7 +297,7 @@ pub(crate) fn body_position(body_num: i32, jde: f64) -> Result<(f64, f64, f64)> 
             let (l, b, r) = crate::astronomy::chiron::chiron_pos(jde);
             return Ok((l, b, r));
         }
-        _ => return Err(Error::Calc("body not implemented".into())),
+        _ => return Err(Error::BodyNotImplemented { body: body_num }),
     };
     Ok((geo.lon, geo.lat, geo.dist))
 }

@@ -21,7 +21,9 @@ use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 ///
 /// Associated constants cover all bodies supported by the engine.
 /// Use [`Body::from_raw`] or `Body(n)` for asteroid / custom indices.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct Body(pub i32);
 
 impl Body {

@@ -53,8 +53,9 @@ pub fn calc_pctr(jd_et: f64, body: Body, center: Body, flags: CalcFlags) -> Resu
 }
 
 fn fixstar_impl(star: &str, jd: f64, flags: CalcFlags) -> Result<FixStarPos> {
-    let idx = fixstars::find_star(star)
-        .ok_or_else(|| Error::Calc(format!("star '{}' not found in catalog", star)))?;
+    let idx = fixstars::find_star(star).ok_or_else(|| Error::StarNotFound {
+        name: star.to_string(),
+    })?;
     let s = &fixstars::CATALOG[idx];
     let (lon, lat, dist) = fixstars::star_ecliptic_pos(s, jd);
     let (sl, sb, sr) = fixstars::star_speed(s);
@@ -92,8 +93,9 @@ pub fn fixstar2_ut(star: &str, tjd: f64, flags: CalcFlags) -> Result<FixStarPos>
 
 /// Visual magnitude of a fixed star by name.
 pub fn fixstar_mag(star: &str) -> Result<f64> {
-    let idx = fixstars::find_star(star)
-        .ok_or_else(|| Error::Calc(format!("star '{}' not found in catalog", star)))?;
+    let idx = fixstars::find_star(star).ok_or_else(|| Error::StarNotFound {
+        name: star.to_string(),
+    })?;
     Ok(fixstars::CATALOG[idx].mag)
 }
 /// Visual magnitude of a fixed star by name (alias of [`fixstar_mag`]).
@@ -141,7 +143,9 @@ fn nod_aps_impl(jd: f64, body: Body, flags: CalcFlags, _method: i32) -> Result<N
 
     let (asc_lon, dsc_lon, peri_lon, aphe_lon, inc) =
         nodes::planet_nodes_apsides(body.as_raw(), jd).ok_or_else(|| {
-            Error::Calc(format!("nodes not available for body {}", body.as_raw()))
+            Error::BodyNotImplemented {
+                body: body.as_raw(),
+            }
         })?;
 
     let (node_spd, peri_spd) = if flags.as_raw() as u32 & crate::astronomy::flag::FLG_SPEED != 0 {
@@ -281,4 +285,157 @@ where
             })
             .collect()
     })
+}
+
+// ── CalcOptions builder ───────────────────────────────────────────────────────
+
+/// Execution strategy for [`CalcOptions`].
+///
+/// - `Sequential` — evaluate bodies one by one in the calling thread.
+///   Fastest for 1–2 bodies.
+/// - `Parallel` — spawn one OS thread per body. Fastest for 3+ bodies
+///   on multi-core machines.
+/// - `Auto` (default) — parallel for > 2 bodies, sequential otherwise.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CalcStrategy {
+    /// Always run sequentially.
+    Sequential,
+    /// Always run in parallel (one thread per body).
+    Parallel,
+    /// Sequential for ≤ 2 bodies, parallel for > 2 (default).
+    #[default]
+    Auto,
+}
+
+/// Builder for single-body or multi-body planetary calculations.
+///
+/// Unifies `calc_ut`, `calc`, `calc_many`, and `calc_ut_many` behind a
+/// consistent API. The execution strategy (sequential vs parallel) is
+/// selected by the caller or determined automatically.
+///
+/// # Examples
+///
+/// ```no_run
+/// # use celestial_core::*;
+/// # use celestial_core::body::{Body, CalcFlags};
+/// // Single body (UT)
+/// let pos = CalcOptions::ut(2_451_545.0, CalcFlags::BUILTIN | CalcFlags::SPEED)
+///     .body(Body::SUN)
+///     .get()
+///     .unwrap();
+/// println!("Sun: {:.4}°", pos.lon);
+///
+/// // Multiple bodies with automatic strategy
+/// let results = CalcOptions::ut(2_451_545.0, CalcFlags::BUILTIN)
+///     .bodies(&[Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS, Body::MARS])
+///     .get_many();
+///
+/// // Force sequential (e.g. in a tight loop)
+/// let results = CalcOptions::ut(2_451_545.0, CalcFlags::BUILTIN)
+///     .strategy(CalcStrategy::Sequential)
+///     .bodies(&[Body::SUN, Body::MOON])
+///     .get_many();
+/// ```
+#[derive(Debug, Clone)]
+pub struct CalcOptions {
+    jd: f64,
+    flags: CalcFlags,
+    use_ut: bool,
+    strategy: CalcStrategy,
+}
+
+impl CalcOptions {
+    /// Create a builder with a Universal Time Julian Day (auto-applies ΔT).
+    pub fn ut(jd_ut: f64, flags: CalcFlags) -> Self {
+        Self {
+            jd: jd_ut,
+            flags,
+            use_ut: true,
+            strategy: CalcStrategy::Auto,
+        }
+    }
+
+    /// Create a builder with a Terrestrial Time Julian Day (no ΔT applied).
+    ///
+    /// Use when your JD already has ΔT applied — e.g. Meeus examples.
+    pub fn tt(jd_et: f64, flags: CalcFlags) -> Self {
+        Self {
+            jd: jd_et,
+            flags,
+            use_ut: false,
+            strategy: CalcStrategy::Auto,
+        }
+    }
+
+    /// Override the execution strategy (default: `CalcStrategy::Auto`).
+    pub fn strategy(mut self, s: CalcStrategy) -> Self {
+        self.strategy = s;
+        self
+    }
+
+    /// Set a single body and return a ready-to-execute single-body builder.
+    pub fn body(self, body: Body) -> SingleCalc {
+        SingleCalc { opts: self, body }
+    }
+
+    /// Set multiple bodies and return a ready-to-execute multi-body builder.
+    pub fn bodies(self, bodies: &[Body]) -> MultiCalc<'_> {
+        MultiCalc { opts: self, bodies }
+    }
+}
+
+/// Finaliser for a single-body calc (produced by [`CalcOptions::body`]).
+pub struct SingleCalc {
+    opts: CalcOptions,
+    body: Body,
+}
+
+impl SingleCalc {
+    /// Execute the calculation and return the result.
+    pub fn get(self) -> Result<PlanetPos> {
+        if self.opts.use_ut {
+            calc_ut(self.opts.jd, self.body, self.opts.flags)
+        } else {
+            crate::astronomy::calc_tt(self.opts.jd, self.body.as_raw(), self.opts.flags.as_raw())
+        }
+    }
+}
+
+/// Finaliser for a multi-body calc (produced by [`CalcOptions::bodies`]).
+pub struct MultiCalc<'a> {
+    opts: CalcOptions,
+    bodies: &'a [Body],
+}
+
+impl<'a> MultiCalc<'a> {
+    /// Execute the calculations and return one `Result<PlanetPos>` per body.
+    ///
+    /// Order is guaranteed to match the input `bodies` slice.
+    pub fn get_many(self) -> Vec<Result<PlanetPos>> {
+        let use_parallel = match self.opts.strategy {
+            CalcStrategy::Sequential => false,
+            CalcStrategy::Parallel => true,
+            CalcStrategy::Auto => self.bodies.len() > 2,
+        };
+
+        if use_parallel {
+            if self.opts.use_ut {
+                calc_ut_many(self.opts.jd, self.bodies, self.opts.flags)
+            } else {
+                calc_many(self.opts.jd, self.bodies, self.opts.flags)
+            }
+        } else {
+            // Sequential
+            let jd = self.opts.jd;
+            let flags = self.opts.flags;
+            if self.opts.use_ut {
+                self.bodies.iter().map(|&b| calc_ut(jd, b, flags)).collect()
+            } else {
+                self.bodies
+                    .iter()
+                    .map(|&b| crate::astronomy::calc_tt(jd, b.as_raw(), flags.as_raw()))
+                    .collect()
+            }
+        }
+    }
 }

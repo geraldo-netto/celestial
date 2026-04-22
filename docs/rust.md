@@ -2,6 +2,11 @@
 
 `celestial-core` is the pure-Rust computation engine with no C dependencies.
 
+
+---
+
+---
+
 ## Quick start
 
 ```toml
@@ -9,56 +14,8 @@
 celestial-core = { path = "core" }
 ```
 
-```rust
-use celestial_core::*;
-
-fn main() -> Result<()> {
-    let jd = julday(2025, 3, 20, 9.0, GREG_CAL);
-
-    // Sun — geocentric (Universal Time)
-    let sun = calc_ut(jd, SUN, FLG_BUILTIN | FLG_SPEED)?;
-    println!("Sun  lon={:.4}°  dist={:.6} AU  speed={:.4}°/d",
-        sun.lon, sun.dist, sun.speed_lon);
-
-    // All main planets
-    for body in [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE] {
-        let p = calc_ut(jd, body, FLG_BUILTIN)?;
-        println!("  {:<10}  {:>10.4}°", planet_name(body), p.lon);
-    }
-
-    // Parallel multi-body calculation
-    let planets = [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN];
-    let results = calc_many(jd, &planets, FLG_BUILTIN | FLG_SPEED)?;
-
-    // Placidus house cusps — Paris
-    let h = houses(jd, 48.85, 2.35, b'P')?;
-    println!("ASC={:.2}°  MC={:.2}°", h.ascmc[0], h.ascmc[1]);
-
-    // Sidereal (Lahiri) position of Mars
-    set_sid_mode(SIDM_LAHIRI, 0.0, 0.0);
-    let mars = calc_ut(jd, MARS, FLG_BUILTIN | FLG_SIDEREAL)?;
-
-    // Ba Zi (Four Pillars)
-    let pillars = four_pillars(jd, 14.0, sun.lon);
-    println!("Year: {} {}", pillars[0].stem_name, pillars[0].branch_name);
-
-    // Tonalpohualli
-    let (trecena, sign, name, _) = tonalpohualli(jd);
-    println!("Aztec day: {trecena} {name}");
-
-    // Medicine Wheel
-    let (animal, element, clan, season) = medicine_wheel_totem(sun.lon);
-    println!("Totem: {animal} ({element}, {clan}, {season})");
-
-    // Hellenistic dignities
-    let (dignity, score) = full_dignity(SUN, sun.lon, is_day_chart(sun.lon, &h.cusps))?;
-    println!("Sun dignity: {dignity:?} (score {score})");
-
-    Ok(())
-}
-```
-
-For extended Rust examples see [docs/rust.md](docs/rust.md).
+See **[docs/rust.md](docs/rust.md)** for the full API reference, extended examples,
+and a complete chart calculation walkthrough.
 
 ---
 

@@ -51,9 +51,11 @@ pub fn houses_ex2(
 
     let mut cusp_speeds = [0f64; 13];
     let mut ascmc_speeds = [0f64; 10];
-    #[allow(clippy::needless_range_loop)]
-    for i in 0..13 {
-        let dl = r2.cusps[i] - r0.cusps[i];
+    for (speed, (&c2, &c0)) in cusp_speeds
+        .iter_mut()
+        .zip(r2.cusps.iter().zip(r0.cusps.iter()))
+    {
+        let dl = c2 - c0;
         let dl = if dl > 180.0 {
             dl - 360.0
         } else if dl < -180.0 {
@@ -61,11 +63,13 @@ pub fn houses_ex2(
         } else {
             dl
         };
-        cusp_speeds[i] = dl / (2.0 * h);
+        *speed = dl / (2.0 * h);
     }
-    #[allow(clippy::needless_range_loop)]
-    for i in 0..10 {
-        let dl = r2.ascmc[i] - r0.ascmc[i];
+    for (speed, (&a2, &a0)) in ascmc_speeds
+        .iter_mut()
+        .zip(r2.ascmc.iter().zip(r0.ascmc.iter()))
+    {
+        let dl = a2 - a0;
         let dl = if dl > 180.0 {
             dl - 360.0
         } else if dl < -180.0 {
@@ -73,7 +77,7 @@ pub fn houses_ex2(
         } else {
             dl
         };
-        ascmc_speeds[i] = dl / (2.0 * h);
+        *speed = dl / (2.0 * h);
     }
     Ok(HouseResultEx2 {
         cusps: r1.cusps,

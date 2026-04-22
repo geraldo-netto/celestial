@@ -7,38 +7,15 @@
 ## Quick start
 
 ```bash
-sudo apt-get install php-dev   # Ubuntu/Debian
 cd bindings/php && cargo build --release
 # Add to php.ini:  extension=/path/to/libcelestial.so
 ```
 
-```php
-<?php
-$jd  = celestial_julday(2025, 3, 20, 9.0, GREG_CAL);
-$sun = celestial_calc_ut($jd, SE_SUN, FLG_BUILTIN | FLG_SPEED);
-printf("Sun  lon=%.4f°\n", $sun[0]);
+See **[docs/php.md](docs/php.md)** for all `celestial_` prefixed functions, return
+types, phpstan integration, and Phase 5–8 examples.
 
-$h = celestial_houses_ex($jd, 0, 48.85, 2.35, ord('P'));
-printf("ASC=%.2f°  MC=%.2f°\n", $h['ascmc'][0], $h['ascmc'][1]);
+---
 
-// Parallel multi-body
-$results = celestial_calc_many($jd, [SE_SUN, SE_MOON, SE_MERCURY], FLG_BUILTIN);
-
-// Phase 5 — Hellenistic
-$isDay = celestial_is_day_chart($sun[0], $h['cusps']);
-[$dignityName, $score] = celestial_full_dignity(SE_SUN, $sun[0], $isDay);
-
-// Phase 6 — Ba Zi
-$pillars = celestial_four_pillars($jd, 9.0, $sun[0]);
-
-// Phase 7 — Mesoamerican
-$tonal = celestial_tonalpohualli($jd);
-
-// Phase 8 — Medicine Wheel
-$totem = celestial_medicine_wheel_totem($sun[0]);
-```
-
-All functions are prefixed `celestial_`. phpstan stubs at `bindings/php/phpstan-stubs.php`. For the full PHP API reference see [docs/php.md](docs/php.md).
 
 ---
 

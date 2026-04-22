@@ -115,7 +115,10 @@ pub fn rise_trans(
             ev_byte,
         ),
     }
-    .ok_or_else(|| Error::RiseTrans("body is circumpolar or never rises".into()))?;
+    .ok_or_else(|| Error::CircumpolarBody {
+        body: planet.as_raw(),
+        lat: geopos[1],
+    })?;
     Ok(RiseTransResult {
         ret_flags: 0,
         tret: jd,
@@ -160,4 +163,100 @@ pub fn mooncross_back_ut(x2cross: f64, jd_ut: f64, flags: CalcFlags) -> Result<f
     crate::astronomy::crossings::find_crossing(1, x2cross, jd_ut, false, flags.as_raw()).ok_or_else(
         || Error::Calc("mooncross_back_ut: no crossing found searching backward".into()),
     )
+}
+
+// ── RiseTransOptions builder ──────────────────────────────────────────────────
+
+/// Builder for rise/transit/set calculations.
+///
+/// Replaces the `rise_trans` and `rise_trans_true_hor` free functions with a
+/// discoverable, forward-compatible API.
+///
+/// # Example
+/// ```no_run
+/// # use celestial_core::*;
+/// # use celestial_core::body::{Body, CalcFlags};
+/// let result = RiseTransOptions::new(2_451_545.0, Body::MOON, [2.35, 48.85, 35.0])
+///     .event(1) // CALC_RISE
+///     .flags(CalcFlags::BUILTIN)
+///     .search()
+///     .unwrap();
+/// println!("Moon rises at JD {}", result.tret);
+/// ```
+#[derive(Debug, Clone)]
+pub struct RiseTransOptions {
+    jd_ut: f64,
+    planet: Body,
+    geopos: [f64; 3], // [lon, lat, alt_m]
+    starname: Option<String>,
+    flags: CalcFlags,
+    event_type: i32,
+    pressure: f64,
+    temp: f64,
+    horhgt: f64,
+}
+
+impl RiseTransOptions {
+    /// Create a new builder.
+    ///
+    /// `geopos` is `[geographic_longitude, latitude, altitude_m]`.
+    pub fn new(jd_ut: f64, planet: Body, geopos: [f64; 3]) -> Self {
+        Self {
+            jd_ut,
+            planet,
+            geopos,
+            starname: None,
+            flags: crate::body::CalcFlags::BUILTIN,
+            event_type: 1, // CALC_RISE
+            pressure: 1013.25,
+            temp: 15.0,
+            horhgt: 0.0,
+        }
+    }
+
+    /// Set the event type (`CALC_RISE`, `CALC_SET`, `CALC_MTRANSIT`, `CALC_ITRANSIT`).
+    pub fn event(mut self, event_type: i32) -> Self {
+        self.event_type = event_type;
+        self
+    }
+
+    /// Set calculation flags (default: `CalcFlags::BUILTIN`).
+    pub fn flags(mut self, flags: CalcFlags) -> Self {
+        self.flags = flags;
+        self
+    }
+
+    /// Set atmospheric conditions for refraction (pressure mb, temperature °C).
+    pub fn atmosphere(mut self, pressure_mb: f64, temp_c: f64) -> Self {
+        self.pressure = pressure_mb;
+        self.temp = temp_c;
+        self
+    }
+
+    /// Set horizon height in degrees above geometric horizon (for `rise_trans_true_hor`).
+    pub fn horizon_height(mut self, horhgt: f64) -> Self {
+        self.horhgt = horhgt;
+        self
+    }
+
+    /// Set a fixed-star name (overrides planet).
+    pub fn star(mut self, name: impl Into<String>) -> Self {
+        self.starname = Some(name.into());
+        self
+    }
+
+    /// Execute the search and return a `RiseTransResult`.
+    pub fn search(self) -> crate::Result<RiseTransResult> {
+        rise_trans_true_hor(
+            self.jd_ut,
+            self.planet,
+            self.starname.as_deref(),
+            self.flags,
+            self.event_type,
+            self.geopos,
+            self.pressure,
+            self.temp,
+            self.horhgt,
+        )
+    }
 }

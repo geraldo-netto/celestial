@@ -284,3 +284,90 @@ pub fn antiscion(pos: [f64; 6], axis: f64) -> Antiscion {
         contrantiscion: cont,
     }
 }
+
+// ── AspectOrbs builder ────────────────────────────────────────────────────────
+
+/// Builder for fine-grained aspect matching with separate applying/separating orbs.
+///
+/// Replaces `match_aspect3` (separate app/sep orbs) and `match_aspect4`
+/// (separate app/sep/def orbs) with a fluent API.
+///
+/// # Example
+/// ```
+/// # use celestial_core::AspectOrbs;
+/// let m = AspectOrbs::new(1.5, 1.0)
+///     .def_orb(2.0)
+///     .check(120.0, 0.5, 0.0, -0.4, 120.0);  // trine
+/// assert!(m.matched);
+/// ```
+#[derive(Debug, Clone)]
+pub struct AspectOrbs {
+    app_orb: f64,
+    sep_orb: f64,
+    def_orb: f64,
+}
+
+impl AspectOrbs {
+    /// Create a new builder with applying and separating orbs in degrees.
+    pub fn new(app_orb: f64, sep_orb: f64) -> Self {
+        Self {
+            app_orb,
+            sep_orb,
+            def_orb: app_orb.max(sep_orb),
+        }
+    }
+
+    /// Set an additional default orb (used in `match_aspect4`).
+    ///
+    /// Defaults to `max(app_orb, sep_orb)` when not set.
+    pub fn def_orb(mut self, orb: f64) -> Self {
+        self.def_orb = orb;
+        self
+    }
+
+    /// Test if two bodies are in aspect, using all three orbs.
+    ///
+    /// `pos0`/`speed0` — longitude and daily speed of body 1.
+    /// `pos1`/`speed1` — longitude and daily speed of body 2.
+    /// `aspect` — target aspect angle (0°, 60°, 90°, 120°, 180°…).
+    pub fn check(
+        &self,
+        pos0: f64,
+        speed0: f64,
+        pos1: f64,
+        speed1: f64,
+        aspect: f64,
+    ) -> AspectMatch {
+        match_aspect4(
+            pos0,
+            speed0,
+            pos1,
+            speed1,
+            aspect,
+            self.app_orb,
+            self.sep_orb,
+            self.def_orb,
+        )
+    }
+
+    /// Test using only applying and separating orbs (no default orb).
+    pub fn check_simple(
+        &self,
+        pos0: f64,
+        speed0: f64,
+        pos1: f64,
+        speed1: f64,
+        aspect: f64,
+    ) -> AspectMatch {
+        match_aspect3(
+            pos0,
+            speed0,
+            pos1,
+            speed1,
+            aspect,
+            self.app_orb,
+            self.sep_orb,
+            self.def_orb,
+        )
+    }
+}

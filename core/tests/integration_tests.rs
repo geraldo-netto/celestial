@@ -996,3 +996,420 @@ fn heliacal_pheno_ut_smoke() {
         Err(_) => {} // no event is acceptable
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Phase 2 — Western advanced chart types
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Known birth JD: 1985-07-14 12:00 UT (Paris, 48.85°N 2.35°E)
+const JD_NATAL: f64 = 2_446_225.0;
+/// J2000.0
+const JD_J2000: f64 = 2_451_545.0;
+/// 2025-01-01 00:00 UT
+const JD_2025: f64 = 2_460_676.5;
+
+#[test]
+fn solar_return_jd_lands_in_correct_year() {
+    let sr = solar_return_jd(JD_NATAL, 2025, CalcFlags::BUILTIN).unwrap();
+    // Solar return 2025 for a July 14 natal must be in July 2025
+    // JD range: 2025-07-01 = ~2460857, 2025-07-31 = ~2460887
+    assert!(
+        sr > 2_460_800.0 && sr < 2_460_920.0,
+        "Solar return 2025 JD {sr:.2} not in July 2025 window"
+    );
+    // Sun longitude at return should match natal Sun longitude
+    let natal_sun = calc_ut(JD_NATAL, Body::SUN, CalcFlags::BUILTIN)
+        .unwrap()
+        .lon;
+    let ret_sun = calc_ut(sr, Body::SUN, CalcFlags::BUILTIN).unwrap().lon;
+    assert!(
+        (natal_sun - ret_sun)
+            .abs()
+            .min((natal_sun - ret_sun + 360.0).abs())
+            .min((ret_sun - natal_sun + 360.0).abs())
+            < 0.01,
+        "Sun longitude mismatch: natal={natal_sun:.4}° return={ret_sun:.4}°"
+    );
+}
+
+#[test]
+fn solar_return_jd_consecutive_years_one_year_apart() {
+    let sr2024 = solar_return_jd(JD_NATAL, 2024, CalcFlags::BUILTIN).unwrap();
+    let sr2025 = solar_return_jd(JD_NATAL, 2025, CalcFlags::BUILTIN).unwrap();
+    let diff = sr2025 - sr2024;
+    // Should be within a few days of 365.25
+    assert!(
+        (diff - 365.25).abs() < 2.0,
+        "Solar return interval {diff:.2}d should be ~365.25d"
+    );
+}
+
+#[test]
+fn lunar_return_jd_moon_lon_matches() {
+    let natal_moon = calc_ut(JD_NATAL, Body::MOON, CalcFlags::BUILTIN)
+        .unwrap()
+        .lon;
+    let lr = lunar_return_jd(JD_NATAL, JD_2025, CalcFlags::BUILTIN).unwrap();
+    let ret_moon = calc_ut(lr, Body::MOON, CalcFlags::BUILTIN).unwrap().lon;
+    let diff = (natal_moon - ret_moon)
+        .abs()
+        .min((natal_moon - ret_moon + 360.0).abs())
+        .min((ret_moon - natal_moon + 360.0).abs());
+    assert!(
+        diff < 0.5,
+        "Lunar return Moon mismatch: natal={natal_moon:.4}° return={ret_moon:.4}°"
+    );
+}
+
+#[test]
+fn lunar_return_jd_is_after_search_start() {
+    let lr = lunar_return_jd(JD_NATAL, JD_2025, CalcFlags::BUILTIN).unwrap();
+    assert!(
+        lr >= JD_2025,
+        "Lunar return JD {lr:.2} should be after search start {JD_2025}"
+    );
+    // And within one synodic month (~29.5 days) of the start
+    assert!(
+        lr < JD_2025 + 30.0,
+        "Lunar return JD {lr:.2} more than 30 days after search start"
+    );
+}
+
+#[test]
+fn secondary_progressions_sun_advances_one_degree_per_year() {
+    let bodies = [Body::SUN, Body::MOON];
+    let (pos_35, _) = secondary_progressions(
+        JD_NATAL,
+        35.0,
+        &bodies,
+        48.85,
+        2.35,
+        HouseSystem::PLACIDUS,
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
+    let (pos_36, _) = secondary_progressions(
+        JD_NATAL,
+        36.0,
+        &bodies,
+        48.85,
+        2.35,
+        HouseSystem::PLACIDUS,
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
+    // Progressed Sun advances ~1°/year by the day-for-a-year method
+    let sun_35 = pos_35[0].1.lon;
+    let sun_36 = pos_36[0].1.lon;
+    let advance = (sun_36 - sun_35 + 360.0) % 360.0;
+    assert!(
+        advance > 0.5 && advance < 1.5,
+        "Progressed Sun advance {advance:.4}°/year should be ~1°"
+    );
+}
+
+#[test]
+fn secondary_progressions_returns_correct_body_count() {
+    let bodies = [
+        Body::SUN,
+        Body::MOON,
+        Body::MERCURY,
+        Body::VENUS,
+        Body::MARS,
+    ];
+    let (pos, _) = secondary_progressions(
+        JD_NATAL,
+        35.0,
+        &bodies,
+        48.85,
+        2.35,
+        HouseSystem::PLACIDUS,
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
+    assert_eq!(
+        pos.len(),
+        bodies.len(),
+        "position count should match body count"
+    );
+}
+
+#[test]
+fn solar_arc_directions_sun_advances_one_degree_per_year() {
+    let bodies = [Body::SUN, Body::MOON];
+    let h_natal = houses_ex(
+        JD_NATAL,
+        CalcFlags::BUILTIN,
+        48.85,
+        2.35,
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
+    let mc = h_natal.ascmc[1];
+    let natal_pairs: Vec<(Body, f64)> = bodies
+        .iter()
+        .map(|&b| {
+            let p = calc_ut(JD_NATAL, b, CalcFlags::BUILTIN).unwrap();
+            (b, p.lon)
+        })
+        .collect();
+    let (arc_35, pos_35, _) =
+        solar_arc_directions(JD_NATAL, 35.0, &natal_pairs, mc, CalcFlags::BUILTIN).unwrap();
+    let (arc_36, _, _) =
+        solar_arc_directions(JD_NATAL, 36.0, &natal_pairs, mc, CalcFlags::BUILTIN).unwrap();
+    // Solar arc ≈ 1°/year
+    assert!(
+        (arc_35 - 35.0).abs() < 3.0,
+        "Solar arc at 35y = {arc_35:.2}° (expected ~35°)"
+    );
+    assert!(
+        (arc_36 - arc_35 - 1.0).abs() < 0.3,
+        "Solar arc advances {:.3}°/year (expected ~1°)",
+        arc_36 - arc_35
+    );
+    assert_eq!(pos_35.len(), bodies.len());
+}
+
+#[test]
+fn midpoint_table_sun_moon_included() {
+    let natal_sun = calc_ut(JD_NATAL, Body::SUN, CalcFlags::BUILTIN)
+        .unwrap()
+        .lon;
+    let natal_moon = calc_ut(JD_NATAL, Body::MOON, CalcFlags::BUILTIN)
+        .unwrap()
+        .lon;
+    let positions = vec![
+        (Body::SUN, natal_sun),
+        (Body::MOON, natal_moon),
+        (Body::MERCURY, 150.0),
+        (Body::VENUS, 200.0),
+    ];
+    let table = midpoint_table(&positions, 1.5);
+    // With 4 bodies there are 6 possible midpoints
+    assert!(
+        table.len() <= 6,
+        "midpoint_table returned {} entries for 4 bodies",
+        table.len()
+    );
+    // Each entry should have finite degree and orb
+    for entry in &table {
+        assert!(entry.2.is_finite(), "non-finite midpoint lon");
+    }
+}
+
+#[test]
+fn midpoint_table_zero_orb_returns_all_pairs() {
+    // With orb=360° every pair should appear
+    let positions = vec![
+        (Body::SUN, 10.0),
+        (Body::MOON, 80.0),
+        (Body::MERCURY, 150.0),
+        (Body::VENUS, 200.0),
+    ];
+    let table = midpoint_table(&positions, 360.0);
+    assert_eq!(table.len(), 6, "4 bodies → 6 midpoints with full orb");
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Phase 5 — Hellenistic / Persian  (integration: real JD)
+// ══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn full_dignity_real_chart_j2000() {
+    let sun = calc_ut(JD_J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let h = houses_ex(
+        JD_J2000,
+        CalcFlags::BUILTIN,
+        48.85,
+        2.35,
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
+    let is_day = is_day_chart(sun.lon, &h.cusps);
+    let (dig, score) = full_dignity(Body::SUN, sun.lon, is_day);
+    // Sun at J2000 is in Capricorn (~280°): Saturn's domicile, no special dignity for Sun
+    // → Peregrine (score 0) is correct; Sun's detriment is Aquarius (300-330°)
+    assert!(
+        matches!(dig, Dignity::Peregrine | Dignity::Detriment | Dignity::Fall),
+        "Sun at {:.1}° unexpected dignity {:?}",
+        sun.lon,
+        dig
+    );
+    assert!(
+        score <= 0,
+        "Score should be ≤0 for Capricorn Sun, got {score}"
+    );
+}
+
+#[test]
+fn firdaria_real_chart_covers_75_years() {
+    let h = houses_ex(
+        JD_NATAL,
+        CalcFlags::BUILTIN,
+        48.85,
+        2.35,
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
+    let sun = calc_ut(JD_NATAL, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let is_day = is_day_chart(sun.lon, &h.cusps);
+    let periods = firdaria(JD_NATAL, is_day, 75.0);
+
+    let total_years: f64 = periods.iter().map(|p| p.years).sum();
+    assert!(
+        (total_years - 75.0).abs() < 0.5,
+        "Firdaria total {total_years:.2}y should be ~75y"
+    );
+    // No gaps
+    for w in periods.windows(2) {
+        assert!(
+            (w[1].start - w[0].end).abs() < 0.1,
+            "Gap between firdaria periods"
+        );
+    }
+}
+
+#[test]
+fn annual_profection_real_chart_age_39() {
+    let h = houses_ex(
+        JD_NATAL,
+        CalcFlags::BUILTIN,
+        48.85,
+        2.35,
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
+    let (house, lon) = annual_profection(&h.cusps, 39);
+    // age 39 → house (39 % 12) + 1 = 4
+    assert_eq!(house, 4, "age 39 → house 4");
+    assert!(
+        lon >= 0.0 && lon < 360.0,
+        "profected lon {lon:.2} out of range"
+    );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Phase 6 — Chinese astrology  (integration: real JD)
+// ══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn four_pillars_j2000_known_values() {
+    let sun = calc_ut(JD_J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let pillars = four_pillars(JD_J2000, 12.0, sun.lon);
+    // J2000.0 = 2000-01-01 — Gengchen (庚辰) year, Wuzi month
+    assert_eq!(
+        pillars.len(),
+        4,
+        "four_pillars must return exactly 4 pillars"
+    );
+    // Jan 1 2000 is before Lìchūn (~Feb 4) so Ba Zi year is still 1999 = Jǐ/Mǎo (Earth Rabbit)
+    assert_eq!(
+        pillars[0].stem_name, "Jǐ",
+        "Jan 1 2000 stem should be Jǐ (1999 year), got {}",
+        pillars[0].stem_name
+    );
+    assert_eq!(
+        pillars[0].branch_name, "Mǎo",
+        "Jan 1 2000 branch should be Mǎo (Rabbit), got {}",
+        pillars[0].branch_name
+    );
+}
+
+#[test]
+fn four_pillars_hour_pillar_changes_every_2_hours() {
+    let sun = calc_ut(JD_J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    // Hours 0 and 1 should share the same pillar (Rat hour = 23:00–01:00)
+    let p0 = four_pillars(JD_J2000, 0.0, sun.lon);
+    let p1 = four_pillars(JD_J2000, 1.0, sun.lon);
+    let p3 = four_pillars(JD_J2000, 3.0, sun.lon);
+    // Each 2-hour block (shí) is one earthly branch; hour 0 = Rat (23-1), hour 1 = Ox (1-3)
+    // They are in different branches; just verify they all have valid names
+    assert!(
+        EARTHLY_BRANCHES.iter().any(|b| b.0 == p0[3].branch_name),
+        "Hour 0 branch '{}' not in EARTHLY_BRANCHES",
+        p0[3].branch_name
+    );
+    assert!(
+        EARTHLY_BRANCHES.iter().any(|b| b.0 == p1[3].branch_name),
+        "Hour 1 branch '{}' not in EARTHLY_BRANCHES",
+        p1[3].branch_name
+    );
+    // Hours 1 and 3 span different 2-hour blocks
+    assert_ne!(
+        p1[3].branch_name, p3[3].branch_name,
+        "Hours 1 and 3 should be in different hour pillars"
+    );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Phase 7 — Mesoamerican  (integration: real JD)
+// ══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn tonalpohualli_j2000_known_values() {
+    // J2000.0 = JD 2451545.0
+    // (2451545 - 584283) % 260 = 1867262 % 260 = 82
+    // trecena = 82 % 13 + 1 = 8; sign_idx = 82 % 20 = 2 → Calli (House)
+    let (t, s, name, _) = tonalpohualli(JD_J2000);
+    assert_eq!(t, 8, "J2000 trecena should be 8, got {t}");
+    assert_eq!(s, 2, "J2000 sign should be 2 (Calli), got {s}");
+    assert_eq!(name, "Calli", "J2000 sign name should be Calli, got {name}");
+}
+
+#[test]
+fn tonalpohualli_and_tzolkin_same_cycle_position() {
+    // Both calendars are 260-day cycles — trecena numbers should always match
+    for offset in [0.0, 13.0, 100.0, 259.0, 260.0, 521.0] {
+        let jd = JD_J2000 + offset;
+        let (tt, _, _, _) = tonalpohualli(jd);
+        let (tz, _, _, _) = tzolkin(jd);
+        assert_eq!(
+            tt, tz,
+            "trecena mismatch at offset {offset}: Tonal={tt}, Tzolkin={tz}"
+        );
+    }
+}
+
+#[test]
+fn calendar_round_repeats_after_18980_days() {
+    let cr0 = calendar_round(JD_J2000);
+    let cr1 = calendar_round(JD_J2000 + 18_980.0);
+    assert_eq!(cr0, cr1, "Calendar Round should repeat at 18980 days");
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Phase 8 — Indigenous / Egyptian  (integration: real JD)
+// ══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn medicine_wheel_totem_j2000_sun() {
+    let sun = calc_ut(JD_J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    // Sun at J2000 ≈ 280° (Capricorn) → Medicine Wheel: Snow Goose (300°-330°)
+    // or Elk (270°-300°) — sun at ~280° is in Elk territory
+    let (animal, element, clan, season) = medicine_wheel_totem(sun.lon);
+    assert!(!animal.is_empty(), "animal should not be empty");
+    assert!(!element.is_empty(), "element should not be empty");
+    assert!(!clan.is_empty(), "clan should not be empty");
+    assert!(!season.is_empty(), "season should not be empty");
+    // Sun ~280° is in the Elk range (270-300°)
+    assert_eq!(
+        animal, "Elk",
+        "Sun at {:.1}° should be Elk totem, got {animal}",
+        sun.lon
+    );
+}
+
+#[test]
+fn egyptian_decan_j2000_sun() {
+    let sun = calc_ut(JD_J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let (idx, name, star) = egyptian_decan(sun.lon);
+    // Sun ~280° → decan 28 (0-indexed from 0°)
+    assert_eq!(
+        idx,
+        (sun.lon / 10.0).floor() as usize % 36,
+        "decan index mismatch for lon {:.2}°",
+        sun.lon
+    );
+    assert!(!name.is_empty(), "decan name empty");
+    assert!(!star.is_empty(), "rising star empty");
+}

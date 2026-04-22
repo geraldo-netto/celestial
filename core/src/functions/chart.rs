@@ -17,7 +17,7 @@ pub type MidpointEntry = (Body, Body, f64, Vec<(Body, f64)>);
 // ─── Aspect table ──────────────────────────────────────────────────────────────
 
 /// One aspect between two bodies in a chart.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ChartAspect {
     /// First body number.
     pub body1: Body,
@@ -175,7 +175,7 @@ pub fn sign_ingress_ut(
 // ─── Retrograde stations ──────────────────────────────────────────────────────
 
 /// Retrograde and direct station times for a planet.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Stations {
     /// Julian day of retrograde station (planet turns retrograde).
     pub retrograde: f64,
@@ -302,7 +302,7 @@ pub fn arabic_part(asc: f64, body2: f64, body1: f64) -> f64 {
 }
 
 /// Standard Arabic Parts with names.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ArabicPart {
     pub name: &'static str,
     pub formula: &'static str,
@@ -883,7 +883,7 @@ pub fn lon_to_sign(lon: f64) -> (u8, f64) {
 // ─── Vimshottari Dasha ────────────────────────────────────────────────────────
 
 /// One level of the Vimshottari dasha system.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DashaLevel {
     /// Ruling planet (body number).
     pub body: Body,

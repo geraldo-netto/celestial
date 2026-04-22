@@ -9,42 +9,11 @@
 cd bindings/python && pip install maturin && maturin develop
 ```
 
-```python
-import celestial_py as celestial
+See **[docs/python.md](docs/python.md)** for installation, all function signatures,
+return types, constants, and Phase 5–8 examples.
 
-jd  = celestial.julday(2025, 3, 20, 9.0, celestial.GREG_CAL)
-pos = celestial.calc_ut(jd, celestial.SUN, celestial.FLG_BUILTIN | celestial.FLG_SPEED)
-print(f"Sun  lon={pos.lon:.4f}°  dist={pos.dist:.6f} AU")
+---
 
-h = celestial.houses_ex(jd, 0, 48.85, 2.35, ord("P"))
-print(f"ASC={h.ascmc[0]:.2f}°  MC={h.ascmc[1]:.2f}°")
-
-# Parallel multi-body
-results = celestial.calc_many(jd, [0,1,2,3,4,5,6], celestial.FLG_BUILTIN)
-
-# Sidereal (Lahiri)
-celestial.set_sid_mode(celestial.SIDM_LAHIRI, 0.0, 0.0)
-moon = celestial.calc_ut(jd, celestial.MOON, celestial.FLG_BUILTIN | celestial.FLG_SIDEREAL)
-
-# Phase 5 — Hellenistic
-is_day   = celestial.is_day_chart(pos.lon, h.cusps)
-dignity, score = celestial.full_dignity(celestial.SUN, pos.lon, is_day)
-
-# Phase 6 — Ba Zi
-pillars = celestial.four_pillars(jd, 9.0, pos.lon)
-
-# Phase 7 — Mesoamerican
-trecena, sign_idx, name, english = celestial.tonalpohualli(jd)
-
-# Phase 8 — Medicine Wheel
-animal, element, clan, season = celestial.medicine_wheel_totem(pos.lon)
-
-# Moon phase
-phase      = celestial.moon_phase(jd)
-illumination = celestial.moon_illumination(jd)
-```
-
-For the full Python API reference see [docs/python.md](docs/python.md).
 
 ---
 
