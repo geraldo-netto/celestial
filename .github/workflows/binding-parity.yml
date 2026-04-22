@@ -1,0 +1,68 @@
+# ─── binding parity check ──────────────────────────────────────────────────────
+#
+# Runs on every PR and push to main that touches any binding source.
+# Fails immediately if Python, JS, and PHP don't export the same function set.
+# Fix gaps with:  cargo xtask codegen --apply  (then review the diff)
+
+name: binding-parity
+
+on:
+  push:
+    branches: ["main", "master", "develop"]
+    paths:
+      - "bindings/**"
+      - "core/**"
+      - "xtask/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  pull_request:
+    paths:
+      - "bindings/**"
+      - "core/**"
+      - "xtask/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+concurrency:
+  group: binding-parity-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  parity:
+    name: parity check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-xtask-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-xtask-
+
+      - name: Check binding parity
+        run: cargo xtask parity
+
+      - name: Show codegen suggestions on failure
+        if: failure()
+        run: |
+          echo "──────────────────────────────────────────────────────────────"
+          echo "Bindings are out of parity. Run locally to generate stubs:"
+          echo ""
+          echo "  cargo xtask codegen --apply"
+          echo "  # review the diff, then commit"
+          echo "──────────────────────────────────────────────────────────────"
+          cargo xtask codegen || true

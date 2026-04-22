@@ -1,5 +1,5 @@
 [workspace]
-members  = ["core", "bindings/python", "bindings/js", "fuzz", "cli"]
+members  = ["core", "bindings/python", "bindings/js", "fuzz", "cli", "xtask"]
 resolver = "2"
 
 [workspace.package]
