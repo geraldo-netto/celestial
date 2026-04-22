@@ -248,6 +248,7 @@ pub fn calc_ut_many(tjdut: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<
         .collect()
 }
 
+#[php_function]
 pub fn calc_pctr(tjdet: f64, planet: i64, center: i64, flags: i64) -> PhpResult<Vec<f64>> {
     let p = celestial::calc_pctr(
         tjdet,
