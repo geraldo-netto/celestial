@@ -1713,6 +1713,7 @@ pub fn next_aspect_cusp(
     .map(|r| vec![r.jd, r.pos[0]])
 }
 
+#[allow(clippy::too_many_arguments)]
 #[php_function]
 fn ic_transit_ut(
     planet: i64,
@@ -1737,6 +1738,7 @@ fn ic_transit_ut(
     .map_err(|e| PhpException::from(e.to_string()))
 }
 
+#[allow(clippy::too_many_arguments)]
 #[php_function]
 fn asc_transit_ut(
     planet: i64,
@@ -1761,6 +1763,7 @@ fn asc_transit_ut(
     .map_err(|e| PhpException::from(e.to_string()))
 }
 
+#[allow(clippy::too_many_arguments)]
 #[php_function]
 fn dsc_transit_ut(
     planet: i64,
@@ -2098,6 +2101,7 @@ pub fn next_aspect(
 }
 
 /// Next aspect cusp (secondary algorithm). Returns [jd] or null.
+#[allow(clippy::too_many_arguments)]
 #[php_function]
 pub fn next_aspect_cusp2(
     body: i64,
@@ -2337,8 +2341,6 @@ pub fn xiuhpohualli(jd: f64) -> Vec<String> {
     let (m, d, n, e) = celestial::xiuhpohualli(jd);
     vec![m.to_string(), d.to_string(), n.to_string(), e.to_string()]
 }
-
-/// next_aspect_cusp2 is defined above already.
 
 // ── Legacy aliases (called by tests with SwissEph-compatible names) ────────────
 
