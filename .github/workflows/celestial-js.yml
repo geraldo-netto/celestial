@@ -109,8 +109,26 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: node pure_logic.test.mjs
-        run: node bindings/js/tests/pure_logic.test.mjs
+      - name: Install c8 coverage tool
+        run: npm install -g c8
+
+      - name: node pure_logic.test.mjs (with c8 coverage)
+        run: |
+          c8 \
+            --reporter=lcov \
+            --reporter=text-summary \
+            --include="bindings/js/tests/*.mjs" \
+            --output-dir=coverage-js \
+            node bindings/js/tests/pure_logic.test.mjs
+
+      - name: Upload JS coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage-js/lcov.info
+          flags: javascript-pure-logic
+          name: celestial-js
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   # ── Fuzz / boundary tests ─────────────────────────────────────────────────
   # Runs the full pure-logic suite (which includes the "fuzzing: boundary /

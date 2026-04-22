@@ -5,6 +5,7 @@
 [![celestial-python](https://github.com/geraldo-netto/celestial/actions/workflows/celestial-python.yml/badge.svg)](https://github.com/geraldo-netto/celestial/actions/workflows/celestial-python.yml)
 [![celestial-js](https://github.com/geraldo-netto/celestial/actions/workflows/celestial-js.yml/badge.svg)](https://github.com/geraldo-netto/celestial/actions/workflows/celestial-js.yml)
 [![celestial-php](https://github.com/geraldo-netto/celestial/actions/workflows/celestial-php.yml/badge.svg)](https://github.com/geraldo-netto/celestial/actions/workflows/celestial-php.yml)
+[![codecov](https://codecov.io/gh/geraldo-netto/celestial/graph/badge.svg)](https://codecov.io/gh/geraldo-netto/celestial)
 
 A pure-Rust astronomical engine — no C compiler, no data files, **no external dependencies**.
 

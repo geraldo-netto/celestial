@@ -170,3 +170,97 @@ mod phase6_solar_terms {
         );
     }
 }
+
+mod phase6_extra {
+    use celestial_core::*;
+
+    #[test]
+    fn four_pillars_returns_four() {
+        let jd = 2_451_545.0; // J2000.0
+        let p = four_pillars(jd, 12.0, 280.0); // Sun ~280° at J2000
+        assert_eq!(p.len(), 4);
+        // Each pillar must have non-empty names
+        for pillar in &p {
+            assert!(!pillar.stem_name.is_empty(), "stem name empty");
+            assert!(!pillar.branch_name.is_empty(), "branch name empty");
+            assert!(!pillar.animal.is_empty(), "animal name empty");
+        }
+    }
+
+    #[test]
+    fn four_pillars_stems_in_range() {
+        let jd = 2_451_545.0;
+        let p = four_pillars(jd, 9.0, 280.0);
+        for pillar in &p {
+            assert!(
+                HEAVENLY_STEMS.iter().any(|s| s.0 == pillar.stem_name),
+                "stem '{}' not in HEAVENLY_STEMS",
+                pillar.stem_name
+            );
+        }
+    }
+
+    #[test]
+    fn four_pillars_branches_in_range() {
+        let jd = 2_451_545.0;
+        let p = four_pillars(jd, 9.0, 280.0);
+        for pillar in &p {
+            assert!(
+                EARTHLY_BRANCHES.iter().any(|b| b.0 == pillar.branch_name),
+                "branch '{}' not in EARTHLY_BRANCHES",
+                pillar.branch_name
+            );
+        }
+    }
+
+    #[test]
+    fn solar_term_all_24_positions() {
+        for (i, &(lon, _, _)) in SOLAR_TERMS.iter().enumerate() {
+            let (cur, into, _next, _to) = solar_term_position(lon + 1.0);
+            assert_eq!(
+                cur, i,
+                "term {i}: position at lon={:.0}°+1 should be term {i}",
+                lon
+            );
+            assert!(
+                into >= 0.0 && into < 15.5,
+                "deg_into={into:.2} out of range"
+            );
+        }
+    }
+
+    #[test]
+    fn solar_term_boundary_wrap() {
+        // At exactly 345° (last term boundary), should be in last term or wrap
+        let (cur, _, _, _) = solar_term_position(345.0);
+        assert!(cur < 24, "term index out of range");
+    }
+
+    #[test]
+    fn sexagenary_name_cycle_length() {
+        // The 60-cycle: index 60 should equal index 0
+        let (stem0, animal0) = sexagenary_name(0);
+        let (stem60, animal60) = sexagenary_name(60);
+        assert_eq!(stem0, stem60, "stem wraps at 60");
+        assert_eq!(animal0, animal60, "animal wraps at 60");
+    }
+
+    #[test]
+    fn sexagenary_name_jiazi_is_first() {
+        let (stem, animal) = sexagenary_name(0);
+        assert_eq!(stem, "Jiǎ", "first stem should be Jiǎ");
+        assert_eq!(animal, "Rat", "first branch should be Rat");
+    }
+
+    #[test]
+    fn make_pillar_roundtrip() {
+        for stem in 0u8..10 {
+            for branch in 0u8..12 {
+                let p = make_pillar(stem, branch);
+                assert_eq!(p.stem_name, HEAVENLY_STEMS[stem as usize].0);
+                assert_eq!(p.branch_name, EARTHLY_BRANCHES[branch as usize].0);
+                assert_eq!(p.yang, HEAVENLY_STEMS[stem as usize].2);
+            }
+        }
+    }
+}

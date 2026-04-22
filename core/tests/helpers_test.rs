@@ -481,3 +481,155 @@ fn test_saturn_4_stars() {
         assert!(v >= 0.0 && v < 360.0, "lon={v}");
     }
 }
+
+// ── Hebrew calendar — tested via public API ──────────────────────────────────
+mod hebrew_public_api {
+    use celestial_core::*;
+
+    #[test]
+    fn hebrew_year_from_jd_known_dates() {
+        // J2000.0 (2000-01-01) is in Hebrew year 5760
+        let year = hebrew_year_from_jd(2_451_545.0);
+        assert_eq!(year, 5760, "J2000.0 should be in Hebrew year 5760");
+    }
+
+    #[test]
+    fn jd_to_hebrew_date_roundtrip() {
+        // Convert J2000 to Hebrew date and back via jewish_holiday_jd
+        let jd = 2_451_545.0;
+        let (y, m, d) = jd_to_hebrew_date(jd);
+        assert!(y > 5000, "Hebrew year should be > 5000");
+        assert!(m >= 1 && m <= 13, "month {m} out of range");
+        assert!(d >= 1 && d <= 30, "day {d} out of range");
+    }
+
+    #[test]
+    fn jd_to_hebrew_date_monotone() {
+        // Adding days to JD should advance the Hebrew date
+        let jd = 2_451_545.0;
+        let (y0, m0, d0) = jd_to_hebrew_date(jd);
+        let (y1, m1, d1) = jd_to_hebrew_date(jd + 1.0);
+        let ord0 = (y0 as i64) * 10000 + m0 as i64 * 100 + d0 as i64;
+        let ord1 = (y1 as i64) * 10000 + m1 as i64 * 100 + d1 as i64;
+        assert!(
+            ord1 >= ord0,
+            "date should advance: {y0}/{m0}/{d0} → {y1}/{m1}/{d1}"
+        );
+    }
+
+    #[test]
+    fn jewish_holidays_count_per_year() {
+        // A standard Hebrew year has at least 10 major holidays
+        let holidays = jewish_holidays(5785);
+        assert!(
+            holidays.len() >= 10,
+            "expected ≥10 holidays, got {}",
+            holidays.len()
+        );
+        // Every holiday must have a non-empty name and a plausible JD
+        for h in &holidays {
+            assert!(!h.name.is_empty(), "holiday name empty");
+            assert!(h.jd > 2_400_000.0, "JD {} too small", h.jd);
+        }
+    }
+
+    #[test]
+    fn jewish_holidays_rosh_hashanah_in_sept_oct() {
+        let holidays = jewish_holidays(5785);
+        let rh = holidays
+            .iter()
+            .find(|h| h.name.contains("Rosh Hashanah"))
+            .unwrap();
+        let d = celestial_core::revjul(rh.jd, celestial_core::Calendar::Gregorian);
+        // Rosh Hashanah always falls Sep 5 – Oct 5
+        assert!(
+            (d.month == 9 && d.day >= 5) || (d.month == 10 && d.day <= 5),
+            "Rosh Hashanah 5785: got {}-{:02}-{:02}",
+            d.year,
+            d.month,
+            d.day
+        );
+    }
+
+    #[test]
+    fn jewish_holiday_jd_lookup() {
+        // jewish_holiday_jd should return Some for known holidays
+        let yom_kippur = jewish_holiday_jd(5785, "Yom Kippur");
+        assert!(yom_kippur.is_some(), "Yom Kippur not found");
+        assert!(yom_kippur.unwrap() > 2_400_000.0);
+        // Yom Kippur is 10 days after Rosh Hashanah
+        let rosh = jewish_holiday_jd(5785, "Rosh Hashanah");
+        assert!(rosh.is_some(), "Rosh Hashanah not found");
+        let diff = yom_kippur.unwrap() - rosh.unwrap();
+        assert!(
+            (diff - 10.0).abs() < 1.5,
+            "Yom Kippur should be ~10d after Rosh, got {diff:.1}"
+        );
+    }
+
+    #[test]
+    fn jewish_holidays_yom_kippur_after_rosh() {
+        let holidays = jewish_holidays(5785);
+        let rosh = holidays
+            .iter()
+            .find(|h| h.name.contains("Rosh Hashanah"))
+            .unwrap();
+        let yk = holidays.iter().find(|h| h.name == "Yom Kippur").unwrap();
+        assert!(yk.jd > rosh.jd, "Yom Kippur must come after Rosh Hashanah");
+    }
+
+    #[test]
+    fn jewish_holidays_passover_after_purim() {
+        let holidays = jewish_holidays(5785);
+        let purim = holidays.iter().find(|h| h.name.contains("Purim"));
+        let passover = holidays
+            .iter()
+            .find(|h| h.name.contains("Passover") || h.name.contains("Pesach"));
+        if let (Some(pur), Some(pas)) = (purim, passover) {
+            assert!(pas.jd > pur.jd, "Passover must come after Purim");
+        }
+    }
+
+    #[test]
+    fn hebrew_year_from_jd_consistent_with_jd_to_hebrew_date() {
+        let jd = 2_451_545.0;
+        let year_fast = hebrew_year_from_jd(jd);
+        let (year_full, _, _) = jd_to_hebrew_date(jd);
+        assert_eq!(
+            year_fast, year_full,
+            "hebrew_year_from_jd and jd_to_hebrew_date should agree"
+        );
+    }
+}
+
+// ── planet_on_midpoint ────────────────────────────────────────────────────────
+mod midpoint_helpers {
+    use celestial_core::planet_on_midpoint;
+
+    #[test]
+    fn exact_hit_returns_zero_orb() {
+        let hit = planet_on_midpoint(30.0, 30.0, 2.0);
+        assert!(hit.is_some());
+        assert!(hit.unwrap().abs() < 1e-9);
+    }
+
+    #[test]
+    fn within_orb_returns_signed_distance() {
+        // Planet at 31°, midpoint at 30° → orb = 1°
+        let hit = planet_on_midpoint(31.0, 30.0, 2.0);
+        assert!(hit.is_some());
+        assert!((hit.unwrap() - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn outside_orb_returns_none() {
+        assert!(planet_on_midpoint(35.0, 30.0, 2.0).is_none());
+    }
+
+    #[test]
+    fn midpoint_wraps_across_0_360() {
+        // Midpoint near 0°/360° boundary
+        let hit = planet_on_midpoint(359.5, 0.0, 1.0);
+        assert!(hit.is_some(), "should find hit across 0°/360° boundary");
+    }
+}

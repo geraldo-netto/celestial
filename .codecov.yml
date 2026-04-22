@@ -1,0 +1,55 @@
+# Codecov configuration
+# https://docs.codecov.com/docs/codecovyml-reference
+
+coverage:
+  # Report succeeds if coverage doesn't drop by more than 2%
+  range: "70..100"
+  round: down
+  precision: 2
+
+  status:
+    project:
+      default:
+        target: auto      # maintain current coverage
+        threshold: 2%     # allow up to 2% drop
+    patch:
+      default:
+        target: 60%       # new code in PRs should be ≥60% covered
+
+# Flags per component
+flag_management:
+  default_rules:
+    carryforward: true   # carry forward coverage from unchanged files
+
+flags:
+  rust-core:
+    paths:
+      - core/src/
+    carryforward: true
+  rust-cli:
+    paths:
+      - cli/src/
+    carryforward: true
+  python-pure-logic:
+    paths:
+      - bindings/python/python/
+    carryforward: true
+  javascript-pure-logic:
+    paths:
+      - bindings/js/tests/
+    carryforward: true
+
+# Ignore generated or vendored files
+ignore:
+  - "target/**"
+  - "**/*.pb.rs"
+  - "core/src/astronomy/vsop87.rs"    # large generated coefficient table
+  - "core/tests/**"
+  - "fuzz/**"
+  - "benches/**"
+  - "bindings/php/**"                 # PHP has its own coverage setup
+
+comment:
+  layout: "reach,diff,flags,components"
+  behavior: default
+  require_changes: false

@@ -2782,9 +2782,7 @@ mod tests_vedic {
     };
     use super::indigenous::build_medicine_wheel_context;
     use super::mesoamerican::build_mesoamerican_context;
-    use super::vedic::{
-        build_ashtakavarga_context, build_shadbala_context, build_vedic_context,
-    };
+    use super::vedic::{build_ashtakavarga_context, build_shadbala_context, build_vedic_context};
     use super::*;
     use celestial_core::{long_to_navamsa, long_to_rasi};
 

@@ -72,3 +72,85 @@ mod phase7_mesoamerican {
         assert_eq!(TONALPOHUALLI_SIGNS.len(), 20);
     }
 }
+
+mod phase7_extra {
+    use celestial_core::*;
+
+    const GMT: f64 = 584_283.0;
+
+    #[test]
+    fn tonalpohualli_cycle_length_260() {
+        // Exactly 260 days later should give the same position
+        let jd = GMT as f64;
+        let (t0, s0, _, _) = tonalpohualli(jd);
+        let (t260, s260, _, _) = tonalpohualli(jd + 260.0);
+        assert_eq!(t0, t260, "trecena repeats at 260 days");
+        assert_eq!(s0, s260, "sign repeats at 260 days");
+    }
+
+    #[test]
+    fn tonalpohualli_trecena_range() {
+        // trecena is always 1-13, sign_idx always 0-19
+        for offset in 0..260i64 {
+            let jd = GMT + offset as f64;
+            let (t, s, _, _) = tonalpohualli(jd);
+            assert!(t >= 1 && t <= 13, "trecena {t} out of range [1,13]");
+            assert!(s < 20, "sign_idx {s} out of range [0,19]");
+        }
+    }
+
+    #[test]
+    fn tonalpohualli_day_one_is_cipactli() {
+        let (t, s, name, _) = tonalpohualli(GMT as f64);
+        assert_eq!(t, 1, "GMT day: trecena 1");
+        assert_eq!(s, 0, "GMT day: sign 0 (Cipactli)");
+        assert_eq!(name, "Cipactli", "GMT day: name Cipactli");
+    }
+
+    #[test]
+    fn xiuhpohualli_365_day_cycle() {
+        let jd = GMT as f64;
+        let (m0, d0, _, _) = xiuhpohualli(jd);
+        let (m365, d365, _, _) = xiuhpohualli(jd + 365.0);
+        assert_eq!(m0, m365, "xiuhpohualli month repeats at 365 days");
+        assert_eq!(d0, d365, "xiuhpohualli day repeats at 365 days");
+    }
+
+    #[test]
+    fn tzolkin_matches_tonalpohualli_cycle() {
+        // Tzolkin is the Maya equivalent of Tonalpohualli — same 260-day period
+        let jd = GMT as f64 + 17.0;
+        let (tt, _, _, _) = tonalpohualli(jd);
+        let (tz, _, _, _) = tzolkin(jd);
+        assert_eq!(
+            tt, tz,
+            "trecena should match between Tzolkin and Tonalpohualli"
+        );
+    }
+
+    #[test]
+    fn haab_365_day_cycle() {
+        let jd = GMT as f64;
+        let (m0, d0, _) = haab(jd);
+        let (m365, d365, _) = haab(jd + 365.0);
+        assert_eq!(m0, m365);
+        assert_eq!(d0, d365);
+    }
+
+    #[test]
+    fn calendar_round_18980_day_cycle() {
+        // Calendar Round = LCM(260, 365) = 18980 days
+        let jd = GMT as f64;
+        let cr0 = calendar_round(jd);
+        let cr18980 = calendar_round(jd + 18980.0);
+        assert_eq!(cr0, cr18980, "Calendar Round repeats at 18980 days");
+    }
+
+    #[test]
+    fn gmt_correlation_constant_value() {
+        assert_eq!(
+            GMT_CORRELATION, GMT as i64,
+            "GMT correlation should be 584283"
+        );
+    }
+}
