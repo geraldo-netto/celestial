@@ -8,6 +8,7 @@ supporting eight astrological traditions across 24 chart types.
 | File | Contents |
 |---|---|
 | [api_reference.md](api_reference.md) | Complete Rust API reference — return types, code examples |
+| [building.md](building.md) | Build guide — how to build each component, run all tests, lint everything |
 | [python.md](python.md) | Python (PyO3) binding — installation, all functions, constants |
 | [javascript.md](javascript.md) | JavaScript / TypeScript (napi-rs) — typed API, full guide |
 | [php.md](php.md) | PHP (ext-php-rs) — installation, phpstan stubs, all functions |
