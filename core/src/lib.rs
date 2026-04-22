@@ -18,21 +18,26 @@
 //! | Module | Contents |
 //! |---|---|
 //! | [`body`] | [`Body`], [`CalcFlags`], [`HouseSystem`], [`SiderealMode`], [`Calendar`] |
+//! | [`constants`] | Numeric constants (body indices, flags, sidereal modes) |
+//! | [`position`] | `calc_ut`, `calc_many`, `CalcOptions`, fixed stars, ayanamsa |
 //! | [`time`] | Julian day, UTC, calendar conversion |
-//! | [`position`] | Planetary positions, fixed stars, ayanamsa |
 //! | [`houses`] | House cusp systems |
-//! | [`motion`] | Crossings, rise/set/transit, eclipses |
-//! | [`moon`] | Phase, illumination, principal phases, esbats |
-//! | [`chart`] | Aspects, progressions, returns, Arabic parts |
+//! | [`motion`] | Crossings, rise/set/transit, eclipses, `RiseTransOptions`, `SearchOptions` |
+//! | [`moon`] | Phase, illumination, principal phases, esbats, sabbats |
+//! | [`chart`] | Aspects, `AspectOrbs`, progressions, returns, Arabic parts, traditions |
 //! | [`vedic`] | Jyotish helpers, Panchānga |
-//! | [`geo`] | Atlas, coordinate formatting, timezones |
-//! | [`calendar`] | Hebrew, Christian, Islamic, Hindu, Buddhist, Persian, Celtic calendars |
+//! | [`geo`] | Coordinate formatting, timezones |
+//! | [`calendar`] | Hebrew, Christian, Islamic, Hindu, Buddhist, Persian, Celtic |
+//!
+//! All public symbols are re-exported at the crate root, so
+//! `use celestial_core::calc_ut` continues to work alongside
+//! the preferred `use celestial_core::position::calc_ut`.
 //!
 //! A [`prelude`] module re-exports the most-used items for convenience.
 
 // ── Crate-private physics engine (unchanged) ──────────────────────────────────
 pub(crate) mod astronomy;
-pub(crate) mod constants; // raw i32 constants kept for internal use
+pub mod constants; // raw i32 constants kept for internal use
 
 // ── Core types ─────────────────────────────────────────────────────────────────
 pub mod error;
@@ -50,12 +55,22 @@ pub mod position;
 pub mod time;
 pub mod vedic;
 
-// ── Legacy flat re-exports (for backward compatibility and bindings) ───────────
-// These delegate to the new module structure.
-// Deprecated style: `use celestial_core::calc_ut`
-// Preferred style:  `use celestial_core::position::calc_ut`
-mod flat;
-pub use flat::*;
+// ── Flat re-exports from domain modules ─────────────────────────────────────────
+// Everything accessible as `celestial_core::calc_ut` etc. for backward compatibility
+// and for the language bindings. Prefer using domain modules directly:
+//   use celestial_core::position::calc_ut;
+//   use celestial_core::moon::moon_phase;
+pub use body::*;
+pub use calendar::*;
+pub use chart::*;
+pub use constants::*;
+pub use geo::*;
+pub use houses::*;
+pub use moon::*;
+pub use motion::*;
+pub use position::*;
+pub use time::*;
+pub use vedic::*;
 
 // ── Public types from types.rs ─────────────────────────────────────────────────
 pub use types::{FixStarPos, NodAps, OrbitalDistances, OrbitalElements, PlanetPos};
@@ -79,5 +94,5 @@ pub mod prelude {
     pub use crate::types::PlanetPos;
 }
 
-// ── Keep functions/ as private implementation detail ──────────────────────────
+// ── Implementation detail — not part of the public API ──────────────────────────
 pub(crate) mod functions;

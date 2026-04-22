@@ -200,7 +200,7 @@ och = celestial.ochchabala(celestial.SUN, pos.lon)  # 0–60
 
 ---
 
-## Phase 5 — Hellenistic / Persian
+## Hellenistic / Persian
 
 ```python
 pos = celestial.calc_ut(jd, celestial.SUN, celestial.FLG_BUILTIN)
@@ -238,7 +238,7 @@ print(f"Age 35 → House {house_num} ({prof_lon:.2f}°)")
 
 ---
 
-## Phase 6 — Chinese astrology (Ba Zi)
+## Chinese astrology (Ba Zi)
 
 ```python
 pos = celestial.calc_ut(jd, celestial.SUN, celestial.FLG_BUILTIN)
@@ -258,7 +258,7 @@ print(f"Next term: {terms[next_idx][1]} in {deg_to_next:.1f}°")
 
 ---
 
-## Phase 7 — Mesoamerican calendars
+## Mesoamerican calendars
 
 ```python
 # Aztec Tonalpohualli (260-day)
@@ -286,7 +286,7 @@ print(celestial.GMT_CORRELATION)  # 584283
 
 ---
 
-## Phase 8 — Indigenous / Egyptian
+## Indigenous / Egyptian
 
 ```python
 pos = celestial.calc_ut(jd, celestial.SUN, celestial.FLG_BUILTIN)

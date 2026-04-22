@@ -1,9 +1,42 @@
-# celestial — API Reference
+# celestial — API & Rust Reference
 
-Complete reference for all public functions in `celestial-core`.
-All are available through the CLI and all three language bindings.
+This document is the unified reference for `celestial-core`.  
+Language-specific guides: [python.md](python.md) · [javascript.md](javascript.md) · [php.md](php.md)
 
-> **Language guides**: [rust.md](rust.md) · [python.md](python.md) · [javascript.md](javascript.md) · [php.md](php.md)
+---
+
+## Add as dependency
+
+```toml
+[dependencies]
+celestial-core = { path = "../core" }
+```
+
+### Import styles
+
+All symbols are available at the crate root (backward-compatible) and via their domain module (preferred):
+
+```rust
+// Preferred — explicit, IDE-friendly
+use celestial_core::position::{calc_ut, CalcOptions};
+use celestial_core::motion::{RiseTransOptions, SearchOptions};
+use celestial_core::chart::{AspectOrbs, full_dignity, firdaria};
+use celestial_core::moon::{moon_phase, sabbats_for_year};
+use celestial_core::calendar::{jewish_holidays, easter_gregorian};
+use celestial_core::body::{Body, CalcFlags, HouseSystem};
+
+// Convenience — import everything at once
+use celestial_core::prelude::*;
+
+// Still works — crate root re-exports all domain modules
+use celestial_core::calc_ut;
+```
+
+The public API is a single flat namespace:
+
+```rust
+use celestial_core::*;
+```
 
 ---
 
@@ -368,6 +401,89 @@ println!("Orb: {:.2}°  Applying: {}", m.diff.abs(), m.diff < 0.0);
 | `sol_eclipse_when_glob(jd, flags, type, back)` | Next solar eclipse |
 | `lun_eclipse_when(jd, flags, type, back)` | Next lunar eclipse |
 
+## Complete chart calculation
+
+```rust
+use celestial_core::*;
+
+fn main() -> Result<()> {
+    let jd  = julday(1985, 7, 14, 12.0, GREG_CAL);
+    let lat = 48.85;
+    let lon = 2.35;
+
+    // Positions
+    let bodies = [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN,
+                  URANUS, NEPTUNE, PLUTO, MEAN_NODE, CHIRON];
+    let positions = calc_many(jd, &bodies, FLG_BUILTIN | FLG_SPEED)?;
+
+    // Aspects
+    let pos_pairs: Vec<(i32, f64, f64)> = positions.iter().zip(bodies.iter())
+        .map(|(p, &b)| (b, p.lon, p.speed_lon)).collect();
+    let aspects = calc_chart_aspects(&pos_pairs, MAJOR_ASPECTS, 8.0);
+    for a in &aspects {
+        println!("{} {} {} orb={:.2}°",
+            planet_name(a.body1), a.aspect, planet_name(a.body2), a.orb);
+    }
+
+    // Solar return
+    let jd_sr = solar_return_jd(jd, 2025, FLG_BUILTIN)?;
+    let d     = revjul(jd_sr, GREG_CAL);
+    println!("Solar return 2025: {:04}-{:02}-{:02}", d.year, d.month, d.day);
+
+    // Secondary progressions (35 years)
+    let (prog, _) = secondary_progressions(jd, 35.0, &bodies, lat, lon, b'P', FLG_BUILTIN)?;
+    let prog_sun  = prog[0].1.lon;
+    let prog_moon = prog[1].1.lon;
+    println!("Prog Sun={:.2}°  Prog Moon={:.2}°", prog_sun, prog_moon);
+
+    // Midpoint
+    let mid = midpoint_deg(prog_sun, prog_moon);
+    println!("Sun-Moon midpoint: {:.2}°", mid);
+
+    // Vedic — Vimshottari dasha
+    set_sid_mode(SIDM_LAHIRI, 0.0, 0.0);
+    let moon_sid = calc_ut(jd, MOON, FLG_BUILTIN | FLG_SIDEREAL)?;
+    let dashas   = vimshottari_dasha(jd, moon_sid.lon, 120.0);
+    for d in dashas.iter().take(3) {
+        println!("{} dasha: {:.1} years", planet_name(d.planet), d.years);
+    }
+
+    // Hellenistic — dignity
+    let h      = houses(jd, lat, lon, b'P')?;
+    let sun    = positions[0];
+    let is_day = is_day_chart(sun.lon, &h.cusps);
+    let (dig, score) = full_dignity(SUN, sun.lon, is_day)?;
+    println!("Sun dignity: {dig:?} (score {score})");
+
+    // Ba Zi
+    let pillars = four_pillars(jd, 12.0, sun.lon);
+    for (i, p) in pillars.iter().enumerate() {
+        let label = ["Year", "Month", "Day", "Hour"][i];
+        println!("{label}: {} {}", p.stem_name, p.branch_name);
+    }
+
+    // Tonalpohualli
+    let (trecena, _, name, _) = tonalpohualli(jd);
+    println!("Aztec day: {trecena} {name}");
+
+    // Medicine Wheel
+    let (animal, element, clan, season) = medicine_wheel_totem(sun.lon);
+    println!("Totem: {animal} ({element}, {clan}, {season})");
+
+    // Phase 5 — Hellenistic dignities
+    let (dig, score) = full_dignity(Body::SUN, sun.lon, is_day_chart(sun.lon, &h.cusps))?;
+    println!("Sun dignity: {dig:?} (score {score})");
+
+    let periods = firdaria(jd_natal, is_day_chart(sun.lon, &h.cusps), 75.0);
+    println!("First firdaria lord: {}", planet_name(periods[0].major_lord));
+
+    let (house, _) = annual_profection(&h.cusps, 35);
+    println!("Age 35 profection: house {house}");
+
+    Ok(())
+}
+```
+
 ---
 
 ## Aspects & searches
@@ -403,7 +519,7 @@ println!("Orb: {:.2}°  Applying: {}", m.diff.abs(), m.diff < 0.0);
 
 ---
 
-## Phase 5 — Hellenistic / Persian
+## Hellenistic / Persian
 
 | Function | Signature | Description |
 |---|---|---|
@@ -424,7 +540,7 @@ println!("Orb: {:.2}°  Applying: {}", m.diff.abs(), m.diff < 0.0);
 
 ---
 
-## Phase 6 — Chinese astrology
+## Chinese astrology
 
 | Function | Signature | Description |
 |---|---|---|
@@ -438,7 +554,7 @@ println!("Orb: {:.2}°  Applying: {}", m.diff.abs(), m.diff < 0.0);
 
 ---
 
-## Phase 7 — Mesoamerican calendars
+## Mesoamerican calendars
 
 | Function | Signature | Description |
 |---|---|---|
@@ -452,7 +568,7 @@ println!("Orb: {:.2}°  Applying: {}", m.diff.abs(), m.diff < 0.0);
 
 ---
 
-## Phase 8 — Indigenous / Egyptian
+## Indigenous / Egyptian
 
 | Function | Signature | Description |
 |---|---|---|

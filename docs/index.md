@@ -8,28 +8,13 @@ supporting eight astrological traditions across 24 chart types.
 | File | Contents |
 |---|---|
 | [api_reference.md](api_reference.md) | Complete function reference — all 8 phases, all return types |
-| [rust.md](rust.md) | Rust crate API with extended code examples |
+| [api_reference.md](api_reference.md) | Rust crate API with extended code examples |
 | [python.md](python.md) | Python (PyO3) binding — installation, all functions, constants |
 | [javascript.md](javascript.md) | JavaScript / TypeScript (napi-rs) — typed API, full guide |
 | [php.md](php.md) | PHP (ext-php-rs) — installation, phpstan stubs, all functions |
 
 The main [README.md](../README.md) contains a full Table of Contents, CLI reference, and
 quick-start examples for all languages.
-
----
-
-## New since initial release
-
-| Symbol | Location | Description |
-|---|---|---|
-| `CalcOptions` / `CalcStrategy` | `celestial_core` | Unified builder for single/multi-body calc with `Sequential`/`Parallel`/`Auto` strategy |
-| `RiseTransOptions` | `celestial_core` | Builder for rise/transit/set — replaces `rise_trans()` 8-arg call |
-| `SearchOptions` | `celestial_core` | Builder for cusp-aspect and angle-transit searches |
-| `AspectOrbs` | `celestial_core` | Builder for fine-grained aspect matching |
-| `Error::BodyNotImplemented` | `celestial_core` | Structured errors with typed fields; `#[non_exhaustive]` |
-| `ChartAspect`, `Stations`, `ArabicPart`, `DashaLevel` | `celestial_core` | `#[derive(Serialize, Deserialize)]` added |
-| `celestial_py.pyi` | `bindings/python` | Full Python type stubs for all 114 exported functions |
-| `tests/fixtures/reference_values.json` | `tests/` | Cross-language canonical test fixture (Python, JS, PHP) |
 
 ---
 
@@ -83,49 +68,40 @@ celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
 
 ```
 celestial-workspace/
-├── core/                        celestial-core — pure-Rust engine, zero dependencies
-│   └── src/
-│       ├── astronomy/           IAU 2000B nutation, VSOP87, 3-pass light-time, rise/set
-│       └── functions/
-│           ├── chart.rs         Phases 1–4 (Western + Vedic helpers)
-│           ├── hellenistic.rs   Phase 5: dignity, almuten, firdaria
-│           ├── chinese.rs       Phase 6: Ba Zi, solar terms
-│           ├── mesoamerican.rs  Phase 7: Tonalpohualli, Tzolkin, Haab
-│           ├── indigenous.rs    Phase 8: Medicine Wheel, Egyptian decans
-│           ├── vedic.rs         Jyotish utilities
-│           ├── calc.rs          calc_ut, calc_many (parallel), nutation
-│           └── ...              aspects, eclipses, crossings, calendars
-│   └── tests/
-│       ├── new_features_test.rs Phases 2–4 core tests
-│       ├── phase1_test.rs       Phase 1: minor aspects, antiscia, dignities
-│       ├── phase5_test.rs       Phase 5: Hellenistic / Persian
-│       ├── phase6_test.rs       Phase 6: Chinese
-│       ├── phase7_test.rs       Phase 7: Mesoamerican
-│       └── phase8_test.rs       Phase 8: Indigenous / Egyptian
-├── cli/                         celestial — 11 sub-commands + plugin system
-│   └── src/cmd/render/
-│       ├── mod.rs               Dispatch, shared helpers (~3200 lines)
-│       ├── western.rs           Natal, cosmogram, returns, progressions, bi-wheel
-│       ├── specialist.rs        Dial, composite, tri-wheel, ephemeris, local-space
-│       ├── vedic.rs             Rasi, navamsa, dasha, ashtakavarga, shadbala
-│       ├── hellenistic.rs       Hellenistic overlay, firdaria, profection
-│       ├── chinese.rs           Ba Zi (Four Pillars)
-│       ├── mesoamerican.rs      Aztec + Maya calendar chart
-│       └── indigenous.rs        Medicine Wheel + Egyptian decans
-├── bindings/
-│   ├── python/                  PyO3 — 152 exported functions
-│   ├── js/                      napi-rs — 155 exported functions + index.d.ts
-│   └── php/                     ext-php-rs — 130 exported functions
-├── fuzz/                        53 property-test suites (cargo run)
-├── tests/fixtures/              reference_values.json — cross-language canonical values
-└── docs/                        Extended documentation (see Documentation section)
+├── core/
+│   ├── src/
+│   │   ├── lib.rs              crate root — re-exports all domain modules
+│   │   ├── body/               Body, CalcFlags, HouseSystem, SiderealMode
+│   │   ├── position.rs         calc_ut, calc_many, CalcOptions, fixed stars
+│   │   ├── time.rs             julday, revjul, UTC conversion
+│   │   ├── houses.rs           house cusp systems
+│   │   ├── motion.rs           crossings, rise/set, eclipses, RiseTransOptions
+│   │   ├── moon.rs             phases, illumination, esbats, sabbats
+│   │   ├── chart.rs            aspects, AspectOrbs, progressions, traditions
+│   │   ├── vedic.rs            Jyotish, Panchānga
+│   │   ├── geo.rs              coordinate formatting, timezones
+│   │   ├── calendar/           Hebrew, Christian, Islamic, Hindu, Buddhist, Persian, Celtic
+│   │   ├── constants.rs        numeric constants (body indices, flags, modes)
+│   │   ├── error.rs            structured Error enum (#[non_exhaustive])
+│   │   └── functions/          pub(crate) implementation — 28 submodules
+│   │       ├── hellenistic.rs  Phase 5: dignity, almuten, firdaria
+│   │       ├── chinese.rs      Phase 6: Ba Zi, solar terms
+│   │       ├── mesoamerican.rs Phase 7: Tonalpohualli, Tzolkin, Haab
+│   │       └── indigenous.rs   Phase 8: Medicine Wheel, Egyptian decans
+├── cli/src/cmd/render/         24 SVG chart builders, one per tradition
+├── bindings/python/            PyO3 — 152 functions + celestial_py.pyi stubs
+├── bindings/js/                napi-rs — 155 functions + index.d.ts
+├── bindings/php/               ext-php-rs — 130 functions + phpstan stubs
+└── tests/fixtures/             reference_values.json — cross-language test fixture
 ```
 
 The public API is a **single flat namespace** — `use celestial_core::*` gives you everything.
 
 ---
 
-## Plugin architecture
+## CLI & plugins
+
+### Plugin architecture
 
 Any executable named `celestial-<n>` on `$PATH` becomes a first-class subcommand:
 
@@ -133,28 +109,6 @@ Any executable named `celestial-<n>` on `$PATH` becomes a first-class subcommand
 celestial --list-plugins              # discover all installed plugins
 celestial synastry --date 1985-01-01  # runs celestial-synastry if on PATH
 ```
-
----
-
-## CI pipelines
-
-Five independent pipelines, each triggered on changes to its crate or `core/`:
-
-| Pipeline | Jobs |
-|---|---|
-| **celestial-core** | `lint` (fmt + clippy) → `test` (737 unit tests) ‖ `fuzz` (53 suites) |
-| **celestial-cli** | `lint` (clippy) → `test` (81 tests) → `build` (3 OS) |
-| **celestial-python** | `lint-rs` ‖ `lint-py` (black + ruff) → `test` (245 pure-logic) → `build` (maturin wheel) |
-| **celestial-js** | `lint-rs` ‖ `lint-ts` (eslint + tsc) → `test` (162 pure-logic) → `build` (napi-rs addon) |
-| **celestial-php** | `lint-rs` → `build` (ext-php-rs + pure-logic tests, PHP 8.1) |
-
-`lint-rs` and `lint-py`/`lint-ts` always run in parallel with strict scope.
-
----
-
-## License
-
-AGPL-3.0, matching the Swiss Ephemeris it emulates.
 
 ---
 
@@ -170,3 +124,18 @@ python3 benches/precision_comparison.py
 ```
 
 Precision vs Meeus benchmarks confirmed at ~3.2″ Sun / ~0.7″ Moon. `SYNODIC_MONTH = 29.530_588_853` days.
+## CI pipelines
+
+Five independent pipelines, each triggered on changes to its crate or `core/`:
+
+| Pipeline | Jobs |
+|---|---|
+| **celestial-core** | `lint` (fmt + clippy) → `test` (737 unit tests) ‖ `fuzz` (53 suites) |
+| **celestial-cli** | `lint` (clippy) → `test` (81 tests) → `build` (3 OS) |
+| **celestial-python** | `lint-rs` ‖ `lint-py` (black + ruff) → `test` (245 pure-logic) → `build` (maturin wheel) |
+| **celestial-js** | `lint-rs` ‖ `lint-ts` (eslint + tsc) → `test` (162 pure-logic) → `build` (napi-rs addon) |
+| **celestial-php** | `lint-rs` → `build` (ext-php-rs + pure-logic tests, PHP 8.1) |
+
+`lint-rs` and `lint-py`/`lint-ts` always run in parallel with strict scope.
+
+---

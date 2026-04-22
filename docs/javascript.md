@@ -181,7 +181,7 @@ const fullMoon = celestial.next_full_moon_phase(jd);
 
 ---
 
-## Phase 5 — Hellenistic / Persian
+## Hellenistic / Persian
 
 ```typescript
 const sun = celestial.calc_ut(jd, 0, 2 | 256);
@@ -218,7 +218,7 @@ console.log(`Age 35 → House ${houseNum} (${profLon.toFixed(2)}°)`);
 
 ---
 
-## Phase 6 — Chinese astrology (Ba Zi)
+## Chinese astrology (Ba Zi)
 
 ```typescript
 const sun = celestial.calc_ut(jd, 0, 2);
@@ -234,7 +234,7 @@ const [curIdx, degInto, nextIdx, degToNext]: number[] = celestial.solar_term_pos
 
 ---
 
-## Phase 7 — Mesoamerican calendars
+## Mesoamerican calendars
 
 ```typescript
 // Aztec Tonalpohualli → [trecena, signIdx, nahuatlName, english]
@@ -258,7 +258,7 @@ const cr: [number, number, number, number] = celestial.calendar_round(jd);
 
 ---
 
-## Phase 8 — Indigenous / Egyptian
+## Indigenous / Egyptian
 
 ```typescript
 const sun = celestial.calc_ut(jd, 0, 2);

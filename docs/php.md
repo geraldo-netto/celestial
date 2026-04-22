@@ -221,7 +221,7 @@ foreach (array_slice($dashas, 0, 3) as $d) {
 
 ---
 
-## Phase 5 — Hellenistic / Persian
+## Hellenistic / Persian
 
 ```php
 $sun = celestial_calc_ut($jd, SE_SUN, FLG_BUILTIN);
@@ -257,7 +257,7 @@ printf("Age 35 → House %d (%.2f°)\n", $houseNum, $profLon);
 
 ---
 
-## Phase 6 — Chinese astrology (Ba Zi)
+## Chinese astrology (Ba Zi)
 
 ```php
 $sun     = celestial_calc_ut($jd, SE_SUN, FLG_BUILTIN);
@@ -275,7 +275,7 @@ foreach ($pillars as $i => $pillar) {
 
 ---
 
-## Phase 7 — Mesoamerican calendars
+## Mesoamerican calendars
 
 ```php
 // Aztec Tonalpohualli: [trecena, sign_idx, nahuatl_name, english]
@@ -297,7 +297,7 @@ $cr = celestial_calendar_round($jd);
 
 ---
 
-## Phase 8 — Indigenous / Egyptian
+## Indigenous / Egyptian
 
 ```php
 $sun = celestial_calc_ut($jd, SE_SUN, FLG_BUILTIN);
