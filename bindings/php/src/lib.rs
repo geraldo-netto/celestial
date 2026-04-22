@@ -1728,23 +1728,6 @@ pub fn is_day_chart(sun_lon: f64, cusps: Vec<f64>) -> PhpResult<bool> {
     Ok(celestial::is_day_chart(sun_lon, &arr))
 }
 
-/// Essential dignity, detriment, fall, exaltation, or peregrine.
-/// Returns ["dignity" => string, "score" => int]
-/// @param int   $body    Body index
-/// @param float $lon     Ecliptic longitude
-/// @param bool  $is_day  Day chart flag
-#[php_function]
-pub fn full_dignity(body: i64, lon: f64, is_day: bool) -> HashMap<String, PhpZval> {
-    let (dig, score) = celestial::full_dignity(Body(body as i32), lon, is_day);
-    let mut m = HashMap::new();
-    m.insert(
-        "dignity".into(),
-        PhpZval::try_from(dig.to_string()).unwrap(),
-    );
-    m.insert("score".into(), PhpZval::try_from(score as i64).unwrap());
-    m
-}
-
 /// Almuten (planet with highest essential dignity score) for a degree.
 /// Returns [body_index, score]
 #[php_function]
@@ -1815,70 +1798,6 @@ pub fn sexagenary_name(cycle_index: i64) -> Vec<String> {
 // Mesoamerican calendars
 // ══════════════════════════════════════════════════════════════════════════════
 
-/// Aztec Tonalpohualli 260-day sacred calendar.
-/// Returns [trecena, sign_index, sign_name, trecena_lord_name]
-#[php_function]
-pub fn tonalpohualli(jd: f64) -> Vec<PhpZval> {
-    let (t, s, name, lord) = celestial::tonalpohualli(jd);
-    vec![
-        PhpZval::try_from(t as i64).unwrap(),
-        PhpZval::try_from(s as i64).unwrap(),
-        PhpZval::try_from(name.to_string()).unwrap(),
-        PhpZval::try_from(lord.to_string()).unwrap(),
-    ]
-}
-
-/// Aztec Xiuhpohualli 365-day solar calendar.
-/// Returns [month_index, day_in_month, month_name, day_name]
-#[php_function]
-pub fn xiuhpohualli(jd: f64) -> Vec<PhpZval> {
-    let (mi, d, mname, dname) = celestial::xiuhpohualli(jd);
-    vec![
-        PhpZval::try_from(mi as i64).unwrap(),
-        PhpZval::try_from(d as i64).unwrap(),
-        PhpZval::try_from(mname.to_string()).unwrap(),
-        PhpZval::try_from(dname.to_string()).unwrap(),
-    ]
-}
-
-/// Maya Tzolk'in 260-day calendar.
-/// Returns [trecena, sign_index, sign_name, day_lord]
-#[php_function]
-pub fn tzolkin(jd: f64) -> Vec<PhpZval> {
-    let (t, s, name, lord) = celestial::tzolkin(jd);
-    vec![
-        PhpZval::try_from(t as i64).unwrap(),
-        PhpZval::try_from(s as i64).unwrap(),
-        PhpZval::try_from(name.to_string()).unwrap(),
-        PhpZval::try_from(lord.to_string()).unwrap(),
-    ]
-}
-
-/// Maya Haab 365-day solar calendar.
-/// Returns [month_index, day_in_month, month_name]
-#[php_function]
-pub fn haab(jd: f64) -> Vec<PhpZval> {
-    let (mi, d, name) = celestial::haab(jd);
-    vec![
-        PhpZval::try_from(mi as i64).unwrap(),
-        PhpZval::try_from(d as i64).unwrap(),
-        PhpZval::try_from(name.to_string()).unwrap(),
-    ]
-}
-
-/// Maya Calendar Round (52-year cycle).
-/// Returns [tzolkin_num, tzolkin_name, haab_day, haab_name]
-#[php_function]
-pub fn calendar_round(jd: f64) -> Vec<PhpZval> {
-    let (tn, tname, hd, hname) = celestial::calendar_round(jd);
-    vec![
-        PhpZval::try_from(tn as i64).unwrap(),
-        PhpZval::try_from(tname.to_string()).unwrap(),
-        PhpZval::try_from(hd as i64).unwrap(),
-        PhpZval::try_from(hname.to_string()).unwrap(),
-    ]
-}
-
 // ══════════════════════════════════════════════════════════════════════════════
 // Indigenous / Egyptian
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1889,18 +1808,6 @@ pub fn calendar_round(jd: f64) -> Vec<PhpZval> {
 pub fn medicine_wheel_totem(sun_lon: f64) -> Vec<String> {
     let (a, e, c, s) = celestial::medicine_wheel_totem(sun_lon);
     vec![a.to_string(), e.to_string(), c.to_string(), s.to_string()]
-}
-
-/// Egyptian decan for an ecliptic longitude.
-/// Returns [decan_index, decan_name, rising_star]
-#[php_function]
-pub fn egyptian_decan(lon: f64) -> Vec<PhpZval> {
-    let (idx, name, star) = celestial::egyptian_decan(lon);
-    vec![
-        PhpZval::try_from(idx as i64).unwrap(),
-        PhpZval::try_from(name.to_string()).unwrap(),
-        PhpZval::try_from(star.to_string()).unwrap(),
-    ]
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2039,59 +1946,6 @@ pub fn monthly_profection(cusps: Vec<f64>, age_years: i64, age_months: i64) -> P
 // ══════════════════════════════════════════════════════════════════════════════
 // Sabbats & Esbats
 // ══════════════════════════════════════════════════════════════════════════════
-
-/// All eight sabbats for a given year. Returns [[jd, name], ...]
-#[php_function]
-pub fn sabbats_for_year(year: i64) -> PhpResult<Vec<Vec<PhpZval>>> {
-    let sabbats = celestial::sabbats_for_year(year as i32).map_err(to_php)?;
-    Ok(sabbats
-        .iter()
-        .map(|s| {
-            vec![
-                PhpZval::try_from(s.jd).unwrap(),
-                PhpZval::try_from(s.name.to_string()).unwrap(),
-            ]
-        })
-        .collect())
-}
-
-/// JD for a specific sabbat. kind: 0=Samhain,1=Yule,2=Imbolc,3=Ostara,
-///   4=Beltane,5=Litha,6=Lughnasadh,7=Mabon
-#[php_function]
-pub fn sabbat_jd(year: i64, kind: i64) -> PhpResult<f64> {
-    use celestial::SabbatKind;
-    let kinds = [
-        SabbatKind::Samhain,
-        SabbatKind::Yule,
-        SabbatKind::Imbolc,
-        SabbatKind::Ostara,
-        SabbatKind::Beltane,
-        SabbatKind::Litha,
-        SabbatKind::Lughnasadh,
-        SabbatKind::Mabon,
-    ];
-    let k = kinds
-        .get(kind as usize)
-        .ok_or_else(|| PhpException::default("invalid sabbat kind (0-7)".into()))?;
-    celestial::sabbat_jd(year as i32, *k).map_err(to_php)
-}
-
-/// Next sabbat from a given JD. Returns [jd, name]
-#[php_function]
-pub fn next_sabbat(jd_from: f64) -> PhpResult<Vec<PhpZval>> {
-    let s = celestial::next_sabbat(jd_from).map_err(to_php)?;
-    Ok(vec![
-        PhpZval::try_from(s.jd).unwrap(),
-        PhpZval::try_from(s.name.to_string()).unwrap(),
-    ])
-}
-
-/// All esbats (named full moons) for a given year. Returns array of JDs.
-#[php_function]
-pub fn esbats_for_year(year: i64) -> PhpResult<Vec<f64>> {
-    let esbats = celestial::esbats_for_year(year as i32).map_err(to_php)?;
-    Ok(esbats.iter().map(|e| e.jd).collect())
-}
 
 /// Next esbat (named full moon) JD from a given JD.
 #[php_function]
