@@ -1893,7 +1893,6 @@ mod calendar_deep_tests {
 
 // ── Moon phase deep coverage ──────────────────────────────────────────────────
 mod moon_phase_tests {
-    use celestial_core::body::Calendar;
     use celestial_core::*;
 
     const JD: f64 = 2_451_545.0; // J2000.0 = 2000-01-01 12:00 UT

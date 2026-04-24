@@ -142,7 +142,7 @@ pub fn set_topo(geolon: f64, geolat: f64, geoalt: f64) {
 /// Get the engine version string.
 #[php_function]
 pub fn version() -> String {
-    celestial::version()
+    celestial::version().to_string()
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1915,7 +1915,7 @@ pub fn haab(jd: f64) -> Vec<String> {
 /// House system name by byte code.
 #[php_function]
 pub fn house_name_str(hsys: i64) -> String {
-    celestial::house_name(HouseSystem(hsys as u8))
+    celestial::house_name(HouseSystem(hsys as u8)).to_string()
 }
 
 /// House cusps with speeds. Returns [cusps_13, ascmc_10, cusp_speeds_13, ascmc_speeds_10].
@@ -2393,21 +2393,6 @@ pub fn solcross_ut(x2cross: f64, jd_ut: f64, flags: i64) -> PhpResult<f64> {
         .map_err(|e| PhpException::from(e.to_string()))
 }
 
-#[php_module]
-pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
-    module
-    // ── Body number constants ─────────────────────────────────────────
-    // ── Calendar ──────────────────────────────────────────────────────
-    // ── Calculation flags ─────────────────────────────────────────────
-    // ── Sidereal modes ────────────────────────────────────────────────
-    // ── Eclipse types ─────────────────────────────────────────────────
-    // ── Rise/transit/set ──────────────────────────────────────────────
-    // ── Refraction ────────────────────────────────────────────────────
-    // ── split_deg flags ───────────────────────────────────────────────
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Additions: ISO week, Maya Long Count, Yallop, Coptic, Zoroastrian, Tibetan,
 // Vietnamese
@@ -2536,3 +2521,18 @@ pub fn tibetan_year_name(year: i64) -> Vec<String> {
         an.to_string(),
     ]
 }
+
+#[php_module]
+pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
+    module
+    // ── Body number constants ─────────────────────────────────────────
+    // ── Calendar ──────────────────────────────────────────────────────
+    // ── Calculation flags ─────────────────────────────────────────────
+    // ── Sidereal modes ────────────────────────────────────────────────
+    // ── Eclipse types ─────────────────────────────────────────────────
+    // ── Rise/transit/set ──────────────────────────────────────────────
+    // ── Refraction ────────────────────────────────────────────────────
+    // ── split_deg flags ───────────────────────────────────────────────
+}
+
+// ══════════════════════════════════════════════════════════════════════════════

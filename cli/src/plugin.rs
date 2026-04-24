@@ -100,6 +100,22 @@ mod tests {
     use super::*;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
+    use std::sync::{Mutex, OnceLock};
+
+    /// Serializes tests that mutate the process-global PATH env var.
+    /// Without this, parallel tests leak each other's PATH settings and fail
+    /// intermittently (`discover_finds_*` seeing plugins from `discover_sorted_*`, etc.).
+    fn path_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    /// Run a closure while holding `path_lock()`. Poison-safe: if a prior test
+    /// panicked while holding the lock, we still recover and proceed.
+    fn with_path_lock<F: FnOnce()>(f: F) {
+        let _guard = path_lock().lock().unwrap_or_else(|e| e.into_inner());
+        f();
+    }
 
     /// Create a temporary executable file, run the test, then clean up.
     fn with_fake_plugin<F: FnOnce(&std::path::Path)>(name: &str, f: F) {
@@ -117,126 +133,138 @@ mod tests {
 
     #[test]
     fn discover_empty_path() {
-        // Temporarily clear PATH — discover() must return empty vec without panicking.
-        let saved = std::env::var_os("PATH").unwrap_or_default();
-        std::env::set_var("PATH", "");
-        let plugins = discover();
-        std::env::set_var("PATH", &saved);
-        assert!(plugins.is_empty(), "empty PATH should yield no plugins");
+        with_path_lock(|| {
+            // Temporarily clear PATH — discover() must return empty vec without panicking.
+            let saved = std::env::var_os("PATH").unwrap_or_default();
+            std::env::set_var("PATH", "");
+            let plugins = discover();
+            std::env::set_var("PATH", &saved);
+            assert!(plugins.is_empty(), "empty PATH should yield no plugins");
+        });
     }
 
     #[test]
     fn discover_finds_celestial_plugin() {
-        with_fake_plugin("celestial-testplugin", |dir| {
-            let saved = std::env::var_os("PATH").unwrap_or_default();
-            let new_path = format!("{}:{}", dir.display(), saved.to_string_lossy());
-            std::env::set_var("PATH", &new_path);
-            let plugins = discover();
-            std::env::set_var("PATH", &saved);
+        with_path_lock(|| {
+            with_fake_plugin("celestial-testplugin", |dir| {
+                let saved = std::env::var_os("PATH").unwrap_or_default();
+                let new_path = format!("{}:{}", dir.display(), saved.to_string_lossy());
+                std::env::set_var("PATH", &new_path);
+                let plugins = discover();
+                std::env::set_var("PATH", &saved);
 
-            let found = plugins.iter().any(|p| p.name == "testplugin");
-            assert!(
-                found,
-                "should discover celestial-testplugin, got: {plugins:?}"
-            );
+                let found = plugins.iter().any(|p| p.name == "testplugin");
+                assert!(
+                    found,
+                    "should discover celestial-testplugin, got: {plugins:?}"
+                );
+            });
         });
     }
 
     #[test]
     fn discover_ignores_non_celestial_prefix() {
-        with_fake_plugin("other-tool", |dir| {
-            let saved = std::env::var_os("PATH").unwrap_or_default();
-            let new_path = format!("{}:{}", dir.display(), saved.to_string_lossy());
-            std::env::set_var("PATH", &new_path);
-            let plugins = discover();
-            std::env::set_var("PATH", &saved);
+        with_path_lock(|| {
+            with_fake_plugin("other-tool", |dir| {
+                let saved = std::env::var_os("PATH").unwrap_or_default();
+                let new_path = format!("{}:{}", dir.display(), saved.to_string_lossy());
+                std::env::set_var("PATH", &new_path);
+                let plugins = discover();
+                std::env::set_var("PATH", &saved);
 
-            let found = plugins.iter().any(|p| p.name == "tool");
-            assert!(!found, "should not discover non-celestial- prefixed file");
+                let found = plugins.iter().any(|p| p.name == "tool");
+                assert!(!found, "should not discover non-celestial- prefixed file");
+            });
         });
     }
 
     #[test]
     fn discover_ignores_non_executable() {
-        let dir = std::env::temp_dir().join(format!("celestial_noexec_{}", std::process::id()));
-        let _ = std::fs::create_dir_all(&dir);
-        let path = dir.join("celestial-notexec");
-        std::fs::write(&path, b"not executable").unwrap();
-        // mode 0o644 — readable but not executable
-        let mut perms = std::fs::metadata(&path).unwrap().permissions();
-        perms.set_mode(0o644);
-        std::fs::set_permissions(&path, perms).unwrap();
+        with_path_lock(|| {
+            let dir = std::env::temp_dir().join(format!("celestial_noexec_{}", std::process::id()));
+            let _ = std::fs::create_dir_all(&dir);
+            let path = dir.join("celestial-notexec");
+            std::fs::write(&path, b"not executable").unwrap();
+            // mode 0o644 — readable but not executable
+            let mut perms = std::fs::metadata(&path).unwrap().permissions();
+            perms.set_mode(0o644);
+            std::fs::set_permissions(&path, perms).unwrap();
 
-        let saved = std::env::var_os("PATH").unwrap_or_default();
-        let new_path = format!("{}:{}", dir.display(), saved.to_string_lossy());
-        std::env::set_var("PATH", &new_path);
-        let plugins = discover();
-        std::env::set_var("PATH", &saved);
-        let _ = std::fs::remove_dir_all(&dir);
+            let saved = std::env::var_os("PATH").unwrap_or_default();
+            let new_path = format!("{}:{}", dir.display(), saved.to_string_lossy());
+            std::env::set_var("PATH", &new_path);
+            let plugins = discover();
+            std::env::set_var("PATH", &saved);
+            let _ = std::fs::remove_dir_all(&dir);
 
-        assert!(
-            !plugins.iter().any(|p| p.name == "notexec"),
-            "non-executable file must not appear as plugin"
-        );
+            assert!(
+                !plugins.iter().any(|p| p.name == "notexec"),
+                "non-executable file must not appear as plugin"
+            );
+        });
     }
 
     #[test]
     fn discover_deduplicates_by_name() {
-        // Two dirs on PATH, both have celestial-dup — only first wins.
-        let dir1 = std::env::temp_dir().join(format!("cel_dup1_{}", std::process::id()));
-        let dir2 = std::env::temp_dir().join(format!("cel_dup2_{}", std::process::id()));
-        for d in [&dir1, &dir2] {
-            let _ = fs::create_dir_all(d);
-            let p = d.join("celestial-dup");
-            fs::write(&p, b"#!/bin/sh\n").unwrap();
-            let mut perms = fs::metadata(&p).unwrap().permissions();
-            perms.set_mode(0o755);
-            fs::set_permissions(&p, perms).unwrap();
-        }
+        with_path_lock(|| {
+            // Two dirs on PATH, both have celestial-dup — only first wins.
+            let dir1 = std::env::temp_dir().join(format!("cel_dup1_{}", std::process::id()));
+            let dir2 = std::env::temp_dir().join(format!("cel_dup2_{}", std::process::id()));
+            for d in [&dir1, &dir2] {
+                let _ = fs::create_dir_all(d);
+                let p = d.join("celestial-dup");
+                fs::write(&p, b"#!/bin/sh\n").unwrap();
+                let mut perms = fs::metadata(&p).unwrap().permissions();
+                perms.set_mode(0o755);
+                fs::set_permissions(&p, perms).unwrap();
+            }
 
-        let saved = std::env::var_os("PATH").unwrap_or_default();
-        let new_path = format!(
-            "{}:{}:{}",
-            dir1.display(),
-            dir2.display(),
-            saved.to_string_lossy()
-        );
-        std::env::set_var("PATH", &new_path);
-        let plugins = discover();
-        std::env::set_var("PATH", &saved);
-        let _ = fs::remove_dir_all(&dir1);
-        let _ = fs::remove_dir_all(&dir2);
+            let saved = std::env::var_os("PATH").unwrap_or_default();
+            let new_path = format!(
+                "{}:{}:{}",
+                dir1.display(),
+                dir2.display(),
+                saved.to_string_lossy()
+            );
+            std::env::set_var("PATH", &new_path);
+            let plugins = discover();
+            std::env::set_var("PATH", &saved);
+            let _ = fs::remove_dir_all(&dir1);
+            let _ = fs::remove_dir_all(&dir2);
 
-        let dup_count = plugins.iter().filter(|p| p.name == "dup").count();
-        assert_eq!(dup_count, 1, "duplicate plugin name must appear only once");
-        // First directory wins
-        let p = plugins.iter().find(|p| p.name == "dup").unwrap();
-        assert!(p.path.starts_with(&dir1), "first PATH dir must win");
+            let dup_count = plugins.iter().filter(|p| p.name == "dup").count();
+            assert_eq!(dup_count, 1, "duplicate plugin name must appear only once");
+            // First directory wins
+            let p = plugins.iter().find(|p| p.name == "dup").unwrap();
+            assert!(p.path.starts_with(&dir1), "first PATH dir must win");
+        });
     }
 
     #[test]
     fn discover_sorted_by_name() {
-        let dir = std::env::temp_dir().join(format!("cel_sort_{}", std::process::id()));
-        let _ = fs::create_dir_all(&dir);
-        for name in ["celestial-zzz", "celestial-aaa", "celestial-mmm"] {
-            let p = dir.join(name);
-            fs::write(&p, b"#!/bin/sh\n").unwrap();
-            let mut perms = fs::metadata(&p).unwrap().permissions();
-            perms.set_mode(0o755);
-            fs::set_permissions(&p, perms).unwrap();
-        }
+        with_path_lock(|| {
+            let dir = std::env::temp_dir().join(format!("cel_sort_{}", std::process::id()));
+            let _ = fs::create_dir_all(&dir);
+            for name in ["celestial-zzz", "celestial-aaa", "celestial-mmm"] {
+                let p = dir.join(name);
+                fs::write(&p, b"#!/bin/sh\n").unwrap();
+                let mut perms = fs::metadata(&p).unwrap().permissions();
+                perms.set_mode(0o755);
+                fs::set_permissions(&p, perms).unwrap();
+            }
 
-        let saved = std::env::var_os("PATH").unwrap_or_default();
-        std::env::set_var("PATH", dir.display().to_string());
-        let plugins = discover();
-        std::env::set_var("PATH", &saved);
-        let _ = fs::remove_dir_all(&dir);
+            let saved = std::env::var_os("PATH").unwrap_or_default();
+            std::env::set_var("PATH", dir.display().to_string());
+            let plugins = discover();
+            std::env::set_var("PATH", &saved);
+            let _ = fs::remove_dir_all(&dir);
 
-        let names: Vec<&str> = plugins.iter().map(|p| p.name.as_str()).collect();
-        assert!(
-            names.windows(2).all(|w| w[0] <= w[1]),
-            "plugins must be sorted by name, got: {names:?}"
-        );
+            let names: Vec<&str> = plugins.iter().map(|p| p.name.as_str()).collect();
+            assert!(
+                names.windows(2).all(|w| w[0] <= w[1]),
+                "plugins must be sorted by name, got: {names:?}"
+            );
+        });
     }
 
     #[test]

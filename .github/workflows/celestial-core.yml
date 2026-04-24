@@ -130,11 +130,15 @@ jobs:
     needs: [lint]
     strategy:
       matrix:
-        features:
-          - ""                           # no-default-features (minimal build)
-          - "timezone"                   # timezone only
-          - "calendar-traditions"        # calendar only
-          - "timezone,calendar-traditions" # full default
+        include:
+          - id: none
+            features: ""                          # no-default-features (minimal build)
+          - id: tz
+            features: "timezone"                  # timezone only
+          - id: cal
+            features: "calendar-traditions"       # calendar only
+          - id: all
+            features: "timezone,calendar-traditions"  # full default
     steps:
       - uses: actions/checkout@v4
 
@@ -146,7 +150,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-core-feat-${{ matrix.features }}-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-core-feat-${{ matrix.id }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ runner.os }}-core-feat-
 
       - name: cargo check (features = "${{ matrix.features }}")

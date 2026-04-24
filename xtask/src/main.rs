@@ -1361,6 +1361,7 @@ fn rust_type_to_pyi(rust: &str) -> String {
     rust_type_to_lang(rust, &PYI_LANG)
 }
 
+#[allow(dead_code)]
 #[inline]
 fn rust_type_to_ts(rust: &str) -> String {
     rust_type_to_lang(rust, &DTS_LANG)
@@ -1439,6 +1440,196 @@ fn cmd_pyi(check: bool) {
     write_or_check(&out_path, &out, check, "stubs", "pyi", seen.len());
 }
 
+// ─── helpers for napi const/struct scanning ──────────────────────────────────
+
+/// A `#[napi] pub const NAME: TYPE = ...;` declaration.
+struct NapiConst {
+    name: String,
+    ty: String,
+}
+
+/// Scan a Rust source file for all `#[napi] pub const X: T = ...;` items.
+fn scan_napi_consts(src: &str) -> Vec<NapiConst> {
+    let mut out = Vec::new();
+    let lines: Vec<&str> = src.lines().collect();
+    let n = lines.len();
+    let mut i = 0;
+    while i < n {
+        let line = lines[i].trim_start();
+        if line.starts_with("#[napi]") || line.starts_with("#[napi(") {
+            // Walk forward skipping further attrs
+            let mut j = i + 1;
+            while j < n {
+                let l = lines[j].trim_start();
+                if l.starts_with("#[") {
+                    j += 1;
+                    continue;
+                }
+                break;
+            }
+            if j < n {
+                let decl = lines[j].trim();
+                // Match: pub const NAME: TYPE = ...;  (single-line only)
+                if let Some(rest) = decl.strip_prefix("pub const ") {
+                    if let Some(colon) = rest.find(':') {
+                        let name = rest[..colon].trim().to_string();
+                        if let Some(eq) = rest[colon..].find('=') {
+                            let ty = rest[colon + 1..colon + eq].trim().to_string();
+                            out.push(NapiConst { name, ty });
+                        }
+                    }
+                }
+            }
+            i = j + 1;
+            continue;
+        }
+        i += 1;
+    }
+    out
+}
+
+/// A single field of a `#[napi(object)]` struct.
+struct NapiStructField {
+    name: String,
+    ty: String,
+}
+
+/// A `#[napi(object)] pub struct X { ... }` declaration.
+struct NapiStruct {
+    name: String,
+    fields: Vec<NapiStructField>,
+}
+
+/// Scan a Rust source file for all `#[napi(object)] pub struct X { ... }` items.
+fn scan_napi_structs(src: &str) -> Vec<NapiStruct> {
+    let mut out = Vec::new();
+    let lines: Vec<&str> = src.lines().collect();
+    let n = lines.len();
+    let mut i = 0;
+    while i < n {
+        let line = lines[i].trim_start();
+        if line.starts_with("#[napi(object)]") {
+            // Find the struct line (skip any other attrs)
+            let mut j = i + 1;
+            while j < n {
+                let l = lines[j].trim_start();
+                if l.starts_with("#[") {
+                    j += 1;
+                    continue;
+                }
+                break;
+            }
+            if j >= n {
+                i += 1;
+                continue;
+            }
+            let decl = lines[j].trim();
+            let name = decl
+                .strip_prefix("pub struct ")
+                .and_then(|s| s.split(|c: char| c == ' ' || c == '{').next())
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            if name.is_empty() {
+                i = j + 1;
+                continue;
+            }
+            // Parse fields until closing brace
+            let mut fields = Vec::new();
+            let mut k = j + 1;
+            // If the struct decl didn't have `{` on the same line, advance
+            if !decl.contains('{') {
+                while k < n && !lines[k].contains('{') {
+                    k += 1;
+                }
+                k += 1;
+            } else {
+                k = j + 1;
+            }
+            while k < n {
+                let l = lines[k].trim();
+                if l.starts_with('}') {
+                    break;
+                }
+                // Accept `pub name: Type,` (strip trailing comma + comments)
+                if let Some(rest) = l.strip_prefix("pub ") {
+                    let rest = rest.trim_end_matches(',').trim();
+                    if let Some(colon) = rest.find(':') {
+                        let fname = rest[..colon].trim().to_string();
+                        let fty = rest[colon + 1..].trim().to_string();
+                        if !fname.is_empty() && !fty.is_empty() {
+                            fields.push(NapiStructField {
+                                name: fname,
+                                ty: fty,
+                            });
+                        }
+                    }
+                }
+                k += 1;
+            }
+            out.push(NapiStruct { name, fields });
+            i = k + 1;
+            continue;
+        }
+        i += 1;
+    }
+    out
+}
+
+/// Convert a Rust type to TypeScript, using `known_structs` as first-class type names.
+fn rust_type_to_ts_known(rust: &str, known_structs: &BTreeSet<String>) -> String {
+    let t = rust
+        .trim()
+        .trim_start_matches("crate::")
+        .trim_start_matches("celestial_core::");
+
+    // Unwrap Result<T> / napi::Result<T>
+    let inner = DTS_LANG
+        .result_prefixes
+        .iter()
+        .find_map(|p| t.strip_prefix(p).and_then(|s| s.strip_suffix('>')))
+        .map(str::trim)
+        .unwrap_or(t);
+
+    // Option<T> → T | null (in return position — parameters are handled specially)
+    if let Some(inner_opt) = inner
+        .strip_prefix("Option<")
+        .and_then(|s| s.strip_suffix('>'))
+    {
+        return format!("{} | null", rust_type_to_ts_known(inner_opt, known_structs));
+    }
+
+    // Known struct → emit raw type name
+    if known_structs.contains(inner) {
+        return inner.to_string();
+    }
+
+    match inner {
+        "f64" | "f32" | "i8" | "i16" | "i32" | "i64" | "isize" | "u8" | "u16" | "u32" | "u64"
+        | "usize" => "number".to_string(),
+        "bool" => "boolean".to_string(),
+        "String" | "&str" | "&'static str" | "str" => "string".to_string(),
+        "()" | "void" => "void".to_string(),
+        t if t.starts_with("Vec<") => {
+            format!(
+                "Array<{}>",
+                rust_type_to_ts_known(&t[4..t.len() - 1], known_structs)
+            )
+        }
+        t if t.starts_with("HashMap<") || t.starts_with("BTreeMap<") => {
+            "Record<string, number>".to_string()
+        }
+        t if t.starts_with('(') && t.ends_with(')') => {
+            let parts: Vec<String> = split_params(&t[1..t.len() - 1])
+                .iter()
+                .map(|p| rust_type_to_ts_known(p, known_structs))
+                .collect();
+            format!("[{}]", parts.join(", "))
+        }
+        _ => "unknown".to_string(),
+    }
+}
+
 fn cmd_dts(check: bool) {
     let root = workspace_root();
     let js_src = fs::read_to_string(root.join("bindings/js/src/lib.rs"))
@@ -1450,8 +1641,48 @@ fn cmd_dts(check: bool) {
          // Regenerate: cargo xtask dts\n\n",
     );
 
+    // ── 1. Scan napi structs first so their names are known to the type converter
+    let structs = scan_napi_structs(&js_src);
+    let known_structs: BTreeSet<String> = structs.iter().map(|s| s.name.clone()).collect();
+
+    // Emit struct interfaces
+    for st in &structs {
+        out.push_str(&format!("export interface {} {{\n", st.name));
+        for f in &st.fields {
+            // Fields with Option<T> become `name?: T | null`
+            let (ts_ty, optional) = if let Some(inner) =
+                f.ty.strip_prefix("Option<")
+                    .and_then(|s| s.strip_suffix('>'))
+            {
+                (rust_type_to_ts_known(inner, &known_structs), true)
+            } else {
+                (rust_type_to_ts_known(&f.ty, &known_structs), false)
+            };
+            let cam = to_camel(&f.name);
+            if optional {
+                out.push_str(&format!("  {cam}?: {ts_ty} | null;\n"));
+            } else {
+                out.push_str(&format!("  {cam}: {ts_ty};\n"));
+            }
+        }
+        out.push_str("}\n\n");
+    }
+
+    // ── 2. Emit napi constants
+    let consts = scan_napi_consts(&js_src);
+    for c in &consts {
+        let ts_ty = rust_type_to_ts_known(&c.ty, &known_structs);
+        out.push_str(&format!("export declare const {}: {};\n", c.name, ts_ty));
+    }
+    if !consts.is_empty() {
+        out.push('\n');
+    }
+
+    // ── 3. Emit function declarations
     let mut seen: BTreeSet<String> = BTreeSet::new();
     for d in scan_decorated_fns_full(&js_src, "napi") {
+        // Skip const/struct items (they're already handled above) — decorated
+        // fns only have function signatures.
         let js_name = extract_js_name(&d.attr_line).unwrap_or_else(|| to_camel(&d.entry.name));
         if !seen.insert(js_name.clone()) {
             continue;
@@ -1460,9 +1691,21 @@ fn cmd_dts(check: bool) {
             .entry
             .params
             .iter()
-            .map(|(typ, nam)| format!("{}: {}", to_camel(nam), rust_type_to_ts(typ)))
+            .map(|(typ, nam)| {
+                let cam = to_camel(nam);
+                // Option<T> params → optional
+                if let Some(inner) = typ
+                    .strip_prefix("Option<")
+                    .and_then(|s| s.strip_suffix('>'))
+                {
+                    let inner_ts = rust_type_to_ts_known(inner, &known_structs);
+                    format!("{cam}?: {inner_ts} | null")
+                } else {
+                    format!("{cam}: {}", rust_type_to_ts_known(typ, &known_structs))
+                }
+            })
             .collect();
-        let ret = rust_type_to_ts(&d.entry.ret);
+        let ret = rust_type_to_ts_known(&d.entry.ret, &known_structs);
         out.push_str(&format!(
             "export declare function {}({}): {};\n",
             js_name,
@@ -1471,7 +1714,8 @@ fn cmd_dts(check: bool) {
         ));
     }
 
-    write_or_check(&out_path, &out, check, "declarations", "dts", seen.len());
+    let total = structs.len() + consts.len() + seen.len();
+    write_or_check(&out_path, &out, check, "declarations", "dts", total);
 }
 
 // ─── unit tests ──────────────────────────────────────────────────────────────
@@ -1640,5 +1884,77 @@ mod tests {
         assert_eq!(parts.len(), 3);
         assert_eq!(parts[1], "b: Vec<(f64, i32)>");
         assert_eq!(parts[2], "c: HashMap<String, Vec<i32>>");
+    }
+
+    // ── napi const scanning ───────────────────────────────────────────────────
+
+    #[test]
+    fn scan_napi_consts_basic() {
+        let src = r#"
+#[napi]
+pub const SUN: i32 = 0;
+
+#[napi]
+pub const GREG_CAL: i32 = celestial::GREG_CAL;
+
+#[napi]
+pub fn some_fn() -> i32 { 0 }
+"#;
+        let consts = scan_napi_consts(src);
+        assert_eq!(consts.len(), 2);
+        assert_eq!(consts[0].name, "SUN");
+        assert_eq!(consts[0].ty, "i32");
+        assert_eq!(consts[1].name, "GREG_CAL");
+    }
+
+    // ── napi struct scanning ──────────────────────────────────────────────────
+
+    #[test]
+    fn scan_napi_structs_basic() {
+        let src = r#"
+#[napi(object)]
+pub struct PlanetPos {
+    pub lon: f64,
+    pub lat: f64,
+    pub dist: f64,
+}
+
+#[napi(object)]
+pub struct RiseTrans {
+    pub rise: Option<f64>,
+    pub set: Option<f64>,
+}
+"#;
+        let structs = scan_napi_structs(src);
+        assert_eq!(structs.len(), 2);
+        assert_eq!(structs[0].name, "PlanetPos");
+        assert_eq!(structs[0].fields.len(), 3);
+        assert_eq!(structs[0].fields[0].name, "lon");
+        assert_eq!(structs[0].fields[0].ty, "f64");
+        assert_eq!(structs[1].name, "RiseTrans");
+        assert_eq!(structs[1].fields[0].ty, "Option<f64>");
+    }
+
+    // ── rust_type_to_ts_known recognizes struct names ────────────────────────
+
+    #[test]
+    fn ts_known_struct_preserved() {
+        let mut structs = BTreeSet::new();
+        structs.insert("PlanetPos".to_string());
+        assert_eq!(rust_type_to_ts_known("PlanetPos", &structs), "PlanetPos");
+        assert_eq!(
+            rust_type_to_ts_known("Vec<PlanetPos>", &structs),
+            "Array<PlanetPos>"
+        );
+        assert_eq!(
+            rust_type_to_ts_known("Option<PlanetPos>", &structs),
+            "PlanetPos | null"
+        );
+    }
+
+    #[test]
+    fn ts_known_unknown_struct_falls_back() {
+        let structs = BTreeSet::new();
+        assert_eq!(rust_type_to_ts_known("SomeStruct", &structs), "unknown");
     }
 }
