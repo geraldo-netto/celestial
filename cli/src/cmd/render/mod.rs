@@ -52,13 +52,23 @@ use serde_json::{json, Value};
 use tinytemplate::TinyTemplate;
 
 // ── Builder submodules — each tradition's build_*/render_* fns ───────────────
+mod builtin_svg;
 mod chinese;
+mod context;
+mod derived;
 mod hellenistic;
 mod indigenous;
 mod mesoamerican;
 mod specialist;
 mod vedic;
 mod western;
+
+use builtin_svg::render_builtin_svg;
+use context::build_context;
+use derived::{
+    build_biwheel_context, build_progressed_context, build_solar_arc_context, render_biwheel_svg,
+    render_cosmogram_svg, render_progressed_svg,
+};
 
 // ─── CLI ─────────────────────────────────────────────────────────────────────
 
@@ -320,49 +330,51 @@ pub(super) const ASPECT_DEFS: &[(f64, &str, f64, bool)] = &[
 /// Returns the essential dignity label for a planet at a given sign (0–11).
 ///
 /// Checks (in order): domicile, exaltation, detriment, fall, peregrine.
+/// Secondary (pre-outer-planet) domicile for the 5 classical rulers.
+///
+/// Returns `Some(second_sign)` when `body` is one of Mercury/Venus/Mars/Jupiter/Saturn,
+/// otherwise `None`. Each classical planet rules two signs of opposite polarity;
+/// `sign_ruler` only reports one of them, so this fills in the other.
+fn second_domicile(body: Body) -> Option<u8> {
+    match body.as_raw() {
+        2 => Some(8),  // Mercury: Gemini + Virgo
+        3 => Some(6),  // Venus:   Taurus + Libra
+        4 => Some(7),  // Mars:    Aries  + Scorpio
+        5 => Some(11), // Jupiter: Sagittarius + Pisces
+        6 => Some(9),  // Saturn:  Capricorn + Aquarius
+        _ => None,
+    }
+}
+
+/// Classical essential dignity of `body` in `sign`.
+///
+/// Checks, in order: domicile → detriment → exaltation → fall → peregrine.
+/// Returns the dignity name as a static string.
 pub(super) fn planet_dignity(body: Body, sign: u8) -> &'static str {
     let s = sign % 12;
-    // Domicile: body rules this sign
-    if sign_ruler(s) == body || {
-        // Some planets have two domiciles (pre-outer planets scheme)
-        // Check the opposite polarity sign too
-        let also = match body.as_raw() {
-            2 => Some(8u8),  // Mercury: Gemini + Virgo
-            3 => Some(6u8),  // Venus:   Taurus + Libra
-            4 => Some(7u8),  // Mars:    Aries  + Scorpio
-            5 => Some(11u8), // Jupiter: Sagittarius + Pisces
-            6 => Some(9u8),  // Saturn:  Capricorn + Aquarius
-            _ => None,
-        };
-        also.is_some_and(|s2| s2 == s && sign_ruler(s2) == body)
-    } {
+    let opp = (s + 6) % 12;
+
+    // A body rules `sign` if it is the primary ruler or the secondary domicile
+    let rules = |sign: u8| -> bool {
+        sign_ruler(sign) == body || second_domicile(body).is_some_and(|s2| s2 == sign)
+    };
+
+    if rules(s) {
         return "domicile";
     }
-    // Detriment: opposite of domicile
-    let opp = (s + 6) % 12;
-    if sign_ruler(opp) == body || {
-        let also = match body.as_raw() {
-            2 => Some((8u8 + 6) % 12),
-            3 => Some((6u8 + 6) % 12),
-            4 => Some((7u8 + 6) % 12),
-            5 => Some((11u8 + 6) % 12),
-            6 => Some((9u8 + 6) % 12),
-            _ => None,
-        };
-        also.is_some_and(|s2| s2 == s && sign_ruler((s2 + 6) % 12) == body)
-    } {
+    if rules(opp) {
         return "detriment";
     }
-    // Exaltation
+
+    // Exaltation & fall
     let ex = sign_exaltation(body);
     if ex >= 0 && ex as u8 == s {
         return "exaltation";
     }
-    // Fall: opposite of exaltation
     if ex >= 0 && (ex as u8 + 6) % 12 == s {
         return "fall";
     }
-    // None of the above
+
     "peregrine"
 }
 
@@ -390,334 +402,6 @@ pub(super) const RI: f64 = 262.0; // sign band inner
 pub(super) const RH: f64 = 238.0; // house cusp inner
 pub(super) const RP: f64 = 212.0; // planet ring
 pub(super) const RC: f64 = 88.0; // inner circle
-
-pub(super) fn build_context(
-    jd: f64,
-    lat: f64,
-    lon: f64,
-    date_str: &str,
-    hsys: char,
-    user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
-    let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
-    let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
-        .map_err(|e| e.to_string())?;
-    let asc = h.ascmc[0];
-    let mc = h.ascmc[1];
-    let ic = (mc + 180.0).rem_euclid(360.0);
-    let dsc = (asc + 180.0).rem_euclid(360.0);
-
-    // ── planets ──────────────────────────────────────────────────────────────
-    let mut planets = Vec::new();
-    for &(body, key, name, glyph) in BODIES {
-        if let Ok(pos) = calc_ut(jd, body, flags) {
-            let (sign_idx, deg_in_sign) = lon_to_sign(pos.lon);
-            let sign_full = zodiac_sign_name(sign_idx);
-            let sign_short = &sign_full[..sign_full
-                .char_indices()
-                .nth(3)
-                .map(|(i, _)| i)
-                .unwrap_or(sign_full.len())];
-            let deg_label = format!(
-                "{:.0}\u{00B0}{}{}",
-                deg_in_sign.floor(),
-                sign_short,
-                if pos.speed_lon < 0.0 { "\u{211E}" } else { "" }
-            );
-            planets.push(json!({
-                "name":       name,
-                "key":        key,
-                "glyph":      glyph,
-                "lon":        (pos.lon   * 1e4).round() / 1e4,
-                "lat":        (pos.lat   * 1e4).round() / 1e4,
-                "dist":       (pos.dist  * 1e4).round() / 1e4,
-                "speed":      (pos.speed_lon * 1e4).round() / 1e4,
-                "retro":      pos.speed_lon < 0.0,
-                // Station: speed very close to 0 → planet is stationary
-                "near_station": pos.speed_lon.abs() < 0.05,
-                "dignity":    planet_dignity(body, sign_idx),
-                // Antiscia: mirror over the Cancer-Capricorn solstice axis
-                "antiscia_lon":  (antiscion_lon(pos.lon) * 1e4).round() / 1e4,
-                "contra_lon":    (contra_antiscion_lon(pos.lon) * 1e4).round() / 1e4,
-                "antiscia_x": (wx(CX, RH - 4.0, antiscion_lon(pos.lon), asc) * 100.0).round() / 100.0,
-                "antiscia_y": (wy(CY, RH - 4.0, antiscion_lon(pos.lon), asc) * 100.0).round() / 100.0,
-                "sign":       sign_idx,
-                "sign_name":  zodiac_sign_name(sign_idx),
-                "dms":        fmt_lon_dms(pos.lon),
-                "deg_label":  deg_label,
-                "speed_str":  format!("{}{:.2}\u{00B0}/d",
-                                if pos.speed_lon < 0.0 { "\u{211E} " } else { "" },
-                                pos.speed_lon.abs()),
-                // wheel coordinates
-                "x":        (wx(CX, RP, pos.lon, asc) * 100.0).round() / 100.0,
-                "y":        (wy(CY, RP, pos.lon, asc) * 100.0).round() / 100.0,
-                "label_x":  (wx(CX, RP + 20.0, pos.lon, asc) * 100.0).round() / 100.0,
-                "label_y":  (wy(CY, RP + 20.0, pos.lon, asc) * 100.0).round() / 100.0,
-                "tick_x1":  (wx(CX, RH + 2.0,  pos.lon, asc) * 100.0).round() / 100.0,
-                "tick_y1":  (wy(CY, RH + 2.0,  pos.lon, asc) * 100.0).round() / 100.0,
-                "tick_x2":  (wx(CX, RP - 12.0, pos.lon, asc) * 100.0).round() / 100.0,
-                "tick_y2":  (wy(CY, RP - 12.0, pos.lon, asc) * 100.0).round() / 100.0,
-                "asp_x":    (wx(CX, RC, pos.lon, asc) * 100.0).round() / 100.0,
-                "asp_y":    (wy(CY, RC, pos.lon, asc) * 100.0).round() / 100.0}));
-        }
-    }
-
-    // ── signs ────────────────────────────────────────────────────────────────
-    let sign_glyphs = [
-        "\u{2648}", "\u{2649}", "\u{264A}", "\u{264B}", "\u{264C}", "\u{264D}", "\u{264E}",
-        "\u{264F}", "\u{2650}", "\u{2651}", "\u{2652}", "\u{2653}",
-    ];
-    let signs: Vec<Value> = (0..12)
-        .map(|i| {
-            let sl = i as f64 * 30.0;
-            let mid = sl + 15.0;
-            let sgr = (RM + RI) / 2.0;
-            json!({
-                "idx":       i,
-                "glyph":     sign_glyphs[i],
-                "spoke_x1":  (wx(CX, RI, sl,  asc) * 100.0).round() / 100.0,
-                "spoke_y1":  (wy(CY, RI, sl,  asc) * 100.0).round() / 100.0,
-                "spoke_x2":  (wx(CX, RO, sl,  asc) * 100.0).round() / 100.0,
-                "spoke_y2":  (wy(CY, RO, sl,  asc) * 100.0).round() / 100.0,
-                "glyph_x":   (wx(CX, sgr, mid, asc) * 100.0).round() / 100.0,
-                "glyph_y":   (wy(CY, sgr, mid, asc) * 100.0).round() / 100.0})
-        })
-        .collect();
-
-    // ── house cusps ──────────────────────────────────────────────────────────
-    let house_lons: Vec<f64> = h.cusps[1..=12].to_vec();
-    let houses: Vec<Value> = (0..12)
-        .map(|i| {
-            let lon2 = house_lons[i];
-            let next_lon = house_lons[(i + 1) % 12];
-            let mid_lon = midpoint_deg(lon2, next_lon);
-            let is_angle = i == 0 || i == 3 || i == 6 || i == 9;
-            json!({
-                "num":      i + 1,
-                "lon":      (lon2 * 1e4).round() / 1e4,
-                "dms":      fmt_lon_dms(lon2),
-                "is_angle": is_angle,
-                "x1":       (wx(CX, RH, lon2, asc) * 100.0).round() / 100.0,
-                "y1":       (wy(CY, RH, lon2, asc) * 100.0).round() / 100.0,
-                "x2":       (wx(CX, RI, lon2, asc) * 100.0).round() / 100.0,
-                "y2":       (wy(CY, RI, lon2, asc) * 100.0).round() / 100.0,
-                "num_x":    (wx(CX, RH - 14.0, mid_lon, asc) * 100.0).round() / 100.0,
-                "num_y":    (wy(CY, RH - 14.0, mid_lon, asc) * 100.0).round() / 100.0})
-        })
-        .collect();
-
-    // ── aspects ──────────────────────────────────────────────────────────────
-    let mut aspects = Vec::new();
-    for i in 0..planets.len() {
-        for j in (i + 1)..planets.len() {
-            let lon1 = planets[i]["lon"].as_f64().unwrap_or(0.0);
-            let lon2 = planets[j]["lon"].as_f64().unwrap_or(0.0);
-            let diff = diff_deg_signed(lon1, lon2).abs();
-            for &(asp_deg, asp_name, orb_lim, is_minor) in ASPECT_DEFS {
-                let orb = (diff - asp_deg).abs();
-                if orb <= orb_lim {
-                    let spd1 = planets[i]["speed"].as_f64().unwrap_or(0.0);
-                    aspects.push(json!({
-                        "body1":       planets[i]["name"],
-                        "glyph1":      planets[i]["glyph"],
-                        "body2":       planets[j]["name"],
-                        "glyph2":      planets[j]["glyph"],
-                        "aspect_name": asp_name,
-                        "aspect_deg":  asp_deg,
-                        "orb":         (orb * 100.0).round() / 100.0,
-                        "applying":    spd1 > 0.0 && diff < asp_deg,
-                        "is_hard":     asp_name == "square" || asp_name == "opposition",
-                        "is_minor":    is_minor,
-                        "x1":          planets[i]["asp_x"],
-                        "y1":          planets[i]["asp_y"],
-                        "x2":          planets[j]["asp_x"],
-                        "y2":          planets[j]["asp_y"]}));
-                    break;
-                }
-            }
-        }
-    }
-
-    // ── arabic parts ─────────────────────────────────────────────────────────
-    let sun_lon = planets
-        .iter()
-        .find(|p| p["key"] == "sun")
-        .and_then(|p| p["lon"].as_f64())
-        .unwrap_or(0.0);
-    let moon_lon = planets
-        .iter()
-        .find(|p| p["key"] == "moon")
-        .and_then(|p| p["lon"].as_f64())
-        .unwrap_or(0.0);
-    let sat_lon = planets
-        .iter()
-        .find(|p| p["key"] == "saturn")
-        .and_then(|p| p["lon"].as_f64())
-        .unwrap_or(0.0);
-    let mar_lon = planets
-        .iter()
-        .find(|p| p["key"] == "mars")
-        .and_then(|p| p["lon"].as_f64())
-        .unwrap_or(0.0);
-    let jup_lon = planets
-        .iter()
-        .find(|p| p["key"] == "jupiter")
-        .and_then(|p| p["lon"].as_f64())
-        .unwrap_or(0.0);
-    let mer_lon = planets
-        .iter()
-        .find(|p| p["key"] == "mercury")
-        .and_then(|p| p["lon"].as_f64())
-        .unwrap_or(0.0);
-    let ven_lon = planets
-        .iter()
-        .find(|p| p["key"] == "venus")
-        .and_then(|p| p["lon"].as_f64())
-        .unwrap_or(0.0);
-
-    // Day chart: Sun is in houses 7–12 (above horizon at lat/lon/jd)
-    let sun_house = h.cusps[1..=12]
-        .windows(2)
-        .position(|w| {
-            let lo = w[0];
-            let hi = w[1];
-            if lo < hi {
-                lo <= sun_lon && sun_lon < hi
-            } else {
-                sun_lon >= lo || sun_lon < hi
-            }
-        })
-        .map(|i| i + 1)
-        .unwrap_or(1);
-    let is_day = sun_house >= 7;
-
-    let arabic_parts_raw = arabic_parts_seven(
-        asc, sun_lon, moon_lon, sat_lon, mar_lon, jup_lon, mer_lon, ven_lon, is_day,
-    );
-    let arabic_parts: Vec<Value> = arabic_parts_raw
-        .iter()
-        .map(|p| {
-            let (sign_idx, deg_in_sign) = lon_to_sign(p.degree);
-            json!({
-                "name":     p.name,
-                "formula":  p.formula,
-                "lon":      (p.degree * 1e4).round() / 1e4,
-                "dms":      fmt_lon_dms(p.degree),
-                "sign":     zodiac_sign_name(sign_idx),
-                "deg_in_sign": (deg_in_sign * 100.0).round() / 100.0,
-                "x":        (wx(CX, RH + 2.0, p.degree, asc) * 100.0).round() / 100.0,
-                "y":        (wy(CY, RH + 2.0, p.degree, asc) * 100.0).round() / 100.0,
-                "is_day":   is_day})
-        })
-        .collect();
-
-    // ── fixed stars (top 15 brightest / most astrologically significant) ──────
-    const TOP_STARS: &[&str] = &[
-        "Algol",
-        "Pleiades",
-        "Aldebaran",
-        "Rigel",
-        "Capella",
-        "Sirius",
-        "Pollux",
-        "Regulus",
-        "Spica",
-        "Arcturus",
-        "Antares",
-        "Vega",
-        "Altair",
-        "Fomalhaut",
-        "Achernar",
-    ];
-    let fixed_stars: Vec<Value> = TOP_STARS
-        .iter()
-        .filter_map(|&name| {
-            let pos = fixstar_ut(name, jd, CalcFlags::BUILTIN).ok()?;
-            let lon_s = pos.xx[0];
-            let lat_s = pos.xx[1];
-            let mag = fixstar_mag(name).unwrap_or(3.0);
-            let (sign_idx, deg_in_sign) = lon_to_sign(lon_s);
-            Some(json!({
-                "name":        name,
-                "mag":         mag,
-                "lon":         (lon_s * 1e4).round() / 1e4,
-                "lat":         (lat_s * 1e4).round() / 1e4,
-                "sign":        zodiac_sign_name(sign_idx),
-                "deg_in_sign": (deg_in_sign * 100.0).round() / 100.0,
-                "x":  (wx(CX, RI + 8.0, lon_s, asc) * 100.0).round() / 100.0,
-                "y":  (wy(CY, RI + 8.0, lon_s, asc) * 100.0).round() / 100.0}))
-        })
-        .collect();
-
-    // ── angles with label positions ───────────────────────────────────────────
-    let angle_lons = [asc, mc, ic, dsc];
-    let angle_labels = ["ASC", "MC", "IC", "DSC"];
-    let angles: Vec<Value> = (0..4)
-        .map(|i| {
-            let lon2 = angle_lons[i];
-            json!({
-                "name":  angle_labels[i],
-                "lon":   (lon2 * 1e4).round() / 1e4,
-                "dms":   fmt_lon_dms(lon2),
-                "lx":    (wx(CX, RI + 18.0, lon2, asc) * 100.0).round() / 100.0,
-                "ly":    (wy(CY, RI + 18.0, lon2, asc) * 100.0).round() / 100.0})
-        })
-        .collect();
-
-    // ── moon ─────────────────────────────────────────────────────────────────
-    let illum_pct = (moon_illumination(jd).unwrap_or(0.0) * 1000.0).round() / 10.0;
-
-    // ── user vars (with palette defaults merged in) ───────────────────────────
-    let mut vars = serde_json::Map::new();
-    // defaults
-    for (k, v) in [
-        ("bg_color", "#ffffff"),
-        ("ring_color", "#1a1a2e"),
-        ("planet_color", "#0d0d1e"),
-        ("retro_color", "#b01020"),
-        ("hard_color", "#b01020"),
-        ("soft_color", "#1a50b0"),
-        ("text_color", "#0d0d1e"),
-        ("title", "Celestial Chart"),
-    ] {
-        vars.insert(k.to_string(), json!(v));
-    }
-    // user overrides
-    for (k, v) in &user_vars {
-        vars.insert(k.clone(), json!(v));
-    }
-
-    // ── assemble ──────────────────────────────────────────────────────────────
-    Ok(json!({
-        // Derive canonical date+time from JD; fall back to caller label
-        // for composite/synastry/test strings that aren't plain dates.
-        "date": jd_to_date_str(jd),
-        "date_label":          date_str,
-        "jd":                  (jd * 1e4).round() / 1e4,
-        "lat":                 lat,
-        "lon":                 lon,
-        "asc":                 (asc * 1e4).round() / 1e4,
-        "mc":                  (mc  * 1e4).round() / 1e4,
-        "ic":                  (ic  * 1e4).round() / 1e4,
-        "dsc":                 (dsc * 1e4).round() / 1e4,
-        "asc_dms":             fmt_lon_dms(asc),
-        "mc_dms":              fmt_lon_dms(mc),
-        "ic_dms":              fmt_lon_dms(ic),
-        "dsc_dms":             fmt_lon_dms(dsc),
-        "moon_phase_name":     moon_phase_str(jd),
-        "moon_illumination":   illum_pct,
-        "cx":                  CX, "cy": CY,
-        "r_outer":             RO, "r_sign_outer": RM, "r_sign_inner": RI,
-        "r_house":             RH, "r_planet": RP,    "r_inner": RC,
-        "planets":             planets,
-        "signs":               signs,
-        "houses":              houses,
-        "angles":              angles,
-        "aspects":             aspects,
-        "arabic_parts":        arabic_parts,
-        "fixed_stars":         fixed_stars,
-        "vars":                Value::Object(vars)}))
-}
 
 // ─── Label collision avoidance ────────────────────────────────────────────────
 
@@ -792,474 +476,6 @@ pub(super) fn spread_labels(lons: &[f64], asc: f64) -> Vec<f64> {
 
 // ─── Built-in SVG generator (pure Rust — no template parsing) ────────────────
 
-pub(super) fn render_builtin_svg(ctx: &Value) -> String {
-    let vars = &ctx["vars"];
-    let bg = vars["bg_color"].as_str().unwrap_or("#ffffff");
-    let ring = vars["ring_color"].as_str().unwrap_or("#1a1a2e");
-    let pfg = vars["planet_color"].as_str().unwrap_or("#0d0d1e");
-    let retro_c = vars["retro_color"].as_str().unwrap_or("#b01020");
-    let hard_c = vars["hard_color"].as_str().unwrap_or("#b01020");
-    let soft_c = vars["soft_color"].as_str().unwrap_or("#1a50b0");
-    let txt = vars["text_color"].as_str().unwrap_or("#0d0d1e");
-    let title = vars["title"].as_str().unwrap_or("Celestial Chart");
-
-    let date = ctx["date"].as_str().unwrap_or("");
-    let jd = ctx["jd"].as_f64().unwrap_or(0.0);
-    let lat = ctx["lat"].as_f64().unwrap_or(0.0);
-    let lon = ctx["lon"].as_f64().unwrap_or(0.0);
-    let asc = ctx["asc"].as_f64().unwrap_or(0.0);
-    let mc = ctx["mc"].as_f64().unwrap_or(0.0);
-    let ic = ctx["ic"].as_f64().unwrap_or(0.0);
-    let dsc = ctx["dsc"].as_f64().unwrap_or(0.0);
-    let phase = ctx["moon_phase_name"].as_str().unwrap_or("");
-    let illum = ctx["moon_illumination"].as_f64().unwrap_or(0.0);
-
-    let _empty: Vec<serde_json::Value> = vec![];
-    let planets = ctx["planets"]
-        .as_array()
-        .map_or(&_empty[..], |v| v.as_slice());
-    let signs = ctx["signs"]
-        .as_array()
-        .map_or(&_empty[..], |v| v.as_slice());
-    let houses = ctx["houses"]
-        .as_array()
-        .map_or(&_empty[..], |v| v.as_slice());
-    let aspects = ctx["aspects"]
-        .as_array()
-        .map_or(&_empty[..], |v| v.as_slice());
-
-    let mut s = String::with_capacity(64 * 1024);
-
-    // ── header ────────────────────────────────────────────────────────────────
-    let _ = writeln!(
-        s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1560" width="900" height="1560">
-  <defs>
-    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="2.5" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <rect width="900" height="1560" fill="{bg}"/>
-  <text x="450" y="34" text-anchor="middle" font-size="18" font-weight="600"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
-  <text x="450" y="54" text-anchor="middle" font-size="10"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".7">"##
-    );
-    if lat != 0.0 || lon != 0.0 {
-        let _ = write!(
-            s,
-            "{date} · {:.4}°{} {:.4}°{} · JD {jd:.4}",
-            lat.abs(),
-            if lat >= 0.0 { "N" } else { "S" },
-            lon.abs(),
-            if lon >= 0.0 { "E" } else { "W" }
-        );
-    } else {
-        let _ = write!(s, "{date} · JD {jd:.4}");
-    }
-    let _ = writeln!(
-        s,
-        r##"</text>
-
-  <!-- rings -->
-  <circle cx="{CX}" cy="{CY}" r="{RO}" fill="none" stroke="{ring}" stroke-width="2.5" opacity=".6"/>
-  <circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>
-  <circle cx="{CX}" cy="{CY}" r="{RI}" fill="none" stroke="{ring}" stroke-width="2.0" opacity=".55"/>
-  <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>
-  <circle cx="{CX}" cy="{CY}" r="{RC}" fill="{bg}"  stroke="{ring}" stroke-width="2.0" opacity=".4"/>"##
-    );
-
-    // ── zodiac sign sectors ───────────────────────────────────────────────────
-    for sign in signs {
-        let sx1 = sign["spoke_x1"].as_f64().unwrap_or(0.0);
-        let sy1 = sign["spoke_y1"].as_f64().unwrap_or(0.0);
-        let sx2 = sign["spoke_x2"].as_f64().unwrap_or(0.0);
-        let sy2 = sign["spoke_y2"].as_f64().unwrap_or(0.0);
-        let gx = sign["glyph_x"].as_f64().unwrap_or(0.0);
-        let gy = sign["glyph_y"].as_f64().unwrap_or(0.0);
-        let g = sign["glyph"].as_str().unwrap_or("");
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{sx1:.2}" y1="{sy1:.2}" x2="{sx2:.2}" y2="{sy2:.2}" stroke="{ring}" stroke-width="1.5" opacity=".55"/>
-  <text x="{gx:.2}" y="{gy:.2}" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{ring}">{g}</text>"##
-        );
-    }
-
-    // ── house cusps ───────────────────────────────────────────────────────────
-    s.push('\n');
-    for h in houses {
-        let x1 = h["x1"].as_f64().unwrap_or(0.0);
-        let y1 = h["y1"].as_f64().unwrap_or(0.0);
-        let x2 = h["x2"].as_f64().unwrap_or(0.0);
-        let y2 = h["y2"].as_f64().unwrap_or(0.0);
-        let nx = h["num_x"].as_f64().unwrap_or(0.0);
-        let ny = h["num_y"].as_f64().unwrap_or(0.0);
-        let n = h["num"].as_u64().unwrap_or(0);
-        let ang = h["is_angle"].as_bool().unwrap_or(false);
-        let (sw, op) = if ang { ("3.0", ".85") } else { ("1.5", ".55") };
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{ring}" stroke-width="{sw}" opacity="{op}"/>
-  <text x="{nx:.2}" y="{ny:.2}" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">{n}</text>"##
-        );
-    }
-
-    // ── angle labels on the rim ───────────────────────────────────────────────
-    for (lon2, name, anchor, dy) in [
-        (asc, "ASC", "end", 0.0),
-        (dsc, "DSC", "start", 0.0),
-        (mc, "MC", "middle", -7.0),
-        (ic, "IC", "middle", 11.0),
-    ] {
-        let lx = wx(CX, RI + 18.0, lon2, asc);
-        let ly = wy(CY, RI + 18.0, lon2, asc) + dy;
-        let _ = writeln!(
-            s,
-            r##"  <text x="{lx:.2}" y="{ly:.2}" text-anchor="{anchor}" font-size="12" font-weight="800" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{name}</text>"##
-        );
-    }
-
-    // ── aspect lines ─────────────────────────────────────────────────────────
-    s.push('\n');
-    for asp in aspects {
-        let x1 = asp["x1"].as_f64().unwrap_or(0.0);
-        let y1 = asp["y1"].as_f64().unwrap_or(0.0);
-        let x2 = asp["x2"].as_f64().unwrap_or(0.0);
-        let y2 = asp["y2"].as_f64().unwrap_or(0.0);
-        let orb = asp["orb"].as_f64().unwrap_or(8.0);
-        let hard = asp["is_hard"].as_bool().unwrap_or(false);
-        let minor = asp["is_minor"].as_bool().unwrap_or(false);
-        let col = if hard { hard_c } else { soft_c };
-        let (sw, op, dash): (&str, &str, &str) = if minor {
-            let o: &str = if orb < 1.0 { ".35" } else { ".18" };
-            ("0.9", o, r##" stroke-dasharray="4,3""##)
-        } else {
-            let o: &str = if orb < 2.0 { ".55" } else { ".22" };
-            ("1.8", o, "")
-        };
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{col}" stroke-width="{sw}" opacity="{op}"{dash}/>"##
-        );
-    }
-
-    // ── planet glyphs (collision-free label placement) ────────────────────────
-    s.push('\n');
-
-    // Collect planet longitudes and compute non-overlapping label angles
-    let planet_lons: Vec<f64> = planets
-        .iter()
-        .map(|p| p["lon"].as_f64().unwrap_or(0.0))
-        .collect();
-    let label_angles = spread_labels(&planet_lons, asc);
-    const LABEL_R: f64 = RP + 26.0;
-
-    for (idx, p) in planets.iter().enumerate() {
-        let px = p["x"].as_f64().unwrap_or(0.0);
-        let py = p["y"].as_f64().unwrap_or(0.0);
-        let tx1 = p["tick_x1"].as_f64().unwrap_or(0.0);
-        let ty1 = p["tick_y1"].as_f64().unwrap_or(0.0);
-        let tx2 = p["tick_x2"].as_f64().unwrap_or(0.0);
-        let ty2 = p["tick_y2"].as_f64().unwrap_or(0.0);
-        let g = p["glyph"].as_str().unwrap_or("?");
-        let dl = p["deg_label"].as_str().unwrap_or("");
-        let ret = p["retro"].as_bool().unwrap_or(false);
-        let col = if ret { retro_c } else { pfg };
-
-        // Adjusted label position from spread_labels (direct angle → SVG coords)
-        let placed_ang = label_angles[idx];
-        let lx = CX + LABEL_R * placed_ang.to_radians().cos();
-        let ly = CY - LABEL_R * placed_ang.to_radians().sin();
-
-        // Natural angle for the leader-line anchor (just outside the glyph ring)
-        let lon_i = planet_lons[idx];
-        let nat_ang = (180.0 - (lon_i - asc)).rem_euclid(360.0);
-        let anchor_r = RP + 13.0;
-        let ax = CX + anchor_r * nat_ang.to_radians().cos();
-        let ay = CY - anchor_r * nat_ang.to_radians().sin();
-
-        // Draw a dashed leader line only when label drifted from its planet
-        let mut drift = placed_ang - nat_ang;
-        while drift > 180.0 {
-            drift -= 360.0;
-        }
-        while drift < -180.0 {
-            drift += 360.0;
-        }
-        if drift.abs() > 3.5 {
-            let _ = writeln!(
-                s,
-                r##"  <line x1="{ax:.2}" y1="{ay:.2}" x2="{lx:.2}" y2="{ly:.2}" stroke="{pfg}" stroke-width="0.9" opacity=".45" stroke-dasharray="3,2"/>"##
-            );
-        }
-
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{tx1:.2}" y1="{ty1:.2}" x2="{tx2:.2}" y2="{ty2:.2}" stroke="{pfg}" stroke-width="1.0" opacity=".45"/>
-  <text x="{px:.2}" y="{py:.2}" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}" filter="url(#glow)">{g}</text>
-  <text x="{lx:.2}" y="{ly:.2}" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{dl}</text>"##
-        );
-        // Station marker: small 'S' if planet speed ≈ 0
-        if p["near_station"].as_bool().unwrap_or(false) {
-            let sx = px + 9.0;
-            let sy = py - 9.0;
-            let _ = writeln!(
-                s,
-                r##"  <text x="{sx:.2}" y="{sy:.2}" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}" opacity=".9">S</text>"##
-            );
-        }
-    }
-
-    // ── moon phase in centre ──────────────────────────────────────────────────
-    let _ = writeln!(
-        s,
-        r##"  <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="11" font-weight="500" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".9">{phase}</text>
-  <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".65">{illum:.1}%</text>
-"##,
-        CY - 12.0,
-        CY + 6.0
-    );
-
-    // ═════════════════════════ LEGEND ═════════════════════════════════════════
-    let ly = CY + RO + 24.0;
-    let c1x = 24.0_f64;
-    let c2x = 314.0_f64;
-    let c3x = 584.0_f64;
-    let rh2 = 16.0_f64;
-
-    // ── col 1: planets ────────────────────────────────────────────────────────
-    let _ = writeln!(
-        s,
-        r##"  <text x="{c1x}" y="{ly:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Planets</text>
-  <line x1="{c1x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
-        ly + 3.0,
-        c1x + 272.0,
-        ly + 3.0
-    );
-    for (i, p) in planets.iter().enumerate() {
-        let ry = ly + 16.0 + i as f64 * rh2;
-        let g = p["glyph"].as_str().unwrap_or("?");
-        let name = p["name"].as_str().unwrap_or("");
-        let dms = p["dms"].as_str().unwrap_or("");
-        let spd = p["speed_str"].as_str().unwrap_or("");
-        let ret = p["retro"].as_bool().unwrap_or(false);
-        let col = if ret { retro_c } else { pfg };
-        let scol = if ret { retro_c } else { ring };
-        let sop = if ret { "1" } else { ".4" };
-        let _ = writeln!(
-            s,
-            r##"  <text x="{:.2}" y="{ry:.2}" font-size="14" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".75">{name}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{scol}" opacity="{sop}">{spd}</text>"##,
-            c1x + 2.0,
-            c1x + 20.0,
-            c1x + 120.0,
-            c1x + 222.0
-        );
-    }
-
-    // ── col 2: angles + houses ────────────────────────────────────────────────
-    let _ = writeln!(
-        s,
-        r##"
-  <text x="{c2x}" y="{ly:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Angles &amp; Houses</text>
-  <line x1="{c2x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
-        ly + 3.0,
-        c2x + 250.0,
-        ly + 3.0
-    );
-    for (i, (name, lon2, dms)) in [
-        ("ASC", asc, ctx["asc_dms"].as_str().unwrap_or("")),
-        ("MC", mc, ctx["mc_dms"].as_str().unwrap_or("")),
-        ("DSC", dsc, ctx["dsc_dms"].as_str().unwrap_or("")),
-        ("IC", ic, ctx["ic_dms"].as_str().unwrap_or("")),
-    ]
-    .iter()
-    .enumerate()
-    {
-        let ry = ly + 16.0 + i as f64 * rh2;
-        let _ = writeln!(
-            s,
-            r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" font-weight="700" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{name}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{lon2:.4}&#176;</text>"##,
-            c2x + 2.0,
-            c2x + 38.0,
-            c2x + 150.0
-        );
-    }
-    let sep_y = ly + 82.0;
-    let _ = writeln!(
-        s,
-        r##"  <line x1="{c2x}" y1="{sep_y:.2}" x2="{:.2}" y2="{sep_y:.2}" stroke="{ring}" stroke-width=".3" opacity=".2"/>"##,
-        c2x + 250.0
-    );
-    for (i, h) in houses.iter().enumerate() {
-        let ry = ly + 94.0 + i as f64 * rh2;
-        let dms = h["dms"].as_str().unwrap_or("");
-        let hlon = h["lon"].as_f64().unwrap_or(0.0);
-        let _ = writeln!(
-            s,
-            r##"  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".55">H{}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{hlon:.4}&#176;</text>"##,
-            c2x + 2.0,
-            i + 1,
-            c2x + 28.0,
-            c2x + 138.0
-        );
-    }
-
-    // ── col 3: aspects ────────────────────────────────────────────────────────
-    let _ = writeln!(
-        s,
-        r##"
-  <text x="{c3x}" y="{ly:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Aspects</text>
-  <line x1="{c3x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
-        ly + 3.0,
-        c3x + 292.0,
-        ly + 3.0
-    );
-    if aspects.is_empty() {
-        let _ = writeln!(
-            s,
-            r##"  <text x="{:.2}" y="{:.2}" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">(no major aspects within orbs)</text>"##,
-            c3x + 4.0,
-            ly + 20.0
-        );
-    }
-    for (i, asp) in aspects.iter().enumerate() {
-        let ry = ly + 16.0 + i as f64 * 15.0;
-        let g1 = asp["glyph1"].as_str().unwrap_or("?");
-        let g2 = asp["glyph2"].as_str().unwrap_or("?");
-        let aname = asp["aspect_name"].as_str().unwrap_or("");
-        let orb = asp["orb"].as_f64().unwrap_or(0.0);
-        let appl = asp["applying"].as_bool().unwrap_or(false);
-        let b1 = asp["body1"].as_str().unwrap_or("");
-        let b2 = asp["body2"].as_str().unwrap_or("");
-        let hard = asp["is_hard"].as_bool().unwrap_or(false);
-        let col = if hard { hard_c } else { soft_c };
-        let aind = if appl { "&#9650;app" } else { "&#9660;sep" };
-        let b1s = &b1[..b1.len().min(3)];
-        let b2s = &b2[..b2.len().min(3)];
-        let an4 = &aname[..aname.len().min(4)];
-        let _ = writeln!(
-            s,
-            r##"  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g1}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g2}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{an4}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".7">{orb:.2}&#176;</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".5">{aind}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{b1s}&#8211;{b2s}</text>"##,
-            c3x + 2.0,
-            c3x + 18.0,
-            c3x + 34.0,
-            c3x + 92.0,
-            c3x + 130.0,
-            c3x + 168.0
-        );
-    }
-
-    // ── dignity + arabic parts legend (below col 1 + 2) ─────────────────────
-    let dig_y = ly + 16.0 + planets.len() as f64 * rh2 + 12.0;
-    let _ = writeln!(
-        s,
-        r##"  <text x="{c1x}" y="{dig_y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Essential Dignities</text>
-  <line x1="{c1x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
-        dig_y + 3.0,
-        c1x + 272.0,
-        dig_y + 3.0
-    );
-    const DIG_COLORS: [(&str, &str); 5] = [
-        ("domicile", "#1a7a1a"),
-        ("exaltation", "#0d5ca8"),
-        ("detriment", "#b01020"),
-        ("fall", "#8b4000"),
-        ("peregrine", "#888888"),
-    ];
-    // Table header
-    let _ = writeln!(
-        s,
-        r##"  <text x="{:.2}" y="{:.2}" font-size="8" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">Planet</text>
-  <text x="{:.2}" y="{:.2}" font-size="8" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">Dignity</text>
-  <text x="{:.2}" y="{:.2}" font-size="8" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">Sign</text>"##,
-        c1x + 2.0,
-        dig_y + 14.0,
-        c1x + 60.0,
-        dig_y + 14.0,
-        c1x + 140.0,
-        dig_y + 14.0
-    );
-    for (i, p) in planets.iter().enumerate() {
-        let ry = dig_y + 26.0 + i as f64 * rh2;
-        let g = p["glyph"].as_str().unwrap_or("?");
-        let name = p["name"].as_str().unwrap_or("");
-        let dig = p["dignity"].as_str().unwrap_or("peregrine");
-        let sign_nm = p["sign_name"].as_str().unwrap_or("");
-        let dcol = DIG_COLORS
-            .iter()
-            .find(|(d, _)| *d == dig)
-            .map(|(_, c)| *c)
-            .unwrap_or("#888");
-        let _ = writeln!(
-            s,
-            r##"  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{ring}">{g}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{dcol}" font-weight="500">{dig}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{sign_nm}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".45">{name}</text>"##,
-            c1x + 2.0,
-            c1x + 20.0,
-            c1x + 140.0,
-            c1x + 220.0,
-        );
-    }
-
-    // ── arabic parts mini-legend ──────────────────────────────────────────────
-    let ap_y = dig_y + 26.0 + planets.len() as f64 * rh2 + 8.0;
-    let _ = writeln!(
-        s,
-        r##"  <text x="{c2x}" y="{ap_y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Arabic Parts</text>
-  <line x1="{c2x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
-        ap_y + 3.0,
-        c2x + 250.0,
-        ap_y + 3.0
-    );
-    let ap_vec2 = ctx["arabic_parts"]
-        .as_array()
-        .map(|v| v.as_slice())
-        .unwrap_or(&[]);
-    for (i, p) in ap_vec2.iter().enumerate() {
-        let ry = ap_y + 14.0 + i as f64 * rh2;
-        let name = p["name"].as_str().unwrap_or("");
-        let dms = p["dms"].as_str().unwrap_or("");
-        let sign_nm = p["sign"].as_str().unwrap_or("");
-        let _ = writeln!(
-            s,
-            r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{soft_c}" opacity=".8">{name}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".45">{sign_nm}</text>"##,
-            c2x + 2.0,
-            c2x + 125.0,
-            c2x + 210.0,
-        );
-    }
-
-    // ── footer ────────────────────────────────────────────────────────────────
-    let _ = writeln!(
-        s,
-        r##"
-  <text x="450" y="1090" text-anchor="middle" font-size="9"
-        font-family="'Segoe UI',system-ui,sans-serif"
-        fill="{ring}" opacity=".35">Generated by celestial render · {date}</text>
-</svg>"##
-    );
-
-    s
-}
-
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1270,76 +486,99 @@ pub(super) fn render_builtin_svg(ctx: &Value) -> String {
 // Phase 2 — SVG renderers for new chart types
 // ═══════════════════════════════════════════════════════════════════════════════
 
-pub fn run(mut args: RenderArgs) -> Result<(), String> {
-    // load config file
-    let mut file_vars: BTreeMap<String, String> = BTreeMap::new();
-    if let Some(ref cfg_path) = args.config.clone() {
-        let text = std::fs::read_to_string(cfg_path)
-            .map_err(|e| format!("cannot read config `{}`: {e}", cfg_path.display()))?;
-        let cfg: ConfigFile =
-            toml::from_str(&text).map_err(|e| format!("invalid config TOML: {e}"))?;
-        if let Some(r) = cfg.render {
-            if args.date == "now" {
-                if let Some(d) = r.date {
-                    args.date = d;
-                }
-            }
-            if args.lat == 0.0 {
-                if let Some(v) = r.lat {
-                    args.lat = v;
-                }
-            }
-            if args.lon == 0.0 {
-                if let Some(v) = r.lon {
-                    args.lon = v;
-                }
-            }
-            if args.template.is_none() {
-                args.template = r.template;
-            }
-            if args.out.is_none() {
-                args.out = r.out;
-            }
-            if args.hsys == 'P' {
-                if let Some(h) = r.hsys {
-                    args.hsys = h;
-                }
+/// Convert any `toml::Value` leaf into its owned `String` representation
+/// (used when merging `[vars]` from a config file).
+fn toml_value_to_string(v: &toml::Value) -> String {
+    match v {
+        toml::Value::String(x) => x.clone(),
+        toml::Value::Integer(x) => x.to_string(),
+        toml::Value::Float(x) => x.to_string(),
+        toml::Value::Boolean(x) => x.to_string(),
+        other => other.to_string(),
+    }
+}
+
+/// Read a TOML config file and merge its defaults into `args` (only fields
+/// still at their sentinel defaults are overridden) and return its `[vars]`
+/// map. Returns an empty map if no config file is specified.
+fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, String>, String> {
+    let mut file_vars = BTreeMap::new();
+    let Some(cfg_path) = args.config.clone() else {
+        return Ok(file_vars);
+    };
+    let text = std::fs::read_to_string(&cfg_path)
+        .map_err(|e| format!("cannot read config `{}`: {e}", cfg_path.display()))?;
+    let cfg: ConfigFile = toml::from_str(&text).map_err(|e| format!("invalid config TOML: {e}"))?;
+
+    if let Some(r) = cfg.render {
+        if args.date == "now" {
+            if let Some(d) = r.date {
+                args.date = d;
             }
         }
-        if let Some(t) = cfg.vars {
-            for (k, v) in t {
-                let s = match &v {
-                    toml::Value::String(x) => x.clone(),
-                    toml::Value::Integer(x) => x.to_string(),
-                    toml::Value::Float(x) => x.to_string(),
-                    toml::Value::Boolean(x) => x.to_string(),
-                    other => other.to_string(),
-                };
-                file_vars.insert(k, s);
+        if args.lat == 0.0 {
+            if let Some(v) = r.lat {
+                args.lat = v;
             }
+        }
+        if args.lon == 0.0 {
+            if let Some(v) = r.lon {
+                args.lon = v;
+            }
+        }
+        if args.hsys == 'P' {
+            if let Some(h) = r.hsys {
+                args.hsys = h;
+            }
+        }
+        if args.template.is_none() {
+            args.template = r.template;
+        }
+        if args.out.is_none() {
+            args.out = r.out;
         }
     }
+    if let Some(t) = cfg.vars {
+        for (k, v) in t {
+            file_vars.insert(k, toml_value_to_string(&v));
+        }
+    }
+    Ok(file_vars)
+}
 
-    // --var KEY=VALUE overrides
-    let mut user_vars = file_vars;
-    for kv in &args.vars {
+/// Apply `--var KEY=VALUE` CLI overrides on top of config-file vars.
+fn apply_var_overrides(
+    vars: &[String],
+    mut base: BTreeMap<String, String>,
+) -> Result<BTreeMap<String, String>, String> {
+    for kv in vars {
         let (k, v) = kv
             .split_once('=')
             .ok_or_else(|| format!("`--var` must be KEY=VALUE, got `{kv}`"))?;
-        user_vars.insert(k.to_string(), v.to_string());
+        base.insert(k.to_string(), v.to_string());
     }
+    Ok(base)
+}
 
-    // Merge --time into --date when provided
-    let date_str = if let Some(ref t) = args.time {
-        let base = args.date.trim();
-        if base == "now" || base.parse::<f64>().is_ok() || base.contains(' ') {
-            args.date.clone()
-        } else {
-            format!("{base} {t}")
-        }
-    } else {
-        args.date.clone()
+/// Merge a separate `--time HH:MM` CLI argument into `--date` when the
+/// date is a simple bare calendar date. Time is ignored when `date` is
+/// "now", a raw JD, or already contains a time component.
+fn merge_date_and_time(date: &str, time: Option<&str>) -> String {
+    let Some(t) = time else {
+        return date.to_string();
     };
+    let base = date.trim();
+    if base == "now" || base.parse::<f64>().is_ok() || base.contains(' ') {
+        date.to_string()
+    } else {
+        format!("{base} {t}")
+    }
+}
+
+pub fn run(mut args: RenderArgs) -> Result<(), String> {
+    let file_vars = load_config(&mut args)?;
+    let user_vars = apply_var_overrides(&args.vars, file_vars)?;
+    let date_str = merge_date_and_time(&args.date, args.time.as_deref());
     let jd = crate::parse::parse_date(&date_str)?;
 
     // Dispatch to the appropriate chart-type builder
@@ -1640,133 +879,6 @@ const EXAMPLE_TEMPLATE: &str = r##"<?xml version="1.0" encoding="UTF-8"?>
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 // ── Recovered builders (were accidentally removed during refactor) ────────────
-
-fn build_progressed_context(
-    jd: f64,
-    years: f64,
-    lat: f64,
-    lon: f64,
-    _date_str: &str,
-    hsys: char,
-    user_vars: BTreeMap<String, String>,
-) -> Result<serde_json::Value, String> {
-    let _flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
-    let prog_jd = jd + years * 365.25;
-    let prog_date = jd_to_date_str(prog_jd);
-    let mut vars = user_vars;
-    vars.entry("chart_type_label".to_string())
-        .or_insert_with(|| format!("Progressed ({years:.1}y)"));
-    vars.insert("secondary_jd".to_string(), format!("{prog_jd:.4}"));
-    vars.insert("secondary_date".to_string(), prog_date.clone());
-    let mut ctx = build_context(prog_jd, lat, lon, &prog_date, hsys, vars)?;
-    // Tests expect "progressed_planets" = same as "planets" at prog_jd
-    let prog_planets = ctx["planets"].clone();
-    ctx["progressed_planets"] = prog_planets;
-    Ok(ctx)
-}
-
-fn render_progressed_svg(ctx: &serde_json::Value) -> String {
-    render_builtin_svg(ctx)
-}
-
-fn build_solar_arc_context(
-    jd: f64,
-    years: f64,
-    lat: f64,
-    lon: f64,
-    date_str: &str,
-    hsys: char,
-    user_vars: BTreeMap<String, String>,
-) -> Result<serde_json::Value, String> {
-    let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
-    let _target_jd = jd + years * 365.25;
-    let mut ctx = build_context(jd, lat, lon, date_str, hsys, user_vars)?;
-    // Compute solar arc delta
-    let sun_natal = calc_ut(jd, Body::SUN, flags).map_err(|e| e.to_string())?;
-    // Solar arc direction: 1 day = 1 year (secondary progression rate)
-    // Progressed Sun is at birth + years days; arc = difference from natal Sun.
-    let progressed_jd = jd + years; // 1 day per year
-    let sun_progressed = calc_ut(progressed_jd, Body::SUN, flags).map_err(|e| e.to_string())?;
-    let arc = (sun_progressed.lon - sun_natal.lon + 360.0) % 360.0;
-    ctx["solar_arc_deg"] = serde_json::json!(arc);
-    ctx["solar_arc_degrees"] = serde_json::json!(arc); // alias for test compat
-                                                       // Build directed planet list
-    let directed: Vec<serde_json::Value> = ctx["planets"]
-        .as_array()
-        .map(|ps| {
-            ps.iter()
-                .map(|p| {
-                    let mut dp = p.clone();
-                    if let Some(lon_val) = p["lon"].as_f64() {
-                        dp["lon"] = serde_json::json!((lon_val + arc) % 360.0);
-                    }
-                    dp
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-    ctx["directed_planets"] = serde_json::json!(directed);
-    Ok(ctx)
-}
-
-fn render_cosmogram_svg(ctx: &serde_json::Value) -> String {
-    render_builtin_svg(ctx)
-}
-
-#[allow(clippy::too_many_arguments)]
-fn build_biwheel_context(
-    jd1: f64,
-    jd2: f64,
-    lat1: f64,
-    lon1: f64,
-    lat2: f64,
-    lon2: f64,
-    date1: &str,
-    date2: &str,
-    hsys: char,
-    user_vars: BTreeMap<String, String>,
-) -> Result<serde_json::Value, String> {
-    let mut vars1 = user_vars.clone();
-    vars1
-        .entry("title".to_string())
-        .or_insert_with(|| "Bi-wheel".to_string());
-    vars1.insert("ring2_date".to_string(), date2.to_string());
-    let inner = build_context(jd1, lat1, lon1, date1, hsys, vars1)?;
-    let vars2 = user_vars;
-    let outer = build_context(jd2, lat2, lon2, date2, hsys, vars2)?;
-    let mut ctx = inner;
-    let op = outer["planets"].clone();
-    ctx["ring2_planets"] = op.clone();
-    ctx["outer_planets"] = op;
-    ctx["ring2_date"] = serde_json::json!(date2);
-    let inner_ps = ctx["planets"].as_array().cloned().unwrap_or_default();
-    let outer_ps = ctx["outer_planets"].as_array().cloned().unwrap_or_default();
-    let cross: Vec<serde_json::Value> = inner_ps
-        .iter()
-        .flat_map(|ip| {
-            outer_ps
-                .iter()
-                .filter_map(|op| {
-                    let il = ip["lon"].as_f64()?;
-                    let ol = op["lon"].as_f64()?;
-                    let diff = (il - ol).abs().min(360.0 - (il - ol).abs());
-                    if diff < 8.0 {
-                        Some(serde_json::json!({"inner": ip["key"].clone(),
-                        "outer": op["key"].clone(), "orb": diff}))
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>()
-        })
-        .collect();
-    ctx["cross_aspects"] = serde_json::json!(cross);
-    Ok(ctx)
-}
-
-fn render_biwheel_svg(ctx: &serde_json::Value) -> String {
-    render_builtin_svg(ctx)
-}
 
 #[cfg(test)]
 mod tests {

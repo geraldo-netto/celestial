@@ -726,7 +726,7 @@ cargo xtask stubs             # Regenerate bindings/php/phpstan-stubs.php (396 s
 cargo xtask test-stubs        # Validate phpstan-stubs.php for PHP 8.0 syntax
 cargo xtask pyi               # Regenerate bindings/python/.../celestial_py.pyi (198 stubs)
 cargo xtask pyi --check       # Verify .pyi is in sync (CI gate)
-cargo xtask dts               # Regenerate bindings/js/index.d.ts (198 declarations)
+cargo xtask dts               # Regenerate bindings/js/index.d.ts (272 declarations — struct interfaces, constants, functions)
 cargo xtask dts --check       # Verify .d.ts is in sync (CI gate)
 ```
 

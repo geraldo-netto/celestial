@@ -129,9 +129,9 @@ celestial/
 │   │       ├── mesoamerican.rs Tonalpohualli, Tzolkin, Haab
 │   │       └── indigenous.rs   Medicine Wheel, Egyptian decans
 ├── cli/src/cmd/render/         24 SVG chart builders, one per tradition
-├── bindings/python/            PyO3 — 172 functions + celestial_py.pyi stubs
-├── bindings/js/                napi-rs — 172 functions + index.d.ts
-├── bindings/php/               ext-php-rs — 172 functions + phpstan stubs
+├── bindings/python/            PyO3 — 191 functions + celestial_py.pyi stubs (198 typed)
+├── bindings/js/                napi-rs — 191 functions + index.d.ts (272 typed — structs + consts)
+├── bindings/php/               ext-php-rs — 191 functions + phpstan-stubs.php (396 symbols)
 └── tests/fixtures/             reference_values.json — cross-language test fixture
 ```
 
@@ -157,8 +157,8 @@ Five independent pipelines, each triggered on changes to its crate or `core/`:
 
 | Pipeline | Jobs |
 |---|---|
-| **celestial-core** | `lint` (fmt + clippy) → `test` (737 unit tests) ‖ `fuzz` (67 suites) |
-| **celestial-cli** | `lint` (clippy) → `test` (81 tests) → `build` (3 OS) |
+| **celestial-core** | `lint` (fmt + clippy) → `test` (514 tests) ‖ `fuzz` (74 suites, ~1M property checks) |
+| **celestial-cli** | `lint` (clippy) → `test` (84 tests) → `build` (3 OS) |
 | **celestial-python** | `lint-rs` ‖ `lint-py` (black + ruff) → `test` (245 pure-logic) → `build` (maturin wheel) |
 | **celestial-js** | `lint-rs` ‖ `lint-ts` (eslint + tsc) → `test` (162 pure-logic) → `build` (napi-rs addon) |
 | **celestial-php** | `lint-rs` → `build` (ext-php-rs + pure-logic tests, PHP 8.1) |

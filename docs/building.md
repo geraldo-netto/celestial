@@ -60,7 +60,7 @@ cargo test --package celestial-core --test chinese_test     -- --test-threads=1
 cargo test --package celestial-core --test mesoamerican_test -- --test-threads=1
 cargo test --package celestial-core --test indigenous_test  -- --test-threads=1
 
-# Property-based fuzz tests (all 67 suites, ~30 s)
+# Property-based fuzz tests (all 74 suites, ~60 s)
 cargo run --manifest-path fuzz/Cargo.toml
 
 # Benchmarks
@@ -161,7 +161,7 @@ npx tsc --noEmit           # or: npm run typecheck
 # Lint TypeScript
 npx eslint tests/          # or: npm run lint
 
-# Pure-logic tests (172 tests, no native build required)
+# Pure-logic tests (216+ tests across JS/PHP pure-logic suites)
 node tests/pure_logic.test.mjs
 
 # Full test suite (requires built .node addon)
@@ -281,7 +281,7 @@ crate or `core/`:
 
 | Pipeline | Trigger path | Jobs |
 |---|---|---|
-| `celestial-core` | `core/**`, `fuzz/**` | lint → test (776) ‖ fuzz (67 suites) |
+| `celestial-core` | `core/**`, `fuzz/**` | lint → test (514) ‖ fuzz (74 suites, ~1M checks) |
 | `celestial-cli` | `cli/**`, `core/**` | lint → test (81) → release build |
 | `celestial-python` | `bindings/python/**`, `core/**` | clippy → ruff/mypy → pytest |
 | `celestial-js` | `bindings/js/**`, `core/**` | clippy → tsc/eslint → node tests |

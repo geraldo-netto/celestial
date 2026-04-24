@@ -52,91 +52,73 @@ pub enum SidMode {
     User = 255,
 }
 
+/// Lookup table for [`SidMode`]: raw code, variant, and display name.
+///
+/// A single source of truth for both [`SidMode::from_i32`] and [`SidMode::name`].
+/// Adding a new mode requires exactly one new row here.
+const SID_MODE_TABLE: &[(i32, SidMode, &str)] = &[
+    (0, SidMode::FaganBradley, "Fagan-Bradley"),
+    (1, SidMode::Lahiri, "Lahiri"),
+    (2, SidMode::Deluce, "De Luce"),
+    (3, SidMode::Raman, "Raman"),
+    (4, SidMode::Ushashashi, "Usha-Shashi"),
+    (5, SidMode::Krishnamurti, "Krishnamurti"),
+    (6, SidMode::DjwhalKhul, "Djwhal Khul"),
+    (7, SidMode::Yukteshwar, "Yukteshwar"),
+    (8, SidMode::JnBhasin, "J.N.Bhasin"),
+    (9, SidMode::BabylKugler1, "Babylonian/Kugler 1"),
+    (10, SidMode::BabylKugler2, "Babylonian/Kugler 2"),
+    (11, SidMode::BabylKugler3, "Babylonian/Kugler 3"),
+    (12, SidMode::BabylHuber, "Babylonian/Huber"),
+    (13, SidMode::BabylEtpsc, "Babylonian/ETPSC"),
+    (14, SidMode::Aldebaran15Tau, "Aldebaran at 15 Tau"),
+    (15, SidMode::Hipparchos, "Hipparchos"),
+    (16, SidMode::Sassanian, "Sassanian"),
+    (17, SidMode::GalactCtr0Sag, "Galactic Center at 0 Sag"),
+    (18, SidMode::J2000, "J2000"),
+    (19, SidMode::J1900, "J1900"),
+    (20, SidMode::B1950, "B1950"),
+    (21, SidMode::SuryaSiddhanta, "Surya Siddhanta"),
+    (22, SidMode::SuryaSiddhantaMsun, "Surya Siddhanta, mean Sun"),
+    (23, SidMode::Aryabhata, "Aryabhata"),
+    (24, SidMode::AryabhataMsun, "Aryabhata, mean Sun"),
+    (25, SidMode::SsRevati, "SS, Revati/zeta Psc"),
+    (26, SidMode::SsCitra, "SS, Citra/Spica"),
+    (27, SidMode::TrueCitra, "True Citra"),
+    (28, SidMode::TrueRevati, "True Revati"),
+    (29, SidMode::TruePushya, "True Pushya"),
+    (30, SidMode::GalacticCtrBrand, "Galactic Center (Brand)"),
+    (31, SidMode::GalacticEqMidMula, "Galactic Equator mid-Mula"),
+    (32, SidMode::SkydramMula, "Skydram (Mula)"),
+    (33, SidMode::TrueMula, "True Mula"),
+    (34, SidMode::GalacticCtrOHara, "Galactic Center (O'Hara)"),
+    (
+        35,
+        SidMode::Galactic0Aries,
+        "Galactic Equator IAU (0 Aries)",
+    ),
+];
+
 impl SidMode {
     /// Parse a raw i32 into a `SidMode`, returning `None` for unknown values.
     pub fn from_i32(n: i32) -> Option<Self> {
-        Some(match n {
-            0 => Self::FaganBradley,
-            1 => Self::Lahiri,
-            2 => Self::Deluce,
-            3 => Self::Raman,
-            4 => Self::Ushashashi,
-            5 => Self::Krishnamurti,
-            6 => Self::DjwhalKhul,
-            7 => Self::Yukteshwar,
-            8 => Self::JnBhasin,
-            9 => Self::BabylKugler1,
-            10 => Self::BabylKugler2,
-            11 => Self::BabylKugler3,
-            12 => Self::BabylHuber,
-            13 => Self::BabylEtpsc,
-            14 => Self::Aldebaran15Tau,
-            15 => Self::Hipparchos,
-            16 => Self::Sassanian,
-            17 => Self::GalactCtr0Sag,
-            18 => Self::J2000,
-            19 => Self::J1900,
-            20 => Self::B1950,
-            21 => Self::SuryaSiddhanta,
-            22 => Self::SuryaSiddhantaMsun,
-            23 => Self::Aryabhata,
-            24 => Self::AryabhataMsun,
-            25 => Self::SsRevati,
-            26 => Self::SsCitra,
-            27 => Self::TrueCitra,
-            28 => Self::TrueRevati,
-            29 => Self::TruePushya,
-            30 => Self::GalacticCtrBrand,
-            31 => Self::GalacticEqMidMula,
-            32 => Self::SkydramMula,
-            33 => Self::TrueMula,
-            34 => Self::GalacticCtrOHara,
-            35 => Self::Galactic0Aries,
-            _ => return None,
-        })
+        SID_MODE_TABLE
+            .iter()
+            .find(|(code, _, _)| *code == n)
+            .map(|(_, m, _)| *m)
     }
 
     /// Display name for the ayanamsa.
     pub fn name(self) -> &'static str {
-        match self {
-            Self::FaganBradley => "Fagan-Bradley",
-            Self::Lahiri => "Lahiri",
-            Self::Deluce => "De Luce",
-            Self::Raman => "Raman",
-            Self::Ushashashi => "Usha-Shashi",
-            Self::Krishnamurti => "Krishnamurti",
-            Self::DjwhalKhul => "Djwhal Khul",
-            Self::Yukteshwar => "Yukteshwar",
-            Self::JnBhasin => "J.N.Bhasin",
-            Self::BabylKugler1 => "Babylonian/Kugler 1",
-            Self::BabylKugler2 => "Babylonian/Kugler 2",
-            Self::BabylKugler3 => "Babylonian/Kugler 3",
-            Self::BabylHuber => "Babylonian/Huber",
-            Self::BabylEtpsc => "Babylonian/ETPSC",
-            Self::Aldebaran15Tau => "Aldebaran at 15 Tau",
-            Self::Hipparchos => "Hipparchos",
-            Self::Sassanian => "Sassanian",
-            Self::GalactCtr0Sag => "Galactic Center at 0 Sag",
-            Self::J2000 => "J2000",
-            Self::J1900 => "J1900",
-            Self::B1950 => "B1950",
-            Self::SuryaSiddhanta => "Surya Siddhanta",
-            Self::SuryaSiddhantaMsun => "Surya Siddhanta, mean Sun",
-            Self::Aryabhata => "Aryabhata",
-            Self::AryabhataMsun => "Aryabhata, mean Sun",
-            Self::SsRevati => "SS, Revati/zeta Psc",
-            Self::SsCitra => "SS, Citra/Spica",
-            Self::TrueCitra => "True Citra",
-            Self::TrueRevati => "True Revati",
-            Self::TruePushya => "True Pushya",
-            Self::GalacticCtrBrand => "Galactic Center (Brand)",
-            Self::GalacticEqMidMula => "Galactic Equator mid-Mula",
-            Self::SkydramMula => "Skydram (Mula)",
-            Self::TrueMula => "True Mula",
-            Self::GalacticCtrOHara => "Galactic Center (O'Hara)",
-            Self::Galactic0Aries => "Galactic Equator IAU (0 Aries)",
-            Self::User => "User-defined",
+        // User-defined is the only variant not in the table
+        if matches!(self, Self::User) {
+            return "User-defined";
         }
+        SID_MODE_TABLE
+            .iter()
+            .find(|(_, m, _)| *m == self)
+            .map(|(_, _, n)| *n)
+            .unwrap_or("Unknown")
     }
 }
 

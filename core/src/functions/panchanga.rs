@@ -297,109 +297,117 @@ pub struct HinduFestival {
 
 /// Scan a Gregorian year and return major Hindu festivals.
 ///
-/// Checks each day and identifies festival conditions.
+/// One row of the Hindu-festival lookup table used by [`hindu_festivals`].
+///
+/// A festival occurs on the first day of `gregorian_year` whose `panchanga`
+/// matches `tithi` and `paksha` and which falls inside the `(month_start, month_end)`
+/// window (exclusive). Windows use Gregorian months as an approximation for
+/// the lunar-month positions.
+struct FestivalRule {
+    name: &'static str,
+    description: &'static str,
+    tithi: u8,
+    paksha: Paksha,
+    month_start: i32,
+    month_end: i32,
+}
+
+/// The fixed table of festivals checked by [`hindu_festivals`].
+const FESTIVAL_RULES: &[FestivalRule] = &[
+    FestivalRule {
+        name: "Naraka Chaturdashi (Choti Diwali)",
+        description: "Eve of Diwali, Krishna Chaturdashi of Kartik",
+        tithi: 29,
+        paksha: Paksha::Krishna,
+        month_start: 10,
+        month_end: 12,
+    },
+    FestivalRule {
+        name: "Diwali (Lakshmi Puja)",
+        description: "Festival of Lights, Amavasya of Kartik",
+        tithi: 30,
+        paksha: Paksha::Krishna,
+        month_start: 10,
+        month_end: 12,
+    },
+    FestivalRule {
+        name: "Holi (Holika Dahan)",
+        description: "Festival of Colors, Purnima of Phalguna",
+        tithi: 15,
+        paksha: Paksha::Shukla,
+        month_start: 2,
+        month_end: 4,
+    },
+    FestivalRule {
+        name: "Maha Shivaratri",
+        description: "Great Night of Shiva, Krishna Chaturdashi of Phalguna",
+        tithi: 29,
+        paksha: Paksha::Krishna,
+        month_start: 2,
+        month_end: 4,
+    },
+    FestivalRule {
+        name: "Raksha Bandhan",
+        description: "Bond of Protection, Purnima of Shravana",
+        tithi: 15,
+        paksha: Paksha::Shukla,
+        month_start: 7,
+        month_end: 9, // Jul 15 — Sep 15
+    },
+    FestivalRule {
+        name: "Janmashtami (Krishna Jayanti)",
+        description: "Birth of Lord Krishna, Krishna Ashtami of Bhadrapada",
+        tithi: 23,
+        paksha: Paksha::Krishna,
+        month_start: 8,
+        month_end: 10,
+    },
+    FestivalRule {
+        name: "Navratri (Sharada) begins",
+        description: "Nine nights of Goddess Durga, Ashwin Shukla Pratipada",
+        tithi: 1,
+        paksha: Paksha::Shukla,
+        month_start: 9,
+        month_end: 11,
+    },
+];
+
+/// Key Hindu festival dates for the given Gregorian year.
+///
+/// Iterates day-by-day through the year, matching each day's Panchānga against
+/// the [`FESTIVAL_RULES`] table. Returns festivals in the order they occur.
 pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
     use crate::julday;
 
-    let mut festivals = Vec::new();
     let start_jd = julday(gregorian_year, 1, 1, 6.0, Calendar::Gregorian);
     let end_jd = julday(gregorian_year, 12, 31, 6.0, Calendar::Gregorian);
 
+    // Precompute month-boundary JDs once per month to avoid recomputing
+    // inside the day loop. Index 0 is unused; 1..=13 hold month starts,
+    // where index 13 = Jan 1 of the following year.
+    let mut month_jd = [0.0_f64; 14];
+    for m in 1..=12 {
+        month_jd[m as usize] = julday(gregorian_year, m, 1, 0.0, Calendar::Gregorian);
+    }
+    month_jd[13] = julday(gregorian_year + 1, 1, 1, 0.0, Calendar::Gregorian);
+
+    let mut festivals = Vec::new();
     let mut jd = start_jd;
     while jd <= end_jd {
         let p = panchanga(jd);
-
-        // Diwali: Krishna Chaturdashi (tithi 29) in Kartik/Ashwin (Oct/Nov area)
-        // Using Amavasya (tithi 30) in Kartik as Diwali night
-        if p.tithi == 29
-            && p.paksha == Paksha::Krishna
-            && jd > julday(gregorian_year, 10, 1, 0.0, Calendar::Gregorian)
-            && jd < julday(gregorian_year, 12, 1, 0.0, Calendar::Gregorian)
-        {
-            festivals.push(HinduFestival {
-                name: "Naraka Chaturdashi (Choti Diwali)",
-                description: "Eve of Diwali, Krishna Chaturdashi of Kartik",
-                jd,
-            });
+        for rule in FESTIVAL_RULES {
+            if p.tithi == rule.tithi
+                && p.paksha == rule.paksha
+                && jd > month_jd[rule.month_start as usize]
+                && jd < month_jd[rule.month_end as usize]
+            {
+                festivals.push(HinduFestival {
+                    name: rule.name,
+                    description: rule.description,
+                    jd,
+                });
+            }
         }
-
-        if p.tithi == 30
-            && p.paksha == Paksha::Krishna
-            && jd > julday(gregorian_year, 10, 1, 0.0, Calendar::Gregorian)
-            && jd < julday(gregorian_year, 12, 1, 0.0, Calendar::Gregorian)
-        {
-            festivals.push(HinduFestival {
-                name: "Diwali (Lakshmi Puja)",
-                description: "Festival of Lights, Amavasya of Kartik",
-                jd,
-            });
-        }
-
-        // Holi: Purnima (Tithi 15) in Phalguna (Feb-Mar)
-        if p.tithi == 15
-            && p.paksha == Paksha::Shukla
-            && jd > julday(gregorian_year, 2, 1, 0.0, Calendar::Gregorian)
-            && jd < julday(gregorian_year, 4, 1, 0.0, Calendar::Gregorian)
-        {
-            festivals.push(HinduFestival {
-                name: "Holi (Holika Dahan)",
-                description: "Festival of Colors, Purnima of Phalguna",
-                jd,
-            });
-        }
-
-        // Maha Shivaratri: Krishna Chaturdashi (tithi 29) in Phalguna (Feb-Mar)
-        if p.tithi == 29
-            && p.paksha == Paksha::Krishna
-            && jd > julday(gregorian_year, 2, 1, 0.0, Calendar::Gregorian)
-            && jd < julday(gregorian_year, 4, 1, 0.0, Calendar::Gregorian)
-        {
-            festivals.push(HinduFestival {
-                name: "Maha Shivaratri",
-                description: "Great Night of Shiva, Krishna Chaturdashi of Phalguna",
-                jd,
-            });
-        }
-
-        // Raksha Bandhan: Shravana Purnima (Tithi 15, Aug area)
-        if p.tithi == 15
-            && p.paksha == Paksha::Shukla
-            && jd > julday(gregorian_year, 7, 15, 0.0, Calendar::Gregorian)
-            && jd < julday(gregorian_year, 9, 15, 0.0, Calendar::Gregorian)
-        {
-            festivals.push(HinduFestival {
-                name: "Raksha Bandhan",
-                description: "Bond of Protection, Purnima of Shravana",
-                jd,
-            });
-        }
-
-        // Janmashtami: Krishna Ashtami (tithi 23) in Bhadrapada (Aug-Sep)
-        if p.tithi == 23
-            && p.paksha == Paksha::Krishna
-            && jd > julday(gregorian_year, 8, 1, 0.0, Calendar::Gregorian)
-            && jd < julday(gregorian_year, 10, 1, 0.0, Calendar::Gregorian)
-        {
-            festivals.push(HinduFestival {
-                name: "Janmashtami (Krishna Jayanti)",
-                description: "Birth of Lord Krishna, Krishna Ashtami of Bhadrapada",
-                jd,
-            });
-        }
-
-        // Navratri (Sharada): Shukla Pratipada (tithi 1) in Ashwin (Sep-Oct)
-        if p.tithi == 1
-            && p.paksha == Paksha::Shukla
-            && jd > julday(gregorian_year, 9, 1, 0.0, Calendar::Gregorian)
-            && jd < julday(gregorian_year, 11, 1, 0.0, Calendar::Gregorian)
-        {
-            festivals.push(HinduFestival {
-                name: "Navratri (Sharada) begins",
-                description: "Nine nights of Goddess Durga, Ashwin Shukla Pratipada",
-                jd,
-            });
-        }
-
         jd += 1.0;
     }
 

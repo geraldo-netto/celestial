@@ -35,125 +35,178 @@ fn jd_ut_to_year(jd: f64) -> f64 {
 ///   - Espenak & Meeus, "Five Millennium Canon of Solar Eclipses" (2006)
 ///   - Morrison & Stephenson, J. Hist. Astron. 35 (2004)
 ///   - IERS Bulletin A for recent observations
+/// One row of the piece-wise polynomial ΔT fit from Espenak & Meeus (2006).
+///
+/// For `y` in `(prev_end .. year_end]`, ΔT = polynomial(t) where
+/// `t = (y - year_base) / denom`.
+struct DeltaTPiece {
+    /// Upper bound (exclusive) of this piece's year range.
+    year_end: f64,
+    /// Offset subtracted from `y` before dividing.
+    year_base: f64,
+    /// Divisor applied after the offset (100.0 for century-scale fits, 1.0 otherwise).
+    denom: f64,
+    /// Polynomial coefficients (low-order first), per Horner's method.
+    coeffs: &'static [f64],
+}
+
+/// Espenak & Meeus polynomial fit pieces for the regular ΔT range
+/// (−500 CE through 2050 CE). Ordered by `year_end`.
+///
+/// Years outside this range use Morrison & Stephenson's long-term parabola
+/// (see [`delta_t_for_year`]).
+const DELTA_T_PIECES: &[DeltaTPiece] = &[
+    // -500 to +500
+    DeltaTPiece {
+        year_end: 500.0,
+        year_base: 0.0,
+        denom: 100.0,
+        coeffs: &[
+            10583.6,
+            -1014.41,
+            33.78311,
+            -5.952053,
+            -0.1798452,
+            0.022174192,
+            0.0090316521,
+        ],
+    },
+    // 500 to 1600
+    DeltaTPiece {
+        year_end: 1600.0,
+        year_base: 1000.0,
+        denom: 100.0,
+        coeffs: &[
+            1574.2,
+            -556.01,
+            71.23472,
+            0.319781,
+            -0.8503463,
+            -0.005050998,
+            0.0083572073,
+        ],
+    },
+    // 1600–1700
+    DeltaTPiece {
+        year_end: 1700.0,
+        year_base: 1600.0,
+        denom: 1.0,
+        coeffs: &[120.0, -0.9808, -0.01532, 1.0 / 7129.0],
+    },
+    // 1700–1800
+    DeltaTPiece {
+        year_end: 1800.0,
+        year_base: 1700.0,
+        denom: 1.0,
+        coeffs: &[8.83, 0.1603, -0.0059285, 0.00013336, -1.0 / 1_174_000.0],
+    },
+    // 1800–1860
+    DeltaTPiece {
+        year_end: 1860.0,
+        year_base: 1800.0,
+        denom: 1.0,
+        coeffs: &[
+            13.72,
+            -0.332447,
+            0.0068612,
+            0.0041116,
+            -0.00037436,
+            0.0000121272,
+            -0.0000001699,
+            0.000000000875,
+        ],
+    },
+    // 1860–1900
+    DeltaTPiece {
+        year_end: 1900.0,
+        year_base: 1860.0,
+        denom: 1.0,
+        coeffs: &[
+            7.62,
+            0.5737,
+            -0.251754,
+            0.01680668,
+            -0.0004473624,
+            1.0 / 233174.0,
+        ],
+    },
+    // 1900–1920
+    DeltaTPiece {
+        year_end: 1920.0,
+        year_base: 1900.0,
+        denom: 1.0,
+        coeffs: &[-2.79, 1.494119, -0.0598939, 0.0061966, -0.000197],
+    },
+    // 1920–1941
+    DeltaTPiece {
+        year_end: 1941.0,
+        year_base: 1920.0,
+        denom: 1.0,
+        coeffs: &[21.20, 0.84493, -0.076100, 0.0020936],
+    },
+    // 1941–1961
+    DeltaTPiece {
+        year_end: 1961.0,
+        year_base: 1950.0,
+        denom: 1.0,
+        coeffs: &[29.07, 0.407, -1.0 / 233.0, 1.0 / 2547.0],
+    },
+    // 1961–1986
+    DeltaTPiece {
+        year_end: 1986.0,
+        year_base: 1975.0,
+        denom: 1.0,
+        coeffs: &[45.45, 1.067, -1.0 / 260.0, -1.0 / 718.0],
+    },
+    // 1986–2005
+    DeltaTPiece {
+        year_end: 2005.0,
+        year_base: 2000.0,
+        denom: 1.0,
+        coeffs: &[
+            63.86,
+            0.3345,
+            -0.060374,
+            0.0017275,
+            0.000651814,
+            0.00002373599,
+        ],
+    },
+    // 2005–2050 (prediction)
+    DeltaTPiece {
+        year_end: 2050.0,
+        year_base: 2000.0,
+        denom: 1.0,
+        coeffs: &[62.92, 0.32217, 0.005589],
+    },
+];
+
+/// Morrison & Stephenson long-term ΔT parabola, used outside the
+/// Espenak & Meeus table range.
+fn long_term_parabola(y: f64) -> f64 {
+    let u = (y - 1820.0) / 100.0;
+    -20.0 + 32.0 * u * u
+}
+
 pub fn delta_t_for_year(y: f64) -> f64 {
-    if y < -500.0 {
-        // Before 500 BCE: Morrison & Stephenson parabola
-        let u = (y - 1820.0) / 100.0;
-        -20.0 + 32.0 * u * u
-    } else if y < 500.0 {
-        // -500 to +500: Espenak & Meeus Table 1
-        let u = y / 100.0;
-        polynomial(
-            u,
-            &[
-                10583.6,
-                -1014.41,
-                33.78311,
-                -5.952053,
-                -0.1798452,
-                0.022174192,
-                0.0090316521,
-            ],
-        )
-    } else if y < 1600.0 {
-        // 500 to 1600
-        let u = (y - 1000.0) / 100.0;
-        polynomial(
-            u,
-            &[
-                1574.2,
-                -556.01,
-                71.23472,
-                0.319781,
-                -0.8503463,
-                -0.005050998,
-                0.0083572073,
-            ],
-        )
-    } else if y < 1700.0 {
-        // 1600–1700
-        let t = y - 1600.0;
-        polynomial(t, &[120.0, -0.9808, -0.01532, 1.0 / 7129.0])
-    } else if y < 1800.0 {
-        // 1700–1800
-        let t = y - 1700.0;
-        polynomial(
-            t,
-            &[8.83, 0.1603, -0.0059285, 0.00013336, -1.0 / 1_174_000.0],
-        )
-    } else if y < 1860.0 {
-        // 1800–1860
-        let t = y - 1800.0;
-        polynomial(
-            t,
-            &[
-                13.72,
-                -0.332447,
-                0.0068612,
-                0.0041116,
-                -0.00037436,
-                0.0000121272,
-                -0.0000001699,
-                0.000000000875,
-            ],
-        )
-    } else if y < 1900.0 {
-        // 1860–1900
-        let t = y - 1860.0;
-        polynomial(
-            t,
-            &[
-                7.62,
-                0.5737,
-                -0.251754,
-                0.01680668,
-                -0.0004473624,
-                1.0 / 233174.0,
-            ],
-        )
-    } else if y < 1920.0 {
-        // 1900–1920
-        let t = y - 1900.0;
-        polynomial(t, &[-2.79, 1.494119, -0.0598939, 0.0061966, -0.000197])
-    } else if y < 1941.0 {
-        // 1920–1941
-        let t = y - 1920.0;
-        polynomial(t, &[21.20, 0.84493, -0.076100, 0.0020936])
-    } else if y < 1961.0 {
-        // 1941–1961
-        let t = y - 1950.0;
-        polynomial(t, &[29.07, 0.407, -1.0 / 233.0, 1.0 / 2547.0])
-    } else if y < 1986.0 {
-        // 1961–1986
-        let t = y - 1975.0;
-        polynomial(t, &[45.45, 1.067, -1.0 / 260.0, -1.0 / 718.0])
-    } else if y < 2005.0 {
-        // 1986–2005
-        let t = y - 2000.0;
-        polynomial(
-            t,
-            &[
-                63.86,
-                0.3345,
-                -0.060374,
-                0.0017275,
-                0.000651814,
-                0.00002373599,
-            ],
-        )
-    } else if y < 2050.0 {
-        // 2005–2050 (prediction)
-        let t = y - 2000.0;
-        polynomial(t, &[62.92, 0.32217, 0.005589])
-    } else if y < 2150.0 {
-        // 2050–2150 (long-range prediction)
-        let u = (y - 1820.0) / 100.0;
-        -20.0 + 32.0 * u * u - 0.5628 * (2150.0 - y)
-    } else {
-        // After 2150: Morrison & Stephenson parabola
-        let u = (y - 1820.0) / 100.0;
-        -20.0 + 32.0 * u * u
+    // Outside the table: pure long-term parabola
+    if y < -500.0 || y >= 2150.0 {
+        return long_term_parabola(y);
     }
+    // 2050–2150: parabola with linear correction toward the 2150 anchor
+    if y >= 2050.0 {
+        return long_term_parabola(y) - 0.5628 * (2150.0 - y);
+    }
+    // Regular piece-wise fit: find the first piece covering y
+    for p in DELTA_T_PIECES {
+        if y < p.year_end {
+            let t = (y - p.year_base) / p.denom;
+            return polynomial(t, p.coeffs);
+        }
+    }
+    // Unreachable: the last piece ends at 2050.0 and we already short-circuited
+    // on y >= 2050.0 above, but return a sensible fallback for safety.
+    long_term_parabola(y)
 }
 
 /// Evaluate a polynomial using Horner's method.
