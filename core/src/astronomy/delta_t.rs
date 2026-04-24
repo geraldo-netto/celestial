@@ -188,6 +188,29 @@ fn long_term_parabola(y: f64) -> f64 {
     -20.0 + 32.0 * u * u
 }
 
+/// Compute ΔT (the difference TT − UT) for a given calendar year, in seconds.
+///
+/// Returns the accumulated offset between Terrestrial Time (atomic) and
+/// Universal Time (Earth rotation). ΔT arises from the Earth's irregular
+/// rotation — tidal braking slowly lengthens the day, and fluid-core/mantle
+/// coupling causes decade-scale variations.
+///
+/// # Reference values
+/// * Year  -500: ΔT ≈ 17,190 s  (≈ 4h 46m)
+/// * Year  1000: ΔT ≈  1570 s
+/// * Year  2000: ΔT ≈    63.83 s
+/// * Year  2025: ΔT ≈    69 s (projected, IERS Bulletin A)
+///
+/// # Implementation
+/// Espenak & Meeus (2006) "Five Millennium Canon of Solar Eclipses" piece-wise
+/// polynomial fits for −500 through 2050, and the Morrison & Stephenson
+/// long-term parabola for years outside that range. See [`DELTA_T_PIECES`]
+/// for the 12 polynomial segments.
+///
+/// # Accuracy
+/// Sub-second in the instrumental era (post-1800); a few seconds for 1600–1800;
+/// ±20 s from 500–1600; larger for historical years.
+#[must_use]
 pub fn delta_t_for_year(y: f64) -> f64 {
     // Outside the table: pure long-term parabola
     if y < -500.0 || y >= 2150.0 {

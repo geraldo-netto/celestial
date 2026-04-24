@@ -204,6 +204,7 @@ pub fn utc_time_zone(date: &UtcDate, d_timezone: f64) -> UtcDate {
 /// Returns the user-defined value (set via `set_delta_t_userdef`) when one
 /// is installed; otherwise evaluates the built-in Espenak/Meeus polynomial
 /// fit (see [`astronomy::delta_t_for_year`]).
+#[must_use]
 pub fn deltat(tjd: f64) -> f64 {
     if let Some(dt) = crate::functions::config::user_delta_t() {
         return dt;

@@ -30,6 +30,7 @@ fn approx_retro_time(body: Body) -> f64 {
 }
 
 /// Result of a retrograde station search.
+#[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct RetroResult {
     pub jd: f64,
     pub pos: [f64; 6],
@@ -112,6 +113,7 @@ pub fn next_retro(
 
 /// Result of an aspect search.
 #[derive(Debug, Clone, PartialEq)]
+#[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct AspectResult {
     pub jd: f64,
     /// Planet positions at exact aspect.
@@ -292,6 +294,7 @@ pub fn next_aspect_with2(
 
 /// Result of an aspect-to-cusp search.
 #[derive(Debug, Clone, PartialEq)]
+#[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct AspectCuspResult {
     pub jd: f64,
     pub pos: [f64; 6],

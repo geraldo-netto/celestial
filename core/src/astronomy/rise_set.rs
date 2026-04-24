@@ -29,6 +29,7 @@ const SUN_SEMI_DIAM: f64 = 0.2667;
 
 /// Result of a rise/set search.
 #[derive(Debug, Clone, Copy)]
+#[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct RiseSetResult {
     /// Universal Time Julian day of the event.
     pub jd_ut: f64,

@@ -7,6 +7,7 @@ use crate::error::{Error, Result};
 // ─── Return types ─────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, PartialEq)]
+#[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct EclipseResult {
     pub ret_flags: i32,
     pub tret: [f64; 10],

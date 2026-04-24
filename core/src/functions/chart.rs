@@ -717,6 +717,24 @@ const ASPECT_BASE_ORBS: &[(i32, f64)] = &[
     (180, 10.0), // Opposition
 ];
 
+/// Default aspect orb for a pair of bodies and an aspect angle.
+///
+/// Returns the maximum angular separation from the exact aspect that should
+/// still count as "in aspect", based on classical tradition:
+///
+/// * Wider orbs for luminaries (Sun/Moon): weight 2.0
+/// * Standard for personal planets (Mercury/Venus/Mars): weight 1.5
+/// * Narrower for social planets (Jupiter/Saturn): weight 1.0
+/// * Tightest for outer planets, asteroids, nodes, Chiron: weight 0.75
+///
+/// The per-aspect base orb comes from [`ASPECT_BASE_ORBS`] — major aspects
+/// (conjunction, opposition) get 10°, sextile and square 6–8°, minor aspects
+/// 2–3°. The returned orb is `base * average_weight / 1.75` so a luminary
+/// pair gets the full base orb and other pairs scale proportionally.
+///
+/// Callers who need custom orb rules should use [`calc_chart_aspects_with_orb`]
+/// instead.
+#[must_use]
 pub fn default_orb(body1: Body, body2: Body, aspect: f64) -> f64 {
     let w = (body_orb_weight(body1) + body_orb_weight(body2)) / 2.0;
     let base = ASPECT_BASE_ORBS

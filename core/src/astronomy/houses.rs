@@ -29,6 +29,7 @@ use crate::astronomy::constants::{norm_deg, to_deg, to_rad};
 /// `ascmc[0..10]`  — Ascendant, MC, ARMC, Vertex, Equatorial Asc, Co-Asc (Koch),
 ///                   Co-Asc (Munkasey), Polar Asc, …
 #[derive(Debug, Clone, PartialEq)]
+#[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct HouseResult {
     /// House cusps. `cusps[1]` = 1st house, …, `cusps[12]` = 12th house.
     pub cusps: [f64; 13],

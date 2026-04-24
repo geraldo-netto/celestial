@@ -70,6 +70,7 @@ use crate::error::{Error, Result};
 
 /// Result of a rise/transit/set search.
 #[derive(Debug, Clone, Copy)]
+#[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct RiseTransResult {
     /// Return flags.
     pub ret_flags: i32,

@@ -300,6 +300,10 @@ impl HouseSystem {
         self.0
     }
 
+    /// Human-readable name of this house system (e.g. `"Placidus"`, `"Koch"`).
+    ///
+    /// Returns `"Unknown"` for non-standard bytes. For a complete listing
+    /// see [`crate::functions::geoformat::HOUSE_SYSTEMS`].
     pub fn name(self) -> &'static str {
         match self.0 {
             b'P' => "Placidus",
@@ -359,6 +363,9 @@ impl SiderealMode {
         self.0
     }
 
+    /// Human-readable name of this sidereal mode (e.g. `"Lahiri"`,
+    /// `"Fagan-Bradley"`). Delegates to [`crate::functions::config::ayanamsa_name`]
+    /// which also handles user-defined overrides.
     pub fn name(self) -> &'static str {
         crate::functions::config::ayanamsa_name(self.0)
     }

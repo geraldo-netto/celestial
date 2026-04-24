@@ -81,7 +81,8 @@ fn run_jewish(args: JewishArgs) -> Result<(), String> {
             d.year == greg_year
         })
         .collect();
-    holidays.sort_by(|a, b| a.jd.partial_cmp(&b.jd).unwrap());
+    // total_cmp is NaN-safe; avoids panic if a calendar calc yields a NaN JD.
+    holidays.sort_by(|a, b| a.jd.total_cmp(&b.jd));
 
     if args.json {
         let items: Vec<String> = holidays
@@ -166,7 +167,7 @@ fn run_easter(args: EasterArgs) -> Result<(), String> {
         .into_iter()
         .chain(christian_fixed_feasts(year))
         .collect();
-    feasts.sort_by(|a, b| a.jd.partial_cmp(&b.jd).unwrap());
+    feasts.sort_by(|a, b| a.jd.total_cmp(&b.jd));
 
     if args.json {
         let items: Vec<String> = feasts
@@ -262,7 +263,7 @@ fn run_islamic(args: IslamicArgs) -> Result<(), String> {
             d.year == greg_year
         })
         .collect();
-    obs.sort_by(|a, b| a.jd.partial_cmp(&b.jd).unwrap());
+    obs.sort_by(|a, b| a.jd.total_cmp(&b.jd));
     obs.dedup_by(|a, b| a.name == b.name);
 
     if args.json {

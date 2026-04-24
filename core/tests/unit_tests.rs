@@ -2651,4 +2651,83 @@ mod accuracy_references {
             );
         }
     }
+
+    // ── Edge cases: extreme years, calendar boundaries ───────────────────────
+
+    /// 1 BCE = astronomical year 0, 2 BCE = year -1 (ISO 8601 convention).
+    /// This caused off-by-one bugs in many historical codebases.
+    #[test]
+    fn year_minus_one_valid_jd() {
+        // Astronomical year 0 = 1 BCE. Year -1 = 2 BCE.
+        // JD at noon on 1 Jan, year -1 (Julian calendar) should be computable.
+        let jd = julday(-1, 1, 1, 12.0, Calendar::Julian);
+        // Must be a valid finite JD in the far past (≈ -720000 Julian days)
+        assert!(jd.is_finite(), "year -1 should yield a finite JD, got {}", jd);
+        assert!(jd < 1_721_058.0, "year -1 JD should be < year 1 CE JD, got {}", jd);
+
+        // Round-trip preserves the input year
+        let d = revjul(jd, Calendar::Julian);
+        assert_eq!(d.year, -1, "round-trip year: {} (want -1)", d.year);
+    }
+
+    /// Leap-year February 29 round-trip: a common source of off-by-one.
+    #[test]
+    fn leap_year_feb_29_round_trip() {
+        // Gregorian: 2020 is a leap year (divisible by 4, not 100).
+        for year in [2000i32, 2004, 2020, 2024, 2400] {
+            let jd = julday(year, 2, 29, 0.0, Calendar::Gregorian);
+            let d = revjul(jd, Calendar::Gregorian);
+            assert_eq!(d.year, year,  "leap {}-02-29 year round-trip",  year);
+            assert_eq!(d.month, 2,    "leap {}-02-29 month round-trip", year);
+            assert_eq!(d.day, 29,     "leap {}-02-29 day round-trip",   year);
+        }
+    }
+
+    /// Non-leap centurial years: 1700, 1800, 1900, 2100, 2200, 2300 are NOT leap
+    /// in Gregorian (divisible by 100 but not 400). Feb 29 doesn't exist for them.
+    #[test]
+    fn non_leap_centurial_consistency() {
+        // Feb 28 + 1 day = Mar 1 in non-leap years
+        for year in [1700, 1800, 1900, 2100] {
+            let feb28 = julday(year, 2, 28, 12.0, Calendar::Gregorian);
+            let next_day = revjul(feb28 + 1.0, Calendar::Gregorian);
+            assert_eq!(
+                (next_day.month, next_day.day), (3, 1),
+                "In non-leap year {}, Feb 28 + 1 day should be Mar 1, got {:?}",
+                year, (next_day.month, next_day.day)
+            );
+        }
+    }
+
+    /// Far-future year (year 9999) — date arithmetic must not overflow.
+    #[test]
+    fn far_future_year_9999() {
+        let jd = julday(9999, 12, 31, 23.5, Calendar::Gregorian);
+        assert!(jd.is_finite(), "year 9999 JD should be finite, got {}", jd);
+        let d = revjul(jd, Calendar::Gregorian);
+        assert_eq!(d.year, 9999);
+        assert_eq!(d.month, 12);
+        assert_eq!(d.day, 31);
+
+        // ΔT should still compute (uses long-term parabola past 2150)
+        let dt = deltat(jd);
+        assert!(dt.is_finite(), "ΔT at year 9999 should be finite, got {}", dt);
+    }
+
+    /// Gregorian-reform boundary: 1582-10-04 (Julian) is immediately followed
+    /// by 1582-10-15 (Gregorian). JDs around this date should be contiguous.
+    #[test]
+    fn gregorian_reform_boundary() {
+        // Last Julian date: Oct 4, 1582
+        let jd_julian_last = julday(1582, 10, 4, 12.0, Calendar::Julian);
+        // First Gregorian date: Oct 15, 1582
+        let jd_gregorian_first = julday(1582, 10, 15, 12.0, Calendar::Gregorian);
+        // These should be exactly 1 day apart (same moment in history)
+        let diff = (jd_gregorian_first - jd_julian_last).abs();
+        assert!(
+            (diff - 1.0).abs() < 1e-9,
+            "Julian 1582-10-04 and Gregorian 1582-10-15 should be 1 day apart, got {}",
+            diff
+        );
+    }
 }

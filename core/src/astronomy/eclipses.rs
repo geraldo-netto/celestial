@@ -33,6 +33,7 @@ pub enum EclipseKind {
 
 /// Result of an eclipse search.
 #[derive(Debug, Clone, PartialEq)]
+#[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct EclipseResult {
     pub kind: EclipseKind,
     /// Eclipse type flags.
@@ -461,6 +462,23 @@ pub fn solar_eclipse_geopos(jde: f64, _gamma: f64) -> (f64, f64) {
     (lon_deg, lat_deg)
 }
 
+/// Compute solar-eclipse attributes at a given observer location.
+///
+/// Returns a 20-element array matching the layout of Swiss Ephemeris'
+/// `swe_sol_eclipse_how`. Not every slot is populated by this implementation;
+/// values not computed are set to neutral defaults.
+///
+/// # Layout (subset)
+/// * `attr[0]` — eclipse magnitude (umbral if total, else penumbral)
+/// * `attr[1]` — Sun's angular diameter (degrees)
+/// * `attr[2]` — Moon's angular diameter
+/// * `attr[3]` — Sun distance (AU, mean)
+/// * `attr[4]` — Moon distance (relative, mean)
+/// * others reserved for future use
+///
+/// # Parameters
+/// * `jd_ut` — Julian day (UT) near the eclipse
+/// * `geopos` — `[longitude_deg, latitude_deg, altitude_m]`
 pub fn solar_eclipse_attr(jd_ut: f64, geopos: [f64; 3]) -> [f64; 20] {
     let mut attr = [0.0f64; 20];
     // Find nearest new Moon

@@ -148,6 +148,12 @@ pub enum HeliacalEvent {
 }
 
 impl HeliacalEvent {
+    /// Parse a raw i32 into a `HeliacalEvent`.
+    ///
+    /// Recognises codes 1–7 as the enumerated variants. Any other value
+    /// falls back to [`HeliacalEvent::HeliacalRising`] (the historically
+    /// most common case) rather than returning `None` — this matches Swiss
+    /// Ephemeris' tolerant behaviour for unknown event codes.
     pub fn from_i32(v: i32) -> Self {
         match v {
             1 => Self::HeliacalRising,
@@ -171,6 +177,7 @@ impl HeliacalEvent {
 
 /// Result of heliacal calculation.
 #[derive(Debug, Clone, PartialEq)]
+#[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct HeliacalResult {
     /// Julian day of the event.
     pub jd_event: f64,
