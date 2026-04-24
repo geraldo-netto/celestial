@@ -102,30 +102,36 @@ impl Body {
 
     /// Human-readable name for well-known bodies; `"Body(N)"` otherwise.
     pub fn name(self) -> &'static str {
-        match self.0 {
-            0 => "Sun",
-            1 => "Moon",
-            2 => "Mercury",
-            3 => "Venus",
-            4 => "Mars",
-            5 => "Jupiter",
-            6 => "Saturn",
-            7 => "Uranus",
-            8 => "Neptune",
-            9 => "Pluto",
-            10 => "Mean Node",
-            11 => "True Node",
-            12 => "Mean Apogee",
-            13 => "Osc. Apogee",
-            14 => "Earth",
-            15 => "Chiron",
-            16 => "Pholus",
-            17 => "Ceres",
-            18 => "Pallas",
-            19 => "Juno",
-            20 => "Vesta",
-            _ => "Unknown",
-        }
+        /// Display names for built-in body codes 0–20. Contiguous array so
+        /// `Body(n)` looks up in O(1) via indexing; unknown values fall back
+        /// to `"Unknown"` below.
+        const BODY_NAMES: [&str; 21] = [
+            "Sun",         // 0
+            "Moon",        // 1
+            "Mercury",     // 2
+            "Venus",       // 3
+            "Mars",        // 4
+            "Jupiter",     // 5
+            "Saturn",      // 6
+            "Uranus",      // 7
+            "Neptune",     // 8
+            "Pluto",       // 9
+            "Mean Node",   // 10
+            "True Node",   // 11
+            "Mean Apogee", // 12
+            "Osc. Apogee", // 13
+            "Earth",       // 14
+            "Chiron",      // 15
+            "Pholus",      // 16
+            "Ceres",       // 17
+            "Pallas",      // 18
+            "Juno",        // 19
+            "Vesta",       // 20
+        ];
+        BODY_NAMES
+            .get(self.0 as usize)
+            .copied()
+            .unwrap_or("Unknown")
     }
 }
 

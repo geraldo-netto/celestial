@@ -76,28 +76,29 @@ fn main() {
     }
 
     // Plugin dispatch: if first arg is not a known built-in, try PATH lookup.
+    // Update BUILTIN_COMMANDS below when adding a new subcommand.
+    const BUILTIN_COMMANDS: &[&str] = &[
+        "calc",
+        "houses",
+        "sabbats",
+        "esbats",
+        "jd",
+        "crossing",
+        "eclipse",
+        "chart",
+        "moon",
+        "omer",
+        "calendar",
+        "render",
+        "--help",
+        "-h",
+        "--version",
+        "-V",
+        "--list-plugins",
+        "",
+    ];
     let sub = raw.get(1).map(String::as_str).unwrap_or("");
-    let is_builtin = matches!(
-        sub,
-        "calc"
-            | "houses"
-            | "sabbats"
-            | "esbats"
-            | "jd"
-            | "crossing"
-            | "eclipse"
-            | "chart"
-            | "moon"
-            | "omer"
-            | "calendar"
-            | "render"
-            | "--help"
-            | "-h"
-            | "--version"
-            | "-V"
-            | "--list-plugins"
-            | ""
-    );
+    let is_builtin = BUILTIN_COMMANDS.contains(&sub);
     if !is_builtin && !sub.starts_with('-') {
         if let Err(msg) = plugin::try_exec(sub, &raw[2..]) {
             eprintln!("error: {msg}");

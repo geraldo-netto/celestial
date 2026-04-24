@@ -53,49 +53,44 @@ pub fn sign_name(sign: i32) -> Option<&'static str> {
 
 /// Integer id for a house-system char.
 /// Returns `None` for unknown characters.
+/// Lookup table for house-system codes ↔ numeric IDs.
+///
+/// Each row is `(canonical_char, id, alias_char)`. `alias_char` is `None`
+/// except where two letters map to the same ID (Equal 'A'/'E' both → 7).
+/// Single source of truth for [`house_system_id`] and [`house_system_char`].
+const HOUSE_SYSTEMS: &[(u8, i32, Option<u8>)] = &[
+    (b'P', 0, None),
+    (b'K', 1, None),
+    (b'R', 2, None),
+    (b'C', 3, None),
+    (b'B', 4, None),
+    (b'M', 5, None),
+    (b'O', 6, None),
+    (b'A', 7, Some(b'E')),
+    (b'H', 8, None),
+    (b'V', 9, None),
+    (b'X', 10, None),
+    (b'G', 11, None),
+    (b'T', 12, None),
+    (b'U', 13, None),
+    (b'W', 14, None),
+    (b'Y', 15, None),
+];
+
+/// House-system letter code → numeric ID.
 pub fn house_system_id(hsys: u8) -> Option<i32> {
-    match hsys {
-        b'P' => Some(0),
-        b'K' => Some(1),
-        b'R' => Some(2),
-        b'C' => Some(3),
-        b'B' => Some(4),
-        b'M' => Some(5),
-        b'O' => Some(6),
-        b'A' | b'E' => Some(7),
-        b'H' => Some(8),
-        b'V' => Some(9),
-        b'X' => Some(10),
-        b'G' => Some(11),
-        b'T' => Some(12),
-        b'U' => Some(13),
-        b'W' => Some(14),
-        b'Y' => Some(15),
-        _ => None,
-    }
+    HOUSE_SYSTEMS
+        .iter()
+        .find(|(c, _, alias)| *c == hsys || *alias == Some(hsys))
+        .map(|(_, id, _)| *id)
 }
 
-/// House-system char from integer id.
+/// Numeric house-system ID → canonical letter code.
 pub fn house_system_char(id: i32) -> Option<u8> {
-    match id {
-        0 => Some(b'P'),
-        1 => Some(b'K'),
-        2 => Some(b'R'),
-        3 => Some(b'C'),
-        4 => Some(b'B'),
-        5 => Some(b'M'),
-        6 => Some(b'O'),
-        7 => Some(b'A'),
-        8 => Some(b'H'),
-        9 => Some(b'V'),
-        10 => Some(b'X'),
-        11 => Some(b'G'),
-        12 => Some(b'T'),
-        13 => Some(b'U'),
-        14 => Some(b'W'),
-        15 => Some(b'Y'),
-        _ => None,
-    }
+    HOUSE_SYSTEMS
+        .iter()
+        .find(|(_, i, _)| *i == id)
+        .map(|(c, _, _)| *c)
 }
 
 /// Map sidereal-mode index (1–21 = SE modes) to celestial flag value.

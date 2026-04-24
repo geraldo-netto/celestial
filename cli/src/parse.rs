@@ -100,26 +100,12 @@ pub fn default_bodies() -> Vec<i32> {
 }
 
 /// Body number → display name.
+/// Human-readable body name.
+///
+/// Thin CLI wrapper around [`Body::name`] — kept for backwards-compatible
+/// import paths.
 pub fn body_name(body: Body) -> &'static str {
-    match body.as_raw() {
-        0 => "Sun",
-        1 => "Moon",
-        2 => "Mercury",
-        3 => "Venus",
-        4 => "Mars",
-        5 => "Jupiter",
-        6 => "Saturn",
-        7 => "Uranus",
-        8 => "Neptune",
-        9 => "Pluto",
-        10 => "Mean Node",
-        11 => "True Node",
-        15 => "Chiron",
-        n => {
-            let _ = n;
-            "Unknown"
-        }
-    }
+    body.name()
 }
 
 // ─── House systems ────────────────────────────────────────────────────────────

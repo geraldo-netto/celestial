@@ -689,41 +689,42 @@ pub fn monthly_profection(cusps: &[f64; 13], age_years: u32, age_months: u32) ->
 /// Ptolemaic orbs, reduced for minor bodies.
 ///
 /// `orb_for(body1, body2, aspect)` returns the appropriate orb.
+/// Body-weight tiers for orb calculation: luminaries widest, outer planets
+/// tightest. Keyed by `Body::as_raw()` value.
+fn body_orb_weight(body: Body) -> f64 {
+    match body.as_raw() {
+        0 | 1 => 2.0,     // Sun, Moon (luminaries)
+        2 | 3 | 4 => 1.5, // Mercury, Venus, Mars (personal)
+        5 | 6 => 1.0,     // Jupiter, Saturn (social)
+        _ => 0.75,        // outer planets, nodes, Chiron, asteroids
+    }
+}
+
+/// Base orb (in degrees) for each canonical aspect angle.
+/// Rows are `(angle_in_degrees, base_orb)`. Falls back to 2° for minor aspects
+/// not in this table.
+const ASPECT_BASE_ORBS: &[(i32, f64)] = &[
+    (0, 10.0),   // Conjunction
+    (30, 2.0),   // Semi-sextile
+    (45, 3.0),   // Semi-square
+    (60, 6.0),   // Sextile
+    (72, 2.0),   // Quintile
+    (90, 8.0),   // Square
+    (120, 8.0),  // Trine
+    (135, 3.0),  // Sesquiquadrate
+    (144, 2.0),  // Bi-quintile
+    (150, 3.0),  // Quincunx
+    (180, 10.0), // Opposition
+];
+
 pub fn default_orb(body1: Body, body2: Body, aspect: f64) -> f64 {
-    // Larger orbs for luminaries (Sun=0, Moon=1), smaller for outer planets
-    let luminaries = [0_i32, 1];
-    let personal = [2_i32, 3, 4]; // Mercury, Venus, Mars
-    let social = [5_i32, 6]; // Jupiter, Saturn
-
-    let weight = |b: Body| -> f64 {
-        if luminaries.contains(&b.as_raw()) {
-            2.0
-        } else if personal.contains(&b.as_raw()) {
-            1.5
-        } else if social.contains(&b.as_raw()) {
-            1.0
-        } else {
-            0.75
-        } // outer planets, nodes, Chiron
-    };
-    let w = (weight(body1) + weight(body2)) / 2.0;
-
-    // Base orbs for a "standard" body pair
-    let base = match aspect as i32 {
-        0 => 10.0,   // Conjunction
-        60 => 6.0,   // Sextile
-        90 => 8.0,   // Square
-        120 => 8.0,  // Trine
-        180 => 10.0, // Opposition
-        30 => 2.0,   // Semi-sextile
-        45 => 3.0,   // Semi-square
-        72 => 2.0,   // Quintile
-        135 => 3.0,  // Sesquiquadrate
-        144 => 2.0,  // Bi-quintile
-        150 => 3.0,  // Quincunx
-        _ => 2.0,
-    };
-    base * w / 1.75 // normalise to luminaries = base, others scale down
+    let w = (body_orb_weight(body1) + body_orb_weight(body2)) / 2.0;
+    let base = ASPECT_BASE_ORBS
+        .iter()
+        .find(|(a, _)| *a == aspect as i32)
+        .map(|(_, orb)| *orb)
+        .unwrap_or(2.0);
+    base * w / 1.75 // normalise: luminaries w=2.0 → factor 1.0; others scale down
 }
 
 /// Like [`calc_chart_aspects`] but uses the built-in orb table.

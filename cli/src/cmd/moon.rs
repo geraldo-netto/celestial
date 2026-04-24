@@ -38,91 +38,103 @@ pub struct MoonArgs {
     pub json: bool,
 }
 
+/// Dispatch `moon` to the right mode based on CLI flags.
 pub fn run(args: MoonArgs) -> Result<(), String> {
     let jd = parse::parse_date(&args.date)?;
 
-    // ── --month: all phases in a calendar month ───────────────────────────────
     if let Some(ref ym) = args.month {
-        let (year, month) = parse_year_month(ym)?;
-        let events = moon_phases_for_month(year, month).map_err(|e| e.to_string())?;
-
-        if args.json {
-            let items: Vec<String> = events
-                .iter()
-                .map(|e| {
-                    fmt::json_obj(&[
-                        ("phase", e.phase.name().to_string()),
-                        ("jd", format!("{:.4}", e.jd)),
-                        ("date", parse::jd_to_str(e.jd)),
-                        ("elongation", format!("{:.2}", e.elongation)),
-                    ])
-                })
-                .collect();
-            println!("{}", fmt::json_array(items));
-        } else {
-            println!();
-            println!("  Moon phases — {year}-{month:02}");
-            println!("  {}", fmt::rule(46));
-            for e in &events {
-                println!("  {:<16}  {}", e.phase.name(), parse::jd_to_str(e.jd));
-            }
-            println!();
-        }
-        return Ok(());
+        return run_month_mode(ym, args.json);
     }
-
-    // ── Single next-phase queries ─────────────────────────────────────────────
     if args.new || args.first_quarter || args.full || args.last_quarter {
-        let mut results: Vec<(&str, f64)> = Vec::new();
-        if args.new {
-            results.push(("New Moon", next_new_moon(jd).map_err(|e| e.to_string())?));
-        }
-        if args.first_quarter {
-            results.push((
-                "First Quarter",
-                next_first_quarter(jd).map_err(|e| e.to_string())?,
-            ));
-        }
-        if args.full {
-            results.push((
-                "Full Moon",
-                next_full_moon_phase(jd).map_err(|e| e.to_string())?,
-            ));
-        }
-        if args.last_quarter {
-            results.push((
-                "Last Quarter",
-                next_last_quarter(jd).map_err(|e| e.to_string())?,
-            ));
-        }
+        return run_phase_mode(&args, jd);
+    }
+    run_info_mode(&args, jd)
+}
 
-        if args.json {
-            let items: Vec<String> = results
-                .iter()
-                .map(|(name, jd_e)| {
-                    fmt::json_obj(&[
-                        ("phase", name.to_string()),
-                        ("jd", format!("{:.4}", jd_e)),
-                        ("date", parse::jd_to_str(*jd_e)),
-                    ])
-                })
-                .collect();
-            if items.len() == 1 {
-                println!("{}", items[0]);
-            } else {
-                println!("{}", fmt::json_array(items));
-            }
-        } else {
-            println!();
-            for (name, jd_e) in &results {
-                println!("  {:<16}  {}", name, parse::jd_to_str(*jd_e));
-            }
-            println!();
+/// Print all Moon phases for a calendar month (`--month YYYY-MM`).
+fn run_month_mode(ym: &str, json: bool) -> Result<(), String> {
+    let (year, month) = parse_year_month(ym)?;
+    let events = moon_phases_for_month(year, month).map_err(|e| e.to_string())?;
+
+    if json {
+        let items: Vec<String> = events
+            .iter()
+            .map(|e| {
+                fmt::json_obj(&[
+                    ("phase", e.phase.name().to_string()),
+                    ("jd", format!("{:.4}", e.jd)),
+                    ("date", parse::jd_to_str(e.jd)),
+                    ("elongation", format!("{:.2}", e.elongation)),
+                ])
+            })
+            .collect();
+        println!("{}", fmt::json_array(items));
+    } else {
+        println!();
+        println!("  Moon phases — {year}-{month:02}");
+        println!("  {}", fmt::rule(46));
+        for e in &events {
+            println!("  {:<16}  {}", e.phase.name(), parse::jd_to_str(e.jd));
         }
-        return Ok(());
+        println!();
+    }
+    Ok(())
+}
+
+/// Print the next occurrence of each phase the user asked for.
+/// Any combination of `--new`, `--first-quarter`, `--full`, `--last-quarter`.
+fn run_phase_mode(args: &MoonArgs, jd: f64) -> Result<(), String> {
+    let mut results: Vec<(&str, f64)> = Vec::new();
+    if args.new {
+        results.push(("New Moon", next_new_moon(jd).map_err(|e| e.to_string())?));
+    }
+    if args.first_quarter {
+        results.push((
+            "First Quarter",
+            next_first_quarter(jd).map_err(|e| e.to_string())?,
+        ));
+    }
+    if args.full {
+        results.push((
+            "Full Moon",
+            next_full_moon_phase(jd).map_err(|e| e.to_string())?,
+        ));
+    }
+    if args.last_quarter {
+        results.push((
+            "Last Quarter",
+            next_last_quarter(jd).map_err(|e| e.to_string())?,
+        ));
     }
 
-    // ── Default: current phase info ───────────────────────────────────────────
+    if args.json {
+        let items: Vec<String> = results
+            .iter()
+            .map(|(name, jd_e)| {
+                fmt::json_obj(&[
+                    ("phase", name.to_string()),
+                    ("jd", format!("{:.4}", jd_e)),
+                    ("date", parse::jd_to_str(*jd_e)),
+                ])
+            })
+            .collect();
+        if items.len() == 1 {
+            println!("{}", items[0]);
+        } else {
+            println!("{}", fmt::json_array(items));
+        }
+    } else {
+        println!();
+        for (name, jd_e) in &results {
+            println!("  {:<16}  {}", name, parse::jd_to_str(*jd_e));
+        }
+        println!();
+    }
+    Ok(())
+}
+
+/// Print the current Moon phase + surrounding context (default mode).
+fn run_info_mode(args: &MoonArgs, jd: f64) -> Result<(), String> {
     let info = moon_phase_info(jd).map_err(|e| e.to_string())?;
 
     if args.json {
@@ -149,7 +161,6 @@ pub fn run(args: MoonArgs) -> Result<(), String> {
     }
 
     let date_str = parse::jd_to_str(jd);
-
     println!();
     println!("  Moon phase — {date_str}");
     println!("  {}", fmt::rule(46));
