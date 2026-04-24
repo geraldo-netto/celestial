@@ -228,3 +228,75 @@ pub fn sexagenary_name(cycle_index: u8) -> (&'static str, &'static str) {
     let b = cycle_index as usize % 12;
     (HEAVENLY_STEMS[s].0, EARTHLY_BRANCHES[b].1)
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Vietnamese Âm Lịch (lunar calendar)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Structurally similar to the Chinese calendar, but uses Indochina Time
+// (UTC+7) for lunar-month boundary determination. This causes roughly 20%
+// of months to begin one civil day before or after their Chinese
+// equivalent. Vietnam has used UTC+7 officially since 1967.
+
+/// Vietnam / Indochina Time offset from UTC (hours).
+pub const VIETNAM_TZ_OFFSET_HOURS: f64 = 7.0;
+
+/// China Standard Time offset from UTC, for comparison (hours).
+pub const CHINA_TZ_OFFSET_HOURS: f64 = 8.0;
+
+/// Civil day (Vietnam UTC+7) containing the new moon that starts the
+/// Vietnamese lunar month containing `jd_ut`.
+///
+/// Returns the JD at midnight UT of the Hanoi civil day containing the
+/// starting new moon. Returns `None` if no new moon is found within the
+/// last 30 days (should not happen for any valid input).
+pub fn vietnamese_month_start_jd(jd_ut: f64) -> Option<f64> {
+    // Search backwards: find the new moon preceding jd_ut.
+    let mut search = jd_ut - 30.0;
+    let mut last_nm: Option<f64> = None;
+    while search < jd_ut {
+        match crate::functions::moon_phases::next_new_moon(search) {
+            Ok(nm) if nm <= jd_ut => {
+                last_nm = Some(nm);
+                search = nm + 2.0;
+            }
+            _ => break,
+        }
+    }
+    let nm = last_nm?;
+    // Civil day in UTC+7 is floor((nm + 7h) to integer day), then shift back
+    let local = nm + VIETNAM_TZ_OFFSET_HOURS / 24.0;
+    Some(local.floor() + 0.5 - VIETNAM_TZ_OFFSET_HOURS / 24.0)
+}
+
+/// Returns `true` if the given JD falls on a different civil day in
+/// Vietnam (UTC+7) vs. China (UTC+8).
+///
+/// Useful for detecting the ~20% of new moons where the lunar month
+/// starts a different civil day in the two calendars.
+pub fn vietnamese_chinese_boundary_differs(jd_ut: f64) -> bool {
+    let vn = (jd_ut + VIETNAM_TZ_OFFSET_HOURS / 24.0).floor();
+    let cn = (jd_ut + CHINA_TZ_OFFSET_HOURS / 24.0).floor();
+    vn != cn
+}
+
+#[cfg(test)]
+mod viet_tests {
+    use super::*;
+
+    #[test]
+    fn tz_offsets_differ_by_1h() {
+        assert!((CHINA_TZ_OFFSET_HOURS - VIETNAM_TZ_OFFSET_HOURS - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn boundary_differs_detection() {
+        // JD at 23:30 UTC → 06:30 Vietnam, 07:30 China → same civil day
+        let jd_same = 2_451_545.0 + 23.5 / 24.0;
+        assert!(!vietnamese_chinese_boundary_differs(jd_same));
+
+        // JD at 16:30 UTC → 23:30 Vietnam (same day), 00:30 China (next day)
+        let jd_diff = 2_451_545.0 + 16.5 / 24.0;
+        assert!(vietnamese_chinese_boundary_differs(jd_diff));
+    }
+}

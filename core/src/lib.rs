@@ -45,6 +45,7 @@ pub(crate) mod types;
 
 // ── New domain modules ─────────────────────────────────────────────────────────
 pub mod body;
+#[cfg(feature = "calendar-traditions")]
 pub mod calendar;
 pub mod chart;
 pub mod geo;
@@ -61,6 +62,7 @@ pub mod vedic;
 //   use celestial_core::position::calc_ut;
 //   use celestial_core::moon::moon_phase;
 pub use body::*;
+#[cfg(feature = "calendar-traditions")]
 pub use calendar::*;
 pub use chart::*;
 pub use constants::*;

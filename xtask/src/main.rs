@@ -8,6 +8,10 @@
 //!                                 Exits 1 when gaps exist (useful as a CI gate).
 //!   cargo xtask codegen --apply  Write generated stubs into the binding files.
 //!                                 Review the diff before committing.
+//!   cargo xtask stubs            Regenerate bindings/php/phpstan-stubs.php.
+//!   cargo xtask test-stubs       Validate phpstan-stubs.php for PHP 8.0 syntax.
+//!   cargo xtask pyi              Regenerate bindings/python/python/celestial_py/celestial_py.pyi.
+//!   cargo xtask dts              Regenerate bindings/js/index.d.ts.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -24,9 +28,11 @@ fn main() {
         Some("codegen") => cmd_codegen(args.any(|a| a == "--apply")),
         Some("stubs") => cmd_stubs(),
         Some("test-stubs") => cmd_test_stubs(),
+        Some("pyi") => cmd_pyi(args.any(|a| a == "--check")),
+        Some("dts") => cmd_dts(args.any(|a| a == "--check")),
         _ => {
             eprintln!(
-                "USAGE\n  cargo xtask parity\n  cargo xtask codegen [--apply]\n  cargo xtask stubs\n  cargo xtask test-stubs"
+                "USAGE\n  cargo xtask parity\n  cargo xtask codegen [--apply]\n  cargo xtask stubs\n  cargo xtask test-stubs\n  cargo xtask pyi        Regenerate bindings/python/python/celestial_py/celestial_py.pyi\n  cargo xtask dts        Regenerate bindings/js/index.d.ts"
             );
             std::process::exit(1);
         }
@@ -956,21 +962,20 @@ fn php_array_doctype(rust: &str) -> &'static str {
 }
 
 /// Sanitise a Rust parameter name to a valid PHP variable name.
-fn sanitise_var(name: &str) -> String {
-    // Leak is fine for a short-lived CLI tool.
+fn sanitise_var(name: &str) -> std::borrow::Cow<'_, str> {
     let s = name.trim().trim_start_matches('_');
-    // If it starts with a digit or is empty, prefix with 'p'
-    let fixed = if s.is_empty()
+    if s.is_empty()
         || s.chars()
             .next()
             .map(|c| c.is_ascii_digit())
             .unwrap_or(false)
     {
-        format!("p{s}")
+        // Rare: needs a "p" prefix — allocate only then
+        std::borrow::Cow::Owned(format!("p{s}"))
     } else {
-        s.to_string()
-    };
-    fixed
+        // Common: valid identifier — borrow directly, no allocation
+        std::borrow::Cow::Borrowed(s)
+    }
 }
 
 // ─── test-stubs command ───────────────────────────────────────────────────────
@@ -1148,4 +1153,492 @@ fn regex_lite_find_dollar_digit(src: &str) -> Vec<(usize, String)> {
         }
     }
     out
+}
+
+// ─── pyi / dts generators ────────────────────────────────────────────────────
+
+/// Decorated function metadata returned by [`scan_decorated_fns_full`].
+struct DecoratedFn {
+    /// The attribute line as it appears in source (e.g. `#[napi(js_name = "X")]`).
+    attr_line: String,
+    /// Parsed signature (name + params + return type).
+    entry: PhpFnEntry,
+}
+
+/// Scan a Rust source file for every function decorated with a given attribute.
+///
+/// The attribute tag is matched flexibly: `#[attr]`, `#[attr(...)]`, `#[attr ...]`.
+/// Returns the attribute line (trimmed) alongside the parsed signature so callers
+/// can extract attribute options like `js_name = "X"`.
+fn scan_decorated_fns_full(src: &str, attr_prefix: &str) -> Vec<DecoratedFn> {
+    let mut out = Vec::new();
+    let lines: Vec<&str> = src.lines().collect();
+    let n = lines.len();
+    let mut i = 0;
+    while i < n {
+        let line = lines[i].trim_start();
+        let starts_attr = line.starts_with(&format!("#[{attr_prefix}]"))
+            || line.starts_with(&format!("#[{attr_prefix}("))
+            || line.starts_with(&format!("#[{attr_prefix} "));
+        if !starts_attr {
+            i += 1;
+            continue;
+        }
+        let attr_line = line.to_string();
+
+        // Skip further attributes (cfg, allow, other decorators) until a fn line
+        let mut j = i + 1;
+        while j < n {
+            let l = lines[j].trim_start();
+            if l.starts_with("#[") {
+                j += 1;
+                continue;
+            }
+            if l.contains("fn ") {
+                break;
+            }
+            j += 1;
+        }
+        if j >= n {
+            i += 1;
+            continue;
+        }
+
+        // Collect signature up to the opening brace
+        let mut sig = String::new();
+        let mut k = j;
+        while k < n {
+            sig.push_str(lines[k]);
+            sig.push('\n');
+            if lines[k].contains('{') {
+                break;
+            }
+            k += 1;
+        }
+        if let Some(entry) = parse_fn_sig(&sig) {
+            out.push(DecoratedFn { attr_line, entry });
+        }
+        i = k + 1;
+    }
+    out
+}
+
+/// Thin wrapper for callers that only need the parsed signatures.
+fn scan_decorated_fns(src: &str, attr_prefix: &str) -> Vec<PhpFnEntry> {
+    scan_decorated_fns_full(src, attr_prefix)
+        .into_iter()
+        .map(|d| d.entry)
+        .collect()
+}
+
+/// Extract `js_name = "value"` from an attribute line, if present.
+fn extract_js_name(attr_line: &str) -> Option<String> {
+    let after = attr_line.split_once("js_name")?.1;
+    let first_quote = after.find('"')?;
+    let rest = &after[first_quote + 1..];
+    let end_quote = rest.find('"')?;
+    Some(rest[..end_quote].to_string())
+}
+
+/// Write `contents` to `path`, or verify it matches an existing file in `--check` mode.
+///
+/// In check mode, exits with code 1 and prints a message if the file is stale.
+fn write_or_check(path: &Path, contents: &str, check: bool, kind: &str, cmd: &str, count: usize) {
+    if check {
+        let existing = fs::read_to_string(path).unwrap_or_default();
+        if existing.trim() == contents.trim() {
+            println!("✓ {count} {kind} in sync ({})", path.display());
+        } else {
+            eprintln!(
+                "✗ {} is out of sync — run `cargo xtask {cmd}` to regenerate",
+                path.display()
+            );
+            std::process::exit(1);
+        }
+    } else {
+        fs::write(path, contents).expect("cannot write generated file");
+        println!("✓ {count} {kind} written to {}", path.display());
+    }
+}
+
+/// Language-specific type names & constructors for [`rust_type_to_lang`].
+struct LangMap {
+    /// `Result<T>` wrapper prefixes to unwrap (e.g. `"PyResult<"`, `"napi::Result<"`).
+    result_prefixes: &'static [&'static str],
+    float: &'static str,
+    int: &'static str,
+    bool: &'static str,
+    string: &'static str,
+    unit: &'static str, // `()` return
+    fallback: &'static str,
+    map: &'static str,
+    /// `fn(inner_py) -> "list[{inner_py}]"` etc.
+    vec_fmt: fn(&str) -> String,
+    /// `fn(parts) -> "tuple[A, B, C]"` etc.
+    tuple_fmt: fn(&[String]) -> String,
+    /// `fn(inner) -> "{inner} | None"` etc.
+    optional_fmt: fn(&str) -> String,
+}
+
+const PYI_LANG: LangMap = LangMap {
+    result_prefixes: &["PyResult<", "Result<"],
+    float: "float",
+    int: "int",
+    bool: "bool",
+    string: "str",
+    unit: "None",
+    fallback: "object",
+    map: "dict[str, object]",
+    vec_fmt: |inner| format!("list[{inner}]"),
+    tuple_fmt: |parts| format!("tuple[{}]", parts.join(", ")),
+    optional_fmt: |inner| format!("{inner} | None"),
+};
+
+const DTS_LANG: LangMap = LangMap {
+    result_prefixes: &["napi::Result<", "Result<"],
+    float: "number",
+    int: "number",
+    bool: "boolean",
+    string: "string",
+    unit: "void",
+    fallback: "unknown",
+    map: "Record<string, number>",
+    vec_fmt: |inner| format!("Array<{inner}>"),
+    tuple_fmt: |parts| format!("[{}]", parts.join(", ")),
+    optional_fmt: |inner| format!("{inner} | null"),
+};
+
+/// Convert a Rust type string to a target-language type according to [`LangMap`].
+///
+/// Handles `Result<T>`/`PyResult<T>`/`napi::Result<T>` unwrapping, `Option<T>`
+/// nullability, `Vec<T>`, `HashMap`/`BTreeMap`, tuples `(A, B, ...)`, and
+/// primitives. Falls back to [`LangMap::fallback`] for unknown types.
+fn rust_type_to_lang(rust: &str, lang: &LangMap) -> String {
+    let t = rust
+        .trim()
+        .trim_start_matches("crate::")
+        .trim_start_matches("celestial_core::");
+
+    // Unwrap Result<T> / PyResult<T> / napi::Result<T>
+    let inner = lang
+        .result_prefixes
+        .iter()
+        .find_map(|p| t.strip_prefix(p).and_then(|s| s.strip_suffix('>')))
+        .map(str::trim)
+        .unwrap_or(t);
+
+    // Option<T> → nullable
+    if let Some(inner_opt) = inner
+        .strip_prefix("Option<")
+        .and_then(|s| s.strip_suffix('>'))
+    {
+        return (lang.optional_fmt)(&rust_type_to_lang(inner_opt, lang));
+    }
+
+    match inner {
+        "f64" | "f32" => lang.float.to_string(),
+        "i8" | "i16" | "i32" | "i64" | "isize" | "u8" | "u16" | "u32" | "u64" | "usize" => {
+            lang.int.to_string()
+        }
+        "bool" => lang.bool.to_string(),
+        "String" | "&str" | "&'static str" | "str" => lang.string.to_string(),
+        "()" | "void" => lang.unit.to_string(),
+        t if t.starts_with("Vec<") => (lang.vec_fmt)(&rust_type_to_lang(&t[4..t.len() - 1], lang)),
+        t if t.starts_with("HashMap<") || t.starts_with("BTreeMap<") => lang.map.to_string(),
+        t if t.starts_with('(') && t.ends_with(')') => {
+            let parts: Vec<String> = split_params(&t[1..t.len() - 1])
+                .iter()
+                .map(|p| rust_type_to_lang(p, lang))
+                .collect();
+            (lang.tuple_fmt)(&parts)
+        }
+        _ => lang.fallback.to_string(),
+    }
+}
+
+#[inline]
+fn rust_type_to_pyi(rust: &str) -> String {
+    rust_type_to_lang(rust, &PYI_LANG)
+}
+
+#[inline]
+fn rust_type_to_ts(rust: &str) -> String {
+    rust_type_to_lang(rust, &DTS_LANG)
+}
+
+/// Convert snake_case to camelCase (for napi js_name default).
+fn to_camel(s: &str) -> String {
+    let mut out = String::new();
+    let mut upper = false;
+    for c in s.chars() {
+        if c == '_' {
+            upper = true;
+        } else if upper {
+            out.push(c.to_ascii_uppercase());
+            upper = false;
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// Sanitise a Python parameter name (keyword collisions, digit prefixes).
+fn sanitise_pyi_var(name: &str) -> String {
+    // Python keywords that would collide
+    const KW: &[&str] = &[
+        "from", "import", "class", "def", "return", "pass", "lambda", "global", "nonlocal", "None",
+        "True", "False", "and", "or", "not", "if", "else", "elif", "while", "for", "in", "is",
+        "as", "try", "except", "finally", "with", "yield", "async", "await",
+    ];
+    let s = name.trim().trim_start_matches('_');
+    if KW.contains(&s) {
+        format!("{s}_")
+    } else if s.is_empty()
+        || s.chars()
+            .next()
+            .map(|c| c.is_ascii_digit())
+            .unwrap_or(false)
+    {
+        format!("p{s}")
+    } else {
+        s.to_string()
+    }
+}
+
+fn cmd_pyi(check: bool) {
+    let root = workspace_root();
+    let py_src = fs::read_to_string(root.join("bindings/python/src/lib.rs"))
+        .expect("cannot read bindings/python/src/lib.rs");
+    let out_path = root.join("bindings/python/python/celestial_py/celestial_py.pyi");
+
+    let mut out = String::from(
+        "# Auto-generated by `cargo xtask pyi` — do not edit.\n\
+         # Regenerate: cargo xtask pyi\n\n",
+    );
+
+    let mut seen: BTreeSet<String> = BTreeSet::new();
+    for entry in scan_decorated_fns(&py_src, "pyfunction") {
+        if !seen.insert(entry.name.clone()) {
+            continue;
+        }
+        let params: Vec<String> = entry
+            .params
+            .iter()
+            .map(|(typ, nam)| format!("{}: {}", sanitise_pyi_var(nam), rust_type_to_pyi(typ)))
+            .collect();
+        let ret = rust_type_to_pyi(&entry.ret);
+        out.push_str(&format!(
+            "def {}({}) -> {}: ...\n",
+            entry.name,
+            params.join(", "),
+            ret
+        ));
+    }
+
+    write_or_check(&out_path, &out, check, "stubs", "pyi", seen.len());
+}
+
+fn cmd_dts(check: bool) {
+    let root = workspace_root();
+    let js_src = fs::read_to_string(root.join("bindings/js/src/lib.rs"))
+        .expect("cannot read bindings/js/src/lib.rs");
+    let out_path = root.join("bindings/js/index.d.ts");
+
+    let mut out = String::from(
+        "// Auto-generated by `cargo xtask dts` — do not edit.\n\
+         // Regenerate: cargo xtask dts\n\n",
+    );
+
+    let mut seen: BTreeSet<String> = BTreeSet::new();
+    for d in scan_decorated_fns_full(&js_src, "napi") {
+        let js_name = extract_js_name(&d.attr_line).unwrap_or_else(|| to_camel(&d.entry.name));
+        if !seen.insert(js_name.clone()) {
+            continue;
+        }
+        let params: Vec<String> = d
+            .entry
+            .params
+            .iter()
+            .map(|(typ, nam)| format!("{}: {}", to_camel(nam), rust_type_to_ts(typ)))
+            .collect();
+        let ret = rust_type_to_ts(&d.entry.ret);
+        out.push_str(&format!(
+            "export declare function {}({}): {};\n",
+            js_name,
+            params.join(", "),
+            ret
+        ));
+    }
+
+    write_or_check(&out_path, &out, check, "declarations", "dts", seen.len());
+}
+
+// ─── unit tests ──────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── rust_type_to_pyi ──────────────────────────────────────────────────────
+
+    #[test]
+    fn pyi_primitives() {
+        assert_eq!(rust_type_to_pyi("f64"), "float");
+        assert_eq!(rust_type_to_pyi("i32"), "int");
+        assert_eq!(rust_type_to_pyi("u64"), "int");
+        assert_eq!(rust_type_to_pyi("bool"), "bool");
+        assert_eq!(rust_type_to_pyi("String"), "str");
+        assert_eq!(rust_type_to_pyi("&str"), "str");
+        assert_eq!(rust_type_to_pyi("&'static str"), "str");
+        assert_eq!(rust_type_to_pyi("()"), "None");
+    }
+
+    #[test]
+    fn pyi_option() {
+        assert_eq!(rust_type_to_pyi("Option<f64>"), "float | None");
+        assert_eq!(rust_type_to_pyi("Option<String>"), "str | None");
+    }
+
+    #[test]
+    fn pyi_vec() {
+        assert_eq!(rust_type_to_pyi("Vec<f64>"), "list[float]");
+        assert_eq!(rust_type_to_pyi("Vec<String>"), "list[str]");
+        assert_eq!(rust_type_to_pyi("Vec<Vec<i32>>"), "list[list[int]]");
+    }
+
+    #[test]
+    fn pyi_tuple() {
+        assert_eq!(rust_type_to_pyi("(i32, String)"), "tuple[int, str]");
+        assert_eq!(
+            rust_type_to_pyi("(u32, u32, u32, u32, u32)"),
+            "tuple[int, int, int, int, int]"
+        );
+    }
+
+    #[test]
+    fn pyi_pyresult() {
+        assert_eq!(rust_type_to_pyi("PyResult<f64>"), "float");
+        assert_eq!(rust_type_to_pyi("Result<String>"), "str");
+    }
+
+    #[test]
+    fn pyi_map() {
+        assert_eq!(
+            rust_type_to_pyi("HashMap<String, f64>"),
+            "dict[str, object]"
+        );
+    }
+
+    #[test]
+    fn pyi_unknown_falls_back() {
+        assert_eq!(rust_type_to_pyi("PlanetPos"), "object");
+    }
+
+    // ── rust_type_to_ts ───────────────────────────────────────────────────────
+
+    #[test]
+    fn ts_primitives() {
+        assert_eq!(rust_type_to_ts("f64"), "number");
+        assert_eq!(rust_type_to_ts("i32"), "number");
+        assert_eq!(rust_type_to_ts("bool"), "boolean");
+        assert_eq!(rust_type_to_ts("String"), "string");
+        assert_eq!(rust_type_to_ts("()"), "void");
+    }
+
+    #[test]
+    fn ts_option_is_null() {
+        assert_eq!(rust_type_to_ts("Option<f64>"), "number | null");
+        assert_eq!(rust_type_to_ts("Option<Vec<i32>>"), "Array<number> | null");
+    }
+
+    #[test]
+    fn ts_vec() {
+        assert_eq!(rust_type_to_ts("Vec<f64>"), "Array<number>");
+    }
+
+    #[test]
+    fn ts_tuple() {
+        assert_eq!(
+            rust_type_to_ts("(i32, String, bool)"),
+            "[number, string, boolean]"
+        );
+    }
+
+    #[test]
+    fn ts_napi_result() {
+        assert_eq!(rust_type_to_ts("napi::Result<f64>"), "number");
+    }
+
+    #[test]
+    fn ts_unknown_falls_back() {
+        assert_eq!(rust_type_to_ts("SomeUnknownStruct"), "unknown");
+    }
+
+    // ── to_camel ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn camel_case_conversion() {
+        assert_eq!(to_camel("house_name"), "houseName");
+        assert_eq!(to_camel("jd_to_coptic"), "jdToCoptic");
+        assert_eq!(to_camel("x"), "x");
+        assert_eq!(to_camel(""), "");
+    }
+
+    // ── extract_js_name ───────────────────────────────────────────────────────
+
+    #[test]
+    fn js_name_override_parsed() {
+        assert_eq!(
+            extract_js_name(r#"#[napi(js_name = "houseName")]"#),
+            Some("houseName".to_string())
+        );
+        assert_eq!(extract_js_name("#[napi]"), None);
+        assert_eq!(extract_js_name("#[napi(other = \"x\")]"), None);
+    }
+
+    // ── sanitise_pyi_var ──────────────────────────────────────────────────────
+
+    #[test]
+    fn pyi_var_keyword_collision() {
+        assert_eq!(sanitise_pyi_var("from"), "from_");
+        assert_eq!(sanitise_pyi_var("class"), "class_");
+        assert_eq!(sanitise_pyi_var("year"), "year");
+    }
+
+    #[test]
+    fn pyi_var_digit_prefix() {
+        assert_eq!(sanitise_pyi_var("2nd"), "p2nd");
+    }
+
+    // ── parse_fn_sig smoke test ───────────────────────────────────────────────
+
+    #[test]
+    fn parse_simple_fn_sig() {
+        let sig = "fn example(x: f64, y: i32) -> bool {";
+        let entry = parse_fn_sig(sig).expect("should parse");
+        assert_eq!(entry.name, "example");
+        assert_eq!(entry.params.len(), 2);
+        assert_eq!(entry.params[0].0, "f64");
+        assert_eq!(entry.params[0].1, "x");
+        assert_eq!(entry.ret, "bool");
+    }
+
+    #[test]
+    fn parse_fn_with_py_context_skipped() {
+        let sig = "fn example(py: Python<'_>, x: f64) -> PyObject {";
+        let entry = parse_fn_sig(sig).expect("should parse");
+        assert_eq!(entry.params.len(), 1, "py param should be skipped");
+        assert_eq!(entry.params[0].1, "x");
+    }
+
+    // ── split_params ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn split_params_respects_nesting() {
+        let parts = split_params("a: i32, b: Vec<(f64, i32)>, c: HashMap<String, Vec<i32>>");
+        assert_eq!(parts.len(), 3);
+        assert_eq!(parts[1], "b: Vec<(f64, i32)>");
+        assert_eq!(parts[2], "c: HashMap<String, Vec<i32>>");
+    }
 }

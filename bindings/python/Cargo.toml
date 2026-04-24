@@ -10,5 +10,5 @@ name      = "_celestial_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-celestial-core = { path = "../../core" }
+celestial-core = { path = "../../core", features = ["default"] }
 pyo3          = { workspace = true }

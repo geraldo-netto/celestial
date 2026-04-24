@@ -444,6 +444,7 @@ fn test_next_aspect_cusp() {
 
 // ─── Timezone ────────────────────────────────────────────────────────────────
 
+#[cfg(feature = "timezone")]
 #[test]
 fn test_tz_find_utc() {
     let tz = tz_abbr_find("UTC");
@@ -452,6 +453,7 @@ fn test_tz_find_utc() {
     assert_eq!(tz[0].minutes, 0);
 }
 
+#[cfg(feature = "timezone")]
 #[test]
 fn test_tz_find_ist() {
     let tz = tz_abbr_find("IST");
@@ -462,6 +464,7 @@ fn test_tz_find_ist() {
     assert_eq!(ist.minutes, 30);
 }
 
+#[cfg(feature = "timezone")]
 #[test]
 fn test_tz_find_unknown() {
     let tz = tz_abbr_find("ZZZNOTTHERE");
@@ -486,6 +489,7 @@ fn test_saturn_4_stars() {
 mod hebrew_public_api {
     use celestial_core::*;
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn hebrew_year_from_jd_known_dates() {
         // J2000.0 (2000-01-01) is in Hebrew year 5760
@@ -493,6 +497,7 @@ mod hebrew_public_api {
         assert_eq!(year, 5760, "J2000.0 should be in Hebrew year 5760");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn jd_to_hebrew_date_roundtrip() {
         // Convert J2000 to Hebrew date and back via jewish_holiday_jd
@@ -503,6 +508,7 @@ mod hebrew_public_api {
         assert!(d >= 1 && d <= 30, "day {d} out of range");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn jd_to_hebrew_date_monotone() {
         // Adding days to JD should advance the Hebrew date
@@ -517,6 +523,7 @@ mod hebrew_public_api {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn jewish_holidays_count_per_year() {
         // A standard Hebrew year has at least 10 major holidays
@@ -533,6 +540,7 @@ mod hebrew_public_api {
         }
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn jewish_holidays_rosh_hashanah_in_sept_oct() {
         let holidays = jewish_holidays(5785);
@@ -551,6 +559,7 @@ mod hebrew_public_api {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn jewish_holiday_jd_lookup() {
         // jewish_holiday_jd should return Some for known holidays
@@ -567,6 +576,7 @@ mod hebrew_public_api {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn jewish_holidays_yom_kippur_after_rosh() {
         let holidays = jewish_holidays(5785);
@@ -578,6 +588,7 @@ mod hebrew_public_api {
         assert!(yk.jd > rosh.jd, "Yom Kippur must come after Rosh Hashanah");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn jewish_holidays_passover_after_purim() {
         let holidays = jewish_holidays(5785);
@@ -590,6 +601,7 @@ mod hebrew_public_api {
         }
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn hebrew_year_from_jd_consistent_with_jd_to_hebrew_date() {
         let jd = 2_451_545.0;

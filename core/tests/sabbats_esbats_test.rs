@@ -1,3 +1,4 @@
+#![cfg(feature = "calendar-traditions")]
 //! Tests for Celtic sabbat and esbat calculations.
 
 use crate::body::Calendar;

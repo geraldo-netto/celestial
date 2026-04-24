@@ -28,5 +28,6 @@ pub use crate::functions::config::{
     set_sid_mode, set_tid_acc, set_topo, tid_acc, version, CurrentFileData,
 };
 pub use crate::functions::phenomena::{
-    gauquelin_sector, heliacal_pheno_ut, heliacal_ut, pheno, pheno_ut, vis_limit_mag,
+    best_time_method, gauquelin_sector, heliacal_pheno_ut, heliacal_ut, pheno, pheno_ut,
+    vis_limit_mag, yallop_q,
 };

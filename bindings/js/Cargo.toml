@@ -9,7 +9,7 @@ description = "Node.js/TypeScript bindings for Swiss Ephemeris via napi-rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-celestial-core = { path = "../../core" }
+celestial-core = { path = "../../core", features = ["default"] }
 napi          = { workspace = true }
 napi-derive   = { workspace = true }
 

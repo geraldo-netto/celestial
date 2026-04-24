@@ -55,6 +55,9 @@ jobs:
 
       - name: Check binding parity
         run: cargo xtask parity
+          cargo xtask test-stubs
+          cargo xtask pyi --check
+          cargo xtask dts --check
 
       - name: Validate phpstan-stubs.php syntax
         run: cargo xtask test-stubs

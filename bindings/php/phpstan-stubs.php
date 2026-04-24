@@ -1195,3 +1195,117 @@ function solcross_ut(float $x2cross, float $jd_ut, int $flags): float {}
 
 /** @return float */
 function celestial_solcross_ut(float $x2cross, float $jd_ut, int $flags): float {}
+
+/** @return int[] */
+function iso_week(float $jd): array {}
+
+/** @return int[] */
+function celestial_iso_week(float $jd): array {}
+
+/** @return int */
+function day_of_year(int $year, int $month, int $day): int {}
+
+/** @return int */
+function celestial_day_of_year(int $year, int $month, int $day): int {}
+
+/** @return int */
+function weeks_in_iso_year(int $year): int {}
+
+/** @return int */
+function celestial_weeks_in_iso_year(int $year): int {}
+
+/** @return int[] */
+function maya_long_count(float $jd): array {}
+
+/** @return int[] */
+function celestial_maya_long_count(float $jd): array {}
+
+/** @return string */
+function maya_long_count_str(float $jd): string {}
+
+/** @return string */
+function celestial_maya_long_count_str(float $jd): string {}
+
+/** @return float[] */
+function yallop_q(float $arcv_deg, float $arcl_deg, float $sd_arcmin): array {}
+
+/** @return float[] */
+function celestial_yallop_q(float $arcv_deg, float $arcl_deg, float $sd_arcmin): array {}
+
+/** @return float */
+function best_time_method(float $jd_sunset, float $jd_moonset): float {}
+
+/** @return float */
+function celestial_best_time_method(float $jd_sunset, float $jd_moonset): float {}
+
+/** @return float|null */
+function vietnamese_month_start_jd(float $jd_ut): ?float {}
+
+/** @return float|null */
+function celestial_vietnamese_month_start_jd(float $jd_ut): ?float {}
+
+/** @return bool */
+function vietnamese_chinese_boundary_differs(float $jd_ut): bool {}
+
+/** @return bool */
+function celestial_vietnamese_chinese_boundary_differs(float $jd_ut): bool {}
+
+/** @return float */
+function coptic_to_jd(int $year, int $month, int $day): float {}
+
+/** @return float */
+function celestial_coptic_to_jd(int $year, int $month, int $day): float {}
+
+/** @return int[] */
+function jd_to_coptic(float $jd): array {}
+
+/** @return int[] */
+function celestial_jd_to_coptic(float $jd): array {}
+
+/** @return float */
+function ethiopic_to_jd(int $year, int $month, int $day): float {}
+
+/** @return float */
+function celestial_ethiopic_to_jd(int $year, int $month, int $day): float {}
+
+/** @return int[] */
+function jd_to_ethiopic(float $jd): array {}
+
+/** @return int[] */
+function celestial_jd_to_ethiopic(float $jd): array {}
+
+/** @return bool */
+function is_coptic_leap_year(int $year): bool {}
+
+/** @return bool */
+function celestial_is_coptic_leap_year(int $year): bool {}
+
+/** @return int */
+function coptic_month_days(int $year, int $month): int {}
+
+/** @return int */
+function celestial_coptic_month_days(int $year, int $month): int {}
+
+/** @return float|null */
+function fasli_nowruz_jd(int $year): ?float {}
+
+/** @return float|null */
+function celestial_fasli_nowruz_jd(int $year): ?float {}
+
+/** @return int[]|null */
+function jd_to_fasli(float $jd): ?array {}
+
+/** @return int[]|null */
+function celestial_jd_to_fasli(float $jd): ?array {}
+
+/** @return float|null */
+function losar_jd(int $year): ?float {}
+
+/** @return float|null */
+function celestial_losar_jd(int $year): ?float {}
+
+/** @return string[] */
+function tibetan_year_name(int $year): array {}
+
+/** @return string[] */
+function celestial_tibetan_year_name(int $year): array {}

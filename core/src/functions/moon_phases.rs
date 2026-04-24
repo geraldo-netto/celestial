@@ -106,6 +106,7 @@ impl PrincipalPhase {
         }
     }
 
+    /// Human-readable name of this principal phase (e.g. `"Full Moon"`).
     pub fn name(self) -> &'static str {
         match self {
             Self::NewMoon => "New Moon",
@@ -306,14 +307,14 @@ pub fn moon_phases_for_month(year: i32, month: u8) -> Result<Vec<PhaseEvent>> {
             match next_principal_phase(jd, phase) {
                 Ok(event) if event.jd < month_end => {
                     events.push(event);
-                    jd = events.last().unwrap().jd + SYNODIC_MONTH * 0.9;
+                    jd = events.last().expect("just pushed").jd + SYNODIC_MONTH * 0.9;
                 }
                 _ => break,
             }
         }
     }
 
-    events.sort_by(|a, b| a.jd.partial_cmp(&b.jd).unwrap());
+    events.sort_by(|a, b| a.jd.total_cmp(&b.jd));
     Ok(events)
 }
 
@@ -357,7 +358,7 @@ pub fn moon_phase_info(jd: f64) -> Result<MoonPhaseInfo> {
     ]
     .iter()
     .filter_map(|&p| next_principal_phase(jd, p).ok())
-    .min_by(|a, b| a.jd.partial_cmp(&b.jd).unwrap())
+    .min_by(|a, b| a.jd.total_cmp(&b.jd))
     .ok_or_else(|| Error::PhaseNotFound {
         phase: "next".into(),
         from_jd: jd,
@@ -376,7 +377,7 @@ pub fn moon_phase_info(jd: f64) -> Result<MoonPhaseInfo> {
             .ok()
             .filter(|e| e.jd <= jd)
     })
-    .max_by(|a, b| a.jd.partial_cmp(&b.jd).unwrap())
+    .max_by(|a, b| a.jd.total_cmp(&b.jd))
     .ok_or_else(|| Error::PhaseNotFound {
         phase: "previous".into(),
         from_jd: jd,

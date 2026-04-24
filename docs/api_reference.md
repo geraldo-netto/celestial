@@ -642,3 +642,113 @@ equinox_jd = solcross_ut(0.0, jd, FLG_BUILTIN)
 // PHP
 $equinox_jd = solcross_ut(0.0, $jd, FLG_BUILTIN);
 ```
+
+---
+
+## Recent additions (19 new functions)
+
+### ISO 8601 week number
+
+| Function | Returns | Notes |
+|---|---|---|
+| `iso_week(jd)` | `(iso_year, week)` | ISO year may differ from calendar year near Jan 1 / Dec 31 |
+| `day_of_year(year, month, day)` | `1..366` | — |
+| `weeks_in_iso_year(year)` | `52 \| 53` | 53 iff Jan 1 or Dec 31 is a Thursday |
+
+### Maya Long Count
+
+Uses GMT correlation (JD 584 283 = Maya Day 0).
+
+| Function | Returns |
+|---|---|
+| `maya_long_count(jd)` | `(baktun, katun, tun, uinal, kin)` |
+| `maya_long_count_str(jd)` | `"13.0.0.0.0"` style |
+
+### Yallop crescent visibility (Yallop 1998)
+
+| Function | Returns |
+|---|---|
+| `yallop_q(arcv_deg, arcl_deg, sd_arcmin)` | `(q, 'A'..'F')` class |
+| `best_time_method(jd_sunset, jd_moonset)` | `f64` — best evaluation epoch |
+
+Classes: `A` easily visible → `F` not visible.
+
+### Coptic / Ethiopic calendar *(feature: `calendar-traditions`)*
+
+| Function | Returns |
+|---|---|
+| `coptic_to_jd(y, m, d)` / `jd_to_coptic(jd)` | JD ↔ `(year, month, day)` |
+| `ethiopic_to_jd(y, m, d)` / `jd_to_ethiopic(jd)` | JD ↔ `(year, month, day)` |
+| `is_coptic_leap_year(year)` | `bool` (year mod 4 == 3) |
+| `coptic_month_days(year, month)` | `0..=30` (month 13 is epagomenal) |
+
+13 months: 12 × 30 days + 5 or 6 epagomenal days. Same structure for both calendars, different epochs.
+
+### Zoroastrian Fasli calendar *(feature: `calendar-traditions`)*
+
+Reformed 1906; New Year locked to astronomical vernal equinox.
+
+| Function | Returns |
+|---|---|
+| `fasli_nowruz_jd(year)` | `Option<f64>` — JD of Nowruz |
+| `jd_to_fasli(jd)` | `Option<(year, month_index, day)>` |
+
+Month index 13 = the 5 Gatha (epagomenal) days.
+
+### Tibetan calendar (Phugpa system) *(feature: `calendar-traditions`)*
+
+| Function | Returns |
+|---|---|
+| `losar_jd(year)` | `Option<f64>` — 2nd new moon after winter solstice |
+| `tibetan_year_name(year)` | `(rabjung_cycle, year_in_cycle, element, gender, animal)` |
+
+### Vietnamese Âm Lịch
+
+Structurally similar to Chinese calendar but uses UTC+7 for month boundaries (since 1967).
+
+| Function | Returns |
+|---|---|
+| `vietnamese_month_start_jd(jd_ut)` | `Option<f64>` — start of Hanoi civil day with starting new moon |
+| `vietnamese_chinese_boundary_differs(jd_ut)` | `bool` — true if UTC+7 and UTC+8 give different civil days |
+
+
+---
+
+## xtask — developer automation
+
+The workspace provides `cargo xtask` commands for binding maintenance:
+
+```bash
+cargo xtask parity            # Check Python / JS / PHP export identical function sets (191/191/191)
+cargo xtask codegen           # Preview stubs for functions missing from bindings
+cargo xtask codegen --apply   # Write generated stubs into the binding sources
+cargo xtask stubs             # Regenerate bindings/php/phpstan-stubs.php (396 symbols)
+cargo xtask test-stubs        # Validate phpstan-stubs.php for PHP 8.0 syntax
+cargo xtask pyi               # Regenerate bindings/python/.../celestial_py.pyi (198 stubs)
+cargo xtask pyi --check       # Verify .pyi is in sync (CI gate)
+cargo xtask dts               # Regenerate bindings/js/index.d.ts (198 declarations)
+cargo xtask dts --check       # Verify .d.ts is in sync (CI gate)
+```
+
+The `--check` variants exit non-zero if the generated file is out of sync,
+so CI catches stale stubs before merge.
+
+---
+
+## CLI `--time` flag
+
+Both `chart` and `render` accept a separate `--time` argument for convenience:
+
+```bash
+# Equivalent — time embedded in date string:
+celestial chart --date "1990-05-15 14:30" --lat 48.85 --lon 2.35
+
+# Or separated — easier for scripts:
+celestial chart --date 1990-05-15 --time 14:30 --lat 48.85 --lon 2.35
+
+# Seconds accepted; display truncates to HH:MM UT:
+celestial render --date 1990-05-15 --time 14:30:45
+```
+
+`--time` is ignored when `--date` already contains a time, is `"now"`, or is a
+raw Julian Day.

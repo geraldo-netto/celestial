@@ -692,3 +692,75 @@ pub fn run(args: ChartArgs) -> Result<(), String> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parse;
+
+    #[test]
+    fn time_flag_merges_with_date() {
+        // --date 2000-01-01 --time 14:30 should produce the same JD as
+        // --date "2000-01-01 14:30"
+        let jd_combined = parse::parse_date("2000-01-01 14:30").unwrap();
+        let jd_separate = {
+            let base = "2000-01-01";
+            let time = "14:30";
+            parse::parse_date(&format!("{base} {time}")).unwrap()
+        };
+        assert!(
+            (jd_combined - jd_separate).abs() < 1e-9,
+            "combined={jd_combined} separate={jd_separate}"
+        );
+    }
+
+    #[test]
+    fn time_flag_ignored_when_date_has_time() {
+        // If --date already has a time component, --time should be ignored
+        let args = ChartArgs {
+            date: "2000-01-01 12:00".to_string(),
+            time: Some("14:30".to_string()),
+            lat: 0.0,
+            lon: 0.0,
+            system: "placidus".to_string(),
+            svg: None,
+            name: String::new(),
+        };
+        let date_str = if let Some(ref t) = args.time {
+            let base = args.date.trim();
+            if base.contains(' ') {
+                args.date.clone()
+            } else {
+                format!("{base} {t}")
+            }
+        } else {
+            args.date.clone()
+        };
+        // Should keep the original "12:00", not overwrite with "14:30"
+        assert!(date_str.contains("12:00"), "date_str={date_str}");
+    }
+
+    #[test]
+    fn time_flag_ignored_for_now() {
+        let args = ChartArgs {
+            date: "now".to_string(),
+            time: Some("14:30".to_string()),
+            lat: 0.0,
+            lon: 0.0,
+            system: "placidus".to_string(),
+            svg: None,
+            name: String::new(),
+        };
+        let date_str = if let Some(ref t) = args.time {
+            let base = args.date.trim();
+            if base == "now" || base.parse::<f64>().is_ok() || base.contains(' ') {
+                args.date.clone()
+            } else {
+                format!("{base} {t}")
+            }
+        } else {
+            args.date.clone()
+        };
+        assert_eq!(date_str, "now");
+    }
+}

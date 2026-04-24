@@ -15,7 +15,10 @@
 //! for p in &phases { println!("{} JD {:.2}", p.phase.name(), p.jd); }
 //! ```
 
+#[cfg(feature = "calendar-traditions")]
 pub use crate::functions::esbats::*;
 pub use crate::functions::moon_phases::*;
+#[cfg(feature = "calendar-traditions")]
 pub use crate::functions::sabbats::{next_sabbat, sabbat_jd, sabbats_for_year, Sabbat, SabbatKind};
+#[cfg(feature = "calendar-traditions")]
 pub use crate::functions::vesak::*;

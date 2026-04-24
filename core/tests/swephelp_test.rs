@@ -444,6 +444,7 @@ fn test_next_aspect_cusp() {
 
 // ─── Timezone ────────────────────────────────────────────────────────────────
 
+#[cfg(feature = "timezone")]
 #[test]
 fn test_tz_find_utc() {
     let tz = tz_abbr_find("UTC");
@@ -452,6 +453,7 @@ fn test_tz_find_utc() {
     assert_eq!(tz[0].minutes, 0);
 }
 
+#[cfg(feature = "timezone")]
 #[test]
 fn test_tz_find_ist() {
     let tz = tz_abbr_find("IST");
@@ -462,6 +464,7 @@ fn test_tz_find_ist() {
     assert_eq!(ist.minutes, 30);
 }
 
+#[cfg(feature = "timezone")]
 #[test]
 fn test_tz_find_unknown() {
     let tz = tz_abbr_find("ZZZNOTTHERE");

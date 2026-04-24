@@ -308,7 +308,7 @@ fn house_pos(armc: f64, lat: f64, eps: f64, hsys: u8, lon: f64, lat_body: f64) -
 
 /// Name of a house system given its byte code.
 #[pyfunction]
-fn house_name(hsys: u8) -> String {
+fn house_name(hsys: u8) -> &'static str {
     celestial::house_name(HouseSystem(hsys))
 }
 
@@ -613,7 +613,7 @@ fn refrac_extended(
 
 /// Swiss Ephemeris library version string.
 #[pyfunction]
-fn version() -> String {
+fn version() -> &'static str {
     celestial::version()
 }
 
@@ -1327,7 +1327,7 @@ trait Tap: Sized {
 impl Tap for pyo3::Bound<'_, pyo3::types::PyDict> {}
 
 #[pyfunction]
-fn house_name_str(hsys: u8) -> String {
+fn house_name_str(hsys: u8) -> &'static str {
     celestial::house_name(HouseSystem(hsys))
 }
 
@@ -1410,6 +1410,120 @@ fn next_sabbat_name(jd_from: f64) -> PyResult<String> {
 #[pyfunction]
 fn solcross_ut(x2cross: f64, jd_ut: f64, flags: i32) -> PyResult<f64> {
     celestial::solcross_ut(x2cross, jd_ut, CalcFlags(flags)).map_err(to_py)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Additions: ISO week, Maya Long Count, Yallop, Coptic, Zoroastrian, Tibetan,
+// Vietnamese
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[pyfunction]
+fn iso_week(py: Python<'_>, jd: f64) -> PyObject {
+    celestial::iso_week(jd).into_py(py)
+}
+
+#[pyfunction]
+fn day_of_year(year: i32, month: u32, day: u32) -> u32 {
+    celestial::day_of_year(year, month, day)
+}
+
+#[pyfunction]
+fn weeks_in_iso_year(year: i32) -> u32 {
+    celestial::weeks_in_iso_year(year)
+}
+
+#[pyfunction]
+fn maya_long_count(py: Python<'_>, jd: f64) -> PyObject {
+    celestial::maya_long_count(jd).into_py(py)
+}
+
+#[pyfunction]
+fn maya_long_count_str(jd: f64) -> String {
+    celestial::maya_long_count_str(jd)
+}
+
+#[pyfunction]
+fn yallop_q(py: Python<'_>, arcv_deg: f64, arcl_deg: f64, sd_arcmin: f64) -> PyObject {
+    let (q, c) = celestial::yallop_q(arcv_deg, arcl_deg, sd_arcmin);
+    (q, c.to_string()).into_py(py)
+}
+
+#[pyfunction]
+fn best_time_method(jd_sunset: f64, jd_moonset: f64) -> f64 {
+    celestial::best_time_method(jd_sunset, jd_moonset)
+}
+
+#[pyfunction]
+fn vietnamese_month_start_jd(jd_ut: f64) -> Option<f64> {
+    celestial::vietnamese_month_start_jd(jd_ut)
+}
+
+#[pyfunction]
+fn vietnamese_chinese_boundary_differs(jd_ut: f64) -> bool {
+    celestial::vietnamese_chinese_boundary_differs(jd_ut)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[pyfunction]
+fn coptic_to_jd(year: i32, month: u32, day: u32) -> f64 {
+    celestial::coptic_to_jd(year, month, day)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[pyfunction]
+fn jd_to_coptic(py: Python<'_>, jd: f64) -> PyObject {
+    celestial::jd_to_coptic(jd).into_py(py)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[pyfunction]
+fn ethiopic_to_jd(year: i32, month: u32, day: u32) -> f64 {
+    celestial::ethiopic_to_jd(year, month, day)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[pyfunction]
+fn jd_to_ethiopic(py: Python<'_>, jd: f64) -> PyObject {
+    celestial::jd_to_ethiopic(jd).into_py(py)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[pyfunction]
+fn is_coptic_leap_year(year: i32) -> bool {
+    celestial::is_coptic_leap_year(year)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[pyfunction]
+fn coptic_month_days(year: i32, month: u32) -> u32 {
+    celestial::coptic_month_days(year, month)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[pyfunction]
+fn fasli_nowruz_jd(year: i32) -> Option<f64> {
+    celestial::fasli_nowruz_jd(year)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[pyfunction]
+fn jd_to_fasli(py: Python<'_>, jd: f64) -> PyObject {
+    match celestial::jd_to_fasli(jd) {
+        Some(t) => t.into_py(py),
+        None => py.None(),
+    }
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[pyfunction]
+fn losar_jd(year: i32) -> Option<f64> {
+    celestial::losar_jd(year)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[pyfunction]
+fn tibetan_year_name(py: Python<'_>, year: i32) -> PyObject {
+    celestial::tibetan_year_name(year).into_py(py)
 }
 
 #[pymodule]
@@ -2048,6 +2162,31 @@ fn _celestial_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(next_full_moon, m)?)?;
     m.add_function(wrap_pyfunction!(next_sabbat_name, m)?)?;
     m.add_function(wrap_pyfunction!(solcross_ut, m)?)?;
+
+    // ─── new calendar / astronomical-helpers additions ───
+    m.add_function(wrap_pyfunction!(iso_week, m)?)?;
+    m.add_function(wrap_pyfunction!(day_of_year, m)?)?;
+    m.add_function(wrap_pyfunction!(weeks_in_iso_year, m)?)?;
+    m.add_function(wrap_pyfunction!(maya_long_count, m)?)?;
+    m.add_function(wrap_pyfunction!(maya_long_count_str, m)?)?;
+    m.add_function(wrap_pyfunction!(yallop_q, m)?)?;
+    m.add_function(wrap_pyfunction!(best_time_method, m)?)?;
+    m.add_function(wrap_pyfunction!(vietnamese_month_start_jd, m)?)?;
+    m.add_function(wrap_pyfunction!(vietnamese_chinese_boundary_differs, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
+    {
+        m.add_function(wrap_pyfunction!(coptic_to_jd, m)?)?;
+        m.add_function(wrap_pyfunction!(jd_to_coptic, m)?)?;
+        m.add_function(wrap_pyfunction!(ethiopic_to_jd, m)?)?;
+        m.add_function(wrap_pyfunction!(jd_to_ethiopic, m)?)?;
+        m.add_function(wrap_pyfunction!(is_coptic_leap_year, m)?)?;
+        m.add_function(wrap_pyfunction!(coptic_month_days, m)?)?;
+        m.add_function(wrap_pyfunction!(fasli_nowruz_jd, m)?)?;
+        m.add_function(wrap_pyfunction!(jd_to_fasli, m)?)?;
+        m.add_function(wrap_pyfunction!(losar_jd, m)?)?;
+        m.add_function(wrap_pyfunction!(tibetan_year_name, m)?)?;
+    }
+
     Ok(())
 }
 

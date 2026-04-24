@@ -2,7 +2,7 @@
 name        = "celestial-core"
 version.workspace = true
 edition     = "2021"
-description = "Pure-Rust astronomical engine — planets, houses, eclipses, calendars, and eight astrological traditions"
+description = "Pure-Rust astronomical engine — planets, houses, eclipses, and eight astrological traditions. Optional features: timezone, calendar-traditions."
 license     = "AGPL-3.0-or-later"
 repository  = "https://github.com/geraldo-netto/celestial"
 documentation = "https://docs.rs/celestial-core"
@@ -14,6 +14,25 @@ exclude     = ["tests/", "benches/", "fuzz/"]
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+features = ["timezone", "calendar-traditions"]
+
+
+[features]
+## Default features — included in normal builds and all language bindings.
+## Opt out with `default-features = false` for minimal/WASM builds.
+default = ["timezone", "calendar-traditions"]
+
+## IANA timezone abbreviation table (203 entries, ~1 400 lines).
+## Provides: `TZ_TABLE`, `TzAbbr`, `tz_abbr_find`.
+## Disable if you only need astronomical calculations and not timezone name lookup.
+timezone = []
+
+## Liturgical and religious calendar traditions:
+##   Jewish / Hebrew, Omer, Christian Easter, Islamic Hijri,
+##   Persian Nowruz / Bahá'í, Theravada Vesak,
+##   Wiccan Sabbats & Esbats.
+## Disable for pure astronomical or Western-astrology-only use cases.
+calendar-traditions = []
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

@@ -10,5 +10,6 @@
 //! ```
 
 pub use crate::functions::geoformat::*;
+#[cfg(feature = "timezone")]
 pub use crate::functions::timezone::*;
 pub use crate::functions::utils::*;

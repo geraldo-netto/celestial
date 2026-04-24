@@ -162,3 +162,72 @@ pub fn calendar_round(jd: f64) -> (u8, &'static str, u8, &'static str) {
     let (_, haab_day, haab_month) = haab(jd);
     (trecena, sign_name, haab_day, haab_month)
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Maya Long Count
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Convert a Julian Day to the Maya Long Count: `(baktun, katun, tun, uinal, kin)`.
+///
+/// Position values (Maya positional base-20, except tun = 18 uinal):
+/// - 1 kin    = 1 day
+/// - 1 uinal  = 20 kin
+/// - 1 tun    = 18 uinal   (≈ 1 year, = 360 days)
+/// - 1 katun  = 20 tun     (≈ 19.7 years)
+/// - 1 baktun = 20 katun   (≈ 394 years)
+///
+/// Uses the GMT correlation (JD 584 283 = Maya Day 0 = 0.0.0.0.0 4 Ajaw 8 Kumk'u).
+pub fn maya_long_count(jd: f64) -> (u32, u32, u32, u32, u32) {
+    let mut days = jd.floor() as i64 - GMT_CORRELATION;
+    if days < 0 {
+        days = 0; // clamp for pre-epoch dates
+    }
+    let kin = (days % 20) as u32;
+    days /= 20;
+    let uinal = (days % 18) as u32;
+    days /= 18;
+    let tun = (days % 20) as u32;
+    days /= 20;
+    let katun = (days % 20) as u32;
+    days /= 20;
+    let baktun = days as u32;
+    (baktun, katun, tun, uinal, kin)
+}
+
+/// Long Count in canonical dotted notation, e.g. `"13.0.0.0.0"`.
+pub fn maya_long_count_str(jd: f64) -> String {
+    let (b, k, t, u, ki) = maya_long_count(jd);
+    format!("{b}.{k}.{t}.{u}.{ki}")
+}
+
+#[cfg(test)]
+mod long_count_tests {
+    use super::*;
+
+    #[test]
+    fn long_count_2012_bak13() {
+        // 2012-12-21 = 13.0.0.0.0 (end of 13th baktun, popular "Mayan prophecy")
+        // JD 2456283.0 (2012-12-21 12:00 UT)
+        let (b, k, t, u, ki) = maya_long_count(2_456_283.0);
+        assert_eq!((b, k, t, u, ki), (13, 0, 0, 0, 0));
+    }
+
+    #[test]
+    fn long_count_j2000() {
+        // J2000 = 2000-01-01 12:00 UT → known: 12.19.6.15.2
+        let (b, k, t, u, ki) = maya_long_count(2_451_545.0);
+        assert_eq!((b, k, t, u, ki), (12, 19, 6, 15, 2));
+    }
+
+    #[test]
+    fn long_count_str_format() {
+        assert_eq!(maya_long_count_str(2_456_283.0), "13.0.0.0.0");
+    }
+
+    #[test]
+    fn long_count_epoch() {
+        // JD 584283 = 0.0.0.0.0 (start of current creation cycle)
+        let (b, k, t, u, ki) = maya_long_count(584_283.0);
+        assert_eq!((b, k, t, u, ki), (0, 0, 0, 0, 0));
+    }
+}

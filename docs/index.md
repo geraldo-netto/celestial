@@ -18,6 +18,37 @@ quick-start examples for all languages.
 
 ---
 
+
+## Recent additions
+
+The engine now covers **19 additional functions** across 7 features — see
+[`api_reference.md`](api_reference.md) for signatures.
+
+| Feature | Highlights |
+|---|---|
+| ISO 8601 week | `iso_week`, `day_of_year`, `weeks_in_iso_year` |
+| Maya Long Count | `maya_long_count`, dotted notation `"13.0.0.0.0"` |
+| Yallop crescent visibility | `yallop_q` — q-value + class A–F for Islamic lunar sighting |
+| Coptic / Ethiopic calendar | JD ↔ date, leap rule, 13-month epagomenal structure |
+| Zoroastrian Fasli | New Year locked to astronomical vernal equinox (Nowruz) |
+| Tibetan Phugpa | Losar (New Year) + Rabjung cycle year names |
+| Vietnamese Âm Lịch | UTC+7 month boundaries — diverges from Chinese ~4% of days |
+
+All 19 functions are exported from **Python**, **JavaScript**, and **PHP** (191 per binding).
+
+## Feature flags
+
+`celestial-core` can be built minimal (no timezone table, no liturgical calendars):
+
+```toml
+celestial-core = { path = "...", default-features = false }
+```
+
+Two opt-out features, both on by default:
+- `timezone` — IANA abbreviation table (`TZ_TABLE`, `tz_abbr_find`)
+- `calendar-traditions` — Jewish, Omer, Easter, Islamic, Nowruz/Bahá'í, Vesak,
+  Sabbats/Esbats, Coptic/Ethiopic, Zoroastrian Fasli, Tibetan Phugpa
+
 ## Quick start
 
 ### Rust
@@ -76,7 +107,7 @@ echo "Sun longitude: " . round($pos[0], 4) . "°\n";
 ## Workspace layout
 
 ```
-celestial-workspace/
+celestial/
 ├── core/
 │   ├── src/
 │   │   ├── lib.rs              crate root — re-exports all domain modules

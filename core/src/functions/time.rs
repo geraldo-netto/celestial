@@ -431,3 +431,90 @@ pub fn nutation(jde: f64) -> (f64, f64) {
 pub fn tt_to_ut(jde: f64) -> f64 {
     crate::astronomy::delta_t::tt_to_ut(jde)
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ISO 8601 week number
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Day-of-year (1-366) for a Gregorian date.
+pub fn day_of_year(year: i32, month: u32, day: u32) -> u32 {
+    let jd_jan1 = julday(year, 1, 1, 12.0, Calendar::Gregorian);
+    let jd_d = julday(year, month as i32, day as i32, 12.0, Calendar::Gregorian);
+    ((jd_d - jd_jan1) as u32) + 1
+}
+
+/// Number of ISO weeks in a given Gregorian year (52 or 53).
+///
+/// An ISO year has 53 weeks iff Jan 1 or Dec 31 falls on a Thursday.
+pub fn weeks_in_iso_year(year: i32) -> u32 {
+    let jan1 = day_of_week(julday(year, 1, 1, 12.0, Calendar::Gregorian));
+    let dec31 = day_of_week(julday(year, 12, 31, 12.0, Calendar::Gregorian));
+    // day_of_week returns 0=Monday..6=Sunday — Thursday = 3
+    if jan1 == 3 || dec31 == 3 {
+        53
+    } else {
+        52
+    }
+}
+
+/// ISO 8601 week number as `(iso_year, week_number)`.
+///
+/// The ISO year can differ from the calendar year near Jan 1 / Dec 31:
+/// early January dates may belong to the previous ISO year, late December
+/// dates may belong to the next ISO year. Week 1 is the week containing
+/// the first Thursday of the year.
+pub fn iso_week(jd: f64) -> (i32, u32) {
+    let d = revjul(jd, Calendar::Gregorian);
+    let ordinal = day_of_year(d.year, d.month as u32, d.day as u32) as i32;
+    // day_of_week: 0=Monday..6=Sunday; ISO weekday: 1=Monday..7=Sunday
+    let iso_wd = day_of_week(jd) + 1;
+    let week = (ordinal - iso_wd + 10) / 7;
+    if week < 1 {
+        let prev_year = d.year - 1;
+        (prev_year, weeks_in_iso_year(prev_year))
+    } else if week > weeks_in_iso_year(d.year) as i32 {
+        (d.year + 1, 1)
+    } else {
+        (d.year, week as u32)
+    }
+}
+
+#[cfg(test)]
+mod iso_week_tests {
+    use super::*;
+
+    #[test]
+    fn iso_week_mon_jan1() {
+        // 2024-01-01 Monday → (2024, 1)
+        let jd = julday(2024, 1, 1, 12.0, Calendar::Gregorian);
+        assert_eq!(iso_week(jd), (2024, 1));
+    }
+
+    #[test]
+    fn iso_week_sun_jan1_belongs_prev_year() {
+        // 2023-01-01 Sunday → last week of 2022
+        let jd = julday(2023, 1, 1, 12.0, Calendar::Gregorian);
+        assert_eq!(iso_week(jd), (2022, 52));
+    }
+
+    #[test]
+    fn iso_53_week_year() {
+        // 2020-12-31 Thursday → (2020, 53)
+        let jd = julday(2020, 12, 31, 12.0, Calendar::Gregorian);
+        assert_eq!(iso_week(jd), (2020, 53));
+    }
+
+    #[test]
+    fn day_of_year_basic() {
+        assert_eq!(day_of_year(2024, 1, 1), 1);
+        assert_eq!(day_of_year(2024, 12, 31), 366); // leap year
+        assert_eq!(day_of_year(2023, 12, 31), 365);
+    }
+
+    #[test]
+    fn weeks_in_year() {
+        assert_eq!(weeks_in_iso_year(2020), 53);
+        assert_eq!(weeks_in_iso_year(2021), 52);
+        assert_eq!(weeks_in_iso_year(2026), 53);
+    }
+}

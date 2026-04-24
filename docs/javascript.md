@@ -333,3 +333,76 @@ import {
 } from "celestial-js";
 ```
 
+## Recent additions — 19 new functions
+
+### ISO 8601 week
+
+```javascript
+import { isoWeek, dayOfYear, weeksInIsoYear } from "celestial-js";
+
+const [isoYear, week] = isoWeek(2456293.0);    // [2012, 52] for 2012-12-31
+const dow              = dayOfYear(2024, 3, 15);
+const wks              = weeksInIsoYear(2020); // 53
+```
+
+### Maya Long Count
+
+```javascript
+import { mayaLongCount, mayaLongCountStr } from "celestial-js";
+
+const [b, k, t, u, ki] = mayaLongCount(2456283.0);  // 2012-12-21 → [13,0,0,0,0]
+const s                = mayaLongCountStr(2451545.0); // "12.19.6.15.2"
+```
+
+### Yallop crescent visibility
+
+```javascript
+import { yallopQ, bestTimeMethod } from "celestial-js";
+
+const jdBest = bestTimeMethod(jdSunset, jdMoonset);
+const [q, classCode] = yallopQ(arcvDeg, arclDeg, sdArcmin);
+// classCode is the ASCII code of 'A'..'F' (65..70)
+const cls = String.fromCharCode(classCode);
+```
+
+### Coptic / Ethiopic (feature: `calendar-traditions`)
+
+```javascript
+import {
+  copticToJd, jdToCoptic, ethiopicToJd, jdToEthiopic,
+  isCopticLeapYear, copticMonthDays,
+} from "celestial-js";
+
+const jd            = copticToJd(1740, 1, 1);
+const [y, m, d]     = jdToCoptic(jd);
+const isLeap        = isCopticLeapYear(1739);     // true
+const days          = copticMonthDays(1739, 13);  // 6
+```
+
+### Zoroastrian Fasli (feature: `calendar-traditions`)
+
+```javascript
+import { fasliNowruzJd, jdToFasli } from "celestial-js";
+
+const jdNowruz = fasliNowruzJd(2024);   // number | null
+const date     = jdToFasli(2460400.0);  // [fasliYear, monthIndex, day] | null
+```
+
+### Tibetan Phugpa (feature: `calendar-traditions`)
+
+```javascript
+import { losarJd, tibetanYearName } from "celestial-js";
+
+const jdLosar                         = losarJd(2024);
+const [cycle, yic, el, gender, animal] = tibetanYearName(2024);
+// ["17", "38", "Wood", "Male", "Dragon"]
+```
+
+### Vietnamese Âm Lịch
+
+```javascript
+import { vietnameseMonthStartJd, vietnameseChineseBoundaryDiffers } from "celestial-js";
+
+const jdMonthStart = vietnameseMonthStartJd(2460000.0);
+const diverges     = vietnameseChineseBoundaryDiffers(2460000.0);
+```

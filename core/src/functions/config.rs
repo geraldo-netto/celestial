@@ -126,8 +126,8 @@ pub fn ayanamsa_name(isidmode: i32) -> &'static str {
 // ─── Info ─────────────────────────────────────────────────────────────────────
 
 /// Get the Swiss Ephemeris version string.
-pub fn version() -> String {
-    crate::astronomy::engine_version().to_string()
+pub fn version() -> &'static str {
+    crate::astronomy::engine_version()
 }
 
 /// Get the library path.

@@ -185,3 +185,97 @@ fn body_name_to_num(name: &str) -> i32 {
         }
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Yallop crescent visibility (Yallop 1998)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Yallop's q-value and visibility classification for a lunar crescent.
+///
+/// Based on Yallop, B.D. (1998), "A method for predicting the first sighting
+/// of the new crescent moon", NAO Technical Note No. 69.
+///
+/// # Inputs
+/// - `arcv_deg`:  arc of vision = topocentric altitude of Moon − altitude of Sun (°)
+/// - `arcl_deg`:  arc of light  = topocentric elongation of Moon from Sun (°)
+/// - `sd_arcmin`: topocentric semi-diameter of the Moon (arcminutes)
+///
+/// All inputs should be evaluated at the "best time" =
+/// sunset + 4/9 × (moonset − sunset). See [`best_time_method`].
+///
+/// # Returns
+/// `(q, code)` where `code` is one of:
+/// - `'A'`: easily visible (naked eye)
+/// - `'B'`: visible under perfect conditions (naked eye)
+/// - `'C'`: may need optical aid to find first, then naked-eye visible
+/// - `'D'`: will need optical aid (binoculars or telescope)
+/// - `'E'`: barely visible even with telescope
+/// - `'F'`: not visible (below Danjon limit)
+pub fn yallop_q(arcv_deg: f64, arcl_deg: f64, sd_arcmin: f64) -> (f64, char) {
+    // Crescent width W (arcminutes) = SD · (1 − cos(ARCL))
+    let w = sd_arcmin * (1.0 - arcl_deg.to_radians().cos());
+    // Yallop's q: (ARCV − polynomial(W)) / 10
+    let poly = 11.8371 - 6.3226 * w + 0.7319 * w.powi(2) - 0.1018 * w.powi(3);
+    let q = (arcv_deg - poly) / 10.0;
+
+    let code = if q > 0.216 {
+        'A'
+    } else if q > -0.014 {
+        'B'
+    } else if q > -0.160 {
+        'C'
+    } else if q > -0.232 {
+        'D'
+    } else if q > -0.293 {
+        'E'
+    } else {
+        'F'
+    };
+    (q, code)
+}
+
+/// Best time for crescent visibility evaluation:
+/// sunset + 4/9 × (moonset − sunset).
+///
+/// Inputs are Julian Days (UT). This is the standard epoch for evaluating
+/// [`yallop_q`] and related crescent-visibility criteria.
+pub fn best_time_method(jd_sunset: f64, jd_moonset: f64) -> f64 {
+    jd_sunset + (4.0 / 9.0) * (jd_moonset - jd_sunset)
+}
+
+#[cfg(test)]
+mod yallop_tests {
+    use super::*;
+
+    #[test]
+    fn yallop_easily_visible() {
+        // Wide crescent (20° elongation) with 10° ARCV → class A
+        let (_, c) = yallop_q(10.0, 20.0, 15.0);
+        assert_eq!(c, 'A');
+    }
+
+    #[test]
+    fn yallop_below_danjon() {
+        // Sun and moon very close, moon below sun → not visible
+        let (_, c) = yallop_q(-3.0, 5.0, 15.0);
+        assert_eq!(c, 'F');
+    }
+
+    #[test]
+    fn yallop_marginal_boundaries() {
+        // ARCV of 10.5° with 10° elongation → around class B/C boundary
+        let (q, _) = yallop_q(10.5, 10.0, 15.0);
+        // q should be near zero — boundary between classes B and C
+        assert!(q.abs() < 0.2, "q = {q}");
+    }
+
+    #[test]
+    fn best_time_midway() {
+        // If moonset is 2 hours after sunset, best time is 4/9 × 2h after sunset
+        let jd_ss = 2_451_545.0;
+        let jd_ms = jd_ss + 2.0 / 24.0;
+        let bt = best_time_method(jd_ss, jd_ms);
+        let expected = jd_ss + (4.0 / 9.0) * 2.0 / 24.0;
+        assert!((bt - expected).abs() < 1e-9);
+    }
+}

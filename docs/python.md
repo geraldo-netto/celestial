@@ -481,3 +481,79 @@ from celestial_py import (
 )
 ```
 
+## Recent additions — 19 new functions
+
+### ISO 8601 week
+
+```python
+from celestial_py import iso_week, day_of_year, weeks_in_iso_year
+
+year, week = iso_week(2456293.0)        # → (2012, 52) for 2012-12-31
+dow  = day_of_year(2024, 3, 15)          # → 75
+wks  = weeks_in_iso_year(2020)           # → 53
+```
+
+### Maya Long Count
+
+```python
+from celestial_py import maya_long_count, maya_long_count_str
+
+bktn, ktn, tun, unl, kin = maya_long_count(2456283.0)   # 2012-12-21 → (13,0,0,0,0)
+s = maya_long_count_str(2451545.0)                       # J2000 → "12.19.6.15.2"
+```
+
+### Yallop crescent visibility
+
+```python
+from celestial_py import yallop_q, best_time_method
+
+# Compute q-value and visibility class at the best time:
+jd_best = best_time_method(jd_sunset=2460000.0, jd_moonset=2460000.1)
+q, cls  = yallop_q(arcv_deg=10.0, arcl_deg=15.0, sd_arcmin=15.5)
+# cls ∈ {'A','B','C','D','E','F'}; 'A' = easily visible, 'F' = not visible
+```
+
+### Coptic / Ethiopic (feature: `calendar-traditions`)
+
+```python
+from celestial_py import coptic_to_jd, jd_to_coptic, ethiopic_to_jd, jd_to_ethiopic
+from celestial_py import is_coptic_leap_year, coptic_month_days
+
+jd         = coptic_to_jd(1740, 1, 1)             # 1 Thout AM 1740
+y, m, d    = jd_to_coptic(jd)
+is_leap    = is_coptic_leap_year(1739)            # True (1739 mod 4 == 3)
+days       = coptic_month_days(1739, 13)          # 6 (leap year epagomenal)
+
+# Ethiopic has the same structure, 276 years offset:
+eth_y, eth_m, eth_d = jd_to_ethiopic(jd)
+```
+
+### Zoroastrian Fasli (feature: `calendar-traditions`)
+
+```python
+from celestial_py import fasli_nowruz_jd, jd_to_fasli
+
+jd_nowruz  = fasli_nowruz_jd(2024)   # JD of astronomical vernal equinox 2024
+date       = jd_to_fasli(2460400.0)  # → (fasli_year, month_index, day) or None
+# month_index 13 = the 5 Gatha (epagomenal) days
+```
+
+### Tibetan Phugpa (feature: `calendar-traditions`)
+
+```python
+from celestial_py import losar_jd, tibetan_year_name
+
+jd_losar             = losar_jd(2024)                # 2nd new moon after winter solstice
+cycle, yic, el, g, a = tibetan_year_name(2024)
+# → (17, 38, "Wood", "Male", "Dragon") — 17th Rabjung cycle, year 38
+```
+
+### Vietnamese Âm Lịch
+
+```python
+from celestial_py import vietnamese_month_start_jd, vietnamese_chinese_boundary_differs
+
+jd_month_start = vietnamese_month_start_jd(2460000.0)
+diverges       = vietnamese_chinese_boundary_differs(2460000.0)
+# True on roughly 4% of JDs — when UTC+7 and UTC+8 fall on different civil days
+```

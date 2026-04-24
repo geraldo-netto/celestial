@@ -404,7 +404,7 @@ pub fn houses_ex2(
 
 /// Name of a house system.
 #[napi(js_name = "houseName")]
-pub fn house_name(hsys: u32) -> String {
+pub fn house_name(hsys: u32) -> &'static str {
     celestial::house_name(HouseSystem(hsys as u8))
 }
 
@@ -727,7 +727,7 @@ pub fn planet_name(planet: i32) -> &'static str {
 
 /// Full name of a house system from its one-letter code (e.g. `P` → `"Placidus"`).
 #[napi(js_name = "houseNameStr")]
-pub fn house_name_str(hsys: u32) -> String {
+pub fn house_name_str(hsys: u32) -> &'static str {
     celestial::house_name(HouseSystem(hsys as u8))
 }
 
@@ -1127,8 +1127,8 @@ pub fn azalt_rev(
 
 /// English name of a zodiac sign (0=Aries … 11=Pisces).
 #[napi(js_name = "signName")]
-pub fn sign_name(sign: i32) -> Option<String> {
-    celestial::sign_name(sign).map(|s| s.to_string())
+pub fn sign_name(sign: i32) -> Option<&'static str> {
+    celestial::sign_name(sign)
 }
 
 /// Current Julian Day number (UT) from the system clock.
@@ -1171,8 +1171,8 @@ pub fn long_to_nakshatra(lon: f64) -> Vec<i32> {
 
 /// English name of a nakshatra (0–26).
 #[napi(js_name = "nakshatraName")]
-pub fn nakshatra_name(nak: i32) -> Option<String> {
-    celestial::nakshatra_name(nak).map(|s| s.to_string())
+pub fn nakshatra_name(nak: i32) -> Option<&'static str> {
+    celestial::nakshatra_name(nak)
 }
 
 /// Raman house cusps from Ascendant and MC.
@@ -1363,8 +1363,8 @@ pub fn sign_ruler_modern(sign: u32) -> i32 {
 }
 
 #[napi(js_name = "zodiacSignName")]
-pub fn zodiac_sign_name(sign: u32) -> String {
-    celestial::zodiac_sign_name(sign as u8).to_string()
+pub fn zodiac_sign_name(sign: u32) -> &'static str {
+    celestial::zodiac_sign_name(sign as u8)
 }
 
 #[napi(js_name = "lonToSign")]
@@ -2456,4 +2456,134 @@ pub fn next_sabbat_name(jd_from: f64) -> napi::Result<String> {
 #[napi(js_name = "solcrossUt")]
 pub fn solcross_ut(x2cross: f64, jd_ut: f64, flags: i32) -> napi::Result<f64> {
     celestial::solcross_ut(x2cross, jd_ut, CalcFlags(flags)).map_err(to_napi)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Additions: ISO week, Maya Long Count, Yallop, Coptic, Zoroastrian, Tibetan,
+// Vietnamese
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// ISO 8601 week number as [isoYear, weekNumber].
+#[napi(js_name = "isoWeek")]
+pub fn iso_week(jd: f64) -> Vec<i32> {
+    let (y, w) = celestial::iso_week(jd);
+    vec![y, w as i32]
+}
+
+#[napi(js_name = "dayOfYear")]
+pub fn day_of_year(year: i32, month: u32, day: u32) -> u32 {
+    celestial::day_of_year(year, month, day)
+}
+
+#[napi(js_name = "weeksInIsoYear")]
+pub fn weeks_in_iso_year(year: i32) -> u32 {
+    celestial::weeks_in_iso_year(year)
+}
+
+/// Maya Long Count as [baktun, katun, tun, uinal, kin].
+#[napi(js_name = "mayaLongCount")]
+pub fn maya_long_count(jd: f64) -> Vec<u32> {
+    let (b, k, t, u, ki) = celestial::maya_long_count(jd);
+    vec![b, k, t, u, ki]
+}
+
+#[napi(js_name = "mayaLongCountStr")]
+pub fn maya_long_count_str(jd: f64) -> String {
+    celestial::maya_long_count_str(jd)
+}
+
+/// Yallop crescent visibility: returns [q, classCode] where classCode is
+/// the ASCII code of 'A'..'F' (65..70).
+#[napi(js_name = "yallopQ")]
+pub fn yallop_q(arcv_deg: f64, arcl_deg: f64, sd_arcmin: f64) -> Vec<f64> {
+    let (q, c) = celestial::yallop_q(arcv_deg, arcl_deg, sd_arcmin);
+    vec![q, c as u32 as f64]
+}
+
+#[napi(js_name = "bestTimeMethod")]
+pub fn best_time_method(jd_sunset: f64, jd_moonset: f64) -> f64 {
+    celestial::best_time_method(jd_sunset, jd_moonset)
+}
+
+#[napi(js_name = "vietnameseMonthStartJd")]
+pub fn vietnamese_month_start_jd(jd_ut: f64) -> Option<f64> {
+    celestial::vietnamese_month_start_jd(jd_ut)
+}
+
+#[napi(js_name = "vietnameseChineseBoundaryDiffers")]
+pub fn vietnamese_chinese_boundary_differs(jd_ut: f64) -> bool {
+    celestial::vietnamese_chinese_boundary_differs(jd_ut)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[napi(js_name = "copticToJd")]
+pub fn coptic_to_jd(year: i32, month: u32, day: u32) -> f64 {
+    celestial::coptic_to_jd(year, month, day)
+}
+
+/// Coptic date [year, month, day].
+#[cfg(feature = "calendar-traditions")]
+#[napi(js_name = "jdToCoptic")]
+pub fn jd_to_coptic(jd: f64) -> Vec<i32> {
+    let (y, m, d) = celestial::jd_to_coptic(jd);
+    vec![y, m as i32, d as i32]
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[napi(js_name = "ethiopicToJd")]
+pub fn ethiopic_to_jd(year: i32, month: u32, day: u32) -> f64 {
+    celestial::ethiopic_to_jd(year, month, day)
+}
+
+/// Ethiopic date [year, month, day].
+#[cfg(feature = "calendar-traditions")]
+#[napi(js_name = "jdToEthiopic")]
+pub fn jd_to_ethiopic(jd: f64) -> Vec<i32> {
+    let (y, m, d) = celestial::jd_to_ethiopic(jd);
+    vec![y, m as i32, d as i32]
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[napi(js_name = "isCopticLeapYear")]
+pub fn is_coptic_leap_year(year: i32) -> bool {
+    celestial::is_coptic_leap_year(year)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[napi(js_name = "copticMonthDays")]
+pub fn coptic_month_days(year: i32, month: u32) -> u32 {
+    celestial::coptic_month_days(year, month)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[napi(js_name = "fasliNowruzJd")]
+pub fn fasli_nowruz_jd(year: i32) -> Option<f64> {
+    celestial::fasli_nowruz_jd(year)
+}
+
+/// Fasli date [fasliYear, monthIndex, day], or null.
+#[cfg(feature = "calendar-traditions")]
+#[napi(js_name = "jdToFasli")]
+pub fn jd_to_fasli(jd: f64) -> Option<Vec<i32>> {
+    celestial::jd_to_fasli(jd).map(|(y, m, d)| vec![y, m as i32, d as i32])
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[napi(js_name = "losarJd")]
+pub fn losar_jd(year: i32) -> Option<f64> {
+    celestial::losar_jd(year)
+}
+
+/// Tibetan year as [rabjungCycle, yearInCycle, element, gender, animal].
+#[cfg(feature = "calendar-traditions")]
+#[napi(js_name = "tibetanYearName")]
+pub fn tibetan_year_name(year: i32) -> Vec<String> {
+    let (c, yic, el, ge, an) = celestial::tibetan_year_name(year);
+    vec![
+        c.to_string(),
+        yic.to_string(),
+        el.to_string(),
+        ge.to_string(),
+        an.to_string(),
+    ]
 }

@@ -171,6 +171,7 @@ fn bench_rise_set() {
     });
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn bench_sabbats_esbats() {
     println!("\n=== High-level: Sabbats & Esbats ===");

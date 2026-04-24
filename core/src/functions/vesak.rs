@@ -239,7 +239,7 @@ pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
         jd += 25.0; // advance ~one lunar cycle
     }
 
-    days.sort_by(|a, b| a.jd.partial_cmp(&b.jd).unwrap());
+    days.sort_by(|a, b| a.jd.total_cmp(&b.jd));
     days.dedup_by(|a, b| (a.jd - b.jd).abs() < 3.0);
     days
 }

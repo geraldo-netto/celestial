@@ -392,3 +392,58 @@ $fm    = next_full_moon($jd);     // same as next_full_moon_after()
 $cross = solcross_ut(0.0, $jd, FLG_BUILTIN); // vernal equinox JD
 ```
 
+## Recent additions — 19 new functions
+
+### ISO 8601 week
+
+```php
+[$iso_year, $week] = iso_week(2456293.0);      // [2012, 52]
+$dow               = day_of_year(2024, 3, 15);
+$wks               = weeks_in_iso_year(2020);  // 53
+```
+
+### Maya Long Count
+
+```php
+[$b, $k, $t, $u, $ki] = maya_long_count(2456283.0);  // [13, 0, 0, 0, 0]
+$s                     = maya_long_count_str(2451545.0); // "12.19.6.15.2"
+```
+
+### Yallop crescent visibility
+
+```php
+$jd_best            = best_time_method($jd_sunset, $jd_moonset);
+[$q, $class_code]   = yallop_q($arcv_deg, $arcl_deg, $sd_arcmin);
+$class              = chr((int) $class_code);   // 'A'..'F'
+```
+
+### Coptic / Ethiopic (feature: `calendar-traditions`)
+
+```php
+$jd             = coptic_to_jd(1740, 1, 1);
+[$y, $m, $d]    = jd_to_coptic($jd);
+$is_leap        = is_coptic_leap_year(1739);    // true
+$days           = coptic_month_days(1739, 13);  // 6
+```
+
+### Zoroastrian Fasli (feature: `calendar-traditions`)
+
+```php
+$jd_nowruz = fasli_nowruz_jd(2024);   // float|null
+$date      = jd_to_fasli(2460400.0);  // [int, int, int]|null
+```
+
+### Tibetan Phugpa (feature: `calendar-traditions`)
+
+```php
+$jd_losar                             = losar_jd(2024);
+[$cycle, $yic, $el, $gender, $animal] = tibetan_year_name(2024);
+// ["17", "38", "Wood", "Male", "Dragon"]
+```
+
+### Vietnamese Âm Lịch
+
+```php
+$jd_month_start = vietnamese_month_start_jd(2460000.0);
+$diverges       = vietnamese_chinese_boundary_differs(2460000.0);
+```

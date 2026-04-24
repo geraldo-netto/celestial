@@ -290,3 +290,69 @@ crate or `core/`:
 | `binding-parity` | `bindings/**`, `xtask/**` | parity check → test-stubs validation |
 
 See [`.github/workflows/`](../.github/workflows/) for the full YAML.
+
+---
+
+## Feature flags (`celestial-core`)
+
+`celestial-core` uses Cargo feature flags to keep the default build full-featured
+while allowing minimal builds (e.g. WASM, embedded, pure-astronomy tools) to opt out
+of large optional modules.
+
+| Feature | Default | What it adds | Size impact |
+|---|---|---|---|
+| `timezone` | ✓ | IANA timezone abbreviation table (203 entries, `TZ_TABLE`, `tz_abbr_find`) | ~1 400 lines |
+| `calendar-traditions` | ✓ | Jewish, Omer, Easter, Islamic, Nowruz/Bahá'í, Vesak, Sabbats & Esbats, Coptic/Ethiopic, Zoroastrian Fasli, Tibetan Phugpa | ~2 900 lines |
+
+### Usage
+
+```toml
+# Default — all features on (recommended for CLI and language bindings):
+celestial-core = { path = "../core" }
+
+# Minimal — pure astronomical calculations only (planets, houses, eclipses, aspects):
+celestial-core = { path = "../core", default-features = false }
+
+# Minimal + timezone lookup only:
+celestial-core = { path = "../core", default-features = false, features = ["timezone"] }
+
+# Minimal + religious calendars only:
+celestial-core = { path = "../core", default-features = false, features = ["calendar-traditions"] }
+```
+
+### What's always included (no feature flag)
+
+The astronomy core is always compiled regardless of features:
+
+- **Calculations**: `calc`, `calc_ut`, `calc_many`, `fixstar_ut`
+- **Houses**: `houses`, `houses_ex`, `houses_armc`, all house systems
+- **Positions & motion**: `position`, `speed`, `retrograde_station_ut`, `next_aspect`
+- **Moon**: `moon_phase`, `moon_phase_info`, `moon_phases_for_month`, `moon_illumination`
+- **Eclipses**: `sol_eclipse_when_glob`, `lun_eclipse_when`, `sol_eclipse_how`
+- **Vedic**: `ayanamsa`, `long_to_nakshatra`, `vimshottari_dasha`, `panchanga`
+- **Hellenistic**: `full_dignity`, `almuten`, `annual_profection`, `firdaria`
+- **Geo / utils**: `norm_deg`, `diff_deg_signed`, `lon_to_sign`, `azalt`, `refrac`
+- **Time**: `julday`, `revjul`, `jdnow`, `deltat`, `sidereal_time`
+- **ISO 8601 week**: `iso_week`, `day_of_year`, `weeks_in_iso_year`
+- **Maya Long Count**: `maya_long_count`, `maya_long_count_str`
+- **Yallop crescent visibility**: `yallop_q`, `best_time_method`
+- **Vietnamese Âm Lịch**: `vietnamese_month_start_jd`, `vietnamese_chinese_boundary_differs`
+
+
+
+## xtask — developer automation
+
+```bash
+cargo xtask parity          # Check Python / JS / PHP bindings expose identical fn sets
+cargo xtask codegen         # Preview stubs for functions missing from bindings
+cargo xtask codegen --apply # Write the generated stubs into each binding
+cargo xtask stubs           # Regenerate bindings/php/phpstan-stubs.php
+cargo xtask test-stubs      # Validate phpstan-stubs.php for PHP 8.0 syntax
+cargo xtask pyi             # Regenerate bindings/python/.../celestial_py.pyi
+cargo xtask pyi --check     # Verify .pyi is up-to-date (CI gate)
+cargo xtask dts             # Regenerate bindings/js/index.d.ts
+cargo xtask dts --check     # Verify .d.ts is up-to-date (CI gate)
+```
+
+The `--check` variants exit non-zero if the generated file is out of sync,
+so CI catches stale stubs before merge.

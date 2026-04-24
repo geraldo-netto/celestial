@@ -1813,7 +1813,7 @@ fn test_vedic_dasha_panchanga(n: u32) -> Suite {
     }
 
     for _ in 0..n / 5 {
-        let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
+        let _jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0); // reserved for future use
         let graha = (rng.next_u64() % 7) as i32; // 0-6
         let sputha = rng.range_f64(0.0, 360.0);
         if let Some(v) = ochchabala(graha, sputha) {
@@ -2415,6 +2415,429 @@ fn test_indigenous(n: u32) -> Suite {
     s
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ISO 8601 week number
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn test_iso_week(n: u32) -> Suite {
+    use celestial_core::{day_of_week, day_of_year, iso_week, julday, weeks_in_iso_year};
+    let mut s = Suite::new("iso_week");
+    let mut rng = Xorshift64::new(0x1501_001);
+
+    for _ in 0..n {
+        let year = rng.range_i32(1800, 2300);
+        let month = rng.range_i32(1, 13) as u32;
+        let day_max = match month {
+            1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+            4 | 6 | 9 | 11 => 30,
+            _ => 28, // avoid leap edge cases
+        };
+        let day = (rng.range_i32(1, day_max + 1)) as u32;
+        let jd = julday(year, month as i32, day as i32, 12.0, Calendar::Gregorian);
+
+        // day_of_year must be 1..=366
+        let doy = day_of_year(year, month, day);
+        s.check(doy >= 1 && doy <= 366, || {
+            format!("doy={doy} for {year}-{month}-{day}")
+        });
+
+        // iso_week: week must be 1..=53, iso_year within ±1 of calendar year
+        let (iy, wk) = iso_week(jd);
+        s.check(wk >= 1 && wk <= 53, || {
+            format!("wk={wk} for {year}-{month}-{day}")
+        });
+        s.check((iy - year).abs() <= 1, || {
+            format!("iso_year={iy} vs year={year}")
+        });
+
+        // weeks_in_iso_year must be 52 or 53
+        let w = weeks_in_iso_year(year);
+        s.check(w == 52 || w == 53, || format!("weeks_in_year({year})={w}"));
+
+        // day_of_week sanity
+        let dow = day_of_week(jd);
+        s.check(dow >= 0 && dow <= 6, || format!("dow={dow}"));
+    }
+
+    // Known anchors: 2024-01-01 is a Monday in ISO week 2024-W1
+    {
+        let jd = julday(2024, 1, 1, 12.0, Calendar::Gregorian);
+        let (iy, wk) = iso_week(jd);
+        s.check(iy == 2024 && wk == 1, || {
+            format!("2024-01-01 → ({iy}, {wk})")
+        });
+    }
+    // 2023-01-01 Sunday → 2022-W52
+    {
+        let jd = julday(2023, 1, 1, 12.0, Calendar::Gregorian);
+        let (iy, wk) = iso_week(jd);
+        s.check(iy == 2022 && wk == 52, || {
+            format!("2023-01-01 → ({iy}, {wk})")
+        });
+    }
+
+    s
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Maya Long Count
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn test_maya_long_count(n: u32) -> Suite {
+    use celestial_core::{maya_long_count, maya_long_count_str};
+    let mut s = Suite::new("maya_long_count");
+    let mut rng = Xorshift64::new(0x1502_002);
+
+    for _ in 0..n {
+        // Plausible JD range (1 AD through ~3000 AD)
+        let jd = rng.range_f64(1_721_423.5, 2_816_787.5);
+
+        let (b, k, t, u, ki) = maya_long_count(jd);
+        // Field ranges: kin 0..20, uinal 0..18, tun 0..20, katun 0..20, baktun unbounded
+        s.check(ki < 20, || format!("kin={ki}"));
+        s.check(u < 18, || format!("uinal={u}"));
+        s.check(t < 20, || format!("tun={t}"));
+        s.check(k < 20, || format!("katun={k}"));
+
+        // Dotted string must contain exactly 4 dots and 5 numeric segments
+        let str_form = maya_long_count_str(jd);
+        let parts: Vec<&str> = str_form.split('.').collect();
+        s.check(parts.len() == 5, || format!("str=\"{str_form}\""));
+        for p in &parts {
+            s.check(
+                !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()),
+                || format!("bad segment \"{p}\" in \"{str_form}\""),
+            );
+        }
+
+        // Two JDs one day apart should differ by exactly 1 kin (mod rollover)
+        let (_, _, _, _, ki2) = maya_long_count(jd + 1.0);
+        // ki2 = (ki + 1) mod 20
+        let expected = (ki + 1) % 20;
+        s.check(ki2 == expected, || {
+            format!("day+1 kin: {ki}→{ki2} (expected {expected})")
+        });
+    }
+
+    // Known anchors
+    // 2012-12-21 = 13.0.0.0.0
+    let (b, k, t, u, ki) = maya_long_count(2_456_283.0);
+    s.check((b, k, t, u, ki) == (13, 0, 0, 0, 0), || {
+        format!("2012-12-21: got ({b},{k},{t},{u},{ki})")
+    });
+    // J2000 = 12.19.6.15.2
+    let (b, k, t, u, ki) = maya_long_count(2_451_545.0);
+    s.check((b, k, t, u, ki) == (12, 19, 6, 15, 2), || {
+        format!("J2000: got ({b},{k},{t},{u},{ki})")
+    });
+
+    s
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Yallop crescent visibility
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn test_yallop(n: u32) -> Suite {
+    use celestial_core::{best_time_method, yallop_q};
+    let mut s = Suite::new("yallop");
+    let mut rng = Xorshift64::new(0x1503_003);
+
+    for _ in 0..n {
+        // Plausible ranges for crescent observation
+        let arcv = rng.range_f64(-15.0, 30.0); // altitude difference
+        let arcl = rng.range_f64(0.0, 30.0); // elongation
+        let sd = rng.range_f64(14.5, 16.5); // lunar semi-diameter in arcmin
+
+        let (q, code) = yallop_q(arcv, arcl, sd);
+
+        // q must be finite
+        s.check(q.is_finite(), || {
+            format!("q is not finite: {q} for ({arcv},{arcl},{sd})")
+        });
+
+        // code must be in A..F
+        s.check(matches!(code, 'A' | 'B' | 'C' | 'D' | 'E' | 'F'), || {
+            format!("bad code {code} for ({arcv},{arcl},{sd})")
+        });
+
+        // Monotonicity: increasing ARCV (holding ARCL, SD fixed) must not
+        // decrease q
+        let (q_lo, _) = yallop_q(arcv, arcl, sd);
+        let (q_hi, _) = yallop_q(arcv + 1.0, arcl, sd);
+        s.check(q_hi >= q_lo - 1e-9, || {
+            format!("non-monotonic: q({arcv})={q_lo} q({})={q_hi}", arcv + 1.0)
+        });
+    }
+
+    // best_time_method: must fall between sunset and moonset, closer to moonset
+    for _ in 0..n {
+        let ss = rng.range_f64(2_451_545.0, 2_460_000.0);
+        let ms = ss + rng.range_f64(0.001, 0.2); // moonset 0.02..5h after sunset
+        let bt = best_time_method(ss, ms);
+        s.check(bt >= ss && bt <= ms, || {
+            format!("bt={bt} outside [ss={ss}, ms={ms}]")
+        });
+        // 4/9 of the way — closer to sunset than to moonset
+        let mid = (ss + ms) / 2.0;
+        s.check(bt < mid, || {
+            format!("best_time not biased toward sunset: bt={bt} mid={mid}")
+        });
+    }
+
+    s
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Coptic / Ethiopic
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn test_coptic(n: u32) -> Suite {
+    use celestial_core::{
+        coptic_month_days, coptic_to_jd, ethiopic_to_jd, is_coptic_leap_year, jd_to_coptic,
+        jd_to_ethiopic,
+    };
+    let mut s = Suite::new("coptic");
+    let mut rng = Xorshift64::new(0x1504_004);
+
+    for _ in 0..n {
+        let year = rng.range_i32(1, 3000);
+        let month = rng.range_i32(1, 13) as u32;
+        let max_d = coptic_month_days(year, month);
+        if max_d == 0 {
+            continue;
+        }
+        let day = (rng.range_i32(1, max_d as i32 + 1)) as u32;
+
+        // Roundtrip Coptic
+        let jd = coptic_to_jd(year, month, day);
+        let (y2, m2, d2) = jd_to_coptic(jd);
+        s.check((y2, m2, d2) == (year, month, day), || {
+            format!("coptic roundtrip failed: ({year},{month},{day}) → ({y2},{m2},{d2})")
+        });
+
+        // Roundtrip Ethiopic
+        let jd_e = ethiopic_to_jd(year, month, day);
+        let (y3, m3, d3) = jd_to_ethiopic(jd_e);
+        s.check((y3, m3, d3) == (year, month, day), || {
+            format!("ethiopic roundtrip failed: ({year},{month},{day}) → ({y3},{m3},{d3})")
+        });
+
+        // Ethiopic is 276 years behind Coptic for the same absolute date
+        let offset = (coptic_to_jd(year, month, day) - ethiopic_to_jd(year, month, day)).abs();
+        s.check(offset > 100_000.0, || {
+            format!("coptic/ethiopic epoch gap too small: {offset}")
+        });
+    }
+
+    // Leap-year structure
+    for y in 1..=100 {
+        let expected = y % 4 == 3;
+        s.check(is_coptic_leap_year(y) == expected, || {
+            format!("leap({y}) = {} expected {expected}", is_coptic_leap_year(y))
+        });
+        // Month 13 days: 5 normally, 6 in leap years
+        let d13 = coptic_month_days(y, 13);
+        s.check(d13 == if expected { 6 } else { 5 }, || {
+            format!(
+                "month13 days for year {y}: {d13} expected {}",
+                if expected { 6 } else { 5 }
+            )
+        });
+    }
+
+    // Out-of-range month → 0 days
+    s.check(coptic_month_days(1, 0) == 0, || {
+        "month 0 should be 0 days".into()
+    });
+    s.check(coptic_month_days(1, 14) == 0, || {
+        "month 14 should be 0 days".into()
+    });
+
+    s
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Zoroastrian Fasli
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn test_fasli(_n: u32) -> Suite {
+    use celestial_core::{fasli_nowruz_jd, jd_to_fasli};
+    let mut s = Suite::new("fasli");
+
+    // Nowruz should always fall in March 19-21 range (astronomically)
+    for year in (1910..=2100).step_by(10) {
+        if let Some(jd) = fasli_nowruz_jd(year) {
+            let d = celestial_core::revjul(jd, Calendar::Gregorian);
+            s.check(d.year == year, || format!("year mismatch: got {}", d.year));
+            s.check(d.month == 3, || format!("month not 3: got {}", d.month));
+            s.check(d.day >= 19 && d.day <= 21, || {
+                format!("day {} outside 19-21 for year {year}", d.day)
+            });
+        }
+    }
+
+    // Before 1906 → None
+    let jd_1905 = celestial_core::julday(1905, 3, 21, 12.0, Calendar::Gregorian);
+    s.check(jd_to_fasli(jd_1905).is_none(), || {
+        "jd_to_fasli before 1906 should be None".into()
+    });
+
+    // Shortly after Nowruz 1906 should map to Fasli year 1
+    if let Some(nowruz_1906) = fasli_nowruz_jd(1906) {
+        if let Some((fy, m, d)) = jd_to_fasli(nowruz_1906 + 0.5) {
+            s.check(fy == 1, || format!("fasli year 1906: got {fy}"));
+            s.check(m == 1, || format!("month 1: got {m}"));
+            s.check(d >= 1 && d <= 2, || format!("day: got {d}"));
+        } else {
+            s.check(false, || "jd_to_fasli at Nowruz 1906 returned None".into());
+        }
+    }
+
+    s
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tibetan
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn test_tibetan(n: u32) -> Suite {
+    use celestial_core::tibetan_year_name;
+    let mut s = Suite::new("tibetan");
+    let mut rng = Xorshift64::new(0x1506_006);
+
+    const VALID_ELEMENTS: [&str; 5] = ["Wood", "Fire", "Earth", "Iron", "Water"];
+    const VALID_GENDERS: [&str; 2] = ["Male", "Female"];
+    const VALID_ANIMALS: [&str; 12] = [
+        "Mouse", "Ox", "Tiger", "Rabbit", "Dragon", "Snake", "Horse", "Sheep", "Monkey", "Bird",
+        "Dog", "Pig",
+    ];
+
+    for _ in 0..n {
+        let year = rng.range_i32(500, 3000); // include pre-Rabjung years
+        let (cycle, yic, element, gender, animal) = tibetan_year_name(year);
+
+        s.check(cycle < 100, || format!("cycle={cycle} for year {year}"));
+        s.check(yic >= 1 && yic <= 60, || {
+            format!("yic={yic} for year {year}")
+        });
+        s.check(VALID_ELEMENTS.contains(&element), || {
+            format!("bad element {element}")
+        });
+        s.check(VALID_GENDERS.contains(&gender), || {
+            format!("bad gender {gender}")
+        });
+        s.check(VALID_ANIMALS.contains(&animal), || {
+            format!("bad animal {animal}")
+        });
+
+        // Successive years: animal cycles through 12, element through 5 (pair-wise)
+        let (_, _, _, gender2, animal2) = tibetan_year_name(year + 1);
+        s.check(gender2 != gender, || {
+            format!("gender should flip year→year+1")
+        });
+        s.check(animal2 != animal, || {
+            format!("animal should change year→year+1")
+        });
+
+        // After 60 years, everything wraps
+        let (_c3, _yic3, element3, gender3, animal3) = tibetan_year_name(year + 60);
+        s.check(element3 == element, || {
+            format!("element should repeat after 60y")
+        });
+        s.check(gender3 == gender, || {
+            format!("gender should repeat after 60y")
+        });
+        s.check(animal3 == animal, || {
+            format!("animal should repeat after 60y")
+        });
+    }
+
+    // Known: 2024 = Wood Dragon Male, Rabjung 17 year 38
+    let (c, yic, el, ge, an) = tibetan_year_name(2024);
+    s.check(
+        (c, yic, el, ge, an) == (17, 38, "Wood", "Male", "Dragon"),
+        || format!("2024: ({c},{yic},{el},{ge},{an})"),
+    );
+
+    s
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Vietnamese Âm Lịch
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn test_vietnamese(n: u32) -> Suite {
+    use celestial_core::{
+        vietnamese_chinese_boundary_differs, vietnamese_month_start_jd, CHINA_TZ_OFFSET_HOURS,
+        VIETNAM_TZ_OFFSET_HOURS,
+    };
+    let mut s = Suite::new("vietnamese");
+    let mut rng = Xorshift64::new(0x1507_007);
+
+    // Timezone constants
+    s.check(
+        (CHINA_TZ_OFFSET_HOURS - VIETNAM_TZ_OFFSET_HOURS - 1.0).abs() < 1e-9,
+        || {
+            format!(
+                "TZ offsets differ by {} not 1.0",
+                CHINA_TZ_OFFSET_HOURS - VIETNAM_TZ_OFFSET_HOURS
+            )
+        },
+    );
+
+    for _ in 0..n {
+        // Test across a wide JD range
+        let jd = rng.range_f64(2_440_000.0, 2_480_000.0);
+
+        // Boundary differs is deterministic per JD
+        let b1 = vietnamese_chinese_boundary_differs(jd);
+        let b2 = vietnamese_chinese_boundary_differs(jd);
+        s.check(b1 == b2, || {
+            "boundary_differs should be deterministic".into()
+        });
+
+        // JDs exactly 24 hours apart → same answer (same "rotational position")
+        let b3 = vietnamese_chinese_boundary_differs(jd + 1.0);
+        s.check(b1 == b3, || {
+            "boundary_differs should be 1-day periodic".into()
+        });
+
+        // Distribution check: expect ~4% of random JDs to differ (1h/24h)
+        // (checked in aggregate below)
+    }
+
+    // Aggregate: over many random JDs, ~4% should have divergent civil days
+    let sample = 5000;
+    let mut diff_count = 0;
+    for _ in 0..sample {
+        let jd = rng.range_f64(2_450_000.0, 2_460_000.0);
+        if vietnamese_chinese_boundary_differs(jd) {
+            diff_count += 1;
+        }
+    }
+    let ratio = diff_count as f64 / sample as f64;
+    // Expected ratio = 1/24 ≈ 0.0417; allow 2× range for randomness
+    s.check(ratio > 0.02 && ratio < 0.08, || {
+        format!("boundary_differs ratio = {ratio:.3} (expected ~0.042)")
+    });
+
+    // Month start for several test JDs: result (if Some) should be ≤ input
+    for _ in 0..(n / 10) {
+        let jd = rng.range_f64(2_455_000.0, 2_465_000.0);
+        if let Some(ms) = vietnamese_month_start_jd(jd) {
+            // Allow sub-day tolerance for JDs near a new-moon boundary
+            s.check(ms <= jd + 1.0, || format!("month_start {ms} > jd+1 {jd}"));
+            // And within 32 days of the input (lunar month is ~29.5d)
+            s.check((jd - ms).abs() < 32.0, || {
+                format!("month_start too far from input: {}", jd - ms)
+            });
+        }
+    }
+
+    s
+}
+
 fn main() {
     const N: u32 = 2_000; // iterations per group
 
@@ -2445,6 +2868,13 @@ fn main() {
         ("tz_table", test_tz_table(N).report()),
         ("sabbats", test_sabbats(N).report()),
         ("esbats", test_esbats(N).report()),
+        ("iso_week", test_iso_week(N).report()),
+        ("maya_long_count", test_maya_long_count(N).report()),
+        ("yallop", test_yallop(N).report()),
+        ("coptic", test_coptic(N).report()),
+        ("fasli", test_fasli(N / 50).report()),
+        ("tibetan", test_tibetan(N).report()),
+        ("vietnamese", test_vietnamese(N).report()),
         ("polar_houses", test_polar_houses(N).report()),
         ("ancient_future", test_ancient_future_dates(N).report()),
         ("equatorial_mode", test_equatorial_mode(N).report()),

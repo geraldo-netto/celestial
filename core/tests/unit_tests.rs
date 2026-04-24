@@ -1473,6 +1473,7 @@ mod moon_and_calendar_tests {
         assert!(!name.is_empty(), "phase name should not be empty");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn moon_phase_full_moon_is_full() {
         // Known full moon: 2000-02-19 ≈ JD 2451594.5
@@ -1487,6 +1488,7 @@ mod moon_and_calendar_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn moon_illumination_range() {
         for offset in [0.0, 7.4, 14.8, 22.1] {
@@ -1500,6 +1502,7 @@ mod moon_and_calendar_tests {
 
     // ── calc_many ─────────────────────────────────────────────────────────────
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn calc_many_order_matches_input() {
         let bodies = [
@@ -1528,6 +1531,7 @@ mod moon_and_calendar_tests {
         }
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn calc_many_empty_returns_empty() {
         let results = calc_ut_many(JD, &[], CalcFlags::BUILTIN);
@@ -1536,6 +1540,7 @@ mod moon_and_calendar_tests {
 
     // ── Easter / Christian ────────────────────────────────────────────────────
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn easter_gregorian_2025() {
         // Easter 2025 = April 20
@@ -1543,6 +1548,7 @@ mod moon_and_calendar_tests {
         assert_eq!((m, d), (4, 20), "Easter 2025 should be April 20");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn easter_gregorian_known_dates() {
         // A few well-known Easter dates
@@ -1557,6 +1563,7 @@ mod moon_and_calendar_tests {
         }
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn easter_orthodox_differs_from_gregorian() {
         // Orthodox Easter often falls on a different date
@@ -1572,6 +1579,7 @@ mod moon_and_calendar_tests {
 
     // ── Islamic / Hijri ───────────────────────────────────────────────────────
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn hijri_from_jd_j2000() {
         // J2000.0 = 2000-01-01 Gregorian = ~1420 AH Ramadan
@@ -1584,6 +1592,7 @@ mod moon_and_calendar_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn hijri_roundtrip() {
         let (year, month, day) = hijri_from_jd(JD);
@@ -1597,6 +1606,7 @@ mod moon_and_calendar_tests {
 
     // ── Nowruz / Persian ──────────────────────────────────────────────────────
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn nowruz_jd_lands_in_march() {
         let jd = nowruz_jd(2025);
@@ -1610,6 +1620,7 @@ mod moon_and_calendar_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn nowruz_jd_advances_each_year() {
         let jd2024 = nowruz_jd(2024);
@@ -1631,6 +1642,7 @@ mod calendar_deep_tests {
 
     // ── Easter / Christian ────────────────────────────────────────────────────
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn christian_feasts_count_is_nonzero() {
         let feasts = christian_feasts(2025);
@@ -1640,6 +1652,7 @@ mod calendar_deep_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn christian_fixed_feasts_includes_christmas() {
         let feasts = christian_fixed_feasts(2025);
@@ -1649,6 +1662,7 @@ mod calendar_deep_tests {
         assert_eq!((c.month, c.day), (12, 25), "Christmas should be Dec 25");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn easter_jd_matches_gregorian() {
         let jd = easter_jd(2025);
@@ -1663,6 +1677,7 @@ mod calendar_deep_tests {
 
     // ── Hebrew calendar ────────────────────────────────────────────────────────
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn hebrew_year_from_jd_j2000() {
         // J2000 = 2000-01-01 = 5760 AM
@@ -1670,6 +1685,7 @@ mod calendar_deep_tests {
         assert_eq!(year, 5760, "J2000 Hebrew year should be 5760, got {year}");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn jd_to_hebrew_date_roundtrip() {
         // Convert J2000 to Hebrew date and check it's in 5760 AM
@@ -1682,6 +1698,7 @@ mod calendar_deep_tests {
         assert!(day >= 1 && day <= 30, "Hebrew day {day} out of range 1-30");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn jewish_holidays_has_rosh_hashanah() {
         let holidays = jewish_holidays(5785);
@@ -1691,6 +1708,7 @@ mod calendar_deep_tests {
 
     // ── Islamic calendar ──────────────────────────────────────────────────────
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn hijri_month_name_ramadan() {
         let name = hijri_month_name(9);
@@ -1700,6 +1718,7 @@ mod calendar_deep_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn hijri_month_roundtrip_12_months() {
         // Step through 12 consecutive months and verify each roundtrips cleanly
@@ -1714,6 +1733,7 @@ mod calendar_deep_tests {
         }
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn islamic_observances_contains_ramadan() {
         let obs = islamic_observances(1446);
@@ -1726,6 +1746,7 @@ mod calendar_deep_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn gregorian_to_hijri_years_j2000() {
         let (y1, y2) = gregorian_to_hijri_years(2000);
@@ -1735,6 +1756,7 @@ mod calendar_deep_tests {
 
     // ── Nowruz / Persian / Bahá'í ─────────────────────────────────────────────
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn gregorian_to_solar_hijri_j2000() {
         // gregorian_to_solar_hijri returns the Solar Hijri year that starts in that Gregorian year
@@ -1757,6 +1779,7 @@ mod calendar_deep_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn jd_to_bahai_j2000() {
         let b = jd_to_bahai(JD);
@@ -1767,6 +1790,7 @@ mod calendar_deep_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn bahai_holy_days_nonempty() {
         let days = bahai_holy_days(157);
@@ -1782,6 +1806,7 @@ mod calendar_deep_tests {
 
     // ── Omer ──────────────────────────────────────────────────────────────────
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn omer_start_jd_after_passover() {
         let jd = omer_start_jd(5785);
@@ -1798,6 +1823,7 @@ mod calendar_deep_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn omer_day_jd_day1_matches_start() {
         let start = omer_start_jd(5785);
@@ -1808,12 +1834,14 @@ mod calendar_deep_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn omer_days_count_is_49() {
         let days = omer_days(5785);
         assert_eq!(days.len(), 49, "Omer has exactly 49 days");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn omer_declaration_day33_mentions_count() {
         let decl = omer_declaration(33);
@@ -1825,6 +1853,7 @@ mod calendar_deep_tests {
 
     // ── Vesak / Buddhist ─────────────────────────────────────────────────────
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn vesak_jd_is_in_april_or_may() {
         let jd = vesak_jd(2025);
@@ -1836,6 +1865,7 @@ mod calendar_deep_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn uposatha_days_count() {
         let days = uposatha_days(2025);
@@ -1995,6 +2025,7 @@ mod moon_phase_tests {
 }
 
 // ── Islamic calendar helpers ──────────────────────────────────────────────────
+#[cfg(feature = "calendar-traditions")]
 mod islamic_helper_tests {
     use celestial_core::*;
 
@@ -2009,6 +2040,7 @@ mod islamic_helper_tests {
         }
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn hijri_month_days_sums_to_year_length() {
         let total: u32 = (1..=12u8).map(|m| hijri_month_days(1446, m) as u32).sum();
@@ -2016,6 +2048,7 @@ mod islamic_helper_tests {
         assert!(total == 354 || total == 355, "1446 AH total days: {total}");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn hijri_new_year_jd_in_correct_gregorian_year() {
         // 1446 AH new year fell in July 2024
@@ -2033,6 +2066,7 @@ mod islamic_helper_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn hijri_month_start_advances_by_month_days() {
         let start1 = hijri_month_start_jd(1446, 1);
@@ -2044,6 +2078,7 @@ mod islamic_helper_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn is_hijri_leap_year_correct_cycle() {
         // In a 30-year Hijri cycle, years 2,5,7,10,13,16,18,21,24,26,29 are leap
@@ -2061,6 +2096,7 @@ mod islamic_helper_tests {
         }
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn islamic_observances_for_jd_returns_observances() {
         // Ramadan 1446 started around March 1 2025 — JD ~2460735
@@ -2075,6 +2111,7 @@ mod islamic_helper_tests {
 }
 
 // ── Hebrew calendar helpers ───────────────────────────────────────────────────
+#[cfg(feature = "calendar-traditions")]
 mod hebrew_helper_tests {
     use celestial_core::*;
 
@@ -2169,6 +2206,7 @@ mod hebrew_helper_tests {
 }
 
 // ── Omer helpers ──────────────────────────────────────────────────────────────
+#[cfg(feature = "calendar-traditions")]
 mod omer_helper_tests {
     use celestial_core::*;
 
@@ -2183,6 +2221,7 @@ mod omer_helper_tests {
         );
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn omer_from_jd_during_omer_returns_some() {
         let start = omer_start_jd(5785);
@@ -2194,6 +2233,7 @@ mod omer_helper_tests {
         assert!(d.day >= 1 && d.day <= 49, "day {} out of 1-49", d.day);
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn omer_from_jd_outside_omer_returns_none() {
         let start = omer_start_jd(5785);
@@ -2204,6 +2244,7 @@ mod omer_helper_tests {
         assert!(omer_from_jd(after).is_none(), "after Omer should be None");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn omer_from_jd_day_33_is_lag_baomer() {
         let start = omer_start_jd(5785);
@@ -2216,6 +2257,7 @@ mod omer_helper_tests {
 }
 
 // ── Nowruz / Bahá'í helpers ───────────────────────────────────────────────────
+#[cfg(feature = "calendar-traditions")]
 mod nowruz_bahai_tests {
     use celestial_core::body::Calendar;
     use celestial_core::*;
@@ -2245,6 +2287,7 @@ mod nowruz_bahai_tests {
         }
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn solar_hijri_to_gregorian_1403_is_2024() {
         // 1403 SH started March 20 2024
@@ -2252,6 +2295,7 @@ mod nowruz_bahai_tests {
         assert_eq!(greg, 2024, "1403 SH should start in 2024, got {greg}");
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn solar_hijri_gregorian_roundtrip() {
         for g_year in 2000..2030 {
@@ -2266,6 +2310,7 @@ mod nowruz_bahai_tests {
 }
 
 // ── Easter ────────────────────────────────────────────────────────────────────
+#[cfg(feature = "calendar-traditions")]
 mod easter_extra_tests {
     use celestial_core::body::Calendar;
     use celestial_core::*;
@@ -2281,6 +2326,7 @@ mod easter_extra_tests {
         }
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn easter_orthodox_jd_matches_orthodox_gregorian() {
         // easter_orthodox_jd should agree with easter_orthodox date
@@ -2389,6 +2435,7 @@ mod search_helper_tests {
 }
 
 // ── Vesak moon helpers ────────────────────────────────────────────────────────
+#[cfg(feature = "calendar-traditions")]
 mod vesak_moon_tests {
     use celestial_core::*;
 
@@ -2443,6 +2490,7 @@ mod calc_many_test {
         }
     }
 
+    #[cfg(feature = "calendar-traditions")]
     #[test]
     fn calc_many_empty_slice() {
         let result = calc_many(JD, &[], CalcFlags::BUILTIN);

@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 name       = "celestial"
 
 [dependencies]
-celestial-core = { path = "../../core" }
+celestial-core = { path = "../../core", features = ["default"] }
 ext-php-rs  = "0.13"
 
 # ── Build note ──────────────────────────────────────────────────────────────────

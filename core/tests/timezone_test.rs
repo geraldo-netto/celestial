@@ -1,3 +1,4 @@
+#![cfg(feature = "timezone")]
 //! Tests for the database, geographic atlas, and timezone modules.
 
 use celestial_core::*;

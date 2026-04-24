@@ -2407,3 +2407,132 @@ pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Additions: ISO week, Maya Long Count, Yallop, Coptic, Zoroastrian, Tibetan,
+// Vietnamese
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// ISO 8601 week number as [iso_year, week].
+#[php_function]
+pub fn iso_week(jd: f64) -> Vec<i64> {
+    let (y, w) = celestial::iso_week(jd);
+    vec![y as i64, w as i64]
+}
+
+#[php_function]
+pub fn day_of_year(year: i64, month: i64, day: i64) -> i64 {
+    celestial::day_of_year(year as i32, month as u32, day as u32) as i64
+}
+
+#[php_function]
+pub fn weeks_in_iso_year(year: i64) -> i64 {
+    celestial::weeks_in_iso_year(year as i32) as i64
+}
+
+/// Maya Long Count as [baktun, katun, tun, uinal, kin].
+#[php_function]
+pub fn maya_long_count(jd: f64) -> Vec<i64> {
+    let (b, k, t, u, ki) = celestial::maya_long_count(jd);
+    vec![b as i64, k as i64, t as i64, u as i64, ki as i64]
+}
+
+#[php_function]
+pub fn maya_long_count_str(jd: f64) -> String {
+    celestial::maya_long_count_str(jd)
+}
+
+/// Yallop crescent q-value and class ASCII code as [q, class_code].
+#[php_function]
+pub fn yallop_q(arcv_deg: f64, arcl_deg: f64, sd_arcmin: f64) -> Vec<f64> {
+    let (q, c) = celestial::yallop_q(arcv_deg, arcl_deg, sd_arcmin);
+    vec![q, c as u32 as f64]
+}
+
+#[php_function]
+pub fn best_time_method(jd_sunset: f64, jd_moonset: f64) -> f64 {
+    celestial::best_time_method(jd_sunset, jd_moonset)
+}
+
+#[php_function]
+pub fn vietnamese_month_start_jd(jd_ut: f64) -> Option<f64> {
+    celestial::vietnamese_month_start_jd(jd_ut)
+}
+
+#[php_function]
+pub fn vietnamese_chinese_boundary_differs(jd_ut: f64) -> bool {
+    celestial::vietnamese_chinese_boundary_differs(jd_ut)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[php_function]
+pub fn coptic_to_jd(year: i64, month: i64, day: i64) -> f64 {
+    celestial::coptic_to_jd(year as i32, month as u32, day as u32)
+}
+
+/// Coptic date [year, month, day].
+#[cfg(feature = "calendar-traditions")]
+#[php_function]
+pub fn jd_to_coptic(jd: f64) -> Vec<i64> {
+    let (y, m, d) = celestial::jd_to_coptic(jd);
+    vec![y as i64, m as i64, d as i64]
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[php_function]
+pub fn ethiopic_to_jd(year: i64, month: i64, day: i64) -> f64 {
+    celestial::ethiopic_to_jd(year as i32, month as u32, day as u32)
+}
+
+/// Ethiopic date [year, month, day].
+#[cfg(feature = "calendar-traditions")]
+#[php_function]
+pub fn jd_to_ethiopic(jd: f64) -> Vec<i64> {
+    let (y, m, d) = celestial::jd_to_ethiopic(jd);
+    vec![y as i64, m as i64, d as i64]
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[php_function]
+pub fn is_coptic_leap_year(year: i64) -> bool {
+    celestial::is_coptic_leap_year(year as i32)
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[php_function]
+pub fn coptic_month_days(year: i64, month: i64) -> i64 {
+    celestial::coptic_month_days(year as i32, month as u32) as i64
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[php_function]
+pub fn fasli_nowruz_jd(year: i64) -> Option<f64> {
+    celestial::fasli_nowruz_jd(year as i32)
+}
+
+/// Fasli date [fasli_year, month_index, day], or null.
+#[cfg(feature = "calendar-traditions")]
+#[php_function]
+pub fn jd_to_fasli(jd: f64) -> Option<Vec<i64>> {
+    celestial::jd_to_fasli(jd).map(|(y, m, d)| vec![y as i64, m as i64, d as i64])
+}
+
+#[cfg(feature = "calendar-traditions")]
+#[php_function]
+pub fn losar_jd(year: i64) -> Option<f64> {
+    celestial::losar_jd(year as i32)
+}
+
+/// Tibetan year [rabjung_cycle, year_in_cycle, element, gender, animal].
+#[cfg(feature = "calendar-traditions")]
+#[php_function]
+pub fn tibetan_year_name(year: i64) -> Vec<String> {
+    let (c, yic, el, ge, an) = celestial::tibetan_year_name(year as i32);
+    vec![
+        c.to_string(),
+        yic.to_string(),
+        el.to_string(),
+        ge.to_string(),
+        an.to_string(),
+    ]
+}

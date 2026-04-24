@@ -10,8 +10,8 @@ pub use crate::astronomy::houses::{HouseResult, HouseResultEx2};
 // ─── House functions ──────────────────────────────────────────────────────────
 
 /// Get the display name of a house system.
-pub fn house_name(hsys: HouseSystem) -> String {
-    crate::astronomy::house_name(hsys.as_raw()).to_string()
+pub fn house_name(hsys: HouseSystem) -> &'static str {
+    crate::astronomy::house_name(hsys.as_raw())
 }
 
 // ─── Pure-Rust dispatch ───────────────────────────────────────────────────────

@@ -377,7 +377,7 @@ pub fn jewish_holidays(hebrew_year: i32) -> Vec<JewishHoliday> {
         });
     }
 
-    out.sort_by(|a, b| a.jd.partial_cmp(&b.jd).unwrap());
+    out.sort_by(|a, b| a.jd.total_cmp(&b.jd));
     out
 }
 
