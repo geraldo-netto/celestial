@@ -48,70 +48,62 @@ pub fn next_retro(
 ) -> Option<RetroResult> {
     use crate::functions::calc::calc_ut;
 
-    // Bodies that don't retrograde
+    // Bodies that don't retrograde (Sun, Moon, Earth)
     if matches!(body.as_raw(), 0 | 1 | 14) {
         return None;
     }
 
     let step = approx_retro_time(body);
     let dir = if backward { -step } else { step };
+    let flags_with_speed = flags | CalcFlags::SPEED;
 
-    // Bracket search: find sign change in longitude speed
-    let speed_at = |jd: f64| -> Option<f64> {
-        calc_ut(jd, body, flags | CalcFlags::SPEED)
-            .ok()
-            .map(|p| p.speed_lon)
+    // `pos_at` returns the full PlanetPos so that the bisected endpoint can be
+    // extracted without a redundant calc_ut call at the end. Each calc_ut is
+    // expensive (VSOP87 trig expansion) and this saves one per successful search.
+    let pos_at = |jd: f64| calc_ut(jd, body, flags_with_speed).ok();
+    let to_arr = |p: &crate::PlanetPos| -> [f64; 6] {
+        [p.lon, p.lat, p.dist, p.speed_lon, p.speed_lat, p.speed_dist]
     };
 
     let mut jd = jd_start;
-    let max_jd = if stop_days > 0.0 {
-        jd_start + if backward { -stop_days } else { stop_days }
-    } else {
-        jd_start + if backward { -50_000.0 } else { 50_000.0 }
-    };
+    let max_jd = jd_start + if stop_days > 0.0 { stop_days } else { 50_000.0 } * dir.signum();
 
-    let mut s0 = speed_at(jd)?;
+    let mut s0 = pos_at(jd)?.speed_lon;
 
     loop {
         jd += dir;
-        if backward {
-            if jd < max_jd {
-                return None;
-            }
-        } else {
-            if jd > max_jd {
-                return None;
-            }
+        if (backward && jd < max_jd) || (!backward && jd > max_jd) {
+            return None;
         }
 
-        let s1 = speed_at(jd)?;
+        let p1 = pos_at(jd)?;
+        let s1 = p1.speed_lon;
+
         if s0 * s1 < 0.0 {
-            // Sign change — bisect
+            // Sign change found — bisect, carrying full PlanetPos alongside speed.
             let (mut ja, mut jb) = (jd - dir, jd);
+            let mut sa = s0;
+            let mut pm = p1;
             for _ in 0..50 {
                 let jm = (ja + jb) / 2.0;
-                let sm = speed_at(jm)?;
+                pm = pos_at(jm)?;
+                let sm = pm.speed_lon;
                 if sm.abs() < 1e-9 {
                     return Some(RetroResult {
                         jd: jm,
-                        pos: calc_ut(jm, body, flags)
-                            .ok()
-                            .map(|p| [p.lon, p.lat, p.dist, p.speed_lon, p.speed_lat, p.speed_dist])
-                            .unwrap_or([0.0; 6]),
+                        pos: to_arr(&pm),
                     });
                 }
-                if s0 * sm < 0.0 {
+                if sa * sm < 0.0 {
                     jb = jm;
                 } else {
                     ja = jm;
-                    s0 = sm;
+                    sa = sm;
                 }
             }
-            let jd_ret = (ja + jb) / 2.0;
-            let p = calc_ut(jd_ret, body, flags).ok()?;
             return Some(RetroResult {
-                jd: jd_ret,
-                pos: [p.lon, p.lat, p.dist, p.speed_lon, p.speed_lat, p.speed_dist],
+                jd: (ja + jb) / 2.0,
+                pos: to_arr(&pm),
             });
         }
         s0 = s1;

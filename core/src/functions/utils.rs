@@ -222,11 +222,13 @@ pub fn coord_transform_with_speed(coords: [f64; 6], eps: f64) -> [f64; 6] {
 // ─── Math utilities ───────────────────────────────────────────────────────────
 
 /// Normalise degrees to [0, 360).
+#[inline]
 pub fn norm_deg(x: f64) -> f64 {
     x.rem_euclid(360.0)
 }
 
 /// Normalise radians to [0, 2π).
+#[inline]
 pub fn norm_rad(x: f64) -> f64 {
     x.rem_euclid(std::f64::consts::TAU)
 }
@@ -244,6 +246,7 @@ pub fn midpoint_rad(x1: f64, x0: f64) -> f64 {
 }
 
 /// Signed difference of degrees, result in (−180, +180].
+#[inline]
 pub fn diff_deg_signed(p1: f64, p2: f64) -> f64 {
     let d = norm_deg(p1) - norm_deg(p2);
     if d <= -180.0 {
@@ -256,6 +259,7 @@ pub fn diff_deg_signed(p1: f64, p2: f64) -> f64 {
 }
 
 /// Unsigned difference of degrees, result in [0, 360).
+#[inline]
 pub fn diff_deg(p1: f64, p2: f64) -> f64 {
     norm_deg(p1 - p2)
 }

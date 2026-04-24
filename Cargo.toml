@@ -18,3 +18,11 @@ napi-derive  = "2"
 [workspace.dependencies.unicode-segmentation]
 version = "=1.11.0"
 
+[profile.release]
+# Link-time optimisation: enables cross-crate inlining. ~5-15% perf improvement
+# for computation-heavy workloads like VSOP87 evaluation. Slows compile by ~2x,
+# which is acceptable for release builds.
+lto = "thin"
+# Single codegen unit lets the optimizer see the whole crate at once.
+# Combined with LTO this gives the best runtime performance.
+codegen-units = 1

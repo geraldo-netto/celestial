@@ -121,43 +121,49 @@ pub struct NodeCrossing {
 pub fn mooncross_node(jd_et: f64, _flags: i32) -> Option<NodeCrossing> {
     // The Moon crosses its ascending node when its latitude goes from - to +.
     // Search for latitude = 0 with northward velocity.
-    let lat_at = |jd: f64| -> f64 {
-        crate::astronomy::calc_ut(jd, 1, 0)
-            .map(|p| p.lat)
-            .unwrap_or(0.0)
-    };
+    //
+    // `pos_at` returns the full PlanetPos so the bisected endpoint can
+    // supply `xlon` directly, saving one trailing calc_ut call.
+    let pos_at = |jd: f64| crate::astronomy::calc_ut(jd, 1, 0).ok();
 
     let mut jd = jd_et;
     let step = 0.5; // half-day steps (Moon latitude period ~14 days)
     let max_jd = jd + 30.0; // search 30 days
 
-    let mut lat0 = lat_at(jd);
+    let mut lat0 = pos_at(jd).map(|p| p.lat).unwrap_or(0.0);
 
     while jd < max_jd {
-        let lat1 = lat_at(jd + step);
+        let p1 = match pos_at(jd + step) {
+            Some(p) => p,
+            None => {
+                jd += step;
+                continue;
+            }
+        };
+        let lat1 = p1.lat;
         // ascending node: latitude crosses zero from - to +
         if lat0 < 0.0 && lat1 >= 0.0 {
-            // bisect
+            // bisect, carrying the full position alongside the latitude probe
             let (mut ja, mut jb) = (jd, jd + step);
+            let mut pm = p1;
             for _ in 0..50 {
                 let jm = (ja + jb) / 2.0;
-                let lm = lat_at(jm);
-                if lm.abs() < 1e-8 {
+                pm = match pos_at(jm) {
+                    Some(p) => p,
+                    None => break,
+                };
+                if pm.lat.abs() < 1e-8 {
                     break;
                 }
-                if lm < 0.0 {
+                if pm.lat < 0.0 {
                     ja = jm;
                 } else {
                     jb = jm;
                 }
             }
-            let jcross = (ja + jb) / 2.0;
-            let lon = crate::astronomy::calc_ut(jcross, 1, 0)
-                .map(|p| p.lon)
-                .unwrap_or(0.0);
             return Some(NodeCrossing {
-                jd_cross: jcross,
-                xlon: lon,
+                jd_cross: (ja + jb) / 2.0,
+                xlon: pm.lon,
             });
         }
         lat0 = lat1;

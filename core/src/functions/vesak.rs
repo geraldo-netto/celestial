@@ -210,8 +210,10 @@ pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
         norm_deg(moon.lon - sun.lon)
     };
 
-    let mut days = Vec::new();
-    let mut jd = julday(year, 1, 1, 0.0, Calendar::Gregorian);
+    // Hoist JD boundaries outside the loop — these are loop-invariant.
+    // Previous version called julday(year,1,1,...) once per phase per iteration,
+    // ≈56 redundant julday() calls per year.
+    let year_start = julday(year, 1, 1, 0.0, Calendar::Gregorian);
     let end = julday(year + 1, 1, 1, 0.0, Calendar::Gregorian);
 
     let phases = [
@@ -221,13 +223,14 @@ pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
         (270.0, UposathaPhase::LastQuarter),
     ];
 
+    // 4 phases × ≈12-13 lunar months × pre-reserved capacity avoids re-growth.
+    let mut days = Vec::with_capacity(55);
+    let mut jd = year_start;
+
     while jd < end {
         for (target, phase) in &phases {
             let phase_jd = find_phase(jd, *target);
-            if phase_jd >= julday(year, 1, 1, 0.0, Calendar::Gregorian)
-                && phase_jd < end
-                && phase_jd > jd - 0.5
-            {
+            if phase_jd >= year_start && phase_jd < end && phase_jd > jd - 0.5 {
                 let elong = elongation_at(phase_jd);
                 days.push(Uposatha {
                     phase: phase.clone(),
