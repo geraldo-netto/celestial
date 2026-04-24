@@ -186,10 +186,24 @@ pub fn utc_time_zone(date: &UtcDate, d_timezone: f64) -> UtcDate {
 
 // ─── Delta T and sidereal time ────────────────────────────────────────────────
 
-/// Compute ΔT (days) for a given Julian day (UT).
+/// Compute ΔT for a given Julian day (UT), returned in **days**.
 ///
-/// Returns the user-defined override (set via `set_delta_t_userdef`) if one
-/// has been installed, otherwise uses the built-in Espenak/Meeus polynomial.
+/// ΔT is the accumulated difference between Terrestrial Time (TT) and
+/// Universal Time (UT): ΔT = TT − UT. It arises from the irregular rotation
+/// of the Earth and accumulates ~1 ms per century on top of long-period
+/// variations from tidal braking and core-mantle coupling.
+///
+/// At J2000.0 (JD 2451545.0), ΔT ≈ 63.83 seconds ≈ 0.000739 days.
+///
+/// # Units — important
+/// This function returns ΔT in **days** to match the Swiss Ephemeris `swe_deltat`
+/// convention. If you want seconds, either multiply by 86400 or use
+/// [`deltat_ex`] which returns seconds directly.
+///
+/// # Overrides
+/// Returns the user-defined value (set via `set_delta_t_userdef`) when one
+/// is installed; otherwise evaluates the built-in Espenak/Meeus polynomial
+/// fit (see [`astronomy::delta_t_for_year`]).
 pub fn deltat(tjd: f64) -> f64 {
     if let Some(dt) = crate::functions::config::user_delta_t() {
         return dt;
@@ -197,7 +211,12 @@ pub fn deltat(tjd: f64) -> f64 {
     crate::astronomy::deltat(tjd) / 86_400.0
 }
 
-/// Compute ΔT (seconds) with extended flags.
+/// Compute ΔT for a given Julian day (UT), returned in **seconds**.
+///
+/// Companion to [`deltat`] that preserves the native seconds unit instead of
+/// converting to days. Matches Swiss Ephemeris `swe_deltat_ex` semantics.
+///
+/// At J2000.0, returns ≈ 63.83 s.
 pub fn deltat_ex(jd: f64, _flags: CalcFlags) -> Result<f64> {
     if let Some(dt) = crate::functions::config::user_delta_t() {
         return Ok(dt * 86_400.0);

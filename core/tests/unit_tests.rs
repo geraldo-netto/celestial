@@ -2496,3 +2496,159 @@ mod calc_many_test {
         assert!(result.is_empty(), "empty input should return empty Vec");
     }
 }
+
+// ── Canonical astronomical reference values ───────────────────────────────────
+//
+// These tests lock in accuracy against independently-verified reference data
+// (IERS Bulletin A, NASA 5MCSE eclipse canon, Meeus "Astronomical Algorithms").
+// If a future refactor changes an algorithm, these will catch any regression
+// that exceeds the published tolerance.
+
+#[cfg(test)]
+mod accuracy_references {
+    use celestial_core::*;
+
+    /// J2000.0 ≡ JD 2451545.0 (Jan 1.5, 2000 TT) — exact by definition.
+    #[test]
+    fn jd_j2000_identity() {
+        let jd = julday(2000, 1, 1, 12.0, Calendar::Gregorian);
+        assert!(
+            (jd - 2451545.0).abs() < 1e-8,
+            "J2000 = {} (want 2451545.0)",
+            jd
+        );
+    }
+
+    /// ΔT at J2000.0 = 63.8285 s per IERS Bulletin A (rounded to 63.83 s).
+    #[test]
+    fn delta_t_at_j2000() {
+        // deltat() returns days
+        let dt_days = deltat(2451545.0);
+        let dt_sec = dt_days * 86_400.0;
+        // Tolerance: within 1 s of published value
+        assert!(
+            (dt_sec - 63.83).abs() < 1.0,
+            "ΔT(J2000) = {:.4} s (IERS: 63.83 s)",
+            dt_sec
+        );
+
+        // And deltat_ex should return the same value directly in seconds
+        let dt_sec_ex = deltat_ex(2451545.0, CalcFlags::BUILTIN).unwrap();
+        assert!(
+            (dt_sec_ex - 63.83).abs() < 1.0,
+            "deltat_ex(J2000) = {:.4} s (IERS: 63.83 s)",
+            dt_sec_ex
+        );
+
+        // Cross-check: deltat_ex should be 86400× deltat
+        assert!(
+            (dt_sec_ex - dt_sec).abs() < 1e-6,
+            "deltat * 86400 ({}) != deltat_ex ({})",
+            dt_sec,
+            dt_sec_ex
+        );
+    }
+
+    /// Great American Eclipse 2017-08-21: NASA 5MCSE catalog gives
+    /// greatest eclipse at 18:26:40 UT = JD 2457987.2685.
+    #[test]
+    fn eclipse_2017_reference_jd() {
+        let jd = julday(
+            2017,
+            8,
+            21,
+            18.0 + 26.0 / 60.0 + 40.0 / 3600.0,
+            Calendar::Gregorian,
+        );
+        assert!(
+            (jd - 2457987.2685).abs() < 1e-3,
+            "2017 eclipse JD = {:.6} (NASA: 2457987.2685)",
+            jd
+        );
+    }
+
+    /// 2024 April 8 North American eclipse: NASA greatest eclipse at 18:17:16 UT.
+    #[test]
+    fn eclipse_2024_reference_jd() {
+        let jd = julday(
+            2024,
+            4,
+            8,
+            18.0 + 17.0 / 60.0 + 16.0 / 3600.0,
+            Calendar::Gregorian,
+        );
+        assert!(
+            (jd - 2460409.2620).abs() < 1e-3,
+            "2024 eclipse JD = {:.6} (NASA: 2460409.2620)",
+            jd
+        );
+    }
+
+    /// Sun-Moon elongation at a known full moon should be very close to 180°.
+    /// 2025-03-14 06:54:25 UT Total Lunar Eclipse peak (NASA 5MCLE).
+    #[test]
+    fn sun_moon_elongation_at_full_moon() {
+        let jd = julday(
+            2025,
+            3,
+            14,
+            6.0 + 54.0 / 60.0 + 25.0 / 3600.0,
+            Calendar::Gregorian,
+        );
+        let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+        let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).unwrap();
+        // Unsigned elongation in [0, 360)
+        let elong = (moon.lon - sun.lon).rem_euclid(360.0);
+        // Distance from 180° (full moon = 180° exactly)
+        let offset = (elong - 180.0).abs();
+        assert!(
+            offset < 0.1,
+            "Full-moon elongation = {:.4}° (want within 0.1° of 180°)",
+            elong
+        );
+    }
+
+    /// Julian Day round-trip: julday → revjul → julday should preserve
+    /// the hour to within a few machine epsilons.
+    #[test]
+    fn julday_revjul_round_trip_precision() {
+        let jd = julday(2024, 4, 8, 18.3, Calendar::Gregorian);
+        let d = revjul(jd, Calendar::Gregorian);
+        assert_eq!(d.year, 2024);
+        assert_eq!(d.month, 4);
+        assert_eq!(d.day, 8);
+        assert!(
+            (d.hour - 18.3).abs() < 1e-7,
+            "round-trip hour = {} (want 18.3 ± 1e-7)",
+            d.hour
+        );
+    }
+
+    /// Moon daily motion should be the fastest of any major body.
+    /// Mercury can peak around 1.5°/day near superior conjunction, so use 5×
+    /// rather than 10× as the comparison ratio.
+    #[test]
+    fn moon_is_fastest_body() {
+        let jd = 2451545.0;
+        let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+        for body in [
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS,
+            Body::JUPITER,
+            Body::SATURN,
+            Body::URANUS,
+            Body::NEPTUNE,
+            Body::PLUTO,
+        ] {
+            let p = calc_ut(jd, body, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+            assert!(
+                moon.speed_lon.abs() > p.speed_lon.abs() * 5.0,
+                "Moon speed ({:.3}) should be >> body {:?} speed ({:.3})",
+                moon.speed_lon,
+                body,
+                p.speed_lon
+            );
+        }
+    }
+}
