@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 name       = "celestial"
 
 [dependencies]
-celestial-core = { path = "../../core", features = ["default"] }
+celestial-core = { path = "../../core", default-features = false }
 ext-php-rs  = "0.13"
 
 # ── Build note ──────────────────────────────────────────────────────────────────
@@ -30,3 +30,8 @@ ext-php-rs  = "0.13"
 #
 # Then add to php.ini:
 #   extension = /path/to/libcelestial.so
+
+[features]
+default = ["timezone", "calendar-traditions"]
+timezone = ["celestial-core/timezone"]
+calendar-traditions = ["celestial-core/calendar-traditions"]

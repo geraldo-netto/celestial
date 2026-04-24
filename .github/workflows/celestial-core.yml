@@ -39,6 +39,7 @@ defaults:
     shell: bash
 
 jobs:
+
   sonarqube:
     name: SonarQube
     runs-on: ubuntu-latest
@@ -56,6 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -69,6 +71,7 @@ jobs:
             target
           key: ${{ runner.os }}-core-lint-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ runner.os }}-core-lint-
+
 
       - name: cargo clippy
         run: |
@@ -120,3 +123,37 @@ jobs:
 
       - name: Run property-test suites
         run: cargo run --manifest-path fuzz/Cargo.toml
+
+  feature-matrix:
+    name: feature flags
+    runs-on: ubuntu-latest
+    needs: [lint]
+    strategy:
+      matrix:
+        features:
+          - ""                           # no-default-features (minimal build)
+          - "timezone"                   # timezone only
+          - "calendar-traditions"        # calendar only
+          - "timezone,calendar-traditions" # full default
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-core-feat-${{ matrix.features }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-core-feat-
+
+      - name: cargo check (features = "${{ matrix.features }}")
+        run: |
+          if [ -z "${{ matrix.features }}" ]; then
+            cargo check --package celestial-core --no-default-features
+          else
+            cargo check --package celestial-core --no-default-features \
+              --features "${{ matrix.features }}"
+          fi

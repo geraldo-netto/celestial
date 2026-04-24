@@ -2492,7 +2492,7 @@ fn test_maya_long_count(n: u32) -> Suite {
         // Plausible JD range (1 AD through ~3000 AD)
         let jd = rng.range_f64(1_721_423.5, 2_816_787.5);
 
-        let (b, k, t, u, ki) = maya_long_count(jd);
+        let (_b, k, t, u, ki) = maya_long_count(jd); // baktun unused in per-iter checks
         // Field ranges: kin 0..20, uinal 0..18, tun 0..20, katun 0..20, baktun unbounded
         s.check(ki < 20, || format!("kin={ki}"));
         s.check(u < 18, || format!("uinal={u}"));
