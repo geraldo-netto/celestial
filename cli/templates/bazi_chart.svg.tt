@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{# Bazi (八字) — Chinese Four Pillars of Destiny chart.
+   Renders Year/Month/Day/Hour pillars with Heavenly Stem + Earthly Branch,
+   element associations (五行), zodiac animal, and Yin/Yang polarity. #}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fdf6e3"/>
+      <stop offset="100%" stop-color="#f5edd0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bgGrad)"/>
+
+  {# === Color map for the Five Elements (Wǔxíng 五行) === #}
+  {# Wood = green, Fire = red, Earth = brown/yellow, Metal = white/grey, Water = blue #}
+  {% set wood_color    = "#4a8a3a" %}
+  {% set fire_color    = "#c44a3a" %}
+  {% set earth_color   = "#a87a3a" %}
+  {% set metal_color   = "#8a8a9a" %}
+  {% set water_color   = "#3a5a8a" %}
+  {% set ink           = "#2a1a0a" %}
+  {% set muted         = "#7a6a5a" %}
+
+  <!-- Title -->
+  <text x="600" y="50" text-anchor="middle" font-size="28" font-weight="600"
+        font-family="Georgia,serif" fill="{{ ink }}">八字 · Bazi · Four Pillars of Destiny</text>
+  <text x="600" y="78" text-anchor="middle" font-size="12"
+        font-family="system-ui,sans-serif" fill="{{ muted }}">{{ date }} · JD {{ jd | round(2) }}</text>
+
+  {# === The four pillars: Year, Month, Day, Hour === #}
+  {% set pillar_w = 220 %}
+  {% set pillar_h = 380 %}
+  {% set pillar_gap = 20 %}
+  {% set pillar_y = 130 %}
+  {% set total_w = 4 * pillar_w + 3 * pillar_gap %}
+  {% set start_x = (1200 - total_w) / 2 %}
+
+  {# Hardcoded labels in pillar order (year, month, day, hour) #}
+  {% set labels    = ["年柱", "月柱", "日柱", "時柱"] %}
+  {% set labels_en = ["Year Pillar", "Month Pillar", "Day Pillar (Self)", "Hour Pillar"] %}
+
+  {% for p in pillars %}
+    {% set px = start_x + loop.index0 * (pillar_w + pillar_gap) %}
+
+    {# Determine stem color from stem_element #}
+    {% set stem_color = ink %}
+    {% if p.stem_element == "Wood"  %}{% set stem_color = wood_color  %}{% endif %}
+    {% if p.stem_element == "Fire"  %}{% set stem_color = fire_color  %}{% endif %}
+    {% if p.stem_element == "Earth" %}{% set stem_color = earth_color %}{% endif %}
+    {% if p.stem_element == "Metal" %}{% set stem_color = metal_color %}{% endif %}
+    {% if p.stem_element == "Water" %}{% set stem_color = water_color %}{% endif %}
+
+    {# Determine branch color from branch_element #}
+    {% set branch_color = ink %}
+    {% if p.branch_element == "Wood"  %}{% set branch_color = wood_color  %}{% endif %}
+    {% if p.branch_element == "Fire"  %}{% set branch_color = fire_color  %}{% endif %}
+    {% if p.branch_element == "Earth" %}{% set branch_color = earth_color %}{% endif %}
+    {% if p.branch_element == "Metal" %}{% set branch_color = metal_color %}{% endif %}
+    {% if p.branch_element == "Water" %}{% set branch_color = water_color %}{% endif %}
+
+    <!-- Pillar frame (Day pillar = "Self" is highlighted) -->
+    <g transform="translate({{ px }}, {{ pillar_y }})">
+      <rect x="0" y="0" width="{{ pillar_w }}" height="{{ pillar_h }}" rx="8"
+            fill="{% if loop.index0 == 2 %}#fff{% else %}none{% endif %}"
+            stroke="{{ ink }}"
+            stroke-width="{% if loop.index0 == 2 %}1.8{% else %}0.8{% endif %}"
+            opacity="{% if loop.index0 == 2 %}1{% else %}0.6{% endif %}"/>
+
+      <!-- Header label (Chinese) -->
+      <text x="{{ pillar_w / 2 }}" y="32" text-anchor="middle"
+            font-size="22" font-weight="600" font-family="serif" fill="{{ ink }}">{{ labels[loop.index0] }}</text>
+      <text x="{{ pillar_w / 2 }}" y="52" text-anchor="middle"
+            font-size="10" font-family="system-ui,sans-serif" fill="{{ muted }}">{{ labels_en[loop.index0] }}</text>
+
+      <!-- Polarity badge -->
+      <text x="{{ pillar_w / 2 }}" y="78" text-anchor="middle"
+            font-size="11" font-style="italic" font-family="Georgia,serif"
+            fill="{% if p.yang %}{{ fire_color }}{% else %}{{ water_color }}{% endif %}">
+        {{ p.polarity }} ·
+        {% if p.yang %}陽{% else %}陰{% endif %}
+      </text>
+
+      <!-- Heavenly Stem (天干) — top half -->
+      <g transform="translate({{ pillar_w / 2 }}, 140)">
+        <circle r="56" fill="{{ stem_color }}" fill-opacity=".15" stroke="{{ stem_color }}" stroke-width="1.5"/>
+        <text x="0" y="-18" text-anchor="middle" font-size="9"
+              font-family="system-ui,sans-serif" fill="{{ muted }}">Heavenly Stem 天干</text>
+        <text x="0" y="14" text-anchor="middle"
+              font-size="42" font-weight="700" font-family="serif" fill="{{ stem_color }}">{{ p.stem_name }}</text>
+        <text x="0" y="36" text-anchor="middle"
+              font-size="10" font-family="system-ui,sans-serif" fill="{{ stem_color }}">{{ p.stem_element }}</text>
+      </g>
+
+      <!-- Earthly Branch (地支) — bottom half -->
+      <g transform="translate({{ pillar_w / 2 }}, 290)">
+        <circle r="56" fill="{{ branch_color }}" fill-opacity=".15" stroke="{{ branch_color }}" stroke-width="1.5"/>
+        <text x="0" y="-18" text-anchor="middle" font-size="9"
+              font-family="system-ui,sans-serif" fill="{{ muted }}">Earthly Branch 地支</text>
+        <text x="0" y="14" text-anchor="middle"
+              font-size="42" font-weight="700" font-family="serif" fill="{{ branch_color }}">{{ p.branch_name }}</text>
+        <text x="0" y="36" text-anchor="middle"
+              font-size="10" font-family="system-ui,sans-serif" fill="{{ branch_color }}">{{ p.branch_element }}  ·  {{ p.animal }}</text>
+      </g>
+
+      <!-- Combined name -->
+      <text x="{{ pillar_w / 2 }}" y="{{ pillar_h - 12 }}" text-anchor="middle"
+            font-size="13" font-weight="500" font-family="serif"
+            fill="{{ ink }}">{{ p.name }}</text>
+    </g>
+  {% endfor %}
+
+  {# === Five Elements distribution chart === #}
+  <g transform="translate(80, 560)">
+    <text x="0" y="0" font-size="16" font-weight="600" font-family="Georgia,serif"
+          fill="{{ ink }}">五行 · Five Elements</text>
+    <text x="0" y="20" font-size="10" font-family="system-ui,sans-serif" fill="{{ muted }}">
+      Distribution of element-stems and element-branches across the four pillars (8 total)
+    </text>
+
+    {# Bar chart: each element gets a horizontal bar 200px max #}
+    {% for el in elements %}
+      {% set y = 50 + loop.index0 * 28 %}
+      {% set bar_w = el.count * 50 %}
+
+      {% set color = ink %}
+      {% if el.element == "Wood"  %}{% set color = wood_color %}{% endif %}
+      {% if el.element == "Fire"  %}{% set color = fire_color %}{% endif %}
+      {% if el.element == "Earth" %}{% set color = earth_color %}{% endif %}
+      {% if el.element == "Metal" %}{% set color = metal_color %}{% endif %}
+      {% if el.element == "Water" %}{% set color = water_color %}{% endif %}
+
+    <text x="0" y="{{ y + 4 }}" font-size="13" font-family="serif" fill="{{ color }}">{{ el.element }}</text>
+    <rect x="80" y="{{ y - 10 }}" width="{{ bar_w }}" height="14" fill="{{ color }}" fill-opacity=".7"/>
+    <text x="{{ 90 + bar_w }}" y="{{ y + 4 }}" font-size="11" font-weight="600"
+          font-family="system-ui,sans-serif" fill="{{ color }}">{{ el.count }}</text>
+    {% endfor %}
+  </g>
+
+  {# === Solar terms (24 jiéqì) === #}
+  <g transform="translate(620, 560)">
+    <text x="0" y="0" font-size="16" font-weight="600" font-family="Georgia,serif"
+          fill="{{ ink }}">節氣 · Solar Terms</text>
+    <text x="0" y="20" font-size="10" font-family="system-ui,sans-serif" fill="{{ muted }}">
+      The 24 jiéqì subdivisions of the tropical year (every 15° of solar longitude)
+    </text>
+
+    <!-- Current term card -->
+    <g transform="translate(0, 50)">
+      <rect x="0" y="0" width="450" height="60" rx="6"
+            fill="{{ fire_color }}" fill-opacity=".10" stroke="{{ fire_color }}" stroke-width=".8"/>
+      <text x="14" y="20" font-size="11" font-family="system-ui,sans-serif" fill="{{ muted }}">Current term</text>
+      <text x="14" y="44" font-size="20" font-weight="600" font-family="serif"
+            fill="{{ ink }}">{{ solar_term_current }}</text>
+      <text x="200" y="44" font-size="13" font-family="system-ui,sans-serif"
+            fill="{{ muted }}">{{ solar_term_current_en }}</text>
+      <text x="350" y="44" font-size="11" font-family="ui-monospace,monospace"
+            fill="{{ muted }}">+{{ degrees_into_term | round(2) }}°</text>
+    </g>
+
+    <!-- Next term card -->
+    <g transform="translate(0, 130)">
+      <rect x="0" y="0" width="450" height="60" rx="6"
+            fill="{{ wood_color }}" fill-opacity=".10" stroke="{{ wood_color }}" stroke-width=".8"/>
+      <text x="14" y="20" font-size="11" font-family="system-ui,sans-serif" fill="{{ muted }}">Next term</text>
+      <text x="14" y="44" font-size="20" font-weight="600" font-family="serif"
+            fill="{{ ink }}">{{ solar_term_next }}</text>
+      <text x="200" y="44" font-size="13" font-family="system-ui,sans-serif"
+            fill="{{ muted }}">{{ solar_term_next_en }}</text>
+      <text x="350" y="44" font-size="11" font-family="ui-monospace,monospace"
+            fill="{{ muted }}">−{{ degrees_to_next | round(2) }}°</text>
+    </g>
+
+    <!-- Sun longitude bar (current position within the 360° year) -->
+    <g transform="translate(0, 220)">
+      <text x="0" y="0" font-size="11" font-family="system-ui,sans-serif" fill="{{ muted }}">
+        Sun ecliptic longitude: <tspan font-weight="600" fill="{{ ink }}">{{ sun_lon | round(2) }}°</tspan>
+      </text>
+      {# Progress bar showing sun_lon out of 360 #}
+      <rect x="0" y="14" width="450" height="10" fill="{{ muted }}" fill-opacity=".15"/>
+      <rect x="0" y="14" width="{{ 450 * sun_lon / 360 }}" height="10" fill="{{ fire_color }}" fill-opacity=".7"/>
+      <text x="0" y="38" font-size="9" font-family="ui-monospace,monospace" fill="{{ muted }}">0° (♈)</text>
+      <text x="445" y="38" text-anchor="end" font-size="9" font-family="ui-monospace,monospace" fill="{{ muted }}">360°</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(80, 850)">
+    <text x="0" y="0" font-size="10" font-family="system-ui,sans-serif" fill="{{ muted }}">
+      Day Pillar (highlighted) is "the Self" 日主 in Bazi cosmology — its Heavenly Stem represents the native's core nature.
+    </text>
+  </g>
+</svg>

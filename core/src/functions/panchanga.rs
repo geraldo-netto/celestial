@@ -411,7 +411,15 @@ pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
         jd += 1.0;
     }
 
-    festivals.dedup_by(|a, b| a.name == b.name);
+    // Keep only the first occurrence of each festival name. A naive
+    // `dedup_by(|a, b| a.name == b.name)` only removes ADJACENT duplicates,
+    // which doesn't catch cases like
+    //   [Maha Shivaratri (Feb), Holi (Feb), Maha Shivaratri (Mar)]
+    // where the same festival's lunar tithi happens to fall twice inside the
+    // Gregorian-month window. The earlier date is the astronomically
+    // canonical observance.
+    let mut seen = std::collections::HashSet::new();
+    festivals.retain(|f| seen.insert(f.name));
     festivals
 }
 

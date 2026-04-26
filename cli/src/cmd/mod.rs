@@ -1,11 +1,11 @@
 pub mod calc;
 pub mod calendar;
-pub mod chart;
 pub mod crossing;
 pub mod eclipse;
 pub mod houses;
 pub mod jd;
 pub mod moon;
 pub mod omer;
+pub mod phenomena;
 pub mod render;
 pub mod sabbats;

@@ -5,7 +5,7 @@
 
 use super::*;
 
-pub(super) fn render_builtin_svg(ctx: &Value) -> String {
+pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     let vars = &ctx["vars"];
     let bg = vars["bg_color"].as_str().unwrap_or("#ffffff");
     let ring = vars["ring_color"].as_str().unwrap_or("#1a1a2e");

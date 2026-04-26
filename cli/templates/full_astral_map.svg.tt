@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{# Complete astral map showing the natal wheel + tables.
+   Run: celestial render TYPE natal DATE birth LAT lat LON lon
+        template full_astral_map.svg.tt out astral.svg #}
+{% set page_w = 1400 %}
+{% set page_h = 1100 %}
+{% set bg = "#fafaf5" %}
+{% set ink = "#1a1a2e" %}
+{% set muted = "#7a7a8a" %}
+{% set hard_color = "#a64545" %}
+{% set soft_color = "#3d6b85" %}
+{% set retro_red = "#a64545" %}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {{ page_w }} {{ page_h }}"
+     width="{{ page_w }}" height="{{ page_h }}">
+  <rect width="{{ page_w }}" height="{{ page_h }}" fill="{{ bg }}"/>
+
+  <!-- Header -->
+  <text x="{{ page_w / 2 }}" y="40" text-anchor="middle"
+        font-size="22" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+    Natal Chart · {{ date_label }}
+  </text>
+  <text x="{{ page_w / 2 }}" y="62" text-anchor="middle"
+        font-size="11" font-family="system-ui,sans-serif" fill="{{ muted }}">
+    Lat {{ lat | round(2) }}°  ·  Lon {{ lon | round(2) }}°  ·  JD {{ jd | round(3) }}  ·
+    Asc {{ asc_dms }}  ·  MC {{ mc_dms }}  ·
+    Moon {{ moon_phase_name }} ({{ moon_illumination | round(0) }}% illuminated)
+  </text>
+
+  {# Wheel — push it left of centre to leave room for tables on the right #}
+  <g transform="translate(-50, 50)">
+    <!-- Concentric rings -->
+    <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_outer }}" fill="none" stroke="{{ ink }}" stroke-width="1"/>
+    <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_sign_outer }}" fill="none" stroke="{{ muted }}" stroke-width=".5"/>
+    <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_sign_inner }}" fill="none" stroke="{{ muted }}" stroke-width=".5"/>
+    <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_house }}" fill="none" stroke="{{ muted }}" stroke-width=".4" opacity=".4"/>
+    <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_inner }}" fill="none" stroke="{{ muted }}" stroke-width=".4" opacity=".4"/>
+
+    <!-- Sign spokes + glyphs -->
+    {% for s in signs %}
+    <line x1="{{ s.spoke_x1 }}" y1="{{ s.spoke_y1 }}" x2="{{ s.spoke_x2 }}" y2="{{ s.spoke_y2 }}"
+          stroke="{{ muted }}" stroke-width=".5"/>
+    <text x="{{ s.glyph_x }}" y="{{ s.glyph_y }}" text-anchor="middle" dominant-baseline="central"
+          font-size="14" font-family="serif" fill="{{ ink }}">{{ s.glyph }}</text>
+    {% endfor %}
+
+    <!-- Houses -->
+    {% for h in houses %}
+    <line x1="{{ h.x1 }}" y1="{{ h.y1 }}" x2="{{ h.x2 }}" y2="{{ h.y2 }}"
+          stroke="{% if h.is_angle %}{{ ink }}{% else %}{{ muted }}{% endif %}"
+          stroke-width="{% if h.is_angle %}1{% else %}.4{% endif %}"
+          opacity="{% if h.is_angle %}1{% else %}.5{% endif %}"/>
+    <text x="{{ h.num_x }}" y="{{ h.num_y }}" text-anchor="middle" dominant-baseline="central"
+          font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">{{ h.num }}</text>
+    {% endfor %}
+
+    <!-- Aspect lines (drawn first so planets sit on top) -->
+    {% for a in aspects %}
+    <line x1="{{ a.x1 }}" y1="{{ a.y1 }}" x2="{{ a.x2 }}" y2="{{ a.y2 }}"
+          stroke="{% if a.is_hard %}{{ hard_color }}{% else %}{{ soft_color }}{% endif %}"
+          stroke-width="{% if a.is_minor %}.4{% else %}.7{% endif %}"
+          opacity="{% if a.is_minor %}.4{% else %}.7{% endif %}"
+          stroke-dasharray="{% if a.applying %}{% else %}3,3{% endif %}"/>
+    {% endfor %}
+
+    <!-- Planets -->
+    {% for p in planets %}
+    <line x1="{{ p.tick_x1 }}" y1="{{ p.tick_y1 }}" x2="{{ p.tick_x2 }}" y2="{{ p.tick_y2 }}"
+          stroke="{% if p.retro %}{{ retro_red }}{% else %}{{ ink }}{% endif %}" stroke-width=".8"/>
+    <text x="{{ p.x }}" y="{{ p.y }}" text-anchor="middle" dominant-baseline="central"
+          font-size="16" font-family="serif"
+          fill="{% if p.retro %}{{ retro_red }}{% else %}{{ ink }}{% endif %}">{{ p.glyph }}</text>
+    <text x="{{ p.label_x }}" y="{{ p.label_y }}" text-anchor="middle"
+          font-size="8" font-family="system-ui,sans-serif" fill="{{ muted }}">{{ p.deg_label }}</text>
+    {% endfor %}
+  </g>
+
+  {# === Right-side tables: planet positions, then aspect grid === #}
+  {% set table_x = 920 %}
+  {% set table_y = 100 %}
+
+  <!-- Planet positions table -->
+  <g transform="translate({{ table_x }}, {{ table_y }})">
+    <text x="0" y="0" font-size="13" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      Planets
+    </text>
+    <line x1="0" y1="6" x2="430" y2="6" stroke="{{ muted }}" stroke-width=".5"/>
+
+    <!-- Column headers -->
+    <text x="0"   y="22" font-size="9" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Body</text>
+    <text x="80"  y="22" font-size="9" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Position</text>
+    <text x="200" y="22" font-size="9" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Speed</text>
+    <text x="270" y="22" font-size="9" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Dignity</text>
+    <text x="370" y="22" font-size="9" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">R</text>
+
+    {# Rows: y increases by 16 per row #}
+    {% for p in planets %}
+      {% set row_y = 36 + loop.index0 * 16 %}
+    <text x="0"   y="{{ row_y }}" font-size="10" font-family="serif" fill="{{ ink }}">{{ p.glyph }}</text>
+    <text x="14"  y="{{ row_y }}" font-size="10" font-family="system-ui,sans-serif" fill="{{ ink }}">{{ p.name }}</text>
+    <text x="80"  y="{{ row_y }}" font-size="10" font-family="ui-monospace,monospace" fill="{{ ink }}">{{ p.dms }}</text>
+    <text x="200" y="{{ row_y }}" font-size="10" font-family="ui-monospace,monospace"
+          fill="{% if p.speed < 0 %}{{ retro_red }}{% else %}{{ ink }}{% endif %}">{{ p.speed | round(3) }}</text>
+    <text x="270" y="{{ row_y }}" font-size="10" font-family="system-ui,sans-serif" fill="{{ muted }}" font-style="italic">{{ p.dignity }}</text>
+    {% if p.retro %}
+    <text x="370" y="{{ row_y }}" font-size="10" font-weight="700" font-family="system-ui,sans-serif" fill="{{ retro_red }}">℞</text>
+    {% endif %}
+    {% if p.near_station %}
+    <text x="395" y="{{ row_y }}" font-size="10" font-style="italic" font-family="system-ui,sans-serif" fill="{{ muted }}">stat</text>
+    {% endif %}
+    {% endfor %}
+  </g>
+
+  <!-- Houses table -->
+  {% set houses_y = table_y + 250 %}
+  <g transform="translate({{ table_x }}, {{ houses_y }})">
+    <text x="0" y="0" font-size="13" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      Houses · Placidus
+    </text>
+    <line x1="0" y1="6" x2="430" y2="6" stroke="{{ muted }}" stroke-width=".5"/>
+    {% for h in houses %}
+      {% set hr_y = 22 + loop.index0 * 14 %}
+    <text x="0"   y="{{ hr_y }}" font-size="9" font-weight="{% if h.is_angle %}600{% else %}400{% endif %}"
+          font-family="system-ui,sans-serif" fill="{{ ink }}">{{ h.num }}</text>
+    <text x="40"  y="{{ hr_y }}" font-size="9" font-family="ui-monospace,monospace"
+          fill="{% if h.is_angle %}{{ ink }}{% else %}{{ muted }}{% endif %}">{{ h.dms }}</text>
+    {% if h.is_angle %}
+    <text x="180" y="{{ hr_y }}" font-size="9" font-style="italic"
+          font-family="system-ui,sans-serif" fill="{{ muted }}">angle</text>
+    {% endif %}
+    {% endfor %}
+  </g>
+
+  <!-- Aspect summary -->
+  {% set aspect_y = houses_y + 200 %}
+  <g transform="translate({{ table_x }}, {{ aspect_y }})">
+    <text x="0" y="0" font-size="13" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      Aspects ({{ aspects | length }} total)
+    </text>
+    <line x1="0" y1="6" x2="430" y2="6" stroke="{{ muted }}" stroke-width=".5"/>
+
+    {# Group counts by aspect type using selectattr #}
+    {% set hard_n = aspects | selectattr("is_hard", "equalto", true) | list | length %}
+    {% set soft_n = aspects | selectattr("is_hard", "equalto", false) | list | length %}
+    {% set minor_n = aspects | selectattr("is_minor", "equalto", true) | list | length %}
+    {% set applying_n = aspects | selectattr("applying", "equalto", true) | list | length %}
+
+    <text x="0"   y="22" font-size="10" font-family="system-ui,sans-serif" fill="{{ ink }}">
+      Hard: <tspan font-weight="700" fill="{{ hard_color }}">{{ hard_n }}</tspan>
+    </text>
+    <text x="100" y="22" font-size="10" font-family="system-ui,sans-serif" fill="{{ ink }}">
+      Soft: <tspan font-weight="700" fill="{{ soft_color }}">{{ soft_n }}</tspan>
+    </text>
+    <text x="200" y="22" font-size="10" font-family="system-ui,sans-serif" fill="{{ ink }}">
+      Minor: <tspan font-weight="700">{{ minor_n }}</tspan>
+    </text>
+    <text x="300" y="22" font-size="10" font-family="system-ui,sans-serif" fill="{{ ink }}">
+      Applying: <tspan font-weight="700">{{ applying_n }}</tspan>
+    </text>
+
+    {# Top 8 tightest aspects, by orb #}
+    <text x="0" y="44" font-size="9" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">
+      Tightest aspects:
+    </text>
+    {% for a in aspects[:8] %}
+      {% set ar_y = 60 + loop.index0 * 13 %}
+    <text x="0"   y="{{ ar_y }}" font-size="9" font-family="serif" fill="{{ ink }}">{{ a.glyph1 }} {{ a.glyph2 }}</text>
+    <text x="40"  y="{{ ar_y }}" font-size="9" font-family="system-ui,sans-serif" fill="{{ ink }}">
+      {{ a.body1 }} {{ a.aspect_name }} {{ a.body2 }}
+    </text>
+    <text x="280" y="{{ ar_y }}" font-size="9" font-family="ui-monospace,monospace"
+          fill="{% if a.is_hard %}{{ hard_color }}{% else %}{{ soft_color }}{% endif %}">
+      {{ a.orb | round(2) }}°
+    </text>
+    <text x="340" y="{{ ar_y }}" font-size="9" font-style="italic"
+          font-family="system-ui,sans-serif" fill="{{ muted }}">
+      {% if a.applying %}applying{% else %}separating{% endif %}
+    </text>
+    {% endfor %}
+  </g>
+
+  {# Footer with fixed stars + arabic parts (use actual field names from context) #}
+  <g transform="translate(50, {{ page_h - 90 }})">
+    <text x="0" y="0" font-size="11" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      Fixed stars near chart bodies ({{ fixed_stars | length }} catalogued)
+    </text>
+    {% for fs in fixed_stars[:4] %}
+    <text x="0" y="{{ 16 + loop.index0 * 14 }}" font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">
+      {{ fs.name }}  ·  {{ fs.deg_in_sign | round(2) }}° {{ fs.sign }}  ·  mag {{ fs.mag | round(1) }}
+    </text>
+    {% endfor %}
+  </g>
+  <g transform="translate(450, {{ page_h - 90 }})">
+    <text x="0" y="0" font-size="11" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      Arabic parts ({{ arabic_parts | length }})
+    </text>
+    {% for ap in arabic_parts %}
+    <text x="0" y="{{ 16 + loop.index0 * 14 }}" font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">
+      {{ ap.name }}: {{ ap.dms }}  ({{ ap.formula }})
+    </text>
+    {% endfor %}
+  </g>
+</svg>

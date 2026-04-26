@@ -1,0 +1,182 @@
+Chart context schema for MiniJinja `--template` files
+========================================================
+
+The `--template` flag uses MiniJinja, a full Jinja2-compatible engine.
+You get arithmetic, comparisons, filters, loop variables, and conditionals:
+
+  Math:       {{ x + 10 }}, {{ jd | round(2) }}, {{ loop.index0 * 14 }}
+  Filters:    {{ name | upper }}, {{ list | length }}, {{ x | format("%05d") }}
+  Loops:      {% for p in planets %} … loop.index, loop.first, loop.last
+  Conditions: {% if x > 5 and not retro %} … {% else %} … {% endif %}
+
+(Older `tinytemplate`-style single-brace `{x}` interpolation is no longer
+supported; use the standard double-brace `{{ x }}` form.)
+
+This is the complete set of fields available to your template. Each
+chart-type populates a slightly different subset, but the common fields
+listed here are present for every chart that has houses, planets, signs,
+and aspects (i.e. `natal`, `transit`, `solar-return`, `lunar-return`,
+`progressed`, `solar-arc`, `biwheel`).
+
+Use `celestial render --print-context …` with real arguments to see the
+actual values for any given chart.
+
+──────────────────────────────────────────────────────────────────────
+Top-level scalars
+──────────────────────────────────────────────────────────────────────
+  date              string   Input date as parsed (e.g. "1990-05-15 14:30")
+  jd                number   Julian Day (UT)
+  lat               number   Geographic latitude (degrees, +N / −S)
+  lon               number   Geographic longitude (degrees, +E / −W)
+  asc               number   Ascendant ecliptic longitude (degrees)
+  mc                number   Midheaven longitude
+  ic                number   Imum Coeli (4th cusp)
+  dsc               number   Descendant
+  asc_dms           string   Ascendant as "12°34'56\" Tau"
+  mc_dms            string   MC formatted likewise
+  ic_dms            string   IC formatted likewise
+  dsc_dms           string   DSC formatted likewise
+  moon_phase_name   string   "Waxing Gibbous", "Full Moon", etc.
+  moon_illumination number   Illumination 0.0–1.0
+
+──────────────────────────────────────────────────────────────────────
+planets[]    — array of planet objects (Sun..Pluto + nodes + Chiron)
+──────────────────────────────────────────────────────────────────────
+  body          string   "Sun", "Moon", "Mercury", …
+  glyph         string   Unicode glyph: ☉ ☽ ☿ ♀ ♂ ♃ ♄ ♅ ♆ ♇ ☊ ⚷
+  lon           number   Ecliptic longitude
+  lat           number   Ecliptic latitude
+  speed         number   Daily motion (deg/day; <0 = retrograde)
+  retrograde    bool     true if speed < 0
+  sign          string   "Aries"…"Pisces"
+  house         number   1..12
+  dms           string   "29°34'56\" Vir"
+  x             number   SVG x-coordinate of glyph (pre-computed)
+  y             number   SVG y-coordinate
+  label_x       number   SVG x-coordinate of degree label
+  label_y       number   SVG y-coordinate of degree label
+  tick_x1       number   SVG inner-tick x
+  tick_y1       number   SVG inner-tick y
+  tick_x2       number   SVG outer-tick x
+  tick_y2       number   SVG outer-tick y
+  asp_x         number   x of the body on the inner aspect ring
+  asp_y         number   y of the body on the inner aspect ring
+
+──────────────────────────────────────────────────────────────────────
+signs[]      — array of zodiac signs (12 entries: Aries..Pisces)
+──────────────────────────────────────────────────────────────────────
+  name          string   "Aries", "Taurus", …
+  glyph         string   ♈ ♉ ♊ ♋ ♌ ♍ ♎ ♏ ♐ ♑ ♒ ♓
+  spoke_x1      number   SVG inner-end of the 30° spoke
+  spoke_y1      number
+  spoke_x2      number   SVG outer-end of the 30° spoke
+  spoke_y2      number
+  glyph_x       number   SVG glyph x-coordinate
+  glyph_y       number   SVG glyph y-coordinate
+
+──────────────────────────────────────────────────────────────────────
+houses[]     — array of house cusps (12 entries)
+──────────────────────────────────────────────────────────────────────
+  num           number   1..12
+  lon           number   Cusp longitude
+  is_angle      bool     true for cusps 1, 4, 7, 10
+  dms           string   Formatted longitude
+  x1            number   SVG cusp line x1
+  y1            number   SVG cusp line y1
+  x2            number   SVG cusp line x2
+  y2            number   SVG cusp line y2
+  num_x         number   SVG x of house number label
+  num_y         number   SVG y of house number label
+
+──────────────────────────────────────────────────────────────────────
+aspects[]    — array of aspect lines drawn between body pairs
+──────────────────────────────────────────────────────────────────────
+  body1         string   Name of first body
+  body2         string   Name of second body
+  aspect        number   Exact aspect angle (0/60/90/120/180/...)
+  orb           number   Difference from exact (degrees)
+  is_hard       bool     true for square / opposition / conjunction
+  applying      bool     true if separation is decreasing
+  x1, y1        number   Endpoint 1 (on inner ring)
+  x2, y2        number   Endpoint 2
+
+──────────────────────────────────────────────────────────────────────
+vars.*       — all keys from `[vars]` config table or --var KEY=VALUE
+──────────────────────────────────────────────────────────────────────
+Templates can use any custom var via `{vars.my_color}`. The default
+example template uses these:
+
+  vars.bg_color          background fill (default `#fffff8`)
+  vars.text_color        primary text colour (`#222`)
+  vars.ring_color        wheel/spoke colour (`#888`)
+  vars.planet_color      planet glyph & tick colour (`#444`)
+  vars.soft_color        soft-aspect line colour (`#88a`)
+  vars.title             chart title (default = date)
+
+──────────────────────────────────────────────────────────────────────
+Chart-type-specific extensions
+──────────────────────────────────────────────────────────────────────
+  ephemeris            — adds `series[]` (graphic-ephemeris paths)
+  bazi (Chinese)       — adds `pillars[]` (year/month/day/hour stems & branches)
+  vedic *              — adds `nakshatra`, `dasha`, `rasi`, `navamsa`
+  hellenistic          — adds `dignity5[]`, `is_day`, `sect`
+  profection           — adds `profected_house`, `profected_lord`
+
+For any chart type, run `celestial render --type X --print-context …`
+to see the exact set of fields populated.
+
+──────────────────────────────────────────────────────────────────────
+Calendar/tradition overlays  (--calendar X, repeatable)
+──────────────────────────────────────────────────────────────────────
+
+Apply to ANY --chart-type. Each named overlay merges a top-level field
+into the context with the same name. Any `{{ if X }}` block in your
+template silently disappears if the overlay wasn't requested, so a
+single template can support 0..N overlays robustly.
+
+  --calendar omer         omer.today          { day, week, day_sefirah,
+                                                week_sefirah, hebrew_text,
+                                                is_lag_baomer, jd, iso_date }
+                                              or `null` if today is not in
+                                              the Omer period.
+                          omer.days[]         All 49 days of the period.
+                          omer.start_jd       Period start.
+                          omer.end_jd         Period end.
+                          omer.hebrew_year    e.g. 5784.
+
+  --calendar sabbats      sabbats.year        Calendar year.
+                          sabbats.sabbats[]   8 entries, each with
+                                              `index` (0..7), `list_y`
+                                              (pre-computed pixel offset),
+                                              `name`, `iso_date`, `jd`,
+                                              `lon`, `is_quarter_day`,
+                                              `is_cross_quarter`.
+
+  --calendar moon         moon.year, moon.month
+                          moon.phase_events[] Principal phases this month
+                                              (typically 4-5 events): each
+                                              with `index`, `list_y`,
+                                              `phase` ("New Moon", …),
+                                              `phase_short` ("Q1", …),
+                                              `glyph`, `iso_date`, `jd`.
+
+  --calendar hebrew       hebrew.years[]      Hebrew years overlapping
+                                              the requested period.
+                          hebrew.holidays[]   Jewish holidays each with
+                                              hebrew_name, hebrew_month,
+                                              hebrew_day, jd, iso_date,
+                                              days, category.
+
+  --calendar gregorian    gregorian.year, gregorian.month
+                          gregorian.month_name
+                          gregorian.days_in_month
+                          gregorian.days[]    Each day has dow, iso_date,
+                                              jd. When other --calendar X
+                                              flags are also passed, days
+                                              are annotated with extra
+                                              tags: omer_day, sabbat,
+                                              moon_phase, hebrew_holiday.
+                                              This lets a single
+                                              `for d in gregorian.days`
+                                              loop tag a calendar grid
+                                              with all traditions at once.

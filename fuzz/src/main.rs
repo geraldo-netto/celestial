@@ -2958,6 +2958,11 @@ fn main() {
         ("chart_aspects_builder", test_chart_aspects_builder(N / 5).report()),
         ("hebrew_calendar",       test_hebrew_calendar(N).report()),
         ("calc_pctr",             test_calc_pctr_no_panic(N / 5).report()),
+
+        // ── Coverage gaps for previously-uncovered public fns ───────────────
+        ("hindu_festivals",       test_hindu_festivals(N / 50).report()),
+        ("losar_jd",              test_losar_jd(N / 10).report()),
+        ("ayanamsa_name",         test_get_ayanamsa_name(N).report()),
     ];
 
     println!();
@@ -3092,6 +3097,64 @@ fn test_calc_pctr_no_panic(n: u32) -> Suite {
         let ctr  = centers[(rng.next_u64() as usize) % centers.len()];
         let _ = celestial_core::calc_pctr(jd, body, ctr, CalcFlags::BUILTIN);
         s.passed += 1;
+    }
+    s
+}
+
+
+/// `hindu_festivals(year)` should never panic and produce 0–10 well-formed
+/// festival entries for any reasonable year.
+fn test_hindu_festivals(n: u32) -> Suite {
+    let mut s = Suite::new("hindu_festivals");
+    let mut rng = Xorshift64::new(0xFE57_1AA1_BABA_C0DE);
+    for _ in 0..n {
+        let year = rng.range_i32(1900, 2200);
+        let festivals = celestial_core::hindu_festivals(year);
+        // Up to 7 unique festivals are documented; allow a bit of slack
+        s.check(festivals.len() <= 10,
+                || format!("hindu_festivals({year}) returned {} entries (>10)",
+                           festivals.len()));
+        for f in &festivals {
+            s.check(!f.name.is_empty(),
+                    || format!("hindu_festival name is empty for year {year}"));
+            s.check(f.jd.is_finite() && f.jd > 2_000_000.0,
+                    || format!("hindu_festival jd not finite/sane: {}", f.jd));
+        }
+    }
+    s
+}
+
+/// `losar_jd(year)` returns the JD of Tibetan New Year for the given Gregorian
+/// year. Should be Some for years in the supported range, None for outliers,
+/// and never panic.
+fn test_losar_jd(n: u32) -> Suite {
+    let mut s = Suite::new("losar_jd");
+    let mut rng = Xorshift64::new(0x10C5_A12D_BE57_1027);
+    for _ in 0..n {
+        let year = rng.range_i32(1900, 2150);
+        if let Some(jd) = celestial_core::losar_jd(year) {
+            s.check(jd.is_finite() && jd > 2_000_000.0,
+                    || format!("losar_jd({year}) returned non-finite/insane JD: {jd}"));
+        }
+        // Record a no-panic pass even when None
+        s.passed += 1;
+    }
+    s
+}
+
+/// `ayanamsa_name(sid_mode)` is a name-lookup wrapper. For any i32 it
+/// should return a non-empty string (recognised modes get the real name,
+/// unrecognised modes get a fallback like "Unknown"). Exercises the same
+/// logic as the binding-side `get_ayanamsa_name` shim.
+fn test_get_ayanamsa_name(_n: u32) -> Suite {
+    let mut s = Suite::new("ayanamsa_name");
+    // 0..=35 are the documented modes; sample beyond that range too
+    for code in -10..=50i32 {
+        let name = celestial_core::ayanamsa_name(code);
+        s.check(
+            !name.is_empty(),
+            || format!("ayanamsa_name({code}) was empty"),
+        );
     }
     s
 }

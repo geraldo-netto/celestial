@@ -43,14 +43,14 @@ enum Command {
     Crossing(cmd::crossing::CrossingArgs),
     /// Find solar or lunar eclipses
     Eclipse(cmd::eclipse::EclipseArgs),
-    /// Full astrological chart with aspects
-    Chart(cmd::chart::ChartArgs),
     /// Moon phase, illumination, and next principal phases
     Moon(cmd::moon::MoonArgs),
     /// Sefirat HaOmer — 49-day Omer count
     Omer(cmd::omer::OmerArgs),
     /// Multi-tradition religious calendars
     Calendar(cmd::calendar::CalendarArgs),
+    /// Apparent planetary phenomena (magnitude, phase, illumination, elongation)
+    Phenomena(cmd::phenomena::PhenomenaArgs),
     /// Render a Jinja2 template with celestial chart data (SVG, HTML, …)
     Render(cmd::render::RenderArgs),
 }
@@ -86,6 +86,7 @@ fn main() {
         "moon",
         "omer",
         "calendar",
+        "phenomena",
         "render",
         "--help",
         "-h",
@@ -113,10 +114,10 @@ fn main() {
         Command::Jd(a) => cmd::jd::run(a),
         Command::Crossing(a) => cmd::crossing::run(a),
         Command::Eclipse(a) => cmd::eclipse::run(a),
-        Command::Chart(a) => cmd::chart::run(a),
         Command::Moon(a) => cmd::moon::run(a),
         Command::Omer(a) => cmd::omer::run(a),
         Command::Calendar(a) => cmd::calendar::run(a),
+        Command::Phenomena(a) => cmd::phenomena::run(a),
         Command::Render(a) => cmd::render::run(a),
     };
     if let Err(e) = result {

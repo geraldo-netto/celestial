@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Example MiniJinja (Jinja2) template for celestial render.
+     Available context: date, jd, lat, lon,
+       asc, mc, ic, dsc, asc_dms, mc_dms, ic_dms, dsc_dms,
+       moon_phase_name, moon_illumination,
+       planets list, signs list, houses list, aspects list,
+       vars.* - all keys from [vars] / --var flags.
+     Wheel geometry is pre-computed: each planet has x y label_x label_y
+       tick_x1 tick_y1 tick_x2 tick_y2 asp_x asp_y
+     Each sign has spoke_x1 spoke_y1 spoke_x2 spoke_y2 glyph_x glyph_y
+     Each house has x1 y1 x2 y2 num_x num_y is_angle dms num
+     Each aspect has x1 y1 x2 y2 is_hard orb applying body1 body2
+     Each planet has glyph dms degree minute second sign retrograde
+
+     Template engine features (full Jinja2):
+       Math: arithmetic on context values, e.g. y attribute computed inline
+       Filters: round, length, upper, lower, format
+       Conditions: if/elif/else with comparison + logical operators
+       Loop vars: loop.index, loop.index0, loop.first, loop.last
+     Run: celestial render --print-context  to see all values as JSON.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 800" width="900" height="800">
+  <rect width="900" height="800" fill="{{ vars.bg_color }};"/>
+
+  <!-- header -->
+  <text x="450" y="30" text-anchor="middle" font-size="16" font-weight="600"
+        font-family="system-ui,sans-serif" fill="{{ vars.text_color }}">{{ vars.title }}</text>
+  <text x="450" y="50" text-anchor="middle" font-size="10"
+        font-family="system-ui,sans-serif" fill="{{ vars.ring_color }}" opacity=".7">{{ date }} · JD {{ jd }}</text>
+
+  <!-- sign spokes -->
+  {% for s in signs  %}
+  <line x1="{{ s.spoke_x1 }}" y1="{{ s.spoke_y1 }}" x2="{{ s.spoke_x2 }}" y2="{{ s.spoke_y2 }}"
+        stroke="{{ vars.ring_color }}" stroke-width=".6" opacity=".4"/>
+  <text x="{{ s.glyph_x }}" y="{{ s.glyph_y }}" text-anchor="middle" dominant-baseline="central"
+        font-size="13" font-family="serif" fill="{{ vars.ring_color }}">{{ s.glyph }}</text>
+  {% endfor %}
+
+  <!-- house cusps -->
+  {% for h in houses  %};
+  <line x1="{{ h.x1 }}" y1="{{ h.y1 }}" x2="{{ h.x2 }}" y2="{{ h.y2 }}"
+        stroke="{{ vars.ring_color }}" stroke-width=".7" opacity=".35"/>
+  <text x="{{ h.num_x }}" y="{{ h.num_y }}" text-anchor="middle" dominant-baseline="central"
+        font-size="9" font-family="system-ui,sans-serif"
+        fill="{{ vars.ring_color }}" opacity=".5">{{ h.num }}</text>
+  {% endfor %}
+
+  <!-- aspect lines -->
+  {% for asp in aspects  %}
+  <line x1="{{ asp.x1 }}" y1="{{ asp.y1 }}" x2="{{ asp.x2 }}" y2="{{ asp.y2 }}"
+        stroke="{{ vars.soft_color }}" stroke-width=".7" opacity=".3"/>
+  {% endfor %}
+
+  <!-- planet glyphs -->
+  {% for p in planets  %}
+  <line x1="{{ p.tick_x1 }}" y1="{{ p.tick_y1 }}" x2="{{ p.tick_x2 }}" y2="{{ p.tick_y2 }}"
+        stroke="{{ vars.planet_color }}" stroke-width="1.0" opacity=".45"/>
+  <text x="{{ p.x }}" y="{{ p.y }}" text-anchor="middle" dominant-baseline="central"
+        font-size="15" font-family="serif" fill="{{ vars.planet_color }}">{{ p.glyph }}</text>
+  <text x="{{ p.label_x }}" y="{{ p.label_y }}" text-anchor="middle" dominant-baseline="central"
+        font-size="9" font-family="system-ui,sans-serif"
+        fill="{{ vars.text_color }}" opacity=".8">{{ p.deg_label }}</text>
+  {% endfor %}
+
+  <!-- legend -->
+  <text x="24" y="830" font-size="11" font-family="system-ui,sans-serif"
+        fill="{{ vars.ring_color }}">ASC {{ asc_dms }} · MC {{ mc_dms }} · {{ moon_phase_name }} {{ moon_illumination }}%</text>
+</svg>

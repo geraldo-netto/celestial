@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Year-at-a-glance calendar with Omer & moon-phase tagging.
+
+Renders all 12 months as a 4-column × 3-row mini-grid layout. Each day cell
+shows: day number, Omer day badge (purple), moon-phase glyph (amber), 
+sabbat highlight (green tint), Lag Ba'Omer (amber tint), Hebrew holiday (H).
+
+Run: celestial render with calendar overlays, e.g.:
+  celestial render TYPE natal DATE 2024 01 01 LAT 0 LON 0 [calendar flags]
+  template year_calendar.svg.tt out year2024.svg
+-->
+{% set page_w = 1700 %}
+{% set page_h = 1300 %}
+{% set cols = 4 %}
+{% set month_w = 380 %}
+{% set month_h = 360 %}
+{% set margin_x = 50 %}
+{% set margin_y = 100 %}
+{% set gutter_x = 30 %}
+{% set gutter_y = 30 %}
+{% set day_size = 44 %}
+{% set hdr_h = 38 %}
+{# Local color palette (template-defined, doesn't depend on chart-type vars) #}
+{% set bg_color      = "#fffff8" %}
+{% set text_color    = "#1a1a2e" %}
+{% set ring_color    = "#7a7a8a" %}
+{% set accent_color  = "#5c4a8a" %}
+{% set lag_color     = "#c87f32" %}
+{% set sabbat_color  = "#3d6b35" %}
+{% set moon_color    = "#3a4a6a" %}
+{% set holiday_color = "#a04060" %}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {{ page_w }} {{ page_h }}"
+     width="{{ page_w }}" height="{{ page_h }}">
+  <rect width="{{ page_w }}" height="{{ page_h }}" fill="{{ bg_color }}"/>
+
+  <!-- Title -->
+  <text x="{{ page_w / 2 }}" y="50" text-anchor="middle" font-size="28" font-weight="600"
+        font-family="Georgia,serif" fill="{{ text_color }}">{{ gregorian_year.year }}</text>
+  <text x="{{ page_w / 2 }}" y="76" text-anchor="middle" font-size="11"
+        font-family="system-ui,sans-serif" fill="{{ ring_color }}" opacity=".75">
+    Calendar with Sefirat HaOmer · Moon phases · Sabbats · Hebrew holidays
+  </text>
+
+  {% for m in gregorian_year.months %}
+    {% set col = loop.index0 % cols %}
+    {% set row = (loop.index0 - col) / cols %}
+    {% set ox = margin_x + col * (month_w + gutter_x) %}
+    {% set oy = margin_y + row * (month_h + gutter_y) %}
+
+    <!-- Month frame -->
+    <g transform="translate({{ ox }}, {{ oy }})">
+      <rect x="0" y="0" width="{{ month_w }}" height="{{ month_h }}"
+            fill="none" stroke="{{ ring_color }}" stroke-width=".6" opacity=".5"/>
+
+      <!-- Month name header -->
+      <text x="{{ month_w / 2 }}" y="22" text-anchor="middle"
+            font-size="14" font-weight="600" font-family="Georgia,serif"
+            fill="{{ accent_color }}">{{ m.month_name }}</text>
+
+      <!-- Weekday-of-week column headers -->
+      {% for h in m.col_headers %}
+      <text x="{{ 20 + loop.index0 * day_size + day_size / 2 }}" y="48"
+            text-anchor="middle" font-size="9" font-family="system-ui,sans-serif"
+            fill="{{ ring_color }}">{{ h.name }}</text>
+      {% endfor %}
+
+      <!-- Day cells. Each day in the context already has col & row computed. -->
+      {% for d in m.days %}
+        {% set dx = 20 + d.col * day_size %}
+        {% set dy = hdr_h + 28 + d.row * day_size %}
+
+        {# Detect sabbat day by filtering the sabbats list for this iso_date.
+           Selectattr returns matching items; length>0 means this day is a sabbat. #}
+        {% set sabbat_match = sabbats.sabbats | selectattr("iso_date", "equalto", d.iso_date) | list %}
+
+        {% if sabbat_match %}
+        <rect x="{{ dx }}" y="{{ dy }}" width="{{ day_size }}" height="{{ day_size }}"
+              fill="{{ sabbat_color }}" fill-opacity=".15"/>
+        {% endif %}
+
+        {% if d.is_lag_baomer %}
+        <rect x="{{ dx }}" y="{{ dy }}" width="{{ day_size }}" height="{{ day_size }}"
+              fill="{{ lag_color }}" fill-opacity=".22"/>
+        {% endif %}
+
+        <rect x="{{ dx }}" y="{{ dy }}" width="{{ day_size }}" height="{{ day_size }}"
+              fill="none" stroke="{{ ring_color }}" stroke-width=".4" opacity=".25"/>
+
+        <!-- Day number, top-left -->
+        <text x="{{ dx + 5 }}" y="{{ dy + 13 }}"
+              font-size="11" font-weight="500" font-family="system-ui,sans-serif"
+              fill="{{ text_color }}">{{ d.day }}</text>
+
+        <!-- Omer day badge, bottom-right -->
+        {% if d.omer_day %}
+        <text x="{{ dx + day_size - 4 }}" y="{{ dy + day_size - 5 }}" text-anchor="end"
+              font-size="8" font-weight="700" font-family="system-ui,sans-serif"
+              fill="{{ accent_color }}">·{{ d.omer_day }}·</text>
+        {% endif %}
+
+        <!-- Moon phase glyph, top-right (only for the 4 principal phases) -->
+        {% if d.moon_phase %}
+        <text x="{{ dx + day_size - 4 }}" y="{{ dy + 12 }}" text-anchor="end"
+              font-size="10" font-family="serif"
+              fill="{{ moon_color }}">{{ d.moon_glyph }}</text>
+        {% endif %}
+
+        <!-- Hebrew holiday letter, centred small at bottom -->
+        {% if d.hebrew_holiday %}
+        <text x="{{ dx + day_size / 2 }}" y="{{ dy + day_size - 5 }}" text-anchor="middle"
+              font-size="7" font-style="italic" font-family="Georgia,serif"
+              fill="{{ text_color }}" opacity=".7">H</text>
+        {% endif %}
+      {% endfor %}
+    </g>
+  {% endfor %}
+
+  <!-- Legend -->
+  <g transform="translate({{ margin_x }}, {{ page_h - 40 }})"
+     font-family="system-ui,sans-serif" font-size="10" fill="{{ text_color }}">
+    <rect x="0" y="-10" width="14" height="14" fill="{{ sabbat_color }}" fill-opacity=".15"/>
+    <text x="20" y="0">Sabbat (Wheel of the Year)</text>
+    <rect x="220" y="-10" width="14" height="14" fill="{{ lag_color }}" fill-opacity=".22"/>
+    <text x="240" y="0">Lag Ba'Omer</text>
+    <text x="380" y="0" fill="{{ accent_color }}" font-weight="700">·N·</text>
+    <text x="408" y="0">Omer day N</text>
+    <text x="500" y="0" fill="{{ moon_color }}" font-family="serif">☽</text>
+    <text x="518" y="0">Principal moon phase</text>
+    <text x="680" y="0" font-style="italic">H</text>
+    <text x="694" y="0">Hebrew holiday</text>
+  </g>
+</svg>

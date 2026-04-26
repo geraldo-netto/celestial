@@ -218,68 +218,86 @@ fn elongation(jd: f64) -> Result<f64> {
 
 /// Find the exact full-moon moment in `[jd_lo, jd_hi]` (elongation = 180°).
 ///
-/// Uses a hybrid approach:
-/// 1. Newton's method with numerical derivative — converges in ~5 iterations.
-/// 2. Falls back to bisection if Newton diverges (e.g. near-polar latitudes).
-///
-/// Costs ~12 `calc_ut` calls vs the previous ~120 (60 bisection steps × 2).
-fn bisect_full_moon(jd_lo: f64, jd_hi: f64) -> Result<f64> {
-    /// Signed distance of elongation from 180°, in (−180, +180].
-    fn signed(jd: f64) -> Result<f64> {
-        let e = elongation(jd)?;
-        let d = e - 180.0;
-        Ok(if d > 180.0 {
-            d - 360.0
-        } else if d <= -180.0 {
-            d + 360.0
-        } else {
-            d
-        })
-    }
+/// Signed distance of elongation from 180°, in (−180, +180]. Used by
+/// [`bisect_full_moon`] as the function whose root is sought (i.e. f(jd) = 0
+/// at exact full moon).
+fn full_moon_signed(jd: f64) -> Result<f64> {
+    let e = elongation(jd)?;
+    let d = e - 180.0;
+    Ok(if d > 180.0 {
+        d - 360.0
+    } else if d <= -180.0 {
+        d + 360.0
+    } else {
+        d
+    })
+}
 
-    // Newton's method: x_{n+1} = x_n - f(x_n) / f'(x_n)
-    // f(jd) = elongation - 180° (signed), f'(jd) ≈ 12°/day (lunar rate)
-    let mut jd = (jd_lo + jd_hi) / 2.0;
-    let h = 0.01; // 0.01 day ≈ 14 min for numerical derivative
+/// Newton's-method refinement of `jd` toward the full-moon root.
+///
+/// Converges in ~5 iterations near the root; bails early on sub-arcsecond
+/// accuracy or a degenerate derivative. Numerical derivative uses a
+/// 14-minute step.
+fn newton_refine_full_moon(mut jd: f64, jd_lo: f64, jd_hi: f64) -> Result<f64> {
+    const H: f64 = 0.01; // 0.01 day ≈ 14 min for numerical derivative
+    const TOL: f64 = 1.0 / 3_600.0; // sub-arcsecond convergence
     for _ in 0..10 {
-        let f = signed(jd)?;
-        if f.abs() < 1.0 / 3_600.0 {
+        let f = full_moon_signed(jd)?;
+        if f.abs() < TOL {
             break;
-        } // sub-arcsecond convergence
-          // Numerical derivative: rate of change of elongation (°/day)
-        let fp = (signed(jd + h)? - signed(jd - h)?) / (2.0 * h);
+        }
+        let fp = (full_moon_signed(jd + H)? - full_moon_signed(jd - H)?) / (2.0 * H);
         if fp.abs() < 0.1 {
-            break;
-        } // guard against near-zero derivative
-        let step = (f / fp).clamp(-3.0, 3.0); // clamp to avoid wild jumps
-        jd -= step;
-        jd = jd.clamp(jd_lo - 1.0, jd_hi + 1.0); // stay near bracket
+            break; // guard against near-zero derivative
+        }
+        let step = (f / fp).clamp(-3.0, 3.0); // avoid wild jumps
+        jd = (jd - step).clamp(jd_lo - 1.0, jd_hi + 1.0); // stay near bracket
     }
+    Ok(jd)
+}
+
+/// Sign-preserving bisection fallback for [`bisect_full_moon`] when Newton's
+/// method diverges (near-polar latitudes, peculiar elongation curves).
+/// Stops at 1-minute precision or 20 iterations.
+fn bisect_fallback_full_moon(jd_lo: f64, jd_hi: f64) -> Result<f64> {
+    const PRECISION: f64 = 1.0 / 1_440.0; // 1 minute
+    let (mut lo, mut hi) = (jd_lo, jd_hi);
+    let mut lo_sign = full_moon_signed(lo)?.signum();
+    for _ in 0..20 {
+        if hi - lo < PRECISION {
+            break;
+        }
+        let mid = (lo + hi) / 2.0;
+        let mid_sign = full_moon_signed(mid)?.signum();
+        if mid_sign == lo_sign || mid_sign == 0.0 {
+            lo = mid;
+            lo_sign = mid_sign;
+        } else {
+            hi = mid;
+        }
+    }
+    Ok((lo + hi) / 2.0)
+}
+
+/// Find the exact full-moon JD inside the bracket `[jd_lo, jd_hi]`.
+///
+/// Hybrid approach:
+/// 1. Newton's method with numerical derivative — converges in ~5 iterations.
+/// 2. Bisection fallback if Newton diverges (sanity-checked against 0.05°).
+///
+/// Costs ~12 `calc_ut` calls in the common Newton-converges path vs. the
+/// ~120 of the previous pure-bisection version.
+fn bisect_full_moon(jd_lo: f64, jd_hi: f64) -> Result<f64> {
+    let initial = (jd_lo + jd_hi) / 2.0;
+    let jd = newton_refine_full_moon(initial, jd_lo, jd_hi)?;
 
     // Sanity check: elongation should be within 0.05° of 180°
     let e = elongation(jd)?;
     let err = (e - 180.0).abs().min(360.0 - (e - 180.0).abs());
-    if err > 0.05 {
-        // Newton failed — fall back to bisection (10 steps = 1/1024 day ≈ 84 seconds)
-        let (mut lo, mut hi) = (jd_lo, jd_hi);
-        let mut lo_sign = signed(lo)?.signum();
-        for _ in 0..20 {
-            if hi - lo < 1.0 / 1_440.0 {
-                break;
-            } // 1-minute precision
-            let mid = (lo + hi) / 2.0;
-            let mid_sign = signed(mid)?.signum();
-            if mid_sign == lo_sign || mid_sign == 0.0 {
-                lo = mid;
-                lo_sign = mid_sign;
-            } else {
-                hi = mid;
-            }
-        }
-        jd = (lo + hi) / 2.0;
+    if err <= 0.05 {
+        return Ok(jd);
     }
-
-    Ok(jd)
+    bisect_fallback_full_moon(jd_lo, jd_hi)
 }
 
 // ─── Naming logic ─────────────────────────────────────────────────────────────

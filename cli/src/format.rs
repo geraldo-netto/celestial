@@ -66,7 +66,8 @@ pub fn json_obj(pairs: &[(&str, String)]) -> String {
             if v.parse::<f64>().is_ok() {
                 format!("  \"{k}\": {v}")
             } else {
-                format!("  \"{k}\": \"{}\"\"", v.replace('"', "\\\""))
+                // String-typed value: quote-escape and wrap in quotes once.
+                format!("  \"{k}\": \"{}\"", v.replace('"', "\\\""))
             }
         })
         .collect();
