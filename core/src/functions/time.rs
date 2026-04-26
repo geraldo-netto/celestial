@@ -73,6 +73,19 @@ pub fn julday(year: i32, month: i32, day: i32, hour: f64, calendar: Calendar) ->
 
 /// Convert a Julian day number to a calendar date.
 pub fn revjul(jd: f64, calendar: Calendar) -> CalDate {
+    // Defensive: extreme f64 values (NaN, ±Inf, ±f64::MAX) cause the
+    // floor()/as-i64 chain below to wrap or saturate at i64::MAX, which then
+    // overflows on the next add. Map any non-finite or astronomically-absurd
+    // input to a sentinel epoch to keep the function panic-free for fuzzers.
+    if !jd.is_finite() || jd.abs() > 1.0e10 {
+        return CalDate {
+            year: 0,
+            month: 1,
+            day: 1,
+            hour: 0.0,
+        };
+    }
+
     let jd = jd + 0.5;
     let z = jd.floor() as i64;
     let f = jd.fract();

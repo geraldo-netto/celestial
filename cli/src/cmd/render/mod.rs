@@ -411,6 +411,56 @@ pub(super) const RC: f64 = 88.0; // inner circle
 /// longitude) and iteratively separates overlapping pairs symmetrically along
 /// the arc, keeping each label within `MAX_DRIFT` degrees of its planet.
 /// Returns one adjusted angle per planet, in the original planet order.
+/// Wrap an angle to (−180, +180].
+#[inline]
+fn wrap_signed_180(mut a: f64) -> f64 {
+    while a > 180.0 {
+        a -= 360.0;
+    }
+    while a < -180.0 {
+        a += 360.0;
+    }
+    a
+}
+
+/// Clamp a label so it does not drift more than `max_drift` degrees from its
+/// "natural" angle.  Uses signed wrap so e.g. natural = 350° and placed = 5°
+/// is treated as a +15° drift, not +355°.
+fn clamp_drift(placed: &mut f64, natural: f64, max_drift: f64) {
+    let drift = wrap_signed_180(*placed - natural);
+    if drift.abs() > max_drift {
+        *placed = natural + drift.signum() * max_drift;
+    }
+}
+
+/// One repulsion pass between labels `i` and `j`. Returns `true` if the pair
+/// was crowded and got pushed apart.
+fn repel_pair(
+    placed: &mut [f64],
+    natural: &[f64],
+    i: usize,
+    j: usize,
+    min_sep: f64,
+    max_drift: f64,
+) -> bool {
+    let d = wrap_signed_180(placed[j] - placed[i]);
+    if d.abs() >= min_sep {
+        return false;
+    }
+    // Push symmetrically; slightly more than half ensures convergence
+    let push = (min_sep - d.abs()) * 0.55 + 0.05;
+    if d >= 0.0 {
+        placed[j] += push;
+        placed[i] -= push;
+    } else {
+        placed[i] += push;
+        placed[j] -= push;
+    }
+    clamp_drift(&mut placed[i], natural[i], max_drift);
+    clamp_drift(&mut placed[j], natural[j], max_drift);
+    true
+}
+
 pub(super) fn spread_labels(lons: &[f64], asc: f64) -> Vec<f64> {
     // Approximate angular half-width of a degree label (e.g. "29°Gem") at
     // the label ring radius.  At r = RP + 22 ≈ 234px, 10° of arc ≈ 41px,
@@ -427,43 +477,13 @@ pub(super) fn spread_labels(lons: &[f64], asc: f64) -> Vec<f64> {
         .collect();
     let mut placed = natural.clone();
 
+    // Iterative pairwise repulsion until no pair is crowded (or MAX_ITER).
     for _iter in 0..MAX_ITER {
         let mut any = false;
         for i in 0..n {
             for j in (i + 1)..n {
-                // Signed angular gap from i to j in (−180, +180]
-                let mut d = placed[j] - placed[i];
-                while d > 180.0 {
-                    d -= 360.0;
-                }
-                while d < -180.0 {
-                    d += 360.0;
-                }
-
-                if d.abs() < MIN_SEP {
+                if repel_pair(&mut placed, &natural, i, j, MIN_SEP, MAX_DRIFT) {
                     any = true;
-                    // Push symmetrically; slightly more than half ensures convergence
-                    let push = (MIN_SEP - d.abs()) * 0.55 + 0.05;
-                    if d >= 0.0 {
-                        placed[j] += push;
-                        placed[i] -= push;
-                    } else {
-                        placed[i] += push;
-                        placed[j] -= push;
-                    }
-                    // Clamp each to ±MAX_DRIFT from its natural angle
-                    for k in [i, j] {
-                        let mut drift = placed[k] - natural[k];
-                        while drift > 180.0 {
-                            drift -= 360.0;
-                        }
-                        while drift < -180.0 {
-                            drift += 360.0;
-                        }
-                        if drift.abs() > MAX_DRIFT {
-                            placed[k] = natural[k] + drift.signum() * MAX_DRIFT;
-                        }
-                    }
                 }
             }
         }
@@ -501,6 +521,18 @@ fn toml_value_to_string(v: &toml::Value) -> String {
 /// Read a TOML config file and merge its defaults into `args` (only fields
 /// still at their sentinel defaults are overridden) and return its `[vars]`
 /// map. Returns an empty map if no config file is specified.
+/// Apply `Some(value)` to `*field` only if the predicate `should_override` is `true`.
+/// This reads as "fill in this defaultable field from the config when the
+/// caller hasn't already provided one", flattening the very common
+/// `if cond { if let Some(v) = opt { *field = v; } }` triple-nested idiom.
+fn override_if<T>(field: &mut T, candidate: Option<T>, should_override: bool) {
+    if should_override {
+        if let Some(v) = candidate {
+            *field = v;
+        }
+    }
+}
+
 fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, String>, String> {
     let mut file_vars = BTreeMap::new();
     let Some(cfg_path) = args.config.clone() else {
@@ -511,26 +543,19 @@ fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, String>, String
     let cfg: ConfigFile = toml::from_str(&text).map_err(|e| format!("invalid config TOML: {e}"))?;
 
     if let Some(r) = cfg.render {
-        if args.date == "now" {
-            if let Some(d) = r.date {
-                args.date = d;
-            }
-        }
-        if args.lat == 0.0 {
-            if let Some(v) = r.lat {
-                args.lat = v;
-            }
-        }
-        if args.lon == 0.0 {
-            if let Some(v) = r.lon {
-                args.lon = v;
-            }
-        }
-        if args.hsys == 'P' {
-            if let Some(h) = r.hsys {
-                args.hsys = h;
-            }
-        }
+        // Snapshot field values before taking &mut borrows so the predicate
+        // doesn't conflict with the mutable borrow.
+        let date_at_default = args.date == "now";
+        let lat_at_default = args.lat == 0.0;
+        let lon_at_default = args.lon == 0.0;
+        let hsys_at_default = args.hsys == 'P';
+
+        // Each line: "use the config value for this field if the user didn't
+        // already specify one on the command line".
+        override_if(&mut args.date, r.date, date_at_default);
+        override_if(&mut args.lat, r.lat, lat_at_default);
+        override_if(&mut args.lon, r.lon, lon_at_default);
+        override_if(&mut args.hsys, r.hsys, hsys_at_default);
         if args.template.is_none() {
             args.template = r.template;
         }

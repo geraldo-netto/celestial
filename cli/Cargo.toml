@@ -6,6 +6,10 @@ description = "Command-line interface for the celestial astronomical engine"
 license     = "AGPL-3.0-or-later"
 authors     = ["geraldo-netto"]
 
+[lib]
+name = "celestial_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "celestial"
 path = "src/main.rs"

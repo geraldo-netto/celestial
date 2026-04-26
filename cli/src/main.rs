@@ -6,10 +6,7 @@
 //! Plugin commands: any `celestial-<n>` executable on $PATH becomes a subcommand.
 //! Run `celestial --list-plugins` to see discovered plugins.
 
-mod cmd;
-mod format;
-mod parse;
-mod plugin;
+use celestial_cli::{cmd, plugin};
 
 use clap::{Parser, Subcommand};
 

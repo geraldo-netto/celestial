@@ -73,7 +73,7 @@ pub fn next_retro(
 
     loop {
         jd += dir;
-        if (backward && jd < max_jd) || (!backward && jd > max_jd) {
+        if passed_limit(jd, max_jd, backward) {
             return None;
         }
 
@@ -192,6 +192,18 @@ pub fn next_aspect2(
 
 /// Find next exact aspect between two moving planets.
 /// `aspect` in `[0, 360)`.
+/// Returns `true` when `jd` has stepped past `max_jd` in the given direction.
+/// Replaces the nested `if backward { if jd < max_jd { ... } } else { if jd > max_jd { ... } }`
+/// pattern that recurs throughout the search functions.
+#[inline]
+fn passed_limit(jd: f64, max_jd: f64, backward: bool) -> bool {
+    if backward {
+        jd < max_jd
+    } else {
+        jd > max_jd
+    }
+}
+
 pub fn next_aspect_with(
     body: Body,
     aspect: f64,
@@ -212,32 +224,27 @@ pub fn next_aspect_with(
         Some(diff_deg_signed(p1 + aspect, p2))
     };
 
-    let max_jd = if stop_days > 0.0 {
-        jd_start + if backward { -stop_days } else { stop_days }
+    let span = if stop_days > 0.0 {
+        stop_days
     } else {
-        jd_start + if backward { -100_000.0 } else { 100_000.0 }
+        100_000.0
     };
+    let max_jd = jd_start + dir.signum() * span;
 
     let mut jd = jd_start;
     let mut d0 = diff_at(jd)?;
 
     loop {
         jd += dir;
-        if backward {
-            if jd < max_jd {
-                return None;
-            }
-        } else {
-            if jd > max_jd {
-                return None;
-            }
+        if passed_limit(jd, max_jd, backward) {
+            return None;
         }
 
         let d1 = diff_at(jd)?;
         if d0 * d1 <= 0.0 && (d1 - d0).abs() < 180.0 {
-            // Bisect
+            // Sign change → bisect on `diff_at` to find the crossing.
             let (mut ja, mut jb) = (jd - dir, jd);
-            let (mut da, _) = (d0, d1);
+            let mut da = d0;
             for _ in 0..60 {
                 let jm = (ja + jb) / 2.0;
                 let dm = diff_at(jm)?;
@@ -336,14 +343,8 @@ pub fn next_aspect_cusp(
 
     loop {
         jd += dir;
-        if backward {
-            if jd < max_jd {
-                return None;
-            }
-        } else {
-            if jd > max_jd {
-                return None;
-            }
+        if passed_limit(jd, max_jd, backward) {
+            return None;
         }
 
         let d1 = diff_at(jd)?;

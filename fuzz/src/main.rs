@@ -2950,6 +2950,14 @@ fn main() {
         ),
         ("geo_utilities", test_geo_utilities(N).report()),
         ("profections", test_profections(N).report()),
+
+        // ── Coverage-expansion suites ───────────────────────────────────────
+        ("format_helpers",        test_format_helpers(N).report()),
+        ("calc_ut_many",          test_calc_ut_many_consistency(N / 10).report()),
+        ("arabic_parts_range",    test_arabic_part_range(N).report()),
+        ("chart_aspects_builder", test_chart_aspects_builder(N / 5).report()),
+        ("hebrew_calendar",       test_hebrew_calendar(N).report()),
+        ("calc_pctr",             test_calc_pctr_no_panic(N / 5).report()),
     ];
 
     println!();
@@ -2964,6 +2972,128 @@ fn main() {
         println!("✗ {passed} passed, {failed} FAILED");
         std::process::exit(1);
     }
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Coverage-expansion suites — fuzz previously-uncovered fns
+//
+// These complement the existing 74 suites by exercising parts of the public
+// API that weren't covered before. Each suite asserts no-panic + finite/range
+// invariants on the result.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Format-conversion helpers. Pure functions — should never panic.
+fn test_format_helpers(n: u32) -> Suite {
+    let mut s = Suite::new("format_helpers");
+    let mut rng = Xorshift64::new(0xCAFE_F00D_DEAD_BEEF);
+    for _ in 0..n {
+        let deg = rng.range_f64(-720.0, 720.0);
+        let cs = deg_to_cs(deg) as i32;
+        // Format helpers must not panic on any centisecond input
+        let _ = celestial_core::centisec_to_deg_str(cs);
+        let _ = celestial_core::centisec_to_lonlat_str(cs, 'E', 'W');
+        let _ = celestial_core::centisec_to_lonlat_str(cs, 'N', 'S');
+        let time_cs = (rng.range_f64(0.0, 86_400.0) * 100.0) as i32;
+        let _ = celestial_core::centisec_to_time_str(time_cs, ':', false);
+        s.passed += 1;
+    }
+    s
+}
+
+/// `calc_ut_many` should match individual `calc_ut` calls.
+fn test_calc_ut_many_consistency(n: u32) -> Suite {
+    let mut s = Suite::new("calc_ut_many");
+    let mut rng = Xorshift64::new(0xBADC_0FFE_E0DD_F00D);
+    let bodies = [Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS,
+                  Body::MARS, Body::JUPITER, Body::SATURN];
+    for _ in 0..n {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
+        let many = celestial_core::calc_ut_many(jd, &bodies, CalcFlags::BUILTIN);
+        s.check(many.len() == bodies.len(),
+                || format!("calc_ut_many length: {}", many.len()));
+        // First (Sun) should match a separate calc_ut call
+        if let (Some(Ok(via_many)), Ok(via_one)) =
+            (many.first(), calc_ut(jd, Body::SUN, CalcFlags::BUILTIN))
+        {
+            s.check((via_many.lon - via_one.lon).abs() < 1e-9,
+                    || format!("Sun lon mismatch jd={jd}: many={} one={}",
+                               via_many.lon, via_one.lon));
+        }
+    }
+    s
+}
+
+/// `arabic_part(asc, body2, body1)` returns Part of Fortune — must be in [0, 360).
+fn test_arabic_part_range(n: u32) -> Suite {
+    let mut s = Suite::new("arabic_parts_range");
+    let mut rng = Xorshift64::new(0xFADED_FEED_C0DE);
+    for _ in 0..n {
+        let asc  = rng.range_f64(0.0, 360.0);
+        let sun  = rng.range_f64(0.0, 360.0);
+        let moon = rng.range_f64(0.0, 360.0);
+        let pof = celestial_core::arabic_part(asc, moon, sun);
+        s.check(pof.is_finite() && (0.0..360.0).contains(&pof),
+                || format!("Part of Fortune: {pof} (asc={asc}, sun={sun}, moon={moon})"));
+    }
+    s
+}
+
+/// Chart-aspect builder: takes a list of body positions and aspect angles,
+/// returns aspects found within auto-computed orbs. Each result must have
+/// a non-negative finite orb.
+fn test_chart_aspects_builder(n: u32) -> Suite {
+    let mut s = Suite::new("chart_aspects_builder");
+    let mut rng = Xorshift64::new(0xC0FF_EE15_BEEF_BABE);
+    let aspect_angles = [0.0_f64, 60.0, 90.0, 120.0, 180.0];
+    for _ in 0..n {
+        // Build a random "chart" of 5 bodies at random positions
+        let positions: Vec<(Body, f64, f64)> = [
+            Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS, Body::MARS,
+        ]
+        .iter()
+        .map(|&b| (b, rng.range_f64(0.0, 360.0), rng.range_f64(-2.0, 15.0)))
+        .collect();
+        let aspects = celestial_core::calc_chart_aspects_auto(&positions, &aspect_angles);
+        for a in &aspects {
+            s.check(a.orb.is_finite() && a.orb >= 0.0,
+                    || format!("aspect orb: {}", a.orb));
+        }
+        s.passed += 1;
+    }
+    s
+}
+
+/// `approx_hebrew_year(jd)` should return Gregorian + 3759..3761.
+fn test_hebrew_calendar(n: u32) -> Suite {
+    let mut s = Suite::new("hebrew_calendar");
+    let mut rng = Xorshift64::new(0x1234_FACE_BEEF_0001);
+    for _ in 0..n {
+        let g_year = rng.range_i32(1900, 2200);
+        let jd = julday(g_year, 6, 30, 12.0, Calendar::Gregorian);
+        let h_year = celestial_core::approx_hebrew_year(jd);
+        let expected = g_year + 3760;
+        s.check((h_year - expected).abs() <= 2,
+                || format!("approx_hebrew_year(jd of {g_year}-06-30) = {h_year}                             (expected ≈ {expected})"));
+    }
+    s
+}
+
+/// `calc_pctr` (planetocentric): exhaustively call without panicking.
+fn test_calc_pctr_no_panic(n: u32) -> Suite {
+    let mut s = Suite::new("calc_pctr");
+    let mut rng = Xorshift64::new(0xBA_DBABE_DEADCAFE);
+    let bodies = [Body::MERCURY, Body::VENUS, Body::MARS, Body::JUPITER];
+    let centers = [Body::SUN, Body::EARTH, Body::JUPITER];
+    for _ in 0..n {
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
+        let body = bodies[(rng.next_u64() as usize) % bodies.len()];
+        let ctr  = centers[(rng.next_u64() as usize) % centers.len()];
+        let _ = celestial_core::calc_pctr(jd, body, ctr, CalcFlags::BUILTIN);
+        s.passed += 1;
+    }
+    s
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
