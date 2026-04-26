@@ -29,17 +29,15 @@ fn jd_ut_to_year(jd: f64) -> f64 {
     2000.0 + (jd - 2_451_545.0) / 365.25
 }
 
-/// Compute ΔT (seconds) for a fractional year.
-///
-/// Sources:
-///   - Espenak & Meeus, "Five Millennium Canon of Solar Eclipses" (2006)
-///   - Morrison & Stephenson, J. Hist. Astron. 35 (2004)
-///   - IERS Bulletin A for recent observations
-
 /// One row of the piece-wise polynomial ΔT fit from Espenak & Meeus (2006).
 ///
 /// For `y` in `(prev_end .. year_end]`, ΔT = polynomial(t) where
 /// `t = (y - year_base) / denom`.
+///
+/// # References
+/// - Espenak & Meeus, "Five Millennium Canon of Solar Eclipses" (2006)
+/// - Morrison & Stephenson, J. Hist. Astron. 35 (2004)
+/// - IERS Bulletin A for recent observations
 struct DeltaTPiece {
     /// Upper bound (exclusive) of this piece's year range.
     year_end: f64,
