@@ -35,6 +35,7 @@ fn jd_ut_to_year(jd: f64) -> f64 {
 ///   - Espenak & Meeus, "Five Millennium Canon of Solar Eclipses" (2006)
 ///   - Morrison & Stephenson, J. Hist. Astron. 35 (2004)
 ///   - IERS Bulletin A for recent observations
+
 /// One row of the piece-wise polynomial ΔT fit from Espenak & Meeus (2006).
 ///
 /// For `y` in `(prev_end .. year_end]`, ΔT = polynomial(t) where
@@ -213,7 +214,7 @@ fn long_term_parabola(y: f64) -> f64 {
 #[must_use]
 pub fn delta_t_for_year(y: f64) -> f64 {
     // Outside the table: pure long-term parabola
-    if y < -500.0 || y >= 2150.0 {
+    if !(-500.0..2150.0).contains(&y) {
         return long_term_parabola(y);
     }
     // 2050–2150: parabola with linear correction toward the 2150 anchor

@@ -52,7 +52,7 @@ enum Command {
     /// Apparent planetary phenomena (magnitude, phase, illumination, elongation)
     Phenomena(cmd::phenomena::PhenomenaArgs),
     /// Render a Jinja2 template with celestial chart data (SVG, HTML, …)
-    Render(cmd::render::RenderArgs),
+    Render(Box<cmd::render::RenderArgs>),
 }
 
 fn main() {
@@ -118,7 +118,7 @@ fn main() {
         Command::Omer(a) => cmd::omer::run(a),
         Command::Calendar(a) => cmd::calendar::run(a),
         Command::Phenomena(a) => cmd::phenomena::run(a),
-        Command::Render(a) => cmd::render::run(a),
+        Command::Render(a) => cmd::render::run(*a),
     };
     if let Err(e) = result {
         eprintln!("error: {e}");

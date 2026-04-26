@@ -693,10 +693,10 @@ pub fn monthly_profection(cusps: &[f64; 13], age_years: u32, age_months: u32) ->
 /// tightest. Keyed by `Body::as_raw()` value.
 fn body_orb_weight(body: Body) -> f64 {
     match body.as_raw() {
-        0 | 1 => 2.0,     // Sun, Moon (luminaries)
-        2 | 3 | 4 => 1.5, // Mercury, Venus, Mars (personal)
-        5 | 6 => 1.0,     // Jupiter, Saturn (social)
-        _ => 0.75,        // outer planets, nodes, Chiron, asteroids
+        0 | 1 => 2.0,   // Sun, Moon (luminaries)
+        2..=4 => 1.5,   // Mercury, Venus, Mars (personal)
+        5 | 6 => 1.0,   // Jupiter, Saturn (social)
+        _ => 0.75,      // outer planets, nodes, Chiron, asteroids
     }
 }
 

@@ -249,14 +249,14 @@ pub fn render_ashtakavarga_svg(ctx: &Value) -> String {
     );
 
     // Column headers (rasi glyphs + numbers)
-    for si in 0..12usize {
+    for (si, glyph) in RASI_GLYPHS.iter().enumerate() {
         let x = LM + si as f64 * CW + CW / 2.0;
         let _ = writeln!(
             s,
             r##"  <text x="{x:.1}" y="{:.1}" font-size="13" text-anchor="middle" font-family="serif" fill="{txt}">{}</text>
   <text x="{x:.1}" y="{:.1}" font-size="8" text-anchor="middle" fill="{txt}" opacity=".5">{}</text>"##,
             TM - 16.0,
-            RASI_GLYPHS[si],
+            glyph,
             TM - 5.0,
             si + 1
         );
