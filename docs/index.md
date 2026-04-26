@@ -1,7 +1,7 @@
 # celestial — Documentation
 
 **celestial** is a pure-Rust Swiss Ephemeris port with CLI, Python, JavaScript and PHP bindings,
-supporting eight astrological traditions across 24 chart types.
+supporting eight astrological traditions across 27 chart types.
 
 ## Documents
 
@@ -75,7 +75,7 @@ celestial --list-plugins              # discover all installed plugins
 celestial synastry --date 1985-01-01  # runs celestial-synastry if on PATH
 ```
 
-See [README.md](../README.md#cli) for the full command reference and all 24 chart types.
+See [README.md](../README.md#cli) for the full command reference and all 27 chart types.
 
 ### Python
 
@@ -128,7 +128,7 @@ celestial/
 │   │       ├── chinese.rs      Ba Zi, solar terms
 │   │       ├── mesoamerican.rs Tonalpohualli, Tzolkin, Haab
 │   │       └── indigenous.rs   Medicine Wheel, Egyptian decans
-├── cli/src/cmd/render/         24 SVG chart builders, one per tradition
+├── cli/src/cmd/render/         27 chart-type SVG builders + 6 calendar overlays
 ├── bindings/python/            PyO3 — 191 functions + celestial_py.pyi stubs (198 typed)
 ├── bindings/js/                napi-rs — 191 functions + index.d.ts (272 typed — structs + consts)
 ├── bindings/php/               ext-php-rs — 191 functions + phpstan-stubs.php (396 symbols)
@@ -157,8 +157,8 @@ Five independent pipelines, each triggered on changes to its crate or `core/`:
 
 | Pipeline | Jobs |
 |---|---|
-| **celestial-core** | `lint` (fmt + clippy) → `test` (514 tests) ‖ `fuzz` (74 suites, ~1M property checks) |
-| **celestial-cli** | `lint` (clippy) → `test` (84 tests) → `build` (3 OS) |
+| **celestial-core** | `lint` (fmt + clippy) → `test` (526 tests) ‖ `fuzz` (83 suites, ~1M property checks) |
+| **celestial-cli** | `lint` (clippy) → `test` (104 tests) → `build` (3 OS) |
 | **celestial-python** | `lint-rs` ‖ `lint-py` (black + ruff) → `test` (245 pure-logic) → `build` (maturin wheel) |
 | **celestial-js** | `lint-rs` ‖ `lint-ts` (eslint + tsc) → `test` (162 pure-logic) → `build` (napi-rs addon) |
 | **celestial-php** | `lint-rs` → `build` (ext-php-rs + pure-logic tests, PHP 8.1) |

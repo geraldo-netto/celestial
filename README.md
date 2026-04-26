@@ -8,7 +8,7 @@
 
 A pure-Rust astronomical engine — no C compiler, no data files, **no external dependencies**.
 
-Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclipses, crossings, rise/set, aspects, retrogrades, Vedic helpers, Celtic Wheel of the Year, and eight astrological traditions across 24 chart types.
+Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclipses, crossings, rise/set, aspects, retrogrades, Vedic helpers, Celtic Wheel of the Year, and eight astrological traditions across 27 chart types.
 
 ---
 
@@ -40,13 +40,11 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
 
 ## Building from source
 
-# Time can also be provided separately:
-# celestial chart --date 1990-05-15 --time 14:30 --lat 48.85 --lon 2.35
 ```bash
 # Full workspace build
 cargo build
 
-# Tests — 824 unit/integration + 67 property-test suites
+# Tests — 654 unit/integration + 83 fuzz suites (~1M property checks)
 cargo test --package celestial-core -- --test-threads=1
 cargo test --package celestial-cli
 cargo run  --manifest-path fuzz/Cargo.toml
@@ -62,8 +60,6 @@ cd bindings/js && npm install && npm run build
 
 # PHP extension
 cd bindings/php && cargo build --release
-# Time can also be provided separately:
-# celestial chart --date 1990-05-15 --time 14:30 --lat 48.85 --lon 2.35
 ```
 
 ---
@@ -86,12 +82,13 @@ celestial esbats    Named full moons
 celestial jd        Julian day ↔ calendar date
 celestial crossing  Next ecliptic longitude crossing
 celestial eclipse   Solar and lunar eclipses
-celestial chart     Full astrological chart — JSON output + SVG wheel
 celestial moon      Moon phase, illumination, and next principal phases
 celestial omer      Sefirat HaOmer — 49-day Omer count
 celestial calendar  Multi-tradition religious calendars
                     jewish | easter | islamic | panchanga | vesak | nowruz
-celestial render    Template-driven SVG chart rendering (24 chart types)
+celestial phenomena Apparent planetary phenomena (magnitude, phase, elongation)
+celestial render    Template-driven SVG chart rendering (27 chart types,
+                    6 calendar overlays, MiniJinja templates)
 ```
 
 ### Examples
@@ -128,13 +125,14 @@ celestial crossing --body sun --lon 0 --from 2025-01-01
 celestial eclipse --type solar --from 2025-01-01
 celestial eclipse --type lunar
 
-# Full astrological chart
-celestial chart \
+# Full astrological chart (natal wheel)
+celestial render \
+  --chart-type natal \
   --date "1985-07-14 14:30" \
   --lat 48.8566 \
   --lon 2.3522 \
-  --name "Bastille Day 1985" \
-  --svg chart.svg
+  --var title="Bastille Day 1985" \
+  --out chart.svg
 
 # Moon phases
 celestial moon                          # current phase
@@ -168,7 +166,7 @@ All subcommands accept `--json` for machine-readable output.
 
 ### Chart rendering — `celestial render`
 
-Produces SVG charts for 24 astrological chart types across eight traditions.
+Produces SVG charts for 27 astrological chart types across eight traditions.
 
 ![Celestial Chart — Paris J2000.0](docs/example_chart.svg)
 
