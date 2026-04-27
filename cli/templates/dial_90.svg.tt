@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{# 90° Midpoint Dial (Uranian / Hamburg School)
+   Each planet's longitude is reduced mod 90° to the dial position.
+   Cardinal/Fixed/Mutable signs that land on the same dial degree create
+   a "midpoint axis". The classic uranian dial reveals these alignments.
+   Run: celestial render --chart-type dial --date X --lat Y --lon=-Z
+        --template dial_90.svg.tt --out dial.svg #}
+{% set page_w = 1100 %}
+{% set page_h = 1100 %}
+{% set bg     = "#ffffff" %}
+{% set ink    = "#1a1a2e" %}
+{% set muted  = "#7a8090" %}
+{% set accent = "#1f5fb8" %}
+{% set retro_color = "#c8392b" %}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1100" width="210mm" height="297mm" preserveAspectRatio="xMidYMid meet">
+  <rect width="{{ page_w }}" height="{{ page_h }}" fill="{{ bg }}"/>
+
+  <text x="{{ page_w / 2 }}" y="44" text-anchor="middle" font-size="22" font-weight="600"
+        font-family="Georgia,serif" fill="{{ ink }}">90° Midpoint Dial</text>
+  <text x="{{ page_w / 2 }}" y="68" text-anchor="middle" font-size="11"
+        font-family="system-ui,sans-serif" fill="{{ muted }}">{{ date_label }} · Asc {{ asc | round(2) }}°</text>
+
+  {% set cx = page_w / 2 %}
+  {% set cy = 540 %}
+  {% set r_outer = 380 %}
+  {% set r_inner = 320 %}
+  {% set r_planet = 290 %}
+
+  <!-- Outer + inner dial rings -->
+  <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_outer }}" fill="none"
+          stroke="{{ ink }}" stroke-width="1"/>
+  <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_inner }}" fill="none"
+          stroke="{{ muted }}" stroke-width="0.5"/>
+
+  {# === 90 degree tick marks === #}
+  {% for d in range(90) %}
+    {% set angle = -90 + d * 4 %}
+    {% set rad = angle * 3.14159265 / 180 %}
+    {# Tick length depends on whether it's a 0/15/30/45/60/75 mark #}
+    {% set is_major = (d % 15 == 0) %}
+    {% set is_medium = (d % 5 == 0) %}
+    <line x1="{{ cx + r_outer * 1 }}" y1="{{ cy }}"
+          x2="{{ cx + r_outer * 1 }}" y2="{{ cy }}"
+          stroke="{{ muted }}" stroke-width="0"/>
+  {% endfor %}
+
+  {# Cardinal axis lines (every 22.5° on the 90° dial = 0, 22.5, 45, 67.5°)
+     Using SVG rotate transform avoids needing sin/cos filters. #}
+  {% for axis_deg in [0, 22.5, 45, 67.5] %}
+    {% set svg_angle = -90 + axis_deg * 4 %}
+    <g transform="translate({{ cx }}, {{ cy }}) rotate({{ svg_angle }})">
+      <line x1="0" y1="0" x2="{{ r_outer }}" y2="0"
+            stroke="{{ muted }}" stroke-width="0.4" opacity=".4"/>
+    </g>
+  {% endfor %}
+
+  {# Major degree labels #}
+  {% set deg_labels = [0, 15, 30, 45, 60, 75] %}
+  {% for d in deg_labels %}
+    {% set angle_deg = -90 + d * 4 %}
+    <g transform="translate({{ cx }}, {{ cy }}) rotate({{ angle_deg }})">
+      <text x="{{ r_outer + 14 }}" y="0" text-anchor="start" dominant-baseline="central"
+            font-size="11" font-family="ui-monospace,monospace"
+            fill="{{ accent }}" transform="rotate({{ -angle_deg }}, {{ r_outer + 14 }}, 0)">{{ d }}°</text>
+    </g>
+  {% endfor %}
+
+  {# Planets placed at their 90° dial position #}
+  {% for p in planets %}
+    {# dial_lon is in [0, 90); convert to angle: 0° at top, going clockwise.
+       Map dial 0 → -90° SVG, 90 → 270° SVG, so each dial-degree = 4° SVG. #}
+    {% set svg_angle = -90 + p.dial_lon * 4 %}
+    {% set rad = svg_angle * 3.14159265 / 180 %}
+    {% set color = ink %}
+    {% if p.retro %}{% set color = retro_color %}{% endif %}
+
+    <g transform="translate({{ cx }}, {{ cy }}) rotate({{ svg_angle }})">
+      <line x1="{{ r_inner }}" y1="0" x2="{{ r_planet + 10 }}" y2="0"
+            stroke="{{ color }}" stroke-width="1"/>
+      <g transform="translate({{ r_planet }}, 0) rotate({{ -svg_angle }})">
+        <text x="0" y="0" text-anchor="middle" dominant-baseline="central"
+              font-size="20" font-family="serif" fill="{{ color }}">{{ p.glyph }}</text>
+        <text x="0" y="20" text-anchor="middle" font-size="8"
+              font-family="ui-monospace,monospace" fill="{{ muted }}">{{ p.dial_lon | round(1) }}°</text>
+      </g>
+    </g>
+  {% endfor %}
+
+  <!-- Center label -->
+  <circle cx="{{ cx }}" cy="{{ cy }}" r="14" fill="{{ bg }}" stroke="{{ ink }}" stroke-width="1"/>
+  <text x="{{ cx }}" y="{{ cy + 4 }}" text-anchor="middle" font-size="10"
+        font-weight="600" font-family="Georgia,serif" fill="{{ accent }}">90°</text>
+
+  {# === Midpoint table (right side) === #}
+  <g transform="translate(40, {{ page_h - 200 }})">
+    <text x="0" y="0" font-size="14" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      Active midpoints ({{ midpoints | length }} total — showing 8 with triggers)
+    </text>
+    <line x1="0" y1="8" x2="1000" y2="8" stroke="{{ muted }}" stroke-width="0.4"/>
+
+    {% set with_triggers = midpoints | selectattr("triggers") | list %}
+    {% for m in with_triggers[:8] %}
+    <text x="0" y="{{ 28 + loop.index0 * 18 }}" font-size="11" font-family="serif" fill="{{ ink }}">
+      {{ m.body1 }}/{{ m.body2 }}
+    </text>
+    <text x="200" y="{{ 28 + loop.index0 * 18 }}" font-size="10"
+          font-family="ui-monospace,monospace" fill="{{ accent }}">
+      dial {{ m.dial_mid | round(2) }}°
+    </text>
+    <text x="350" y="{{ 28 + loop.index0 * 18 }}" font-size="10"
+          font-style="italic" font-family="Georgia,serif" fill="{{ muted }}">
+      {{ m.triggers | length }} triggered
+    </text>
+    {% endfor %}
+  </g>
+</svg>

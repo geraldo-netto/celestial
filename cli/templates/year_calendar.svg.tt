@@ -22,7 +22,7 @@ Run: celestial render with calendar overlays, e.g.:
 {% set day_size = 44 %}
 {% set hdr_h = 38 %}
 {# Local color palette (template-defined, doesn't depend on chart-type vars) #}
-{% set bg_color      = "#fffff8" %}
+{% set bg_color = "#ffffff" %}
 {% set text_color    = "#1a1a2e" %}
 {% set ring_color    = "#7a7a8a" %}
 {% set accent_color  = "#5c4a8a" %}
@@ -30,8 +30,7 @@ Run: celestial render with calendar overlays, e.g.:
 {% set sabbat_color  = "#3d6b35" %}
 {% set moon_color    = "#3a4a6a" %}
 {% set holiday_color = "#a04060" %}
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {{ page_w }} {{ page_h }}"
-     width="{{ page_w }}" height="{{ page_h }}">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1700 1300" width="297mm" height="210mm" preserveAspectRatio="xMidYMid meet">
   <rect width="{{ page_w }}" height="{{ page_h }}" fill="{{ bg_color }}"/>
 
   <!-- Title -->

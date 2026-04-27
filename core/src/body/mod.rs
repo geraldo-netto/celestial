@@ -471,4 +471,49 @@ mod tests {
         assert_eq!(b, Body::CHIRON);
         assert_eq!(i32::from(b), 15);
     }
+
+    /// `Body::is_node` matches the four node/apside body codes (10..=13).
+    /// These are: Mean Node, True Node, Mean Apogee, Osculating Apogee.
+    /// Everything else — planets, Sun, Moon, Earth, Chiron, asteroids — must
+    /// return `false`.
+    #[test]
+    fn is_node_matches_only_lunar_nodes_and_apsides() {
+        assert!(Body::MEAN_NODE.is_node());      // 10
+        assert!(Body::from_raw(11).is_node());   // True Node
+        assert!(Body::from_raw(12).is_node());   // Mean Apogee
+        assert!(Body::from_raw(13).is_node());   // Osculating Apogee
+
+        // Planets and luminaries must NOT be flagged as nodes
+        assert!(!Body::SUN.is_node());
+        assert!(!Body::MOON.is_node());
+        assert!(!Body::MERCURY.is_node());
+        assert!(!Body::JUPITER.is_node());
+        assert!(!Body::PLUTO.is_node());
+        assert!(!Body::CHIRON.is_node());
+
+        // Out-of-range codes must NOT be flagged
+        assert!(!Body::from_raw(9).is_node());   // Pluto (boundary below)
+        assert!(!Body::from_raw(14).is_node());  // Earth (boundary above)
+        assert!(!Body::from_raw(15).is_node());  // Chiron
+    }
+
+    /// `CalcFlags::is_sidereal` checks the SIDEREAL bit. This flag tells the
+    /// engine to apply the configured ayanamsa to all longitudes — used to
+    /// switch a calculation from tropical to sidereal zodiac.
+    #[test]
+    fn is_sidereal_flag_round_trip() {
+        // Plain BUILTIN flags do not have SIDEREAL set
+        assert!(!CalcFlags::BUILTIN.is_sidereal());
+        assert!(!(CalcFlags::BUILTIN | CalcFlags::SPEED).is_sidereal());
+
+        // SIDEREAL on its own is sidereal
+        assert!(CalcFlags::SIDEREAL.is_sidereal());
+
+        // OR-ing SIDEREAL with BUILTIN keeps the sidereal bit observable
+        let combined = CalcFlags::BUILTIN | CalcFlags::SIDEREAL;
+        assert!(combined.is_sidereal());
+
+        // Explicit zero flags has nothing set
+        assert!(!CalcFlags(0).is_sidereal());
+    }
 }

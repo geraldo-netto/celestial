@@ -4,14 +4,13 @@
         template full_astral_map.svg.tt out astral.svg #}
 {% set page_w = 1400 %}
 {% set page_h = 1100 %}
-{% set bg = "#fafaf5" %}
+{% set bg = "#ffffff" %}
 {% set ink = "#1a1a2e" %}
 {% set muted = "#7a7a8a" %}
 {% set hard_color = "#a64545" %}
 {% set soft_color = "#3d6b85" %}
 {% set retro_red = "#a64545" %}
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {{ page_w }} {{ page_h }}"
-     width="{{ page_w }}" height="{{ page_h }}">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1100" width="297mm" height="210mm" preserveAspectRatio="xMidYMid meet">
   <rect width="{{ page_w }}" height="{{ page_h }}" fill="{{ bg }}"/>
 
   <!-- Header -->
@@ -28,12 +27,11 @@
 
   {# Wheel — push it left of centre to leave room for tables on the right #}
   <g transform="translate(-50, 50)">
-    <!-- Concentric rings -->
+    <!-- Concentric rings (no inner-hub circle: aspect lines now connect planets directly) -->
     <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_outer }}" fill="none" stroke="{{ ink }}" stroke-width="1"/>
     <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_sign_outer }}" fill="none" stroke="{{ muted }}" stroke-width=".5"/>
     <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_sign_inner }}" fill="none" stroke="{{ muted }}" stroke-width=".5"/>
     <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_house }}" fill="none" stroke="{{ muted }}" stroke-width=".4" opacity=".4"/>
-    <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_inner }}" fill="none" stroke="{{ muted }}" stroke-width=".4" opacity=".4"/>
 
     <!-- Sign spokes + glyphs -->
     {% for s in signs %}

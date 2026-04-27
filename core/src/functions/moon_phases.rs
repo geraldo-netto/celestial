@@ -410,6 +410,44 @@ mod tests {
         julday(y, m, d, h, Calendar::Gregorian)
     }
 
+    /// `MoonPhase::target_elongation` returns the canonical Sun-Moon
+    /// angular separation that defines each named phase. Crescents share
+    /// the New Moon target (0°), gibbous share First/Last Quarter targets.
+    #[test]
+    fn target_elongations_are_canonical() {
+        assert_eq!(MoonPhase::NewMoon.target_elongation(), 0.0);
+        assert_eq!(MoonPhase::WaxingCrescent.target_elongation(), 0.0);
+        assert_eq!(MoonPhase::WaningCrescent.target_elongation(), 0.0);
+        assert_eq!(MoonPhase::FirstQuarter.target_elongation(), 90.0);
+        assert_eq!(MoonPhase::WaxingGibbous.target_elongation(), 90.0);
+        assert_eq!(MoonPhase::FullMoon.target_elongation(), 180.0);
+        assert_eq!(MoonPhase::WaningGibbous.target_elongation(), 180.0);
+        assert_eq!(MoonPhase::LastQuarter.target_elongation(), 270.0);
+    }
+
+    /// `MoonPhase::name()` returns a short, human-readable label for each
+    /// of the eight phases. Surface tests guard against accidental
+    /// reordering or typos that would break user-facing output.
+    #[test]
+    fn names_are_distinct_and_nonempty() {
+        let phases = [
+            MoonPhase::NewMoon, MoonPhase::WaxingCrescent,
+            MoonPhase::FirstQuarter, MoonPhase::WaxingGibbous,
+            MoonPhase::FullMoon, MoonPhase::WaningGibbous,
+            MoonPhase::LastQuarter, MoonPhase::WaningCrescent,
+        ];
+        let names: Vec<&str> = phases.iter().map(|p| p.name()).collect();
+        // All non-empty
+        for n in &names {
+            assert!(!n.is_empty());
+        }
+        // All distinct
+        let mut sorted = names.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(sorted.len(), names.len(), "phase names must be unique");
+    }
+
     // Known new moon: April 27, 2025 ≈ 19:31 UT → JD 2460793.31
     // Known full moon: April 13, 2025 ≈ 00:22 UT → JD 2460779.52
     // First quarter: April 5, 2025 → JD ~2460771.5

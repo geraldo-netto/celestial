@@ -2,14 +2,8 @@
 {# Bazi (八字) — Chinese Four Pillars of Destiny chart.
    Renders Year/Month/Day/Hour pillars with Heavenly Stem + Earthly Branch,
    element associations (五行), zodiac animal, and Yin/Yang polarity. #}
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
-  <defs>
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#fdf6e3"/>
-      <stop offset="100%" stop-color="#f5edd0"/>
-    </linearGradient>
-  </defs>
-  <rect width="1200" height="900" fill="url(#bgGrad)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="297mm" height="210mm" preserveAspectRatio="xMidYMid meet">
+  <rect width="1200" height="900" fill="#ffffff"/>
 
   {# === Color map for the Five Elements (Wǔxíng 五行) === #}
   {# Wood = green, Fire = red, Earth = brown/yellow, Metal = white/grey, Water = blue #}

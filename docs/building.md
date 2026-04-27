@@ -82,7 +82,7 @@ cargo install --path cli
 cargo clippy --package celestial-cli \
   -- -D clippy::correctness -D clippy::suspicious -D clippy::perf
 
-# Tests (104 tests)
+# Tests (133 tests)
 cargo test --package celestial-cli
 
 # Release binary only

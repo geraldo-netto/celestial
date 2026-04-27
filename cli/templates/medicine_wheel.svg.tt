@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{# Indigenous Medicine Wheel — visualizes the four directions, four
+   seasons, four elements, and the spirit guides associated with the
+   solar position at the given date.
+   Run: celestial render --chart-type medicine-wheel --date X --lat Y --lon=-Z
+        --template medicine_wheel.svg.tt --out wheel.svg #}
+{% set page_w = 900 %}
+{% set page_h = 900 %}
+{% set bg = "#ffffff" %}
+{% set ink    = "#3a2818" %}
+{% set muted  = "#8a7060" %}
+{% set north_color = "#3d5a8a" %}
+{% set south_color = "#c25040" %}
+{% set east_color  = "#d4a830" %}
+{% set west_color  = "#5a8a3d" %}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="210mm" height="297mm" preserveAspectRatio="xMidYMid meet">
+  <rect width="{{ page_w }}" height="{{ page_h }}" fill="{{ bg }}"/>
+
+  <text x="{{ page_w / 2 }}" y="44" text-anchor="middle" font-size="24" font-weight="600"
+        font-family="Georgia,serif" fill="{{ ink }}">Medicine Wheel</text>
+  <text x="{{ page_w / 2 }}" y="68" text-anchor="middle" font-size="11"
+        font-family="system-ui,sans-serif" fill="{{ muted }}">{{ date }} · {{ season }}</text>
+
+  {% set cx = page_w / 2 %}
+  {% set cy = 460 %}
+  {% set r_outer = 280 %}
+  {% set r_inner = 210 %}
+
+  {# === Four Quarters (colored arcs) === #}
+  {# East: top-right quadrant (yellow), South: bottom-right (red), 
+     West: bottom-left (green), North: top-left (blue) #}
+
+  <!-- East quarter (top-right): yellow, dawn, spring -->
+  <path d="M {{ cx }} {{ cy - r_outer }}
+           A {{ r_outer }} {{ r_outer }} 0 0 1 {{ cx + r_outer }} {{ cy }}
+           L {{ cx + r_inner }} {{ cy }}
+           A {{ r_inner }} {{ r_inner }} 0 0 0 {{ cx }} {{ cy - r_inner }}
+           Z"
+        fill="{{ east_color }}" fill-opacity="0.35" stroke="{{ ink }}" stroke-width="1"/>
+  <text x="{{ cx + r_outer * 0.7 }}" y="{{ cy - r_outer * 0.7 + 5 }}" text-anchor="middle"
+        font-size="14" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">EAST</text>
+  <text x="{{ cx + r_outer * 0.7 }}" y="{{ cy - r_outer * 0.7 + 22 }}" text-anchor="middle"
+        font-size="10" font-style="italic" font-family="Georgia,serif" fill="{{ ink }}">spring · dawn</text>
+
+  <!-- South quarter (bottom-right): red, midday, summer -->
+  <path d="M {{ cx + r_outer }} {{ cy }}
+           A {{ r_outer }} {{ r_outer }} 0 0 1 {{ cx }} {{ cy + r_outer }}
+           L {{ cx }} {{ cy + r_inner }}
+           A {{ r_inner }} {{ r_inner }} 0 0 0 {{ cx + r_inner }} {{ cy }}
+           Z"
+        fill="{{ south_color }}" fill-opacity="0.35" stroke="{{ ink }}" stroke-width="1"/>
+  <text x="{{ cx + r_outer * 0.7 }}" y="{{ cy + r_outer * 0.7 - 5 }}" text-anchor="middle"
+        font-size="14" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">SOUTH</text>
+  <text x="{{ cx + r_outer * 0.7 }}" y="{{ cy + r_outer * 0.7 + 12 }}" text-anchor="middle"
+        font-size="10" font-style="italic" font-family="Georgia,serif" fill="{{ ink }}">summer · noon</text>
+
+  <!-- West quarter (bottom-left): green/black, dusk, autumn -->
+  <path d="M {{ cx }} {{ cy + r_outer }}
+           A {{ r_outer }} {{ r_outer }} 0 0 1 {{ cx - r_outer }} {{ cy }}
+           L {{ cx - r_inner }} {{ cy }}
+           A {{ r_inner }} {{ r_inner }} 0 0 0 {{ cx }} {{ cy + r_inner }}
+           Z"
+        fill="{{ west_color }}" fill-opacity="0.35" stroke="{{ ink }}" stroke-width="1"/>
+  <text x="{{ cx - r_outer * 0.7 }}" y="{{ cy + r_outer * 0.7 - 5 }}" text-anchor="middle"
+        font-size="14" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">WEST</text>
+  <text x="{{ cx - r_outer * 0.7 }}" y="{{ cy + r_outer * 0.7 + 12 }}" text-anchor="middle"
+        font-size="10" font-style="italic" font-family="Georgia,serif" fill="{{ ink }}">autumn · dusk</text>
+
+  <!-- North quarter (top-left): white/blue, midnight, winter -->
+  <path d="M {{ cx - r_outer }} {{ cy }}
+           A {{ r_outer }} {{ r_outer }} 0 0 1 {{ cx }} {{ cy - r_outer }}
+           L {{ cx }} {{ cy - r_inner }}
+           A {{ r_inner }} {{ r_inner }} 0 0 0 {{ cx - r_inner }} {{ cy }}
+           Z"
+        fill="{{ north_color }}" fill-opacity="0.35" stroke="{{ ink }}" stroke-width="1"/>
+  <text x="{{ cx - r_outer * 0.7 }}" y="{{ cy - r_outer * 0.7 + 5 }}" text-anchor="middle"
+        font-size="14" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">NORTH</text>
+  <text x="{{ cx - r_outer * 0.7 }}" y="{{ cy - r_outer * 0.7 + 22 }}" text-anchor="middle"
+        font-size="10" font-style="italic" font-family="Georgia,serif" fill="{{ ink }}">winter · midnight</text>
+
+  <!-- Cross-axis lines (cardinal directions) -->
+  <line x1="{{ cx }}" y1="{{ cy - r_outer }}" x2="{{ cx }}" y2="{{ cy + r_outer }}"
+        stroke="{{ ink }}" stroke-width="0.6"/>
+  <line x1="{{ cx - r_outer }}" y1="{{ cy }}" x2="{{ cx + r_outer }}" y2="{{ cy }}"
+        stroke="{{ ink }}" stroke-width="0.6"/>
+
+  <!-- Outer + inner circles -->
+  <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_outer }}" fill="none" stroke="{{ ink }}" stroke-width="1.2"/>
+  <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_inner }}" fill="none" stroke="{{ ink }}" stroke-width="0.8"/>
+
+  <!-- Center: spirit / unity -->
+  <circle cx="{{ cx }}" cy="{{ cy }}" r="56" fill="{{ bg }}" stroke="{{ ink }}" stroke-width="1.2"/>
+  <text x="{{ cx }}" y="{{ cy - 8 }}" text-anchor="middle" font-size="12" font-weight="600"
+        font-family="Georgia,serif" fill="{{ ink }}">{{ totem }}</text>
+  <text x="{{ cx }}" y="{{ cy + 8 }}" text-anchor="middle" font-size="9"
+        font-style="italic" font-family="Georgia,serif" fill="{{ muted }}">totem</text>
+  <text x="{{ cx }}" y="{{ cy + 24 }}" text-anchor="middle" font-size="8"
+        font-family="system-ui,sans-serif" fill="{{ muted }}">{{ clan }} clan</text>
+
+  {# === Bottom: ceremonial information === #}
+  <g transform="translate({{ page_w / 2 - 280 }}, {{ page_h - 110 }})">
+    <line x1="0" y1="0" x2="560" y2="0" stroke="{{ muted }}" stroke-width="0.5"/>
+
+    <text x="0" y="20" font-size="11" font-family="system-ui,sans-serif" fill="{{ muted }}">Element</text>
+    <text x="80" y="20" font-size="13" font-weight="500" font-family="Georgia,serif" fill="{{ ink }}">{{ element }}</text>
+
+    <text x="0" y="42" font-size="11" font-family="system-ui,sans-serif" fill="{{ muted }}">Decan / period</text>
+    <text x="80" y="42" font-size="13" font-weight="500" font-family="Georgia,serif" fill="{{ ink }}">
+      {{ decan_name }}  <tspan font-style="italic" fill="{{ muted }}">({{ decan_star }})</tspan>
+    </text>
+
+    <text x="0" y="64" font-size="11" font-family="system-ui,sans-serif" fill="{{ muted }}">Sun longitude</text>
+    <text x="80" y="64" font-size="13" font-family="ui-monospace,monospace" fill="{{ ink }}">{{ sun_lon | round(2) }}°</text>
+  </g>
+</svg>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{# Hellenistic chart focusing on essential dignities + Lots.
+   Renders a compact dignity matrix for each planet showing:
+   - Sign placement
+   - Dignity status (domicile / exaltation / detriment / fall / peregrine)
+   - Five-fold dignity score (out of 5)
+   - Decan ruler & Almuten of the chart
+   - Day/Night sect
+   Run: celestial render --chart-type hellenistic --date X --lat Y --lon=-Z
+        --template hellenistic_dignities.svg.tt --out chart.svg #}
+{% set page_w = 1200 %}
+{% set page_h = 900 %}
+{% set bg = "#ffffff" %}
+{% set ink    = "#2a1808" %}
+{% set muted  = "#7a6248" %}
+{% set day_color = "#c87f32" %}
+{% set night_color = "#3d4a6b" %}
+{% set bonus  = "#3d6b35" %}
+{% set malefic = "#a64545" %}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="297mm" height="210mm" preserveAspectRatio="xMidYMid meet">
+  <rect width="{{ page_w }}" height="{{ page_h }}" fill="{{ bg }}"/>
+
+  <text x="{{ page_w / 2 }}" y="44" text-anchor="middle" font-size="24" font-weight="600"
+        font-family="Georgia,serif" fill="{{ ink }}">Hellenistic Chart · Dignities &amp; Lots</text>
+  <text x="{{ page_w / 2 }}" y="68" text-anchor="middle" font-size="11"
+        font-family="system-ui,sans-serif" fill="{{ muted }}">
+    {{ date_label }}  ·  Asc {{ asc_dms }}  ·  MC {{ mc_dms }}  ·
+    <tspan font-weight="600" fill="{% if is_day %}{{ day_color }}{% else %}{{ night_color }}{% endif %}">
+      {% if is_day %}Day Chart (Diurnal Sect){% else %}Night Chart (Nocturnal Sect){% endif %}
+    </tspan>
+  </text>
+
+  {# === Dignity matrix table === #}
+  <g transform="translate(80, 110)">
+    <text x="0" y="0" font-size="14" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      Essential Dignities
+    </text>
+    <line x1="0" y1="8" x2="900" y2="8" stroke="{{ muted }}" stroke-width="0.5"/>
+
+    <!-- Column headers -->
+    <text x="0"   y="32" font-size="10" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Body</text>
+    <text x="120" y="32" font-size="10" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Position</text>
+    <text x="240" y="32" font-size="10" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Sign</text>
+    <text x="350" y="32" font-size="10" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Dignity (5-fold)</text>
+    <text x="500" y="32" font-size="10" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Score</text>
+    <text x="570" y="32" font-size="10" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Almuten</text>
+    <text x="650" y="32" font-size="10" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Decan ruler</text>
+
+    {% for p in planets %}
+      {% set rowy = 50 + loop.index0 * 22 %}
+    <text x="0"   y="{{ rowy }}" font-size="11" font-family="serif" fill="{{ ink }}">{{ p.glyph }}</text>
+    <text x="20"  y="{{ rowy }}" font-size="11" font-family="system-ui,sans-serif" fill="{{ ink }}">{{ p.name }}</text>
+    <text x="120" y="{{ rowy }}" font-size="10" font-family="ui-monospace,monospace" fill="{{ ink }}">{{ p.dms }}</text>
+    <text x="240" y="{{ rowy }}" font-size="10" font-family="serif"
+          fill="{{ ink }}">{{ p.sign }}</text>
+
+    {# Dignity color coding #}
+    {% set d_color = muted %}
+    {% if p.dignity == "domicile"   %}{% set d_color = bonus %}{% endif %}
+    {% if p.dignity == "exaltation" %}{% set d_color = bonus %}{% endif %}
+    {% if p.dignity == "detriment"  %}{% set d_color = malefic %}{% endif %}
+    {% if p.dignity == "fall"       %}{% set d_color = malefic %}{% endif %}
+    <text x="350" y="{{ rowy }}" font-size="10" font-style="italic"
+          font-family="Georgia,serif" fill="{{ d_color }}">{{ p.dignity5 }}</text>
+
+    {# Score visualization: filled circles for points 0..5 #}
+    {% for n in range(5) %}
+    <circle cx="{{ 510 + n * 10 }}" cy="{{ rowy - 3 }}" r="3"
+            fill="{% if n < p.dignity_score %}{{ bonus }}{% else %}{{ muted }}{% endif %}"
+            fill-opacity="{% if n < p.dignity_score %}1{% else %}.3{% endif %}"/>
+    {% endfor %}
+
+    <text x="570" y="{{ rowy }}" font-size="10" font-family="serif" fill="{{ ink }}">{{ p.almuten }}</text>
+    <text x="650" y="{{ rowy }}" font-size="10" font-family="serif" fill="{{ muted }}">{{ p.decan_ruler }}</text>
+    {% endfor %}
+  </g>
+
+  {# === Lots / Arabic Parts === #}
+  <g transform="translate(80, {{ 130 + planets | length * 22 + 50 }})">
+    <text x="0" y="0" font-size="14" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      Lots (Arabic Parts) — sect-aware
+    </text>
+    <line x1="0" y1="8" x2="900" y2="8" stroke="{{ muted }}" stroke-width="0.5"/>
+
+    {% for ap in arabic_parts %}
+      {% set rowy = 28 + loop.index0 * 20 %}
+    <text x="0"   y="{{ rowy }}" font-size="11" font-family="Georgia,serif" fill="{{ ink }}">{{ ap.name }}</text>
+    <text x="180" y="{{ rowy }}" font-size="10" font-family="ui-monospace,monospace" fill="{{ ink }}">{{ ap.dms }}</text>
+    <text x="320" y="{{ rowy }}" font-size="10" font-style="italic"
+          font-family="Georgia,serif" fill="{{ muted }}">{{ ap.formula }}</text>
+    {% endfor %}
+  </g>
+
+  <!-- Footer with sect explanation -->
+  <text x="{{ page_w / 2 }}" y="{{ page_h - 30 }}" text-anchor="middle"
+        font-size="10" font-style="italic" font-family="Georgia,serif" fill="{{ muted }}">
+    Five-fold dignity scoring (Lilly): domicile +5, exaltation +4, triplicity +3, term +2, decan +1.
+    Sect determines whether the Sun (diurnal) or Moon (nocturnal) leads the chart.
+  </text>
+</svg>

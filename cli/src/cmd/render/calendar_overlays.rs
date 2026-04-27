@@ -636,7 +636,7 @@ struct CalendarPalette<'a> {
 impl<'a> CalendarPalette<'a> {
     fn from_ctx(ctx: &'a Value) -> Self {
         Self {
-            bg: ctx["vars"]["bg_color"].as_str().unwrap_or("#fffff8"),
+            bg: ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff"),
             txt: ctx["vars"]["text_color"].as_str().unwrap_or("#222"),
             ring: ctx["vars"]["ring_color"].as_str().unwrap_or("#888"),
             accent: ctx["vars"]["accent_color"].as_str().unwrap_or("#5c4a8a"),

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" width="900" height="1100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" width="210mm" height="297mm" preserveAspectRatio="xMidYMid meet">
   <rect width="900" height="1100" fill="{{ vars.bg_color }}"/>
 
   <!-- Title with computed JD precision -->

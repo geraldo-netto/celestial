@@ -12,6 +12,44 @@ fn norm360(d: f64) -> f64 {
     norm_deg(d)
 }
 
+/// Bisect a fallible scalar function `f(x) -> Option<f64>` to find a zero
+/// crossing within the bracket `[lo, hi]`, given `d_lo = f(lo)` (with the
+/// guarantee `f(lo) * f(hi) ≤ 0` so a root exists).
+///
+/// Returns `None` if `f` fails at any sampled point. Otherwise converges
+/// in ≤ `max_iter` halvings or when `|f(mid)| < tol`.
+///
+/// Pulled out of `next_aspect_with` and `next_aspect_cusp` which used the
+/// same pattern. Keeping the bisection in one place makes future changes
+/// (different convergence criteria, max-iter tuning) trivial to sweep
+/// across all callers.
+fn bisect_zero_fallible<F>(
+    mut lo: f64,
+    mut hi: f64,
+    mut d_lo: f64,
+    tol: f64,
+    max_iter: usize,
+    mut f: F,
+) -> Option<f64>
+where
+    F: FnMut(f64) -> Option<f64>,
+{
+    for _ in 0..max_iter {
+        let mid = (lo + hi) / 2.0;
+        let d_mid = f(mid)?;
+        if d_mid.abs() < tol {
+            return Some(mid);
+        }
+        if d_lo * d_mid <= 0.0 {
+            hi = mid;
+        } else {
+            lo = mid;
+            d_lo = d_mid;
+        }
+    }
+    Some((lo + hi) / 2.0)
+}
+
 /// Approximate retrograde station duration (days) for a planet — used as search step.
 fn approx_retro_time(body: Body) -> f64 {
     match body.as_raw() {
@@ -204,6 +242,34 @@ fn passed_limit(jd: f64, max_jd: f64, backward: bool) -> bool {
     }
 }
 
+/// Find the next moment when `body` makes the given `aspect` to `other`.
+///
+/// Walks ±0.5-day steps until the angular separation between
+/// `(body.lon + aspect) mod 360` and `other.lon` changes sign, then
+/// bisects to refine the exact JD. Tolerates wrap-around at 0°/360° by
+/// requiring the speed-of-change between adjacent samples to stay below
+/// 180° (so a wrap doesn't masquerade as a real crossing).
+///
+/// # Arguments
+/// - `body`: primary planet whose longitude is being tracked
+/// - `aspect`: aspect angle in degrees (e.g., 0 for conjunction, 90 for
+///   square, 180 for opposition); is normalized into `[0, 360)`
+/// - `other`: target body that `body` is aspecting; pass `Body::SUN`/etc.
+///   for stations against another planet, or use [`next_aspect`] for
+///   crossings of a fixed ecliptic longitude
+/// - `jd_start`: Julian Day to begin the search from
+/// - `backward`: search backwards in time if `true`
+/// - `stop_days`: give up after this many days; pass `0.0` (or any
+///   non-positive number) for the ~273-year default
+/// - `flags`: usual `CalcFlags::BUILTIN`/`SIDEREAL`/etc.
+///
+/// # Returns
+/// `Some(AspectResult { jd, pos1, pos2 })` with the JD of exact aspect
+/// and the planetary positions at that moment, or `None` if no aspect
+/// occurs within the window or if a Swiss Ephemeris call fails.
+///
+/// Uses the internal `bisect_zero_fallible` helper for the sign-crossing
+/// refinement (shared with [`next_aspect_cusp`]).
 pub fn next_aspect_with(
     body: Body,
     aspect: f64,
@@ -218,7 +284,7 @@ pub fn next_aspect_with(
     let step = 0.5_f64;
     let dir = if backward { -step } else { step };
 
-    let diff_at = |jd: f64| -> Option<f64> {
+    let mut diff_at = |jd: f64| -> Option<f64> {
         let p1 = calc_ut(jd, body, flags).ok()?.lon;
         let p2 = calc_ut(jd, other, flags).ok()?.lon;
         Some(diff_deg_signed(p1 + aspect, p2))
@@ -243,22 +309,7 @@ pub fn next_aspect_with(
         let d1 = diff_at(jd)?;
         if d0 * d1 <= 0.0 && (d1 - d0).abs() < 180.0 {
             // Sign change → bisect on `diff_at` to find the crossing.
-            let (mut ja, mut jb) = (jd - dir, jd);
-            let mut da = d0;
-            for _ in 0..60 {
-                let jm = (ja + jb) / 2.0;
-                let dm = diff_at(jm)?;
-                if dm.abs() < 1e-8 {
-                    break;
-                }
-                if da * dm <= 0.0 {
-                    jb = jm;
-                } else {
-                    ja = jm;
-                    da = dm;
-                }
-            }
-            let jd_ret = (ja + jb) / 2.0;
+            let jd_ret = bisect_zero_fallible(jd - dir, jd, d0, 1e-8, 60, &mut diff_at)?;
             let p1 = calc_ut(jd_ret, body, flags).ok()?;
             let p2 = calc_ut(jd_ret, other, flags).ok()?;
             return Some(AspectResult {
@@ -331,7 +382,7 @@ pub fn next_aspect_cusp(
     let step = 0.05_f64;
     let dir = if backward { -step } else { step };
 
-    let diff_at = |jd: f64| -> Option<f64> {
+    let mut diff_at = |jd: f64| -> Option<f64> {
         let p = calc_ut(jd, body, flags).ok()?.lon;
         let hr = houses(jd, lat, lon, hsys).ok()?;
         Some(diff_deg_signed(p + aspect, hr.cusps[cusp]))
@@ -349,22 +400,7 @@ pub fn next_aspect_cusp(
 
         let d1 = diff_at(jd)?;
         if d0 * d1 <= 0.0 && (d1 - d0).abs() < 180.0 {
-            let (mut ja, mut jb) = (jd - dir, jd);
-            let (mut da, _) = (d0, d1);
-            for _ in 0..60 {
-                let jm = (ja + jb) / 2.0;
-                let dm = diff_at(jm)?;
-                if dm.abs() < 1e-8 {
-                    break;
-                }
-                if da * dm <= 0.0 {
-                    jb = jm;
-                } else {
-                    ja = jm;
-                    da = dm;
-                }
-            }
-            let jd_ret = (ja + jb) / 2.0;
+            let jd_ret = bisect_zero_fallible(jd - dir, jd, d0, 1e-8, 60, &mut diff_at)?;
             let p = calc_ut(jd_ret, body, flags).ok()?;
             let hr = houses(jd_ret, lat, lon, hsys).ok()?;
             return Some(AspectCuspResult {

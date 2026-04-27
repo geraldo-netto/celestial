@@ -24,18 +24,15 @@ pub fn build_mesoamerican_context(
     let (haab_month, haab_day, haab_month_name) = haab(jd);
     let (cr_trecena, cr_sign, cr_haab_day, cr_haab_month) = calendar_round(jd);
 
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
+    let palette = super::palette_with_defaults(
+        &[
         ("bg_color", "#1a0a00"),
         ("border_color", "#d4a800"),
         ("text_color", "#f0e0c0"),
         ("planet_color", "#ffd070"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     Ok(json!({
         "date": date_str, "jd": jd, "lat": lat, "lon": lon,

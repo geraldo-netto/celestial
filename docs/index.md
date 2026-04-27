@@ -157,8 +157,8 @@ Five independent pipelines, each triggered on changes to its crate or `core/`:
 
 | Pipeline | Jobs |
 |---|---|
-| **celestial-core** | `lint` (fmt + clippy) → `test` (526 tests) ‖ `fuzz` (83 suites, ~1M property checks) |
-| **celestial-cli** | `lint` (clippy) → `test` (104 tests) → `build` (3 OS) |
+| **celestial-core** | `lint` (fmt + clippy) → `test` (532 tests) ‖ `fuzz` (83 suites, ~1M property checks) |
+| **celestial-cli** | `lint` (clippy) → `test` (133 tests) → `build` (3 OS) |
 | **celestial-python** | `lint-rs` ‖ `lint-py` (black + ruff) → `test` (245 pure-logic) → `build` (maturin wheel) |
 | **celestial-js** | `lint-rs` ‖ `lint-ts` (eslint + tsc) → `test` (162 pure-logic) → `build` (napi-rs addon) |
 | **celestial-php** | `lint-rs` → `build` (ext-php-rs + pure-logic tests, PHP 8.1) |

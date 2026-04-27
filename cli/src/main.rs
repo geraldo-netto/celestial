@@ -6,13 +6,19 @@
 //! Plugin commands: any `celestial-<n>` executable on $PATH becomes a subcommand.
 //! Run `celestial --list-plugins` to see discovered plugins.
 
-use celestial_cli::{cmd, plugin};
+use celestial_cli::{
+    cmd,
+    i18n::{tr, Lang},
+    plugin,
+};
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(
     name    = "celestial",
+    // Placeholder — the real about text is injected at runtime by
+    // `localize()` based on the user's locale (CELESTIAL_LANG / LC_ALL / LANG).
     about   = "Astronomical calculations — celestial engine",
     version,
     propagate_version = true,
@@ -55,8 +61,33 @@ enum Command {
     Render(Box<cmd::render::RenderArgs>),
 }
 
+/// Apply locale-appropriate help text to the clap command tree.
+///
+/// We keep the derive-based `Cli` and `Command` definitions for parsing,
+/// but override every user-visible `about` string at runtime. The English
+/// strings on the derive structs above are therefore only fallbacks for
+/// the unlikely case where i18n hasn't been initialised — every release
+/// build runs through `localize()` before clap gets to print anything.
+fn localize(cmd: clap::Command, lang: Lang) -> clap::Command {
+    cmd.about(tr("top.about", lang))
+        .mut_arg("list_plugins", |a| a.help(tr("flag.list_plugins", lang)))
+        .mut_subcommand("calc",      |c| c.about(tr("cmd.calc.about", lang)))
+        .mut_subcommand("houses",    |c| c.about(tr("cmd.houses.about", lang)))
+        .mut_subcommand("sabbats",   |c| c.about(tr("cmd.sabbats.about", lang)))
+        .mut_subcommand("esbats",    |c| c.about(tr("cmd.esbats.about", lang)))
+        .mut_subcommand("jd",        |c| c.about(tr("cmd.jd.about", lang)))
+        .mut_subcommand("crossing",  |c| c.about(tr("cmd.crossing.about", lang)))
+        .mut_subcommand("eclipse",   |c| c.about(tr("cmd.eclipse.about", lang)))
+        .mut_subcommand("moon",      |c| c.about(tr("cmd.moon.about", lang)))
+        .mut_subcommand("omer",      |c| c.about(tr("cmd.omer.about", lang)))
+        .mut_subcommand("calendar",  |c| c.about(tr("cmd.calendar.about", lang)))
+        .mut_subcommand("phenomena", |c| c.about(tr("cmd.phenomena.about", lang)))
+        .mut_subcommand("render",    |c| c.about(tr("cmd.render.about", lang)))
+}
+
 fn main() {
     let raw: Vec<String> = std::env::args().collect();
+    let lang = Lang::detect();
 
     // --list-plugins
     if raw.iter().any(|a| a == "--list-plugins") {
@@ -95,7 +126,7 @@ fn main() {
         "--list-plugins",
         "",
     ];
-    let sub = raw.get(1).map(String::as_str).unwrap_or("");
+    let sub = raw.get(1).map(String::as_str).unwrap_or(&"");
     let is_builtin = BUILTIN_COMMANDS.contains(&sub);
     if !is_builtin && !sub.starts_with('-') {
         if let Err(msg) = plugin::try_exec(sub, &raw[2..]) {
@@ -104,8 +135,18 @@ fn main() {
         }
     }
 
-    // Normal clap dispatch.
-    let cli = Cli::parse();
+    // Normal clap dispatch — but with localised help text injected.
+    let cmd = localize(Cli::command(), lang);
+    let matches = cmd.get_matches_from(&raw);
+    let cli = match Cli::from_arg_matches(&matches) {
+        Ok(c) => c,
+        Err(e) => {
+            // Errors from clap (e.g. invalid value) — print and exit. clap's
+            // own error format is preserved; we only translate help text.
+            e.exit();
+        }
+    };
+
     let result = match cli.command {
         Command::Calc(a) => cmd::calc::run(a),
         Command::Houses(a) => cmd::houses::run(a),

@@ -16,6 +16,7 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
 
 - [Building from source](#building-from-source)
 - [CLI](#cli)
+  - [Localized help](#localized-help)
   - [Commands](#commands)
   - [Examples](#examples)
   - [Chart rendering](#chart-rendering----celestial-render)
@@ -46,7 +47,7 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
 # Full workspace build
 cargo build
 
-# Tests — 654 unit/integration + 83 fuzz suites (~1M property checks)
+# Tests — 689 unit/integration + 83 fuzz suites (~1M property checks)
 cargo test --package celestial-core -- --test-threads=1
 cargo test --package celestial-cli
 cargo run  --manifest-path fuzz/Cargo.toml
@@ -73,6 +74,34 @@ Install the `celestial` binary:
 ```bash
 cargo install --path cli
 ```
+
+### Localized help
+
+The CLI auto-detects the user's language from environment variables
+and prints `--help` text accordingly. Five languages are bundled:
+
+| Code   | Language                |
+|--------|-------------------------|
+| `en`   | English (default)       |
+| `pt-BR`| Brazilian Portuguese    |
+| `es`   | Spanish                 |
+| `it`   | Italian                 |
+| `de`   | German                  |
+
+Detection precedence: `CELESTIAL_LANG` → `LC_ALL` → `LANG` → English.
+Any unrecognized locale (Japanese, French, etc.) falls back to English.
+
+```bash
+# Shell session locale picked up automatically
+LANG=pt_BR.UTF-8 celestial --help
+
+# Override just for one invocation
+CELESTIAL_LANG=de celestial calc --help
+```
+
+Only user-facing help text is translated. Computed values, dates,
+locations, planet names, and astrological terminology stay in English so
+scripts that parse `celestial calc --json` work identically across locales.
 
 ### Commands
 
@@ -261,16 +290,25 @@ can apply per-day styling without juggling multiple lookup tables.
 
 ### Bundled templates
 
-The `cli/templates/` directory ships four reference templates that
-demonstrate progressively more advanced MiniJinja patterns:
+The `cli/templates/` directory ships eleven reference templates that
+demonstrate progressively more advanced MiniJinja patterns and cover all
+major chart traditions. Each template has a corresponding integration
+test in `cli/tests/templates_render.rs` that guards against context-shape
+drift.
 
-| Template | Demonstrates |
-|---|---|
-| `example.svg.tt` | Minimal natal wheel — `{{ planet.x }}`, `{% for %}`, `{% if %}` |
-| `natal_with_overlays.svg.tt` | Inline math (`{{ asc \| round(2) }}`), conditionals on overlays, `loop.index0` for row positioning |
-| `year_calendar.svg.tt` | 12-month grid with sabbat/Omer/moon/Hebrew tags via `selectattr("iso_date", "equalto", ...)` |
-| `full_astral_map.svg.tt` | Complete reference natal chart with planets/houses/aspects/dignities/Arabic-parts tables |
-| `bazi_chart.svg.tt` | Cultural-specific layout — Chinese 4-pillars chart with Five-Elements color palette |
+| Template | Chart type | Demonstrates |
+|---|---|---|
+| `example.svg.tt` | `natal` | Minimal natal wheel — `{{ planet.x }}`, `{% for %}`, `{% if %}` |
+| `natal_with_overlays.svg.tt` | `natal` | Inline math (`{{ asc \| round(2) }}`), conditionals on overlays, `loop.index0` for row positioning |
+| `year_calendar.svg.tt` | `natal` (with `--calendar gregorian-year`) | 12-month grid with sabbat/Omer/moon/Hebrew tags via `selectattr("iso_date", "equalto", ...)` |
+| `full_astral_map.svg.tt` | `natal` | Complete reference natal chart with planets/houses/aspects/dignities/Arabic-parts tables |
+| `bazi_chart.svg.tt` | `bazi` | Cultural-specific layout — Chinese 4-pillars chart with Five-Elements color palette |
+| `vedic_rasi.svg.tt` | `rasi` | Indian sign-based layout, `selectattr("rasi", "equalto", N)` to place planets in their sidereal sign, Vimshottari Dasha periods |
+| `mesoamerican_calendars.svg.tt` | `mesoamerican` | Four-panel display of Tzolk'in, Tonalpohualli, Haab, and Xiuhpohualli counts with the Calendar Round combination |
+| `medicine_wheel.svg.tt` | `medicine-wheel` | Indigenous four-direction wheel — colored arc paths (`A x y 0 0 1 …`), totem and clan in center |
+| `hellenistic_dignities.svg.tt` | `hellenistic` | Five-fold dignity scoring with filled circles, sect badge (day/night), Lots with formulas |
+| `dial_90.svg.tt` | `dial` | Uranian 90° midpoint dial — radial layout via `<g transform="rotate(...)">`, midpoint axis triggers |
+| `biwheel_synastry.svg.tt` | `biwheel` | Inner natal + outer transit ring with cross-aspects table |
 
 Run any of these with:
 

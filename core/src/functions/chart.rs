@@ -225,6 +225,26 @@ where
     (lo + hi) / 2.0
 }
 
+/// Find the next retrograde and direct stations for `body` after `jd_start`.
+///
+/// Walks forward in 0.5-day steps watching the body's longitudinal speed
+/// (`speed_lon` from `calc_ut`); when the speed changes sign, bisects to
+/// find the exact zero-crossing. Returns the JDs of both stations as a
+/// [`Stations`] struct (retrograde-onset and direct-onset).
+///
+/// Uses [`bisect_zero`] internally for the sign-crossing refinement.
+///
+/// # Search window
+/// The function gives up after a planet-specific window:
+/// Mars 800d, Jupiter 1500d, Saturn 2000d, Uranus 5000d, Neptune 10000d,
+/// Pluto 30000d, others 200d. If neither station is found inside the
+/// window, returns an error.
+///
+/// # Errors
+/// - The Swiss Ephemeris dispatch fails (e.g., for `Body::SUN`,
+///   `Body::MOON`, `Body::EARTH` — these never go retrograde from Earth's
+///   POV)
+/// - No station is found within the search window
 pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Result<Stations> {
     // Step size: 0.5d — stations last hours to a day; this gives good resolution
     let step = 0.5_f64;

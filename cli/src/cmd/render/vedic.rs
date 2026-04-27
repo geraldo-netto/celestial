@@ -18,7 +18,7 @@ use std::collections::BTreeMap;
 use std::fmt::Write;
 
 pub fn render_north_indian_svg(ctx: &Value) -> String {
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fffff8");
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
     let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
@@ -184,19 +184,16 @@ pub fn build_ashtakavarga_context(
         json!({ "planet": name, "bindus": row.iter().map(|&b| json!(b)).collect::<Vec<_>>() })
     }).collect();
 
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
-        ("bg_color", "#fffff8"),
+    let palette = super::palette_with_defaults(
+        &[
+        ("bg_color", "#ffffff"),
         ("border_color", "#5c3a00"),
         ("text_color", "#2a1a00"),
         ("planet_color", "#1a3a7a"),
         ("title", "Ashtakavarga"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     Ok(json!({
         "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
@@ -206,7 +203,7 @@ pub fn build_ashtakavarga_context(
 }
 
 pub fn render_ashtakavarga_svg(ctx: &Value) -> String {
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fffff8");
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
     let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
@@ -425,18 +422,15 @@ pub fn build_shadbala_context(
         }
     }
 
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
-        ("bg_color", "#fffff8"),
+    let palette = super::palette_with_defaults(
+        &[
+        ("bg_color", "#ffffff"),
         ("border_color", "#5c3a00"),
         ("text_color", "#2a1a00"),
         ("planet_color", "#1a3a7a"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     Ok(json!({
         "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
@@ -445,7 +439,7 @@ pub fn build_shadbala_context(
 }
 
 pub fn render_shadbala_svg(ctx: &Value) -> String {
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fffff8");
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
     let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
@@ -663,20 +657,17 @@ pub fn build_vedic_context(
         })
         .collect();
 
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
-        ("bg_color", "#fffff8"),
+    let palette = super::palette_with_defaults(
+        &[
+        ("bg_color", "#ffffff"),
         ("border_color", "#5c3a00"),
         ("text_color", "#2a1a00"),
         ("planet_color", "#1a3a7a"),
         ("retro_color", "#a01030"),
         ("asc_color", "#006030"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     Ok(json!({
         "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
@@ -714,7 +705,7 @@ pub fn render_navamsa_svg(ctx: &Value) -> String {
 }
 
 pub fn render_dasha_svg(ctx: &Value) -> String {
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fffff8");
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
     let title = ctx["vars"]

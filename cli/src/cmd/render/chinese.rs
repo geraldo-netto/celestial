@@ -67,18 +67,15 @@ pub fn build_bazi_context(
         .map(|(&name, &count)| json!({ "element": name, "count": count }))
         .collect();
 
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
-        ("bg_color", "#fffff8"),
+    let palette = super::palette_with_defaults(
+        &[
+        ("bg_color", "#ffffff"),
         ("border_color", "#8b0000"),
         ("text_color", "#1a0a00"),
         ("planet_color", "#2a1a60"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     Ok(json!({
         "date": date_str, "jd": jd, "lat": lat, "lon": lon,
@@ -97,7 +94,7 @@ pub fn build_bazi_context(
 pub fn render_bazi_svg(ctx: &Value) -> String {
     use std::fmt::Write;
 
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fffff8");
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
     let border = ctx["vars"]["border_color"].as_str().unwrap_or("#8b0000");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#1a0a00");
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#2a1a60");

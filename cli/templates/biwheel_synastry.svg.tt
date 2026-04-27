@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{# Bi-wheel for synastry / transits.
+   Inner ring: natal chart (planets array)
+   Outer ring: transiting/partner chart (outer_planets array)
+   Cross-aspects between the two are listed in a table.
+   Run: celestial render --chart-type biwheel --date X --lat Y --lon=-Z
+        --date2 OTHER --template biwheel_synastry.svg.tt --out chart.svg #}
+{% set page_w = 1400 %}
+{% set page_h = 1000 %}
+{% set bg = "#ffffff" %}
+{% set ink    = "#1a1a2e" %}
+{% set muted  = "#7a7a8a" %}
+{% set inner_color = "#1a1a2e" %}
+{% set outer_color = "#3d6b85" %}
+{% set hard_color  = "#a64545" %}
+{% set soft_color  = "#3d8a8a" %}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000" width="297mm" height="210mm" preserveAspectRatio="xMidYMid meet">
+  <rect width="{{ page_w }}" height="{{ page_h }}" fill="{{ bg }}"/>
+
+  <text x="{{ page_w / 2 }}" y="40" text-anchor="middle" font-size="22" font-weight="600"
+        font-family="Georgia,serif" fill="{{ ink }}">Bi-wheel · Synastry / Transit</text>
+  <text x="{{ page_w / 2 }}" y="62" text-anchor="middle" font-size="11"
+        font-family="system-ui,sans-serif" fill="{{ muted }}">
+    Inner: {{ date_label }}  ·  Outer: {{ ring2_date }}
+  </text>
+
+  {# === Wheel on the left, tables on the right === #}
+  <g transform="translate(0, 40)">
+    {# Concentric rings — no inner-hub circle so aspect lines connect planet positions clearly. #}
+    <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_outer }}" fill="none" stroke="{{ ink }}" stroke-width="1"/>
+    <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_sign_outer }}" fill="none" stroke="{{ muted }}" stroke-width="0.5"/>
+    <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_sign_inner }}" fill="none" stroke="{{ muted }}" stroke-width="0.5"/>
+    <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r_house }}" fill="none" stroke="{{ muted }}" stroke-width="0.4" opacity=".4"/>
+
+    <!-- Sign sectors -->
+    {% for s in signs %}
+    <line x1="{{ s.spoke_x1 }}" y1="{{ s.spoke_y1 }}" x2="{{ s.spoke_x2 }}" y2="{{ s.spoke_y2 }}"
+          stroke="{{ muted }}" stroke-width="0.5"/>
+    <text x="{{ s.glyph_x }}" y="{{ s.glyph_y }}" text-anchor="middle" dominant-baseline="central"
+          font-size="14" font-family="serif" fill="{{ ink }}">{{ s.glyph }}</text>
+    {% endfor %}
+
+    <!-- Houses -->
+    {% for h in houses %}
+    <line x1="{{ h.x1 }}" y1="{{ h.y1 }}" x2="{{ h.x2 }}" y2="{{ h.y2 }}"
+          stroke="{% if h.is_angle %}{{ ink }}{% else %}{{ muted }}{% endif %}"
+          stroke-width="{% if h.is_angle %}1{% else %}0.4{% endif %}"
+          opacity="{% if h.is_angle %}1{% else %}.5{% endif %}"/>
+    <text x="{{ h.num_x }}" y="{{ h.num_y }}" text-anchor="middle" dominant-baseline="central"
+          font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">{{ h.num }}</text>
+    {% endfor %}
+
+    <!-- Inner ring planets (natal) -->
+    {% for p in planets %}
+    <text x="{{ p.x }}" y="{{ p.y }}" text-anchor="middle" dominant-baseline="central"
+          font-size="14" font-family="serif" fill="{{ inner_color }}">{{ p.glyph }}</text>
+    <text x="{{ p.label_x }}" y="{{ p.label_y }}" text-anchor="middle"
+          font-size="7" font-family="system-ui,sans-serif" fill="{{ muted }}">{{ p.deg_label }}</text>
+    {% endfor %}
+
+    <!-- Outer ring planets (transit/partner) — drawn in distinct color, slightly larger -->
+    {% for p in outer_planets %}
+    <text x="{{ p.x }}" y="{{ p.y }}" text-anchor="middle" dominant-baseline="central"
+          font-size="16" font-weight="500" font-family="serif" fill="{{ outer_color }}">{{ p.glyph }}</text>
+    <text x="{{ p.label_x }}" y="{{ p.label_y }}" text-anchor="middle"
+          font-size="7" font-family="system-ui,sans-serif" fill="{{ outer_color }}">{{ p.deg_label }}</text>
+    {% endfor %}
+
+    <!-- Inner-chart aspect lines -->
+    {% for a in aspects %}
+    <line x1="{{ a.x1 }}" y1="{{ a.y1 }}" x2="{{ a.x2 }}" y2="{{ a.y2 }}"
+          stroke="{% if a.is_hard %}{{ hard_color }}{% else %}{{ soft_color }}{% endif %}"
+          stroke-width="0.5" opacity="0.4"/>
+    {% endfor %}
+  </g>
+
+  {# === Cross-aspects table (top-right) === #}
+  <g transform="translate(940, 100)">
+    <text x="0" y="0" font-size="14" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      Cross-aspects (inner ↔ outer)
+    </text>
+    <line x1="0" y1="8" x2="380" y2="8" stroke="{{ muted }}" stroke-width=".5"/>
+    <text x="0"   y="28" font-size="9" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Inner</text>
+    <text x="100" y="28" font-size="9" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Outer</text>
+    <text x="220" y="28" font-size="9" font-weight="600" font-family="system-ui,sans-serif" fill="{{ muted }}">Orb (°)</text>
+
+    {% for ca in cross_aspects %}
+      {% set rowy = 46 + loop.index0 * 16 %}
+    <text x="0"   y="{{ rowy }}" font-size="10" font-family="system-ui,sans-serif" fill="{{ inner_color }}">{{ ca.inner }}</text>
+    <text x="100" y="{{ rowy }}" font-size="10" font-family="system-ui,sans-serif" fill="{{ outer_color }}">{{ ca.outer }}</text>
+    <text x="220" y="{{ rowy }}" font-size="10" font-family="ui-monospace,monospace" fill="{{ muted }}">{{ ca.orb | round(2) }}</text>
+    {% endfor %}
+  </g>
+
+  {# Legend === #}
+  <g transform="translate(940, {{ 100 + 90 + cross_aspects | length * 16 }})">
+    <text x="0" y="0" font-size="11" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">Ring legend</text>
+    <line x1="0" y1="8" x2="380" y2="8" stroke="{{ muted }}" stroke-width="0.5"/>
+    <circle cx="10" cy="26" r="6" fill="{{ inner_color }}"/>
+    <text x="24" y="30" font-size="10" font-family="system-ui,sans-serif" fill="{{ ink }}">
+      Inner ring · {{ planets | length }} natal planets
+    </text>
+    <circle cx="10" cy="48" r="6" fill="{{ outer_color }}"/>
+    <text x="24" y="52" font-size="10" font-family="system-ui,sans-serif" fill="{{ ink }}">
+      Outer ring · {{ outer_planets | length }} transiting planets
+    </text>
+  </g>
+</svg>

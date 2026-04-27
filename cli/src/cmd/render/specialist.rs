@@ -68,20 +68,17 @@ pub fn build_dial_context(
         })
         .collect();
 
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
+    let palette = super::palette_with_defaults(
+        &[
         ("bg_color", "#ffffff"),
         ("ring_color", "#1a1a2e"),
         ("planet_color", "#0d0d1e"),
         ("retro_color", "#b01020"),
         ("soft_color", "#1a50b0"),
         ("text_color", "#0d0d1e"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     Ok(json!({
         "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
@@ -204,8 +201,8 @@ pub fn build_triwheel_context(
     }
 
     let date_str = format!("Tri-wheel: {date1} / {date2} / {date3}");
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
+    let palette = super::palette_with_defaults(
+        &[
         ("bg_color", "#ffffff"),
         ("ring_color", "#1a1a2e"),
         ("planet_color", "#0d0d1e"),
@@ -213,12 +210,9 @@ pub fn build_triwheel_context(
         ("hard_color", "#b01020"),
         ("soft_color", "#1a50b0"),
         ("text_color", "#0d0d1e"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     let mut ctx = inner;
     ctx["ring2_planets"] = Value::Array(ring2);
@@ -339,17 +333,14 @@ pub fn build_graphic_ephemeris_context(
         })
         .collect();
 
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
+    let palette = super::palette_with_defaults(
+        &[
         ("bg_color", "#ffffff"),
         ("ring_color", "#1a1a2e"),
         ("text_color", "#0d0d1e"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     Ok(json!({
         "jd_start": jd_start, "jd_end": jd_end,
@@ -543,19 +534,16 @@ pub fn build_local_space_context(
         }
     }
 
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
+    let palette = super::palette_with_defaults(
+        &[
         ("bg_color", "#ffffff"),
         ("ring_color", "#1a1a2e"),
         ("planet_color", "#0d0d1e"),
         ("retro_color", "#b01020"),
         ("text_color", "#0d0d1e"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     Ok(json!({
         "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,

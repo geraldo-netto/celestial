@@ -4,7 +4,7 @@
        asc, mc, ic, dsc, asc_dms, mc_dms, ic_dms, dsc_dms,
        moon_phase_name, moon_illumination,
        planets list, signs list, houses list, aspects list,
-       vars.* - all keys from [vars] / --var flags.
+       vars.X for keys from [vars] config or var flags.
      Wheel geometry is pre-computed: each planet has x y label_x label_y
        tick_x1 tick_y1 tick_x2 tick_y2 asp_x asp_y
      Each sign has spoke_x1 spoke_y1 spoke_x2 spoke_y2 glyph_x glyph_y
@@ -17,10 +17,10 @@
        Filters: round, length, upper, lower, format
        Conditions: if/elif/else with comparison + logical operators
        Loop vars: loop.index, loop.index0, loop.first, loop.last
-     Run: celestial render --print-context  to see all values as JSON.
+     Run: celestial render print-context flag to see all values as JSON.
 -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 800" width="900" height="800">
-  <rect width="900" height="800" fill="{{ vars.bg_color }};"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 800" width="297mm" height="210mm" preserveAspectRatio="xMidYMid meet">
+  <rect width="900" height="800" fill="{{ vars.bg_color }}"/>
 
   <!-- header -->
   <text x="450" y="30" text-anchor="middle" font-size="16" font-weight="600"

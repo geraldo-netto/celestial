@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{# Mesoamerican calendar visualization showing the three concurrent
+   counts active for any given date:
+   - Aztec Tonalpohualli (260-day sacred count)
+   - Maya Tzolk'in       (260-day sacred count)
+   - Maya Haab           (365-day solar count)
+   - Aztec Xiuhpohualli  (365-day solar count, "year-bearer")
+   Run: celestial render --chart-type mesoamerican --date X --lat Y --lon=-Z
+        --template mesoamerican_calendars.svg.tt --out chart.svg #}
+{% set page_w = 1200 %}
+{% set page_h = 800 %}
+{% set bg     = "#ffffff" %}
+{% set ink    = "#2a1808" %}
+{% set muted  = "#7a6248" %}
+{% set jade   = "#2f7a5a" %}
+{% set obsidian = "#2a2e38" %}
+{% set blood  = "#8a2a22" %}
+{% set gold   = "#a8762c" %}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="297mm" height="210mm" preserveAspectRatio="xMidYMid meet">
+  <rect width="{{ page_w }}" height="{{ page_h }}" fill="{{ bg }}"/>
+
+  <text x="{{ page_w / 2 }}" y="44" text-anchor="middle" font-size="26" font-weight="600"
+        font-family="Georgia,serif" fill="{{ gold }}">Mesoamerican Calendar Round</text>
+  <text x="{{ page_w / 2 }}" y="68" text-anchor="middle" font-size="11"
+        font-family="system-ui,sans-serif" fill="{{ muted }}">{{ date }} · JD {{ jd | round(2) }}</text>
+
+  {# === Calendar Round status (tzolkin × haab combined position) === #}
+  <g transform="translate(80, 110)">
+    <rect x="0" y="0" width="1040" height="100" rx="8"
+          fill="{{ jade }}" fill-opacity=".10" stroke="{{ jade }}" stroke-width="1"/>
+    <text x="20" y="28" font-size="12" font-family="system-ui,sans-serif" fill="{{ muted }}">Calendar Round</text>
+    <text x="20" y="60" font-size="22" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      {{ cr_trecena }} {{ cr_sign }}  ·  {{ cr_haab_day }} {{ cr_haab_month }}
+    </text>
+    <text x="20" y="84" font-size="11" font-style="italic" font-family="Georgia,serif" fill="{{ muted }}">
+      one of 18,980 unique combinations cycling every 52 solar years
+    </text>
+  </g>
+
+  {# === Tzolk'in (Maya) === #}
+  <g transform="translate(80, 240)">
+    <text x="0" y="0" font-size="16" font-weight="600" font-family="Georgia,serif" fill="{{ jade }}">
+      Tzolk'in (Maya 260-day sacred count)
+    </text>
+    <line x1="0" y1="8" x2="380" y2="8" stroke="{{ jade }}" stroke-width=".5"/>
+    <text x="0" y="36" font-size="12" font-family="system-ui,sans-serif" fill="{{ muted }}">Day name:</text>
+    <text x="100" y="36" font-size="14" font-weight="500" font-family="serif" fill="{{ ink }}">
+      {{ tzol_name }}  <tspan font-style="italic" fill="{{ muted }}">({{ tzol_english }})</tspan>
+    </text>
+    <text x="0" y="60" font-size="12" font-family="system-ui,sans-serif" fill="{{ muted }}">Trecena #:</text>
+    <text x="100" y="60" font-size="14" font-family="ui-monospace,monospace" fill="{{ ink }}">
+      {{ tzol_trecena }} of 13
+    </text>
+    <text x="0" y="84" font-size="12" font-family="system-ui,sans-serif" fill="{{ muted }}">Sign idx:</text>
+    <text x="100" y="84" font-size="14" font-family="ui-monospace,monospace" fill="{{ ink }}">
+      {{ tzol_sign_idx }} of 20
+    </text>
+
+    {# Visual progress bar for trecena (1..13) #}
+    <text x="0" y="120" font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">Trecena cycle</text>
+    {% for i in range(13) %}
+    <rect x="{{ i * 28 }}" y="128" width="22" height="22" rx="3"
+          fill="{% if i + 1 == tzol_trecena %}{{ blood }}{% else %}{{ obsidian }}{% endif %}"
+          fill-opacity="{% if i + 1 == tzol_trecena %}1{% else %}.4{% endif %}"/>
+    <text x="{{ i * 28 + 11 }}" y="143" text-anchor="middle" font-size="9" font-weight="600"
+          font-family="ui-monospace,monospace"
+          fill="{% if i + 1 == tzol_trecena %}{{ ink }}{% else %}{{ muted }}{% endif %}">{{ i + 1 }}</text>
+    {% endfor %}
+  </g>
+
+  {# === Tonalpohualli (Aztec) === #}
+  <g transform="translate(560, 240)">
+    <text x="0" y="0" font-size="16" font-weight="600" font-family="Georgia,serif" fill="{{ blood }}">
+      Tonalpohualli (Aztec 260-day count)
+    </text>
+    <line x1="0" y1="8" x2="380" y2="8" stroke="{{ blood }}" stroke-width=".5"/>
+    <text x="0" y="36" font-size="12" font-family="system-ui,sans-serif" fill="{{ muted }}">Day name:</text>
+    <text x="100" y="36" font-size="14" font-weight="500" font-family="serif" fill="{{ ink }}">
+      {{ tonal_name }}  <tspan font-style="italic" fill="{{ muted }}">({{ tonal_english }})</tspan>
+    </text>
+    <text x="0" y="60" font-size="12" font-family="system-ui,sans-serif" fill="{{ muted }}">Trecena #:</text>
+    <text x="100" y="60" font-size="14" font-family="ui-monospace,monospace" fill="{{ ink }}">
+      {{ tonal_trecena }} of 13
+    </text>
+    <text x="0" y="84" font-size="12" font-family="system-ui,sans-serif" fill="{{ muted }}">Sign idx:</text>
+    <text x="100" y="84" font-size="14" font-family="ui-monospace,monospace" fill="{{ ink }}">
+      {{ tonal_sign_idx }} of 20
+    </text>
+  </g>
+
+  {# === Haab (Maya 365) === #}
+  <g transform="translate(80, 480)">
+    <text x="0" y="0" font-size="16" font-weight="600" font-family="Georgia,serif" fill="{{ jade }}">
+      Haab (Maya 365-day solar count)
+    </text>
+    <line x1="0" y1="8" x2="380" y2="8" stroke="{{ jade }}" stroke-width=".5"/>
+    <text x="0" y="36" font-size="14" font-weight="500" font-family="serif" fill="{{ ink }}">
+      Day {{ haab_day }} of {{ haab_month_name }}
+    </text>
+    <text x="0" y="58" font-size="11" font-style="italic" font-family="Georgia,serif" fill="{{ muted }}">
+      Month index: {{ haab_month }} of 19  (18 named months × 20 days + Wayeb 5 days)
+    </text>
+  </g>
+
+  {# === Xiuhpohualli (Aztec 365) === #}
+  <g transform="translate(560, 480)">
+    <text x="0" y="0" font-size="16" font-weight="600" font-family="Georgia,serif" fill="{{ blood }}">
+      Xiuhpohualli (Aztec 365-day "year-bearer")
+    </text>
+    <line x1="0" y1="8" x2="380" y2="8" stroke="{{ blood }}" stroke-width=".5"/>
+    <text x="0" y="36" font-size="14" font-weight="500" font-family="serif" fill="{{ ink }}">
+      Day {{ xiu_day }} of {{ xiu_month_name }}
+    </text>
+    <text x="0" y="58" font-size="11" font-style="italic" font-family="Georgia,serif" fill="{{ muted }}">
+      <tspan fill="{{ ink }}">{{ xiu_month_en }}</tspan>  ·  Month index {{ xiu_month }} of 18 + nemontemi (5 days)
+    </text>
+  </g>
+
+  <!-- Footer cosmology note -->
+  <text x="{{ page_w / 2 }}" y="{{ page_h - 30 }}" text-anchor="middle"
+        font-size="10" font-style="italic" font-family="Georgia,serif" fill="{{ muted }}">
+    The 260-day sacred count and 365-day solar count combine into a 18,980-day Calendar Round (52 solar years).
+  </text>
+</svg>

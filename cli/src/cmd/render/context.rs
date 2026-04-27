@@ -74,8 +74,8 @@ pub(crate) fn build_context(
                 "tick_y1":  (wy(CY, RH + 2.0,  pos.lon, asc) * 100.0).round() / 100.0,
                 "tick_x2":  (wx(CX, RP - 12.0, pos.lon, asc) * 100.0).round() / 100.0,
                 "tick_y2":  (wy(CY, RP - 12.0, pos.lon, asc) * 100.0).round() / 100.0,
-                "asp_x":    (wx(CX, RC, pos.lon, asc) * 100.0).round() / 100.0,
-                "asp_y":    (wy(CY, RC, pos.lon, asc) * 100.0).round() / 100.0}));
+                "asp_x":    (wx(CX, RP - 18.0, pos.lon, asc) * 100.0).round() / 100.0,
+                "asp_y":    (wy(CY, RP - 18.0, pos.lon, asc) * 100.0).round() / 100.0}));
         }
     }
 

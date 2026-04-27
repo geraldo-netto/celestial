@@ -118,7 +118,7 @@ pub fn build_omer_grid_context(
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| format!("Sefirat HaOmer · Hebrew Year {hebrew_year}"));
-    vars.entry("bg_color".to_string()).or_insert("#fffff8".to_string());
+    vars.entry("bg_color".to_string()).or_insert("#ffffff".to_string());
     vars.entry("text_color".to_string()).or_insert("#222".to_string());
     vars.entry("ring_color".to_string()).or_insert("#888".to_string());
     vars.entry("header_color".to_string())
@@ -153,7 +153,7 @@ pub fn build_omer_grid_context(
 pub fn render_omer_grid_svg(ctx: &Value) -> String {
     use std::fmt::Write;
 
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fffff8");
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#222");
     let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#888");
     let header = ctx["vars"]["header_color"].as_str().unwrap_or("#5c4a8a");

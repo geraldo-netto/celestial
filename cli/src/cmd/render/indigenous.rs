@@ -4,7 +4,7 @@
 use super::{
     antiscion_lon, contra_antiscion_lon, jd_to_date_str, key_to_body, moon_phase_str,
     planet_dignity, render_south_indian_svg, sarvashtakavarga, spread_labels, ASPECT_DEFS,
-    NI_CELLS, RASI_GLYPHS, RASI_NAMES, RC, RM, RP, SI_CELLS,
+    NI_CELLS, RASI_GLYPHS, RASI_NAMES, RM, RP, SI_CELLS,
 };
 
 use celestial_core::body::{Body, CalcFlags};
@@ -29,18 +29,15 @@ pub fn build_medicine_wheel_context(
     let (animal, element, clan, season) = medicine_wheel_totem(sun_pos.lon);
     let (decan_idx, decan_name, decan_star) = egyptian_decan(sun_pos.lon);
 
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
+    let palette = super::palette_with_defaults(
+        &[
         ("bg_color", "#0a1a0a"),
         ("border_color", "#a0c040"),
         ("text_color", "#d0e8a0"),
         ("planet_color", "#80c060"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     Ok(json!({
         "date": date_str, "jd": jd, "lat": lat, "lon": lon,

@@ -218,18 +218,15 @@ pub fn build_firdaria_context(
         })
         .collect();
 
-    let mut palette = BTreeMap::new();
-    for (k, v) in [
+    let palette = super::palette_with_defaults(
+        &[
         ("bg_color", "#ffffff"),
         ("ring_color", "#1a1a2e"),
         ("text_color", "#0d0d1e"),
         ("planet_color", "#0d0d1e"),
-    ] {
-        palette.insert(k.to_string(), json!(v));
-    }
-    for (k, v) in &vars {
-        palette.insert(k.clone(), json!(v));
-    }
+        ],
+        &vars,
+    );
 
     Ok(json!({
         "date": date_str, "jd": jd, "lat": lat, "lon": lon,

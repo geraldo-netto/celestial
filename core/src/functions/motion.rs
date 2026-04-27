@@ -261,3 +261,42 @@ impl RiseTransOptions {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `RiseTransOptions::horizon_height` is a fluent builder method — the
+    /// value should round-trip through `.horizon_height(x)` and be observable
+    /// via the constructed options struct.
+    #[test]
+    fn horizon_height_round_trip() {
+        let opts = RiseTransOptions::new(0.0, Body::SUN, [0.0, 0.0, 0.0])
+            .horizon_height(2.5);
+        assert!((opts.horhgt - 2.5).abs() < 1e-12);
+
+        // Negative offset (depression below horizon, e.g. for a ship's bridge)
+        let opts = RiseTransOptions::new(0.0, Body::SUN, [0.0, 0.0, 0.0])
+            .horizon_height(-1.2);
+        assert!((opts.horhgt - (-1.2)).abs() < 1e-12);
+
+        // Zero is the default; re-setting to 0 must still yield 0
+        let opts = RiseTransOptions::new(0.0, Body::SUN, [0.0, 0.0, 0.0])
+            .horizon_height(0.0);
+        assert_eq!(opts.horhgt, 0.0);
+    }
+
+    /// Builder methods chain. Each one only mutates its own field.
+    #[test]
+    fn builder_chains_independently() {
+        let opts = RiseTransOptions::new(2_460_000.0, Body::SUN, [1.0, 2.0, 3.0])
+            .horizon_height(10.0)
+            .atmosphere(900.0, 20.0)
+            .event(2);
+        assert_eq!(opts.geopos, [1.0, 2.0, 3.0]);
+        assert_eq!(opts.horhgt, 10.0);
+        assert_eq!(opts.pressure, 900.0);
+        assert_eq!(opts.temp, 20.0);
+        assert_eq!(opts.event_type, 2);
+    }
+}

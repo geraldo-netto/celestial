@@ -80,8 +80,7 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
   <circle cx="{CX}" cy="{CY}" r="{RO}" fill="none" stroke="{ring}" stroke-width="2.5" opacity=".6"/>
   <circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>
   <circle cx="{CX}" cy="{CY}" r="{RI}" fill="none" stroke="{ring}" stroke-width="2.0" opacity=".55"/>
-  <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>
-  <circle cx="{CX}" cy="{CY}" r="{RC}" fill="{bg}"  stroke="{ring}" stroke-width="2.0" opacity=".4"/>"##
+  <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>"##
     );
 
     // ── zodiac sign sectors ───────────────────────────────────────────────────
@@ -226,13 +225,19 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     }
 
     // ── moon phase in centre ──────────────────────────────────────────────────
+    // Small white pill behind the phase text so aspect lines passing through
+    // the centre don't make it unreadable. The pill is roughly the bounding
+    // box of the two text lines, padded by a few pixels.
     let _ = writeln!(
         s,
-        r##"  <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="11" font-weight="500" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".9">{phase}</text>
+        r##"  <rect x="{:.2}" y="{:.2}" width="100" height="36" rx="6" fill="{bg}" opacity=".88"/>
+  <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="11" font-weight="500" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".9">{phase}</text>
   <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".65">{illum:.1}%</text>
 "##,
-        CY - 12.0,
-        CY + 6.0
+        CX - 50.0,
+        CY - 22.0,
+        CY - 7.0,
+        CY + 9.0
     );
 
     // ═════════════════════════ LEGEND ═════════════════════════════════════════

@@ -432,6 +432,27 @@ pub(super) const RH: f64 = 238.0; // house cusp inner
 pub(super) const RP: f64 = 212.0; // planet ring
 pub(super) const RC: f64 = 88.0; // inner circle
 
+/// Build a palette `BTreeMap<String, Value>` from a slice of default
+/// `(key, color)` pairs, then merge user-provided `vars` over the top.
+///
+/// Pulled out of every chart-type submodule (bazi, hellenistic, indigenous,
+/// mesoamerican, vedic, specialist, omer_grid, …) where this 11-line idiom
+/// was repeated 11+ times. User vars take precedence over tradition-specific
+/// defaults, so callers can override any color via `--var key=value`.
+pub(super) fn palette_with_defaults(
+    defaults: &[(&str, &str)],
+    vars: &std::collections::BTreeMap<String, String>,
+) -> std::collections::BTreeMap<String, Value> {
+    let mut palette = std::collections::BTreeMap::new();
+    for (k, v) in defaults {
+        palette.insert((*k).to_string(), json!(v));
+    }
+    for (k, v) in vars {
+        palette.insert(k.clone(), json!(v));
+    }
+    palette
+}
+
 // ─── Label collision avoidance ────────────────────────────────────────────────
 
 /// Compute non-overlapping wheel angles for planet degree labels.
@@ -638,7 +659,7 @@ fn calendar_default_vars(
 ) -> serde_json::Value {
     let mut vars = user_vars.clone();
     vars.entry("title".to_string()).or_insert(title_default);
-    vars.entry("bg_color".to_string()).or_insert("#fffff8".to_string());
+    vars.entry("bg_color".to_string()).or_insert("#ffffff".to_string());
     vars.entry("text_color".to_string()).or_insert("#222".to_string());
     vars.entry("ring_color".to_string()).or_insert("#888".to_string());
     vars.entry("accent_color".to_string())
@@ -2211,7 +2232,7 @@ pub(super) const SI_CELLS: &[(usize, usize, i32)] = &[
 
 pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
     use std::fmt::Write;
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fffff8");
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
     let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
