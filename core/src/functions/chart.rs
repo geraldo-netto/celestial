@@ -199,6 +199,32 @@ pub struct Stations {
 /// println!("Mars retrograde: JD {:.2}", s.retrograde);
 /// println!("Mars direct:     JD {:.2}", s.direct);
 /// ```
+/// Bisect to find the JD where a smooth scalar function `f(jd)` crosses zero,
+/// given a bracket `[lo, hi]` known to contain a sign change with `f(lo)`
+/// having the same sign as `prev_sign`.
+///
+/// Used by station-finders to locate the exact JD where speed = 0.
+/// Returns the midpoint of the final bracket. Converges in ≤40 iterations
+/// or when |f(mid)| < `tol`.
+fn bisect_zero<F>(mut lo: f64, mut hi: f64, prev_sign: f64, tol: f64, mut f: F) -> f64
+where
+    F: FnMut(f64) -> f64,
+{
+    for _ in 0..40 {
+        let mid = (lo + hi) / 2.0;
+        let mid_v = f(mid);
+        if mid_v.abs() < tol {
+            return mid;
+        }
+        if prev_sign.signum() == mid_v.signum() {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    (lo + hi) / 2.0
+}
+
 pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Result<Stations> {
     // Step size: 0.5d — stations last hours to a day; this gives good resolution
     let step = 0.5_f64;
@@ -230,24 +256,11 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
         jd += step;
         let curr = speed_at(jd).unwrap_or(prev_speed);
 
-        // Sign change in speed = station
+        // Sign change in speed = station — bisect to find the exact zero
         if prev_speed * curr < 0.0 {
-            // Bisect to find exact zero crossing
-            let (mut lo, mut hi) = (jd - step, jd);
-            for _ in 0..40 {
-                let mid = (lo + hi) / 2.0;
-                let mid_spd = speed_at(mid).unwrap_or(0.0);
-                if mid_spd.abs() < 1e-6 {
-                    lo = mid;
-                    break;
-                }
-                if prev_speed.signum() == mid_spd.signum() {
-                    lo = mid;
-                } else {
-                    hi = mid;
-                }
-            }
-            let station_jd = (lo + hi) / 2.0;
+            let station_jd = bisect_zero(jd - step, jd, prev_speed, 1e-6, |t| {
+                speed_at(t).unwrap_or(0.0)
+            });
 
             if prev_speed > 0.0 && curr < 0.0 && retrograde_jd.is_none() {
                 // Positive → negative: going retrograde

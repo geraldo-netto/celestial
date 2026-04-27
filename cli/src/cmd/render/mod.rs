@@ -865,6 +865,207 @@ fn write_or_print(output: &str, path: Option<&PathBuf>) -> Result<(), String> {
     Ok(())
 }
 
+/// Build the chart context and select the SVG renderer for the requested
+/// `--chart-type`. Pulled out of [`run`] so the 27-arm dispatch lives in
+/// its own named scope, keeping `run` readable and reducing its cognitive
+/// complexity.
+/// Clone `user_vars` and ensure a `title` field exists (using `default`
+/// only if the user didn't already supply one via `--var title=…`).
+///
+/// Pulled out of the chart-type dispatch where this 3-line pattern was
+/// repeated 22+ times — once per chart type that wants a default title.
+fn vars_with_title(
+    user_vars: &BTreeMap<String, String>,
+    default: &str,
+) -> BTreeMap<String, String> {
+    let mut v = user_vars.clone();
+    v.entry("title".to_string())
+        .or_insert_with(|| default.to_string());
+    v
+}
+
+fn dispatch_chart_type(
+    chart_type: &str,
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(serde_json::Value, fn(&serde_json::Value) -> String), String> {
+    Ok(match chart_type {
+            "natal" | "" => {
+                let v = vars_with_title(user_vars, "Natal Chart");
+                (build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, render_builtin_svg)
+            }
+            "cosmogram" => {
+                let mut v = vars_with_title(user_vars, "Cosmogram");
+                v.insert("no_houses".to_string(), "1".to_string());
+                (build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, render_cosmogram_svg)
+            }
+            "solar-return" | "solar_return" => {
+                // Default to the current year based on today's JD
+                let year = args.return_year.unwrap_or_else(|| {
+                    let today_jd = crate::parse::parse_date("now").unwrap_or(2_451_545.0);
+                    let d = celestial_core::revjul(today_jd, celestial_core::body::Calendar::Gregorian);
+                    d.year as i32
+                });
+                let sr_jd = solar_return_jd(jd, year, CalcFlags::BUILTIN)
+                    .map_err(|e| e.to_string())?;
+                let sr_date = jd_to_date_str(sr_jd);
+                let mut v = user_vars.clone();
+                v.insert("title".to_string(), format!("Solar Return {year}"));
+                v.insert("chart_type_label".to_string(), format!("Solar Return {year}"));
+                (build_context(sr_jd, args.lat, args.lon, &sr_date, args.hsys, v)?, render_builtin_svg)
+            }
+            "lunar-return" | "lunar_return" => {
+                let start = args.date2.as_deref()
+                    .map(crate::parse::parse_date)
+                    .transpose()?
+                    .unwrap_or(jd);
+                let lr_jd = lunar_return_jd(jd, start, CalcFlags::BUILTIN)
+                    .map_err(|e| e.to_string())?;
+                let lr_date = jd_to_date_str(lr_jd);
+                let mut v = user_vars.clone();
+                v.insert("title".to_string(), "Lunar Return".to_string());
+                (build_context(lr_jd, args.lat, args.lon, &lr_date, args.hsys, v)?, render_builtin_svg)
+            }
+            "progressed" | "secondary" => {
+                let years = args.years.ok_or("--years DECIMAL required for progressed chart")?;
+                let mut v = user_vars.clone();
+                v.insert("title".to_string(), format!("Secondary Progressions ({years:.1}y)"));
+                (build_progressed_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?, render_progressed_svg)
+            }
+            "solar-arc" | "solar_arc" => {
+                let years = args.years.ok_or("--years DECIMAL required for solar-arc chart")?;
+                let mut v = user_vars.clone();
+                v.insert("title".to_string(), format!("Solar Arc Directions ({years:.1}y)"));
+                (build_solar_arc_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?, render_progressed_svg)
+            }
+            "biwheel" | "bi-wheel" | "synastry" | "transit" => {
+                let date2 = args.date2.as_deref()
+                    .ok_or("--date2 DATE required for biwheel chart")?;
+                let jd2 = crate::parse::parse_date(date2)?;
+                let lat2 = args.lat2.unwrap_or(args.lat);
+                let lon2 = args.lon2.unwrap_or(args.lon);
+                let v = vars_with_title(user_vars, "Bi-wheel");
+                (build_biwheel_context(jd, jd2, args.lat, args.lon, lat2, lon2,
+                                       &args.date, date2, args.hsys, v)?, render_biwheel_svg)
+            }
+            "composite" => {
+                let date2 = args.date2.as_deref()
+                    .ok_or("--date2 DATE required for composite chart")?;
+                let jd2 = crate::parse::parse_date(date2)?;
+                let v = vars_with_title(user_vars, "Composite Chart");
+                (specialist::build_composite_context(jd, jd2, args.lat, args.lon, &args.date, date2, args.hsys, v)?,
+                 render_builtin_svg)
+            }
+            "triwheel" | "tri-wheel" => {
+                let date2 = args.date2.as_deref()
+                    .ok_or("--date2 required (ring 2) for tri-wheel")?;
+                let date3 = args.date3.as_deref()
+                    .ok_or("--date3 required (ring 3) for tri-wheel")?;
+                let jd2 = crate::parse::parse_date(date2)?;
+                let jd3 = crate::parse::parse_date(date3)?;
+                let v = vars_with_title(user_vars, "Tri-wheel");
+                (specialist::build_triwheel_context(jd, jd2, jd3, args.lat, args.lon,
+                                        &args.date, date2, date3, args.hsys, v)?,
+                 specialist::render_triwheel_svg)
+            }
+            "dial" | "90dial" | "midpoint-dial" => {
+                let v = vars_with_title(user_vars, "90° Midpoint Dial");
+                (specialist::build_dial_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+                 specialist::render_dial_svg)
+            }
+            "ephemeris" | "graphic-ephemeris" => {
+                let date2 = args.date2.as_deref().unwrap_or("now");
+                let jd2 = crate::parse::parse_date(date2)?;
+                let (jd_s, jd_e) = if jd < jd2 { (jd, jd2) } else { (jd2, jd) };
+                let v = vars_with_title(user_vars, "Graphic Ephemeris");
+                (specialist::build_graphic_ephemeris_context(jd_s, jd_e, v)?, specialist::render_graphic_ephemeris_svg)
+            }
+            "local-space" | "localspace" => {
+                let v = vars_with_title(user_vars, "Local Space");
+                (specialist::build_local_space_context(jd, args.lat, args.lon, &args.date, v)?,
+                 specialist::render_local_space_svg)
+            }
+            "rasi" | "vedic" | "south-indian" => {
+                let v = vars_with_title(user_vars, "Rasi Chart (South Indian)");
+                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
+                 render_south_indian_svg)
+            }
+            "navamsa" | "d9" => {
+                let v = vars_with_title(user_vars, "Navamsa D9 Chart");
+                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Navamsa")?,
+                 vedic::render_navamsa_svg)
+            }
+            "dasha" | "vimshottari" => {
+                let v = vars_with_title(user_vars, "Vimshottari Dasha Timeline");
+                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Dasha")?,
+                 vedic::render_dasha_svg)
+            }
+            "north-indian" | "north_indian" => {
+                let v = vars_with_title(user_vars, "North Indian Chart");
+                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
+                 vedic::render_north_indian_svg)
+            }
+            "ashtakavarga" | "ashtak" => {
+                let v = vars_with_title(user_vars, "Ashtakavarga");
+                (vedic::build_ashtakavarga_context(jd, args.lat, args.lon, &args.date, v)?,
+                 vedic::render_ashtakavarga_svg)
+            }
+            "shadbala" | "strength" => {
+                let v = vars_with_title(user_vars, "Shadbala");
+                (vedic::build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?,
+                 vedic::render_shadbala_svg)
+            }
+            "hellenistic" | "greek" => {
+                let v = vars_with_title(user_vars, "Hellenistic Chart");
+                (hellenistic::build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+                 hellenistic::render_hellenistic_svg)
+            }
+            "firdaria" | "persian" => {
+                let v = vars_with_title(user_vars, "Firdaria Timeline");
+                (hellenistic::build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+                 hellenistic::render_firdaria_svg)
+            }
+            "profection" => {
+                let age = args.years.map(|y| y as u32)
+                    .or(args.return_year.map(|r| r as u32))
+                    .unwrap_or(0);
+                let mut v = user_vars.clone();
+                v.entry("title".to_string())
+                    .or_insert_with(|| format!("Profection — Age {age}"));
+                (hellenistic::build_profection_context(jd, args.lat, args.lon, &args.date, args.hsys, age, v)?,
+                 hellenistic::render_profection_svg)
+            }
+            "bazi" | "four-pillars" | "chinese" => {
+                let v = vars_with_title(user_vars, "Four Pillars (八字)");
+                (chinese::build_bazi_context(jd, args.lat, args.lon, &args.date, v)?,
+                 chinese::render_bazi_svg)
+            }
+            "mesoamerican" | "aztec" | "maya" => {
+                let v = vars_with_title(user_vars, "Mesoamerican Calendars");
+                (mesoamerican::build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?,
+                 mesoamerican::render_mesoamerican_svg)
+            }
+            "medicine-wheel" | "indigenous" | "egyptian-decans" => {
+                let v = vars_with_title(user_vars, "Medicine Wheel / Egyptian Decans");
+                (indigenous::build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?,
+                 indigenous::render_medicine_wheel_svg)
+            }
+            "wheel-of-year" | "sabbats" | "celtic" => {
+                (calendar_wheel::build_sabbat_wheel_context(jd, user_vars.clone())?,
+                 calendar_wheel::render_sabbat_wheel_svg)
+            }
+            "omer-grid" | "omer" | "sefirat-haomer" => {
+                (omer_grid::build_omer_grid_context(jd, user_vars.clone())?,
+                 omer_grid::render_omer_grid_svg)
+            }
+            "calendar" => (
+                build_calendar_context(jd, &args, &user_vars)?,
+                calendar_overlays::render_default_calendar_svg,
+            ),
+            other => return Err(format!("unknown --type '{other}'; valid: natal cosmogram solar-return lunar-return progressed solar-arc biwheel composite triwheel dial ephemeris local-space rasi navamsa dasha north-indian ashtakavarga shadbala hellenistic firdaria profection bazi mesoamerican medicine-wheel wheel-of-year omer-grid calendar"))})
+}
+
 pub fn run(mut args: RenderArgs) -> Result<(), String> {
     // --print-schema: dump the context schema and exit. This runs BEFORE any
     // chart computation so the user gets fast feedback while learning the
@@ -883,199 +1084,7 @@ pub fn run(mut args: RenderArgs) -> Result<(), String> {
     let chart_type = args.chart_type.to_lowercase();
     let chart_type = chart_type.trim();
 
-    let (mut ctx, render_fn): (serde_json::Value, fn(&serde_json::Value) -> String) = match chart_type {
-        "natal" | "" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Natal Chart".to_string());
-            (build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, render_builtin_svg)
-        }
-        "cosmogram" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Cosmogram".to_string());
-            v.insert("no_houses".to_string(), "1".to_string());
-            (build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, render_cosmogram_svg)
-        }
-        "solar-return" | "solar_return" => {
-            // Default to the current year based on today's JD
-            let year = args.return_year.unwrap_or_else(|| {
-                let today_jd = crate::parse::parse_date("now").unwrap_or(2_451_545.0);
-                let d = celestial_core::revjul(today_jd, celestial_core::body::Calendar::Gregorian);
-                d.year as i32
-            });
-            let sr_jd = solar_return_jd(jd, year, CalcFlags::BUILTIN)
-                .map_err(|e| e.to_string())?;
-            let sr_date = jd_to_date_str(sr_jd);
-            let mut v = user_vars.clone();
-            v.insert("title".to_string(), format!("Solar Return {year}"));
-            v.insert("chart_type_label".to_string(), format!("Solar Return {year}"));
-            (build_context(sr_jd, args.lat, args.lon, &sr_date, args.hsys, v)?, render_builtin_svg)
-        }
-        "lunar-return" | "lunar_return" => {
-            let start = args.date2.as_deref()
-                .map(crate::parse::parse_date)
-                .transpose()?
-                .unwrap_or(jd);
-            let lr_jd = lunar_return_jd(jd, start, CalcFlags::BUILTIN)
-                .map_err(|e| e.to_string())?;
-            let lr_date = jd_to_date_str(lr_jd);
-            let mut v = user_vars.clone();
-            v.insert("title".to_string(), "Lunar Return".to_string());
-            (build_context(lr_jd, args.lat, args.lon, &lr_date, args.hsys, v)?, render_builtin_svg)
-        }
-        "progressed" | "secondary" => {
-            let years = args.years.ok_or("--years DECIMAL required for progressed chart")?;
-            let mut v = user_vars.clone();
-            v.insert("title".to_string(), format!("Secondary Progressions ({years:.1}y)"));
-            (build_progressed_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?, render_progressed_svg)
-        }
-        "solar-arc" | "solar_arc" => {
-            let years = args.years.ok_or("--years DECIMAL required for solar-arc chart")?;
-            let mut v = user_vars.clone();
-            v.insert("title".to_string(), format!("Solar Arc Directions ({years:.1}y)"));
-            (build_solar_arc_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?, render_progressed_svg)
-        }
-        "biwheel" | "bi-wheel" | "synastry" | "transit" => {
-            let date2 = args.date2.as_deref()
-                .ok_or("--date2 DATE required for biwheel chart")?;
-            let jd2 = crate::parse::parse_date(date2)?;
-            let lat2 = args.lat2.unwrap_or(args.lat);
-            let lon2 = args.lon2.unwrap_or(args.lon);
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Bi-wheel".to_string());
-            (build_biwheel_context(jd, jd2, args.lat, args.lon, lat2, lon2,
-                                   &args.date, date2, args.hsys, v)?, render_biwheel_svg)
-        }
-        "composite" => {
-            let date2 = args.date2.as_deref()
-                .ok_or("--date2 DATE required for composite chart")?;
-            let jd2 = crate::parse::parse_date(date2)?;
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Composite Chart".to_string());
-            (specialist::build_composite_context(jd, jd2, args.lat, args.lon, &args.date, date2, args.hsys, v)?,
-             render_builtin_svg)
-        }
-        "triwheel" | "tri-wheel" => {
-            let date2 = args.date2.as_deref()
-                .ok_or("--date2 required (ring 2) for tri-wheel")?;
-            let date3 = args.date3.as_deref()
-                .ok_or("--date3 required (ring 3) for tri-wheel")?;
-            let jd2 = crate::parse::parse_date(date2)?;
-            let jd3 = crate::parse::parse_date(date3)?;
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Tri-wheel".to_string());
-            (specialist::build_triwheel_context(jd, jd2, jd3, args.lat, args.lon,
-                                    &args.date, date2, date3, args.hsys, v)?,
-             specialist::render_triwheel_svg)
-        }
-        "dial" | "90dial" | "midpoint-dial" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "90° Midpoint Dial".to_string());
-            (specialist::build_dial_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
-             specialist::render_dial_svg)
-        }
-        "ephemeris" | "graphic-ephemeris" => {
-            let date2 = args.date2.as_deref().unwrap_or("now");
-            let jd2 = crate::parse::parse_date(date2)?;
-            let (jd_s, jd_e) = if jd < jd2 { (jd, jd2) } else { (jd2, jd) };
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Graphic Ephemeris".to_string());
-            (specialist::build_graphic_ephemeris_context(jd_s, jd_e, v)?, specialist::render_graphic_ephemeris_svg)
-        }
-        "local-space" | "localspace" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Local Space".to_string());
-            (specialist::build_local_space_context(jd, args.lat, args.lon, &args.date, v)?,
-             specialist::render_local_space_svg)
-        }
-        "rasi" | "vedic" | "south-indian" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Rasi Chart (South Indian)".to_string());
-            (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
-             render_south_indian_svg)
-        }
-        "navamsa" | "d9" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Navamsa D9 Chart".to_string());
-            (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Navamsa")?,
-             vedic::render_navamsa_svg)
-        }
-        "dasha" | "vimshottari" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Vimshottari Dasha Timeline".to_string());
-            (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Dasha")?,
-             vedic::render_dasha_svg)
-        }
-        "north-indian" | "north_indian" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "North Indian Chart".to_string());
-            (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
-             vedic::render_north_indian_svg)
-        }
-        "ashtakavarga" | "ashtak" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Ashtakavarga".to_string());
-            (vedic::build_ashtakavarga_context(jd, args.lat, args.lon, &args.date, v)?,
-             vedic::render_ashtakavarga_svg)
-        }
-        "shadbala" | "strength" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Shadbala".to_string());
-            (vedic::build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?,
-             vedic::render_shadbala_svg)
-        }
-        "hellenistic" | "greek" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Hellenistic Chart".to_string());
-            (hellenistic::build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
-             hellenistic::render_hellenistic_svg)
-        }
-        "firdaria" | "persian" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Firdaria Timeline".to_string());
-            (hellenistic::build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
-             hellenistic::render_firdaria_svg)
-        }
-        "profection" => {
-            let age = args.years.map(|y| y as u32)
-                .or(args.return_year.map(|r| r as u32))
-                .unwrap_or(0);
-            let mut v = user_vars.clone();
-            v.entry("title".to_string())
-                .or_insert_with(|| format!("Profection — Age {age}"));
-            (hellenistic::build_profection_context(jd, args.lat, args.lon, &args.date, args.hsys, age, v)?,
-             hellenistic::render_profection_svg)
-        }
-        "bazi" | "four-pillars" | "chinese" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Four Pillars (八字)".to_string());
-            (chinese::build_bazi_context(jd, args.lat, args.lon, &args.date, v)?,
-             chinese::render_bazi_svg)
-        }
-        "mesoamerican" | "aztec" | "maya" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Mesoamerican Calendars".to_string());
-            (mesoamerican::build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?,
-             mesoamerican::render_mesoamerican_svg)
-        }
-        "medicine-wheel" | "indigenous" | "egyptian-decans" => {
-            let mut v = user_vars.clone();
-            v.entry("title".to_string()).or_insert_with(|| "Medicine Wheel / Egyptian Decans".to_string());
-            (indigenous::build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?,
-             indigenous::render_medicine_wheel_svg)
-        }
-        "wheel-of-year" | "sabbats" | "celtic" => {
-            (calendar_wheel::build_sabbat_wheel_context(jd, user_vars.clone())?,
-             calendar_wheel::render_sabbat_wheel_svg)
-        }
-        "omer-grid" | "omer" | "sefirat-haomer" => {
-            (omer_grid::build_omer_grid_context(jd, user_vars.clone())?,
-             omer_grid::render_omer_grid_svg)
-        }
-        "calendar" => (
-            build_calendar_context(jd, &args, &user_vars)?,
-            calendar_overlays::render_default_calendar_svg,
-        ),
-        other => return Err(format!("unknown --type '{other}'; valid: natal cosmogram solar-return lunar-return progressed solar-arc biwheel composite triwheel dial ephemeris local-space rasi navamsa dasha north-indian ashtakavarga shadbala hellenistic firdaria profection bazi mesoamerican medicine-wheel wheel-of-year omer-grid calendar"))};
+    let (mut ctx, render_fn) = dispatch_chart_type(chart_type, jd, &args, &user_vars)?;
 
     apply_universal_overlays(&mut ctx, jd, &args.calendars);
 

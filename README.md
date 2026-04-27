@@ -19,6 +19,8 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
   - [Commands](#commands)
   - [Examples](#examples)
   - [Chart rendering](#chart-rendering----celestial-render)
+  - [Calendar overlays](#calendar-overlays)
+  - [Bundled templates](#bundled-templates)
   - [Wheel enhancements](#wheel-enhancements)
   - [New Western chart types](#new-western-chart-types)
   - [Specialist Western charts](#specialist-western-charts)
@@ -203,24 +205,84 @@ bg_color     = "#0d1117"
 ring_color   = "#58a6ff"
 ```
 
-Templates use [TinyTemplate](https://github.com/bheisler/TinyTemplate) syntax. All wheel geometry (planet x/y, cusp lines, aspect endpoints) is pre-computed in Rust — templates need no math, just `{planet.x}`, `{planet.y}`, etc.
+Templates use [MiniJinja](https://github.com/mitsuhiko/minijinja) syntax — the Rust port of the Jinja2 template language. Templates support inline arithmetic (`{{ y + loop.index0 * 14 }}`), filters (`{{ orb | round(2) }}`, `{{ name | format("%-10s") }}`), conditionals (`{% if planet.retro %}…{% else %}…{% endif %}`), iteration with loop variables (`loop.index`, `loop.first`, `loop.last`), and selectattr/list filters for ad-hoc queries. All wheel geometry (planet x/y, cusp lines, aspect endpoints) is also pre-computed in Rust, so authoring a custom layout starts with simple substitutions like `{{ planet.x }}` and `{{ planet.y }}` and grows as needed.
+
+Run `celestial render --print-context` to see the full set of available variables for any chart type, or `--print-template` to get a starter template.
 
 | Variable | Type | Description |
 |---|---|---|
-| `{date}` | string | ISO date |
-| `{jd}` | float | Julian Day |
-| `{asc}` / `{mc}` / `{ic}` / `{dsc}` | float | Angle longitudes |
-| `{asc_dms}` … | string | DMS formatted angles |
-| `{planets}` | list | 12 bodies with `.lon .lat .x .y .glyph .dms .retro` |
-| `{signs}` | list | 12 sign sectors with `.spoke_x1 .spoke_y1 .glyph_x .glyph_y` |
-| `{houses}` | list | 12 cusps with `.x1 .y1 .x2 .y2 .num_x .num_y .dms` |
-| `{aspects}` | list | Active aspects with `.x1 .y1 .x2 .y2 .orb .applying .is_hard` |
-| `{moon_phase_name}` | string | Current lunar phase |
-| `{moon_illumination}` | float | Illumination 0–100% |
-| `{vars.key}` | string | Any `--var key=value` or `[vars] key = "value"` |
+| `{{ date }}` | string | ISO date |
+| `{{ jd }}` | float | Julian Day |
+| `{{ asc }}` / `{{ mc }}` / `{{ ic }}` / `{{ dsc }}` | float | Angle longitudes |
+| `{{ asc_dms }}` … | string | DMS formatted angles |
+| `{{ planets }}` | list | 12 bodies with `.lon .lat .x .y .glyph .dms .retro` |
+| `{{ signs }}` | list | 12 sign sectors with `.spoke_x1 .spoke_y1 .glyph_x .glyph_y` |
+| `{{ houses }}` | list | 12 cusps with `.x1 .y1 .x2 .y2 .num_x .num_y .dms` |
+| `{{ aspects }}` | list | Active aspects with `.x1 .y1 .x2 .y2 .orb .applying .is_hard` |
+| `{{ moon_phase_name }}` | string | Current lunar phase |
+| `{{ moon_illumination }}` | float | Illumination 0–100% |
+| `{{ vars.key }}` | string | Any `--var key=value` or `[vars] key = "value"` |
+| `{{ omer }}` / `{{ sabbats }}` / `{{ moon }}` / `{{ hebrew }}` | object | Calendar overlays added by `--calendar X` |
 
 ---
 
+### Calendar overlays
+
+Any `--chart-type` accepts one or more `--calendar X` flags that merge
+tradition-specific data into the template context as top-level fields.
+These let a single template tag any chart with content from multiple
+traditions:
+
+```bash
+# Natal wheel tagged with the current Omer day, sabbats of the year,
+# and the principal moon phases for the natal month
+celestial render --chart-type natal --date "1990-05-15 14:30" \
+  --lat 40.71 --lon=-74.0 \
+  --calendar omer --calendar sabbats --calendar moon \
+  --template my_chart.svg.tt --out chart.svg
+```
+
+| Overlay flag | Top-level context field | Contents |
+|---|---|---|
+| `--calendar gregorian` | `gregorian` | Single-month grid: `days[]`, `month_name`, `col_headers[]`, `first_weekday` |
+| `--calendar gregorian-year` | `gregorian_year` | 12-month grid: `months[12]` each containing the same shape as `gregorian` |
+| `--calendar omer` | `omer` | 49-day Sefirat HaOmer count: `days[].day`, `.iso_date`, `.sefirah`, `today` |
+| `--calendar sabbats` | `sabbats` | 8 Wheel-of-the-Year dates: `sabbats[].name`, `.iso_date`, `.is_quarter_day` |
+| `--calendar moon` | `moon` | Principal phases for a month: `phase_events[]` with `.iso_date`, `.glyph`, `.short` |
+| `--calendar hebrew` | `hebrew` | Hebrew holidays in a date range: `holidays[].name`, `.iso_date`, `.day`, `.month_name` |
+
+When `gregorian` or `gregorian-year` is requested alongside other overlays,
+each day cell in `days[]` is auto-annotated with cross-tradition tags
+(`omer_day`, `is_lag_baomer`, `sabbat_name`, `moon_phase`, `moon_glyph`,
+`hebrew_holiday`) so a template loop like `{% for d in gregorian.days %}`
+can apply per-day styling without juggling multiple lookup tables.
+
+---
+
+### Bundled templates
+
+The `cli/templates/` directory ships four reference templates that
+demonstrate progressively more advanced MiniJinja patterns:
+
+| Template | Demonstrates |
+|---|---|
+| `example.svg.tt` | Minimal natal wheel — `{{ planet.x }}`, `{% for %}`, `{% if %}` |
+| `natal_with_overlays.svg.tt` | Inline math (`{{ asc \| round(2) }}`), conditionals on overlays, `loop.index0` for row positioning |
+| `year_calendar.svg.tt` | 12-month grid with sabbat/Omer/moon/Hebrew tags via `selectattr("iso_date", "equalto", ...)` |
+| `full_astral_map.svg.tt` | Complete reference natal chart with planets/houses/aspects/dignities/Arabic-parts tables |
+| `bazi_chart.svg.tt` | Cultural-specific layout — Chinese 4-pillars chart with Five-Elements color palette |
+
+Run any of these with:
+
+```bash
+celestial render --chart-type natal --date "2024-05-15 12:00" \
+  --lat 48.85 --lon 2.35 \
+  --calendar omer --calendar sabbats --calendar moon \
+  --template cli/templates/natal_with_overlays.svg.tt \
+  --out my_chart.svg
+```
+
+---
 ### Wheel enhancements
 
 The natal wheel renders these additional layers automatically:
@@ -266,27 +328,27 @@ contra_antiscion(lon)  = (360° − lon) mod 360°
 
 ```bash
 # Cosmogram (wheel without houses)
-celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --type cosmogram
+celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --chart-type cosmogram
 
 # Solar Return (specify the return year)
 celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
-  --type solar-return --return-year 2025
+  --chart-type solar-return --return-year 2025
 
 # Lunar Return (search from --date2)
 celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
-  --type lunar-return --date2 2025-01-01
+  --chart-type lunar-return --date2 2025-01-01
 
 # Secondary Progressions
 celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
-  --type progressed --years 39.5
+  --chart-type progressed --years 39.5
 
 # Solar Arc Directions
 celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
-  --type solar-arc --years 39.5
+  --chart-type solar-arc --years 39.5
 
 # Bi-wheel (synastry / transit overlay)
 celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
-  --type biwheel --date2 2025-03-20
+  --chart-type biwheel --date2 2025-03-20
 ```
 
 The bi-wheel draws natal planets as the inner ring and second-date planets on the outer ring (rendered in green). Cross-aspects between rings are shown as dashed lines.
@@ -297,21 +359,21 @@ The bi-wheel draws natal planets as the inner ring and second-date planets on th
 
 ```bash
 # 90° Midpoint Dial (Uranian/Hamburg)
-celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --type dial
+celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --chart-type dial
 
 # Composite chart (midpoint of two nativities)
 celestial render --date 1985-07-15 --date2 1990-03-20 \
-  --lat 48.85 --lon 2.35 --type composite
+  --lat 48.85 --lon 2.35 --chart-type composite
 
 # Tri-wheel (natal + progressed + transits)
 celestial render --date 1985-07-15 --date2 2010-01-01 --date3 2025-03-20 \
-  --lat 48.85 --lon 2.35 --type triwheel
+  --lat 48.85 --lon 2.35 --chart-type triwheel
 
 # Graphic Ephemeris (planetary motion over time)
-celestial render --date 2025-01-01 --date2 2025-12-31 --type ephemeris
+celestial render --date 2025-01-01 --date2 2025-12-31 --chart-type ephemeris
 
 # Local Space chart (azimuth-based compass)
-celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --type local-space
+celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --chart-type local-space
 ```
 
 The **90° dial** compresses all four zodiacal quadrants onto a single circle. Midpoints triggered by a planet within 1.5° are shown as tick marks and listed in the legend.
@@ -326,22 +388,22 @@ All Vedic charts use sidereal (Lahiri ayanamsa) positions via `--type`:
 
 ```bash
 # South Indian Rasi chart (fixed-sign 4×4 grid)
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type rasi
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type rasi
 
 # North Indian chart (rotating diamond layout, lagna = ASC sign)
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type north-indian
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type north-indian
 
 # Navamsa D9 divisional chart
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type navamsa
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type navamsa
 
 # Vimshottari dasha timeline (120-year bar chart)
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type dasha
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type dasha
 
 # Ashtakavarga (7×12 bindu table + Sarvashtakavarga totals)
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type ashtakavarga
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type ashtakavarga
 
 # Shadbala planetary strength
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type shadbala
+celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type shadbala
 ```
 
 **Ashtakavarga** — 8-source bindu system. 7 planet rows × 12 sign columns (0–8 bindus each) plus a Sarvashtakavarga totals row (0–56). Green = strong (≥ 5 / ≥ 28), red = weak (≤ 2 / ≤ 18).
@@ -354,14 +416,14 @@ celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --type shadbala
 
 ```bash
 # Hellenistic natal chart with full dignity overlay
-celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --type hellenistic
+celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --chart-type hellenistic
 
 # Persian Firdaria timeline (75-year period chart)
-celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --type firdaria
+celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --chart-type firdaria
 
 # Annual profection wheel (specify age with --years)
 celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
-  --type profection --years 39
+  --chart-type profection --years 39
 ```
 
 The **hellenistic** overlay adds a dignity table: dignity name, score, Egyptian term lord, Chaldean decan lord, triplicity rulers, and sect status for each planet.
@@ -391,7 +453,7 @@ Core Hellenistic API functions:
 
 ```bash
 # Four Pillars of Destiny (Ba Zi)
-celestial render --date 1985-07-15 --type bazi
+celestial render --date 1985-07-15 --chart-type bazi
 ```
 
 The chart shows four pillars (Year, Month, Day, Hour), each with Heavenly Stem (天干), Earthly Branch (地支), element, and Yin/Yang polarity. An element balance bar chart shows Wood/Fire/Earth/Metal/Water distribution. The current solar term (节气) is displayed with degrees remaining until the next term.
@@ -411,7 +473,7 @@ The chart shows four pillars (Year, Month, Day, Hour), each with Heavenly Stem (
 
 ```bash
 # Aztec + Maya calendar positions for any date
-celestial render --date 2000-01-01 --type mesoamerican
+celestial render --date 2000-01-01 --chart-type mesoamerican
 ```
 
 | Calendar | Cycle | Description |
@@ -438,7 +500,7 @@ The **Calendar Round** (52-year cycle) is LCM(260, 365) = 18,980 days. All calcu
 
 ```bash
 # Medicine Wheel + Egyptian decans
-celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --type medicine-wheel
+celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --chart-type medicine-wheel
 ```
 
 **Medicine Wheel** — compass-rose wheel using the Sun Bear / Wabun Wind synthesis (1980). 12 birth totems correspond to ~30° Sun longitude segments: Snow Goose · Otter · Cougar · Red Hawk · Beaver · Deer · Flicker · Sturgeon · Brown Bear · Raven · Snake · Elk. Each totem belongs to a clan (Turtle/Earth, Butterfly/Air, Thunderbird/Fire, Frog/Water) and a season.

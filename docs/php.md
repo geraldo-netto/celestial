@@ -11,8 +11,8 @@ cd bindings/php && cargo build --release
 # Add to php.ini:  extension=/path/to/libcelestial.so
 ```
 
-See **[docs/php.md](docs/php.md)** for all `celestial_` prefixed functions, return
-types, phpstan integration, and tradition-specific examples.
+This guide covers all `celestial_` prefixed functions, return types, phpstan integration,
+and tradition-specific examples.
 
 ---
 
