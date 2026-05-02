@@ -749,6 +749,31 @@ fn test_solcross_equinox_2022() {
 /// Pin exact crossing JDs to ~10ms precision (1e-7 day). Guards against
 /// regressions in the find_crossing root-finder (e.g. accidentally widening
 /// the convergence tolerance during refactor/optimization).
+fn check_solcross_baselines(jd_2002: f64, j2000: f64, f: CalcFlags, tol: f64) {
+    let cases: [(f64, f64, f64); 5] = [
+        (  0.0, jd_2002, 2452354.297022234),
+        ( 90.0, jd_2002, 2452447.052914176),
+        (180.0, jd_2002, 2452540.699601538),
+        (270.0, jd_2002, 2452630.546177711),
+        (  0.0, j2000,   2451623.810232319),
+    ];
+    for (target, start, expected) in cases {
+        assert_approx_tol!(solcross(target, start, f).unwrap(), expected, tol);
+    }
+}
+
+fn check_sign_ingress_baselines(j2000: f64, f: CalcFlags, tol: f64) {
+    let cases = [
+        (Body::SUN,    2451564.257859215_f64, 10_u8),
+        (Body::SATURN, 2451780.017175227_f64, 4_u8),
+    ];
+    for (body, expected_jd, expected_sign) in cases {
+        let (jd_ing, sign) = sign_ingress_ut(body, j2000, f, false).unwrap();
+        assert_approx_tol!(jd_ing, expected_jd, tol);
+        assert_eq!(sign, expected_sign);
+    }
+}
+
 #[test]
 fn precision_search_root_finder_baselines() {
     setup();
@@ -757,29 +782,13 @@ fn precision_search_root_finder_baselines() {
     let jd_2002 = julday(2002, 1, 1, 0.0, Calendar::Gregorian);
     let j2000 = 2_451_545.0_f64;
 
-    // Sun crossings (vernal equinox / solstices, 2002)
-    assert_approx_tol!(solcross(  0.0, jd_2002, f).unwrap(), 2452354.297022234, TOL);
-    assert_approx_tol!(solcross( 90.0, jd_2002, f).unwrap(), 2452447.052914176, TOL);
-    assert_approx_tol!(solcross(180.0, jd_2002, f).unwrap(), 2452540.699601538, TOL);
-    assert_approx_tol!(solcross(270.0, jd_2002, f).unwrap(), 2452630.546177711, TOL);
-    assert_approx_tol!(solcross(  0.0, j2000,   f).unwrap(), 2451623.810232319, TOL);
-
-    // Moon crossing — faster body, same tolerance
+    check_solcross_baselines(jd_2002, j2000, f, TOL);
     assert_approx_tol!(mooncross(45.0, jd_2002, f).unwrap(), 2452297.335581569, TOL);
-
-    // Sign ingress (Sun next sign, Saturn next sign) and solar return
-    let (jd_sun_ing, sun_sign) = sign_ingress_ut(Body::SUN, j2000, f, false).unwrap();
-    assert_approx_tol!(jd_sun_ing, 2451564.257859215, TOL);
-    assert_eq!(sun_sign, 10);
-
-    let (jd_sat_ing, sat_sign) = sign_ingress_ut(Body::SATURN, j2000, f, false).unwrap();
-    assert_approx_tol!(jd_sat_ing, 2451780.017175227, TOL);
-    assert_eq!(sat_sign, 4);
+    check_sign_ingress_baselines(j2000, f, TOL);
 
     let sr = solar_return_jd(j2000, 2001, f).unwrap();
     assert_approx_tol!(sr, 2452275.485449128, TOL);
 
-    // Sun longitude at the equinox crossing must be effectively zero.
     let sun = calc_ut(solcross(0.0, jd_2002, f).unwrap(), Body::SUN, f).unwrap();
     let lon_err = sun.lon.min(360.0 - sun.lon);
     assert!(lon_err < 1.0e-6, "Sun lon err at vernal eq = {lon_err:.2e}°");

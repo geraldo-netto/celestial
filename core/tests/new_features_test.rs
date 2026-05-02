@@ -1763,59 +1763,68 @@ fn houses_placidus_equator_asc_direction() {
     );
 }
 
-#[test]
-fn fuzz_php_binding_equivalence() {
-    use celestial_core::body::{Body, CalcFlags, HouseSystem, SiderealMode};
+fn check_php_julday_calc(jd: f64) {
+    use celestial_core::body::{Body, CalcFlags};
     use celestial_core::*;
 
-    // julday / revjul
-    let jd = julday(2002, 1, 1, 0.0, Calendar::Gregorian);
     assert!((jd - 2_452_275.5).abs() < 1e-6);
     let d = revjul(jd, Calendar::Gregorian);
     assert_eq!(d.year, 2002);
 
-    // calc_ut — 6-element vec
     let p = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
     assert!((p.lon - 280.38).abs() < 0.1);
     assert!((p.dist - 0.9832).abs() < 0.005);
     assert!((p.speed_lon - 1.0).abs() < 0.1);
+}
 
-    // houses — cusps[1..] gives 12, ascmc[..8] gives 8
+fn check_php_houses_ayanamsa(jd: f64) {
+    use celestial_core::body::{HouseSystem, SiderealMode};
+    use celestial_core::*;
+
     let h = houses(jd, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
     let cusps: Vec<f64> = h.cusps[1..].to_vec();
     let ascmc: Vec<f64> = h.ascmc[..8].to_vec();
     assert_eq!(cusps.len(), 12);
     assert_eq!(ascmc.len(), 8);
-    assert!(ascmc[0] >= 0.0 && ascmc[0] < 360.0); // ASC
+    assert!(ascmc[0] >= 0.0 && ascmc[0] < 360.0);
 
-    // ayanamsa
     set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
     let ay = ayanamsa(jd);
     assert!(ay > 23.5 && ay < 24.5, "Lahiri ayanamsa {ay} out of range");
+}
 
-    // norm_deg / diff_deg_signed
+fn check_php_math_helpers() {
+    use celestial_core::*;
+
     assert!((norm_deg(361.5) - 1.5).abs() < 1e-10);
     assert!((norm_deg(-1.0) - 359.0).abs() < 1e-10);
-    assert!((diff_deg_signed(10.0, 350.0) - 20.0).abs() < 1e-10); // 10-350=-340 → +20
+    assert!((diff_deg_signed(10.0, 350.0) - 20.0).abs() < 1e-10);
 
-    // midpoint / arabic_part
     assert!((midpoint(10.0, 20.0) - 15.0).abs() < 1e-10);
     let fortune = arabic_part(206.77, 223.32, 280.38);
     assert!((fortune - 149.71).abs() < 0.1);
     assert!((0.0..360.0).contains(&fortune));
+}
 
-    // sign_ruler / zodiac_sign_name / lon_to_sign
-    assert_eq!(sign_ruler(0), Body::MARS); // Aries → Mars
-    assert_eq!(sign_ruler(4), Body::SUN); // Leo   → Sun
+fn check_php_zodiac_helpers() {
+    use celestial_core::body::Body;
+    use celestial_core::*;
+
+    assert_eq!(sign_ruler(0), Body::MARS);
+    assert_eq!(sign_ruler(4), Body::SUN);
     assert_eq!(zodiac_sign_name(0), "Aries");
     assert_eq!(zodiac_sign_name(11), "Pisces");
     let (sign, deg) = lon_to_sign(45.5);
-    assert_eq!(sign, 1); // Taurus
+    assert_eq!(sign, 1);
     assert!((deg - 15.5).abs() < 0.001);
+}
 
-    // tret type check: eclipse returns [f64;10], rise_trans returns f64
+fn check_php_eclipse_rise_tret(jd: f64) {
+    use celestial_core::body::{Body, CalcFlags};
+    use celestial_core::*;
+
     let ecl = sol_eclipse_when_glob(jd, CalcFlags::BUILTIN, 0, false).unwrap();
-    let _tret_vec: Vec<f64> = ecl.tret.to_vec(); // [f64;10] → Vec
+    let _tret_vec: Vec<f64> = ecl.tret.to_vec();
     let rise = rise_trans(
         jd,
         Body::MOON,
@@ -1827,17 +1836,33 @@ fn fuzz_php_binding_equivalence() {
         0.0,
     )
     .unwrap();
-    let _tret_scalar: f64 = rise.tret; // single f64
+    let _tret_scalar: f64 = rise.tret;
     let _tret_wrapped: Vec<f64> = vec![rise.tret];
+}
 
-    // FLG_* constants used as i64 in PHP
+fn check_php_name_helpers() {
+    use celestial_core::body::{Body, CalcFlags, SiderealMode};
+    use celestial_core::*;
+
     let flg_builtin_i64: i64 = CalcFlags::BUILTIN.as_raw() as i64;
     assert!(flg_builtin_i64 > 0);
 
-    // planet_name / ayanamsa_name return &str → .to_string() for PHP
     let _name: String = planet_name(Body::SUN).to_string();
-    let _ayname: String = ayanamsa_name(SiderealMode::LAHIRI.as_raw()).to_string();
-    assert_eq!(_ayname, "Lahiri");
+    let ayname: String = ayanamsa_name(SiderealMode::LAHIRI.as_raw()).to_string();
+    assert_eq!(ayname, "Lahiri");
+}
+
+#[test]
+fn fuzz_php_binding_equivalence() {
+    use celestial_core::*;
+
+    let jd = julday(2002, 1, 1, 0.0, Calendar::Gregorian);
+    check_php_julday_calc(jd);
+    check_php_houses_ayanamsa(jd);
+    check_php_math_helpers();
+    check_php_zodiac_helpers();
+    check_php_eclipse_rise_tret(jd);
+    check_php_name_helpers();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
