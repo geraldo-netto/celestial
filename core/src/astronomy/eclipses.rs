@@ -301,6 +301,32 @@ pub(crate) fn kind_to_flags(kind: EclipseKind) -> i32 {
     }
 }
 
+/// Per-iteration acceptance check: filter by `ecl_type` and verify that `jde`
+/// lies on the requested side of `jd_start`. Returns `Some(flags)` to accept,
+/// or `None` to skip this k.
+fn accept_eclipse(
+    kind: EclipseKind,
+    ecl_type: i32,
+    jde: f64,
+    jd_start: f64,
+    backwards: bool,
+) -> Option<i32> {
+    if kind == EclipseKind::None {
+        return None;
+    }
+    let flags = kind_to_flags(kind);
+    if ecl_type != 0 && (flags & ecl_type) == 0 {
+        return None;
+    }
+    if !backwards && jde < jd_start {
+        return None;
+    }
+    if backwards && jde > jd_start {
+        return None;
+    }
+    Some(flags)
+}
+
 /// Find the next solar eclipse after `jd_start`.
 pub fn solar_eclipse_when_glob(
     jd_start: f64,
@@ -311,39 +337,21 @@ pub fn solar_eclipse_when_glob(
     let dir: i64 = if backwards { -1 } else { 1 };
 
     for _ in 0..60 {
-        // search up to 60 synodic months (≈5 years)
         let (kind, gamma, u) = check_solar_eclipse(k);
-        if kind != EclipseKind::None {
-            let flags = kind_to_flags(kind);
-            // Type filter
-            if ecl_type != 0 && (flags & ecl_type) == 0 {
-                k += dir;
-                continue;
-            }
-            let jde = new_moon_jd(k as f64);
-            // Check it's actually after jd_start
-            if !backwards && jde < jd_start {
-                k += dir;
-                continue;
-            }
-            if backwards && jde > jd_start {
-                k += dir;
-                continue;
-            }
-
+        let jde = new_moon_jd(k as f64);
+        if let Some(flags) = accept_eclipse(kind, ecl_type, jde, jd_start, backwards) {
             let (dp1, dt1, dt2, dp2) = solar_contacts(k, gamma, u);
             let mut tret = [0.0f64; 10];
-            tret[0] = jde; // greatest eclipse
-            tret[1] = jde + dp1; // partial begin
-            tret[2] = jde + dt1; // total/annular begin
-            tret[3] = jde + dt2; // total/annular end
-            tret[4] = jde + dp2; // partial end
-
+            tret[0] = jde;
+            tret[1] = jde + dp1;
+            tret[2] = jde + dt1;
+            tret[3] = jde + dt2;
+            tret[4] = jde + dp2;
             return Some(EclipseResult {
                 kind,
                 ret_flags: flags,
                 tret,
-                geolon: 0.0, // not computed here
+                geolon: 0.0,
                 geolat: 0.0,
             });
         }
@@ -359,22 +367,8 @@ pub fn lun_eclipse_when(jd_start: f64, ecl_type: i32, backwards: bool) -> Option
 
     for _ in 0..60 {
         let (kind, pen_mag, umb_mag) = check_lunar_eclipse(k);
-        if kind != EclipseKind::None {
-            let flags = kind_to_flags(kind);
-            if ecl_type != 0 && (flags & ecl_type) == 0 {
-                k += dir;
-                continue;
-            }
-            let jde = full_moon_jd(k);
-            if !backwards && jde < jd_start {
-                k += dir;
-                continue;
-            }
-            if backwards && jde > jd_start {
-                k += dir;
-                continue;
-            }
-
+        let jde = full_moon_jd(k);
+        if let Some(flags) = accept_eclipse(kind, ecl_type, jde, jd_start, backwards) {
             let (dp1, du1, du4, dp4) = lunar_contacts(k, pen_mag, umb_mag);
             let mut tret = [0.0f64; 10];
             tret[0] = jde;
@@ -382,7 +376,6 @@ pub fn lun_eclipse_when(jd_start: f64, ecl_type: i32, backwards: bool) -> Option
             tret[2] = jde + du1;
             tret[3] = jde + du4;
             tret[4] = jde + dp4;
-
             return Some(EclipseResult {
                 kind,
                 ret_flags: flags,

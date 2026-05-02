@@ -189,6 +189,53 @@ pub struct HeliacalResult {
     pub obj_az: f64,
 }
 
+/// Evaluate a single iteration day for [`find_heliacal_event`].
+///
+/// Returns `Some(result)` if a heliacal event is found at this `jd`, `None` to skip.
+fn try_heliacal_at(
+    jd: f64,
+    geolat: f64,
+    geolon: f64,
+    pressure_mb: f64,
+    temp_c: f64,
+    body_num: i32,
+    morning: bool,
+) -> Option<HeliacalResult> {
+    use crate::astronomy::calc_ut;
+    use crate::astronomy::rise_set::{sun_rise_set, RiseSetEvent};
+
+    let twilight_event = if morning {
+        RiseSetEvent::Rise
+    } else {
+        RiseSetEvent::Set
+    };
+    let rs = sun_rise_set(jd, geolat, geolon, twilight_event);
+    if !rs.found {
+        return None;
+    }
+    let jd_event = rs.jd_ut;
+    let sun_alt_at_event = -6.0_f64;
+
+    let body = calc_ut(jd_event, body_num, 0).ok()?;
+    let sun = calc_ut(jd_event, 0, 0).ok()?;
+
+    let elong_raw = (body.lon - sun.lon + 360.0).rem_euclid(360.0);
+    let elong = if elong_raw > 180.0 { 360.0 - elong_raw } else { elong_raw };
+    let obj_alt = elong.abs().clamp(0.0, 90.0) * 0.5;
+
+    let arcv = arcus_visionis(body.lon, sun_alt_at_event, pressure_mb, temp_c);
+    if arcv > 0.0 && obj_alt >= arcv * 0.8 {
+        Some(HeliacalResult {
+            jd_event,
+            obj_alt,
+            sun_alt: sun_alt_at_event,
+            obj_az: body.lon,
+        })
+    } else {
+        None
+    }
+}
+
 /// Search for a heliacal event near `jd_start`.
 ///
 /// * `dgeo`  — [lon, lat, alt] of observer
@@ -205,9 +252,6 @@ pub fn find_heliacal_event(
     body_num: i32,
     event: HeliacalEvent,
 ) -> Option<HeliacalResult> {
-    use crate::astronomy::calc_ut;
-    use crate::astronomy::rise_set::{sun_rise_set, RiseSetEvent};
-
     let pressure_mb = datm[0].clamp(900.0, 1100.0);
     let temp_c = datm[1];
     let geolat = dgeo[1];
@@ -220,55 +264,9 @@ pub fn find_heliacal_event(
     let max_days = 400.0;
 
     for _ in 0..(max_days as i32) {
-        // Find the twilight event (sunrise or sunset)
-        let twilight_event = if morning {
-            RiseSetEvent::Rise
-        } else {
-            RiseSetEvent::Set
-        };
-        let rs = sun_rise_set(jd, geolat, geolon, twilight_event);
-        if !rs.found {
-            jd += step;
-            continue;
-        }
-        let jd_event = rs.jd_ut;
-
-        // Sun altitude at 6° below horizon (civil twilight) ≈ jd_event - 6/360 * day
-        let sun_alt_at_event = -6.0_f64;
-
-        // Get body position at this time
-        let body = match calc_ut(jd_event, body_num, 0) {
-            Ok(p) => p,
-            Err(_) => {
-                jd += step;
-                continue;
-            }
-        };
-        let sun = match calc_ut(jd_event, 0, 0) {
-            Ok(p) => p,
-            Err(_) => {
-                jd += step;
-                continue;
-            }
-        };
-
-        // Elongation from Sun
-        let elong = (body.lon - sun.lon + 360.0).rem_euclid(360.0);
-        let elong = if elong > 180.0 { 360.0 - elong } else { elong };
-
-        // Body altitude above horizon (rough: elong above/below horizon)
-        // More accurate: compute hour angle and altitude
-        let obj_alt = elong.abs().clamp(0.0, 90.0) * 0.5; // rough
-
-        // Check arc of vision
-        let arcv = arcus_visionis(body.lon, sun_alt_at_event, pressure_mb, temp_c);
-        if arcv > 0.0 && obj_alt >= arcv * 0.8 {
-            return Some(HeliacalResult {
-                jd_event,
-                obj_alt,
-                sun_alt: sun_alt_at_event,
-                obj_az: body.lon,
-            });
+        if let Some(r) = try_heliacal_at(jd, geolat, geolon, pressure_mb, temp_c, body_num, morning)
+        {
+            return Some(r);
         }
         jd += step;
     }

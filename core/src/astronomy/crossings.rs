@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 
 use super::calc_ut;
+use crate::PlanetPos;
 
 /// Search for the first time after `jd_start` that body `body` crosses
 /// ecliptic longitude `x2cross` (degrees).
@@ -60,6 +61,35 @@ where
 ///
 /// Convergence criteria match the previous bisection: `|d| < 1e-8°` (~0.04″)
 /// OR bracket width `< 1e-8 / 86400` days (~0.01 µs).
+/// Inverse-quadratic interpolation when fa,fb,fc are distinct; secant otherwise.
+fn brent_interpolate(a: f64, fa: f64, b: f64, fb: f64, c: f64, fc: f64) -> f64 {
+    if (fa - fc).abs() > f64::EPSILON && (fb - fc).abs() > f64::EPSILON {
+        a * fb * fc / ((fa - fb) * (fa - fc))
+            + b * fa * fc / ((fb - fa) * (fb - fc))
+            + c * fa * fb / ((fc - fa) * (fc - fb))
+    } else {
+        b - fb * (b - a) / (fb - fa)
+    }
+}
+
+/// Brent's safeguard: should we fall back to bisection?
+fn brent_should_bisect(
+    s: f64,
+    a: f64,
+    b: f64,
+    c: f64,
+    d: f64,
+    used_bisect: bool,
+    tol_x: f64,
+) -> bool {
+    let lo = (3.0 * a + b) / 4.0;
+    let cond1 = (s - lo) * (s - b) > 0.0;
+    let prev_step = if used_bisect { (b - c).abs() } else { (c - d).abs() };
+    let cond_step = (s - b).abs() >= prev_step / 2.0;
+    let cond_tiny = prev_step < tol_x;
+    cond1 || cond_step || cond_tiny
+}
+
 fn refine_crossing<F, D>(
     mut a: f64,
     mut fa: f64,
@@ -73,14 +103,13 @@ where
     D: Fn(f64) -> f64,
 {
     let mut fb = fb_in;
-    // Ensure |f(a)| ≥ |f(b)| so b is always the best current estimate.
     if fa.abs() < fb.abs() {
         std::mem::swap(&mut a, &mut b);
         std::mem::swap(&mut fa, &mut fb);
     }
     let mut c = a;
     let mut fc = fa;
-    let mut d = a; // previous-previous iterate (only read after first non-bisect step)
+    let mut d = a;
     let mut used_bisect = true;
 
     const TOL_F: f64 = 1.0e-8;
@@ -92,32 +121,13 @@ where
             return Some(b);
         }
 
-        // Try inverse-quadratic interpolation when fa, fb, fc are distinct.
-        let s = if (fa - fc).abs() > f64::EPSILON && (fb - fc).abs() > f64::EPSILON {
-            a * fb * fc / ((fa - fb) * (fa - fc))
-                + b * fa * fc / ((fb - fa) * (fb - fc))
-                + c * fa * fb / ((fc - fa) * (fc - fb))
-        } else {
-            // Secant
-            b - fb * (b - a) / (fb - fa)
-        };
-
-        // Brent's safeguard: fall back to bisection if interpolation is unsafe.
-        let cond1 = {
-            let lo = (3.0 * a + b) / 4.0;
-            (s - lo) * (s - b) > 0.0
-        };
-        let cond2 = used_bisect && (s - b).abs() >= (b - c).abs() / 2.0;
-        let cond3 = !used_bisect && (s - b).abs() >= (c - d).abs() / 2.0;
-        let cond4 = used_bisect && (b - c).abs() < TOL_X;
-        let cond5 = !used_bisect && (c - d).abs() < TOL_X;
-
-        let s = if cond1 || cond2 || cond3 || cond4 || cond5 {
+        let s_try = brent_interpolate(a, fa, b, fb, c, fc);
+        let s = if brent_should_bisect(s_try, a, b, c, d, used_bisect, TOL_X) {
             used_bisect = true;
             (a + b) / 2.0
         } else {
             used_bisect = false;
-            s
+            s_try
         };
 
         let fs = diff(lon_at(s)?);
@@ -194,53 +204,50 @@ pub struct NodeCrossing {
 
 /// Next Moon–node crossing (ascending node ≈ 0° latitude crossing going north).
 /// Returns the Julian day and the ecliptic longitude of the crossing.
+/// Bisect to find the latitude=0 crossing inside [ja, jb] given the upper-end probe.
+fn bisect_node_crossing<F>(mut ja: f64, mut jb: f64, p_hi: PlanetPos, pos_at: &F) -> NodeCrossing
+where
+    F: Fn(f64) -> Option<PlanetPos>,
+{
+    let mut pm = p_hi;
+    for _ in 0..50 {
+        let jm = (ja + jb) / 2.0;
+        pm = match pos_at(jm) {
+            Some(p) => p,
+            None => break,
+        };
+        if pm.lat.abs() < 1e-8 {
+            break;
+        }
+        if pm.lat < 0.0 {
+            ja = jm;
+        } else {
+            jb = jm;
+        }
+    }
+    NodeCrossing {
+        jd_cross: (ja + jb) / 2.0,
+        xlon: pm.lon,
+    }
+}
+
 pub fn mooncross_node(jd_et: f64, _flags: i32) -> Option<NodeCrossing> {
-    // The Moon crosses its ascending node when its latitude goes from - to +.
-    // Search for latitude = 0 with northward velocity.
-    //
-    // `pos_at` returns the full PlanetPos so the bisected endpoint can
-    // supply `xlon` directly, saving one trailing calc_ut call.
     let pos_at = |jd: f64| crate::astronomy::calc_ut(jd, 1, 0).ok();
 
     let mut jd = jd_et;
-    let step = 0.5; // half-day steps (Moon latitude period ~14 days)
-    let max_jd = jd + 30.0; // search 30 days
+    let step = 0.5;
+    let max_jd = jd + 30.0;
 
     let mut lat0 = pos_at(jd).map(|p| p.lat).unwrap_or(0.0);
 
     while jd < max_jd {
-        let p1 = match pos_at(jd + step) {
-            Some(p) => p,
-            None => {
-                jd += step;
-                continue;
-            }
+        let Some(p1) = pos_at(jd + step) else {
+            jd += step;
+            continue;
         };
         let lat1 = p1.lat;
-        // ascending node: latitude crosses zero from - to +
         if lat0 < 0.0 && lat1 >= 0.0 {
-            // bisect, carrying the full position alongside the latitude probe
-            let (mut ja, mut jb) = (jd, jd + step);
-            let mut pm = p1;
-            for _ in 0..50 {
-                let jm = (ja + jb) / 2.0;
-                pm = match pos_at(jm) {
-                    Some(p) => p,
-                    None => break,
-                };
-                if pm.lat.abs() < 1e-8 {
-                    break;
-                }
-                if pm.lat < 0.0 {
-                    ja = jm;
-                } else {
-                    jb = jm;
-                }
-            }
-            return Some(NodeCrossing {
-                jd_cross: (ja + jb) / 2.0,
-                xlon: pm.lon,
-            });
+            return Some(bisect_node_crossing(jd, jd + step, p1, &pos_at));
         }
         lat0 = lat1;
         jd += step;

@@ -511,54 +511,20 @@ pub fn render_shadbala_svg(ctx: &Value) -> String {
 
     // Data rows
     for (ri, row) in rows.iter().enumerate() {
-        let ry = TM + ri as f64 * RH;
-        let name = row["name"].as_str().unwrap_or("?");
-        let lon = row["lon"].as_f64().unwrap_or(0.0);
-        let ret = row["retro"].as_bool().unwrap_or(false);
-        let och = row["ochchabala"].as_f64().unwrap_or(0.0);
-        let sap = row["sapta_bala"].as_f64().unwrap_or(0.0);
-        let che = row["chesta_bala"].as_f64().unwrap_or(0.0);
-        let dig = row["dig_bala"].as_f64().unwrap_or(0.0);
-        let tot = row["total"].as_f64().unwrap_or(0.0);
-        let strong = row["strong"].as_bool().unwrap_or(false);
-        let rcol = if strong { "#1a5030" } else { pcol };
-
-        if ri % 2 == 0 {
-            let _ = writeln!(
-                s,
-                r##"  <rect x="20" y="{ry:.1}" width="{:.1}" height="{RH}" fill="{border}" opacity=".04"/>"##,
-                cx - 20.0
-            );
-        }
-        let _ = writeln!(
-            s,
-            r##"  <line x1="20" y1="{ry:.1}" x2="{cx:.1}" y2="{ry:.1}" stroke="{border}" stroke-width="0.3" opacity=".25"/>"##
+        render_shadbala_row(
+            &mut s,
+            row,
+            ri,
+            ShadbalaRowCtx {
+                tm: TM,
+                rh: RH,
+                cx,
+                pcol,
+                border,
+                txt,
+                cols: COLS,
+            },
         );
-
-        let vals: &[(&str, f64)] = &[("", 0.0)]; // dummy — we write manually
-        let _ = vals;
-
-        let mut x = 20.0_f64;
-        let data: &[(&str, String)] = &[
-            (name, format!("{}{}", name, if ret { " ℞" } else { "" })),
-            ("lon", format!("{lon:.4}")),
-            ("och", format!("{och:.1}")),
-            ("sap", format!("{sap:.1}")),
-            ("che", format!("{che:.1}")),
-            ("dig", format!("{dig:.1}")),
-            ("tot", format!("{tot:.1}")),
-        ];
-        for (ci, ((_key, val), &(_hdr, cw))) in data.iter().zip(COLS.iter()).enumerate() {
-            let fw = if ci == 0 || ci == 6 { "600" } else { "400" };
-            let fc = if ci == 6 { rcol } else { txt };
-            let _ = writeln!(
-                s,
-                r##"  <text x="{:.1}" y="{:.1}" font-size="10" font-weight="{fw}" text-anchor="middle" dominant-baseline="central" fill="{fc}">{val}</text>"##,
-                x + cw / 2.0,
-                ry + RH / 2.0
-            );
-            x += cw;
-        }
     }
 
     // Bottom border
@@ -576,6 +542,69 @@ pub fn render_shadbala_svg(ctx: &Value) -> String {
 
     let _ = writeln!(s, "</svg>");
     s
+}
+
+struct ShadbalaRowCtx<'a> {
+    tm: f64,
+    rh: f64,
+    cx: f64,
+    pcol: &'a str,
+    border: &'a str,
+    txt: &'a str,
+    cols: &'a [(&'a str, f64)],
+}
+
+fn render_shadbala_row(s: &mut String, row: &Value, ri: usize, c: ShadbalaRowCtx<'_>) {
+    use std::fmt::Write;
+    let ry = c.tm + ri as f64 * c.rh;
+    let name = row["name"].as_str().unwrap_or("?");
+    let lon = row["lon"].as_f64().unwrap_or(0.0);
+    let ret = row["retro"].as_bool().unwrap_or(false);
+    let och = row["ochchabala"].as_f64().unwrap_or(0.0);
+    let sap = row["sapta_bala"].as_f64().unwrap_or(0.0);
+    let che = row["chesta_bala"].as_f64().unwrap_or(0.0);
+    let dig = row["dig_bala"].as_f64().unwrap_or(0.0);
+    let tot = row["total"].as_f64().unwrap_or(0.0);
+    let strong = row["strong"].as_bool().unwrap_or(false);
+    let rcol = if strong { "#1a5030" } else { c.pcol };
+    let rh = c.rh;
+    let cx = c.cx;
+    let border = c.border;
+    let txt = c.txt;
+
+    if ri.is_multiple_of(2) {
+        let _ = writeln!(
+            s,
+            r##"  <rect x="20" y="{ry:.1}" width="{:.1}" height="{rh}" fill="{border}" opacity=".04"/>"##,
+            cx - 20.0
+        );
+    }
+    let _ = writeln!(
+        s,
+        r##"  <line x1="20" y1="{ry:.1}" x2="{cx:.1}" y2="{ry:.1}" stroke="{border}" stroke-width="0.3" opacity=".25"/>"##
+    );
+
+    let mut x = 20.0_f64;
+    let data: [String; 7] = [
+        format!("{}{}", name, if ret { " ℞" } else { "" }),
+        format!("{lon:.4}"),
+        format!("{och:.1}"),
+        format!("{sap:.1}"),
+        format!("{che:.1}"),
+        format!("{dig:.1}"),
+        format!("{tot:.1}"),
+    ];
+    for (ci, (val, &(_hdr, cw))) in data.iter().zip(c.cols.iter()).enumerate() {
+        let fw = if ci == 0 || ci == 6 { "600" } else { "400" };
+        let fc = if ci == 6 { rcol } else { txt };
+        let _ = writeln!(
+            s,
+            r##"  <text x="{:.1}" y="{:.1}" font-size="10" font-weight="{fw}" text-anchor="middle" dominant-baseline="central" fill="{fc}">{val}</text>"##,
+            x + cw / 2.0,
+            ry + rh / 2.0
+        );
+        x += cw;
+    }
 }
 
 pub fn build_vedic_context(

@@ -316,60 +316,90 @@ pub fn render_firdaria_svg(ctx: &Value) -> String {
 
     let mut prev_major = "";
     for (i, p) in periods.iter().take(n).enumerate() {
-        let major = p["major_lord"].as_str().unwrap_or("?");
-        let minor = p["minor_lord"].as_str().unwrap_or("?");
-        let jd_s = p["start_jd"].as_f64().unwrap_or(jd_start);
-        let jd_e = p["end_jd"].as_f64().unwrap_or(jd_end);
-        let start = p["start"].as_str().unwrap_or("");
-
-        let bx = LM + (jd_s - jd_start) / span * W;
-        let bw = ((jd_e - jd_s) / span * W).max(1.0);
-        let by = TM + i as f64 * (BH + BG);
-
-        let col = FIRD_COLORS
-            .iter()
-            .find(|(n, _)| *n == major)
-            .map(|(_, c)| *c)
-            .unwrap_or("#888");
-
-        // Dim minor bars slightly vs major start
-        let op = if major == minor { "0.85" } else { "0.55" };
-        let _ = writeln!(
-            s,
-            r##"  <rect x="{bx:.1}" y="{by:.1}" width="{bw:.1}" height="{BH}" rx="3" fill="{col}" opacity="{op}"/>"##
+        prev_major = render_firdaria_row(
+            &mut s,
+            p,
+            i,
+            jd_start,
+            jd_end,
+            span,
+            ring,
+            FIRD_COLORS,
+            prev_major,
+            (LM, TM, W, BH, BG),
         );
-
-        if bw > 30.0 {
-            let lbl = if major == minor {
-                major.to_string()
-            } else {
-                format!("{major}/{minor}")
-            };
-            let _ = writeln!(
-                s,
-                r##"  <text x="{:.1}" y="{:.1}" font-size="8" dominant-baseline="central" fill="#fff">{lbl}</text>"##,
-                bx + 4.0,
-                by + BH * 0.5
-            );
-        }
-
-        // Left-axis label for new major period
-        if major != prev_major {
-            let _ = writeln!(
-                s,
-                r##"  <text x="{:.1}" y="{:.1}" text-anchor="end" font-size="9" font-weight="600" dominant-baseline="central" fill="{col}">{major}</text>
-  <text x="{:.1}" y="{:.1}" text-anchor="end" font-size="7" dominant-baseline="central" fill="{ring}" opacity=".5">{start}</text>"##,
-                LM - 4.0,
-                by + BH * 0.5,
-                LM - 4.0,
-                by + BH * 0.5 + 9.0
-            );
-            prev_major = major;
-        }
     }
 
     let _ = writeln!(s, "</svg>");
     s
+}
+
+#[allow(clippy::too_many_arguments)]
+fn render_firdaria_row<'a>(
+    s: &mut String,
+    p: &'a Value,
+    i: usize,
+    jd_start: f64,
+    jd_end: f64,
+    span: f64,
+    ring: &str,
+    colors: &[(&str, &str)],
+    prev_major: &'a str,
+    layout: (f64, f64, f64, f64, f64),
+) -> &'a str {
+    use std::fmt::Write;
+    let (lm, tm, w, bh, bg_pad) = layout;
+
+    let major = p["major_lord"].as_str().unwrap_or("?");
+    let minor = p["minor_lord"].as_str().unwrap_or("?");
+    let jd_s = p["start_jd"].as_f64().unwrap_or(jd_start);
+    let jd_e = p["end_jd"].as_f64().unwrap_or(jd_end);
+    let start = p["start"].as_str().unwrap_or("");
+
+    let bx = lm + (jd_s - jd_start) / span * w;
+    let bw = ((jd_e - jd_s) / span * w).max(1.0);
+    let by = tm + i as f64 * (bh + bg_pad);
+
+    let col = colors
+        .iter()
+        .find(|(n, _)| *n == major)
+        .map(|(_, c)| *c)
+        .unwrap_or("#888");
+
+    let op = if major == minor { "0.85" } else { "0.55" };
+    let _ = writeln!(
+        s,
+        r##"  <rect x="{bx:.1}" y="{by:.1}" width="{bw:.1}" height="{bh}" rx="3" fill="{col}" opacity="{op}"/>"##
+    );
+
+    if bw > 30.0 {
+        let lbl = if major == minor {
+            major.to_string()
+        } else {
+            format!("{major}/{minor}")
+        };
+        let _ = writeln!(
+            s,
+            r##"  <text x="{:.1}" y="{:.1}" font-size="8" dominant-baseline="central" fill="#fff">{lbl}</text>"##,
+            bx + 4.0,
+            by + bh * 0.5
+        );
+    }
+
+    if major != prev_major {
+        let _ = writeln!(
+            s,
+            r##"  <text x="{:.1}" y="{:.1}" text-anchor="end" font-size="9" font-weight="600" dominant-baseline="central" fill="{col}">{major}</text>
+  <text x="{:.1}" y="{:.1}" text-anchor="end" font-size="7" dominant-baseline="central" fill="{ring}" opacity=".5">{start}</text>"##,
+            lm - 4.0,
+            by + bh * 0.5,
+            lm - 4.0,
+            by + bh * 0.5 + 9.0
+        );
+        major
+    } else {
+        prev_major
+    }
 }
 
 pub fn build_profection_context(

@@ -252,8 +252,26 @@ pub fn lun_occult_when_glob(
         Some(cos_d.clamp(-1.0, 1.0).acos().to_degrees())
     }
 
+    /// Golden-section refinement around an angular-separation minimum candidate.
+    fn refine_min(jd_mid: f64, step: f64, body: Body) -> (f64, f64) {
+        let bracket = 2.0 * step.abs();
+        let (mut lo, mut hi) = (jd_mid - bracket, jd_mid + bracket);
+        for _ in 0..30 {
+            let phi = (hi - lo) / 3.0;
+            let m1 = lo + phi;
+            let m2 = hi - phi;
+            if sep(m1, body).unwrap_or(180.0) < sep(m2, body).unwrap_or(180.0) {
+                hi = m2;
+            } else {
+                lo = m1;
+            }
+        }
+        let jd_occ = (lo + hi) / 2.0;
+        (jd_occ, sep(jd_occ, body).unwrap_or(180.0))
+    }
+
     let mut jd = tjd_start;
-    let limit = tjd_start + step * 4000.0; // ~1.1 years (4000 × 0.1d)
+    let limit = tjd_start + step * 4000.0;
     let mut prev = sep(jd, body).unwrap_or(180.0);
 
     for _ in 0..5000 {
@@ -262,37 +280,21 @@ pub fn lun_occult_when_glob(
         }
         jd += step;
         let curr = sep(jd, body).unwrap_or(180.0);
-
-        // Look for a local minimum in separation
         let next = sep(jd + step, body).unwrap_or(180.0);
-        if curr <= prev && curr <= next && curr < THRESHOLD {
-            // Refine with golden-section search in [jd-step, jd+step]
-            let bracket = 2.0 * step.abs();
-            let (mut lo, mut hi) = (jd - bracket, jd + bracket);
-            for _ in 0..30 {
-                let phi = (hi - lo) / 3.0;
-                let m1 = lo + phi;
-                let m2 = hi - phi;
-                if sep(m1, body).unwrap_or(180.0) < sep(m2, body).unwrap_or(180.0) {
-                    hi = m2;
-                } else {
-                    lo = m1;
-                }
-            }
-            let jd_occ = (lo + hi) / 2.0;
-            let min_sep = sep(jd_occ, body).unwrap_or(180.0);
-
-            if min_sep < 0.27 {
-                // inside Moon's disc (occultation)
-                let mut tret = [0.0f64; 10];
-                tret[0] = jd_occ;
-                return Ok(EclipseResult {
-                    ret_flags: 64, // ECL_OCCULTATION
-                    tret,
-                });
-            }
-        }
+        let is_min = curr <= prev && curr <= next && curr < THRESHOLD;
         prev = curr;
+        if !is_min {
+            continue;
+        }
+        let (jd_occ, min_sep) = refine_min(jd, step, body);
+        if min_sep < 0.27 {
+            let mut tret = [0.0f64; 10];
+            tret[0] = jd_occ;
+            return Ok(EclipseResult {
+                ret_flags: 64,
+                tret,
+            });
+        }
     }
 
     Err(Error::Eclipse(format!(

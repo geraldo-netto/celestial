@@ -16,28 +16,31 @@ fn workspace_root() -> PathBuf {
         .to_path_buf()
 }
 
+/// Extract a `fn`/`pub fn` name from a single line, if present and well-formed.
+fn fn_name_from_line(line: &str) -> Option<String> {
+    let l = line.trim();
+    let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "))?;
+    let name: String = rest.split([' ', '(', '<']).next().unwrap_or("").to_string();
+    let valid = !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_');
+    if valid { Some(name) } else { None }
+}
+
 fn decorated_fns(src: &str, decorator: &str) -> BTreeSet<String> {
     let prefix = format!("#[{decorator}");
     let mut out = BTreeSet::new();
     let lines: Vec<&str> = src.lines().collect();
-    let mut i = 0;
-    while i < lines.len() {
-        let t = lines[i].trim();
-        if t.starts_with(&prefix) || t.starts_with("#[allow") {
-            let n = lines.len();
-            for line in lines.iter().take(n.min(i + 6)).skip(i) {
-                let l = line.trim();
-                let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "));
-                if let Some(rest) = rest {
-                    let name: String = rest.split([' ', '(', '<']).next().unwrap_or("").to_string();
-                    if !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_') {
-                        out.insert(name);
-                        break;
-                    }
-                }
+    for (i, head) in lines.iter().enumerate() {
+        let t = head.trim();
+        if !(t.starts_with(&prefix) || t.starts_with("#[allow")) {
+            continue;
+        }
+        let n = lines.len();
+        for line in lines.iter().take(n.min(i + 6)).skip(i) {
+            if let Some(name) = fn_name_from_line(line) {
+                out.insert(name);
+                break;
             }
         }
-        i += 1;
     }
     out
 }

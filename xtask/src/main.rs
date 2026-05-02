@@ -141,28 +141,30 @@ fn legacy_aliases() -> std::collections::BTreeMap<String, String> {
 
 // ─── parsing ─────────────────────────────────────────────────────────────────
 
+fn fn_name_from_line(line: &str) -> Option<String> {
+    let l = line.trim();
+    let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "))?;
+    let name: String = rest.split([' ', '(', '<']).next().unwrap_or("").to_string();
+    let valid = !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_');
+    if valid { Some(name) } else { None }
+}
+
 fn decorated_fns(src: &str, decorator: &str) -> BTreeSet<String> {
     let prefix = format!("#[{decorator}");
     let mut out = BTreeSet::new();
     let lines: Vec<&str> = src.lines().collect();
     let n = lines.len();
-    let mut i = 0;
-    while i < n {
-        let t = lines[i].trim();
-        if t.starts_with(&prefix) || t.starts_with("#[allow") {
-            for line in lines.iter().take(n.min(i + 6)).skip(i) {
-                let l = line.trim();
-                let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "));
-                if let Some(rest) = rest {
-                    let name: String = rest.split([' ', '(', '<']).next().unwrap_or("").to_string();
-                    if !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_') {
-                        out.insert(name);
-                        break;
-                    }
-                }
+    for (i, head) in lines.iter().enumerate() {
+        let t = head.trim();
+        if !(t.starts_with(&prefix) || t.starts_with("#[allow")) {
+            continue;
+        }
+        for line in lines.iter().take(n.min(i + 6)).skip(i) {
+            if let Some(name) = fn_name_from_line(line) {
+                out.insert(name);
+                break;
             }
         }
-        i += 1;
     }
     out
 }
@@ -296,6 +298,33 @@ fn cmd_parity() {
 
 // ─── codegen command ──────────────────────────────────────────────────────────
 
+fn make_codegen_stubs(missing: &[&String], js_src: &str, target: &str) -> Vec<String> {
+    missing
+        .iter()
+        .map(|fn_name| match extract_fn_body(js_src, fn_name) {
+            Some(body) => format!("// ── {fn_name} ──\n{}\n", convert_to(&body, target)),
+            None => format!("// ── {fn_name} — no JS reference; add manually ──\n"),
+        })
+        .collect()
+}
+
+fn write_codegen_stubs(binding: &Binding, stubs: &[String]) {
+    let original = fs::read_to_string(&binding.src_path).unwrap();
+    let anchor = match binding.name.as_str() {
+        "PHP" => "\n#[php_module]",
+        "Python" => "\n#[pymodule]",
+        _ => "\n// end",
+    };
+    let joined = stubs.join("\n");
+    let new_src = if let Some(pos) = original.rfind(anchor) {
+        format!("{}{}\n{}", &original[..pos], joined, &original[pos..])
+    } else {
+        format!("{original}\n{joined}")
+    };
+    fs::write(&binding.src_path, new_src).unwrap_or_else(|e| panic!("write failed: {e}"));
+    println!("  ✓ stubs written to {}", binding.src_path.display());
+}
+
 fn cmd_codegen(apply: bool) {
     let root = workspace_root();
     let bindings = load_bindings(&root);
@@ -314,7 +343,6 @@ fn cmd_codegen(apply: bool) {
             .iter()
             .filter(|fn_name| !binding.fns.contains(*fn_name))
             .collect();
-
         if missing.is_empty() {
             continue;
         }
@@ -326,33 +354,13 @@ fn cmd_codegen(apply: bool) {
             missing.len()
         );
 
-        let stubs: Vec<String> = missing
-            .iter()
-            .map(|fn_name| match extract_fn_body(&js_src, fn_name) {
-                Some(body) => format!("// ── {fn_name} ──\n{}\n", convert_to(&body, &binding.name)),
-                None => format!("// ── {fn_name} — no JS reference; add manually ──\n"),
-            })
-            .collect();
-
+        let stubs = make_codegen_stubs(&missing, &js_src, &binding.name);
         for s in &stubs {
             print!("{s}");
         }
 
         if apply {
-            let original = fs::read_to_string(&binding.src_path).unwrap();
-            let anchor = match binding.name.as_str() {
-                "PHP" => "\n#[php_module]",
-                "Python" => "\n#[pymodule]",
-                _ => "\n// end",
-            };
-            let joined = stubs.join("\n");
-            let new_src = if let Some(pos) = original.rfind(anchor) {
-                format!("{}{}\n{}", &original[..pos], joined, &original[pos..])
-            } else {
-                format!("{original}\n{joined}")
-            };
-            fs::write(&binding.src_path, new_src).unwrap_or_else(|e| panic!("write failed: {e}"));
-            println!("  ✓ stubs written to {}", binding.src_path.display());
+            write_codegen_stubs(binding, &stubs);
         }
     }
 
@@ -360,7 +368,6 @@ fn cmd_codegen(apply: bool) {
         println!("✓ All bindings are already at parity — nothing to generate.");
         return;
     }
-
     if !apply {
         eprintln!("\nRun `cargo xtask codegen --apply` to write stubs into binding files.");
         eprintln!("Review the generated diff carefully before committing.");
@@ -493,140 +500,129 @@ fn convert_to(js_stub: &str, target: &str) -> String {
     }
 }
 
+/// Parse a single `pub const NAME: TYPE = ...;` line into (name, php_type).
+/// Returns None for lines that don't match the expected shape.
+fn parse_php_const_decl(line: &str) -> Option<(String, &'static str)> {
+    let rest = line.trim().strip_prefix("pub const ")?;
+    let colon = rest.find(':')?;
+    let name = rest[..colon].trim().to_string();
+    let after = &rest[colon + 1..];
+    let eq = after.find('=')?;
+    let rust_type = after[..eq].trim();
+    let php_type = if rust_type.contains("f64") || rust_type.contains("f32") {
+        "float"
+    } else {
+        "int"
+    };
+    Some((name, php_type))
+}
+
 /// Parse all `#[php_const] pub const NAME: type = value;` from the PHP binding source.
 /// Returns (name, php_type, php_value) tuples for use in phpstan define() stubs.
 fn parse_php_consts(src: &str) -> Vec<(String, String, String)> {
-    // Try to resolve actual constant values from core/src/constants.rs
-    // so phpstan stubs have real values instead of placeholder 0.
     let root = workspace_root();
     let consts_src = fs::read_to_string(root.join("core/src/constants.rs")).unwrap_or_default();
     let core_vals = parse_core_constants(&consts_src);
 
     let mut out = Vec::new();
     let lines: Vec<&str> = src.lines().collect();
-    let n = lines.len();
-    let mut i = 0;
-    while i < n {
-        if lines[i].trim() == "#[php_const]" {
-            let j = i + 1;
-            if j < n {
-                let l = lines[j].trim();
-                if let Some(rest) = l.strip_prefix("pub const ") {
-                    if let Some(colon) = rest.find(':') {
-                        let name = rest[..colon].trim().to_string();
-                        let after = &rest[colon + 1..];
-                        if let Some(eq) = after.find('=') {
-                            let rust_type = after[..eq].trim();
-                            let php_type = if rust_type.contains("f64") || rust_type.contains("f32")
-                            {
-                                "float"
-                            } else {
-                                "int"
-                            };
-                            // Resolve actual value from core/src/constants.rs
-                            let php_val = core_vals
-                                .get(&name)
-                                .cloned()
-                                .unwrap_or_else(|| "0".to_string());
-                            out.push((name, php_type.to_string(), php_val));
-                        }
-                    }
-                }
-                i = j + 1;
-                continue;
-            }
+    for (i, head) in lines.iter().enumerate() {
+        if head.trim() != "#[php_const]" {
+            continue;
         }
-        i += 1;
+        let Some(decl_line) = lines.get(i + 1) else {
+            continue;
+        };
+        let Some((name, php_type)) = parse_php_const_decl(decl_line) else {
+            continue;
+        };
+        let php_val = core_vals
+            .get(&name)
+            .cloned()
+            .unwrap_or_else(|| "0".to_string());
+        out.push((name, php_type.to_string(), php_val));
     }
     out
+}
+
+/// Parse one `pub const NAME: type = value;` line into (name, value-string).
+fn parse_core_const_line(line: &str) -> Option<(String, String)> {
+    let rest = line.trim().strip_prefix("pub const ")?;
+    let colon = rest.find(':')?;
+    let name = rest[..colon].trim().to_string();
+    let after = &rest[colon + 1..];
+    let eq = after.find('=')?;
+    let value_raw = after[eq + 1..].trim().trim_end_matches(';');
+    let is_expr = value_raw.contains('+')
+        || value_raw.contains('*')
+        || value_raw.starts_with("crate::")
+        || !value_raw.chars().all(|c| c.is_ascii_digit() || c == '-');
+    let val = if is_expr {
+        value_raw
+            .parse::<i64>()
+            .map(|v| v.to_string())
+            .unwrap_or_else(|_| "0".to_string())
+    } else {
+        value_raw.to_string()
+    };
+    Some((name, val))
 }
 
 /// Parse `pub const NAME: type = value;` from a Rust constants file.
 /// Returns a map of name → value string.
 fn parse_core_constants(src: &str) -> std::collections::HashMap<String, String> {
-    let mut map = std::collections::HashMap::new();
-    for line in src.lines() {
-        let l = line.trim();
-        if let Some(rest) = l.strip_prefix("pub const ") {
-            if let Some(colon) = rest.find(':') {
-                let name = rest[..colon].trim().to_string();
-                let after = &rest[colon + 1..];
-                if let Some(eq) = after.find('=') {
-                    let value_raw = after[eq + 1..].trim().trim_end_matches(';');
-                    // Extract numeric literal — skip expressions like `AST_OFFSET + 20000`
-                    let val = if value_raw.contains('+')
-                        || value_raw.contains('*')
-                        || value_raw.starts_with("crate::")
-                        || !value_raw.chars().all(|c| c.is_ascii_digit() || c == '-')
-                    {
-                        // Try to evaluate simple integer literals only
-                        value_raw
-                            .parse::<i64>()
-                            .map(|v| v.to_string())
-                            .unwrap_or_else(|_| "0".to_string())
-                    } else {
-                        value_raw.to_string()
-                    };
-                    map.insert(name, val);
-                }
-            }
-        }
-    }
-    map
+    src.lines()
+        .filter_map(parse_core_const_line)
+        .collect()
 }
 
 // ─── stubs command ────────────────────────────────────────────────────────────
 
-fn cmd_stubs() {
-    let root = workspace_root();
-    let php_src = fs::read_to_string(root.join("bindings/php/src/lib.rs"))
-        .expect("cannot read bindings/php/src/lib.rs");
-    let out_path = root.join("bindings/php/phpstan-stubs.php");
-
-    let mut out = String::from("<?php\n");
-    out.push_str("// Auto-generated by `cargo xtask stubs` — do not edit.\n// Regenerate: cargo xtask stubs\n");
-
-    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
-
-    // ── 1. Constants ──────────────────────────────────────────────────────────
-    for (cname, ctype, cval) in parse_php_consts(&php_src) {
+fn emit_stub_constants(
+    out: &mut String,
+    seen: &mut std::collections::BTreeSet<String>,
+    php_src: &str,
+) {
+    for (cname, ctype, cval) in parse_php_consts(php_src) {
         if seen.insert(cname.clone()) {
             out.push_str(&format!(
                 "\n/** @var {ctype} */\ndefine('{cname}', {cval});\n"
             ));
         }
     }
+}
 
-    // ── 2. Functions — emit BOTH bare name and celestial_-prefixed name ───────
-    for entry in regex_find_php_fns(&php_src) {
-        let fn_name = &entry.name;
-        let prefixed = format!("celestial_{fn_name}");
+fn emit_stub_function(
+    out: &mut String,
+    seen: &mut std::collections::BTreeSet<String>,
+    entry: &PhpFnEntry,
+) {
+    let fn_name = &entry.name;
+    let prefixed = format!("celestial_{fn_name}");
 
-        let php_params = entry
-            .params
-            .iter()
-            .map(|(typ, nam)| format!("{} ${}", rust_type_to_php(typ, false), sanitise_var(nam)))
-            .collect::<Vec<_>>()
-            .join(", ");
+    let php_params = entry
+        .params
+        .iter()
+        .map(|(typ, nam)| format!("{} ${}", rust_type_to_php(typ, false), sanitise_var(nam)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let ret = rust_type_to_php(&entry.ret, true);
+    let docblock = format!("/** @return {} */", php_array_doctype(&entry.ret));
 
-        let ret = rust_type_to_php(&entry.ret, true);
-        let docblock = format!("/** @return {} */", php_array_doctype(&entry.ret));
-
-        if seen.insert(fn_name.clone()) {
-            out.push_str(&format!(
-                "\n{docblock}\nfunction {fn_name}({php_params}): {ret} {{}}\n"
-            ));
-        }
-        if seen.insert(prefixed.clone()) {
-            out.push_str(&format!(
-                "\n{docblock}\nfunction {prefixed}({php_params}): {ret} {{}}\n"
-            ));
-        }
+    if seen.insert(fn_name.clone()) {
+        out.push_str(&format!(
+            "\n{docblock}\nfunction {fn_name}({php_params}): {ret} {{}}\n"
+        ));
     }
+    if seen.insert(prefixed.clone()) {
+        out.push_str(&format!(
+            "\n{docblock}\nfunction {prefixed}({php_params}): {ret} {{}}\n"
+        ));
+    }
+}
 
-    // ── 3. Legacy aliases ─────────────────────────────────────────────────────
-    let aliases = legacy_aliases();
-    for (alias, canonical) in &aliases {
+fn emit_stub_aliases(out: &mut String, seen: &mut std::collections::BTreeSet<String>) {
+    for (alias, canonical) in &legacy_aliases() {
         let prefixed_alias = format!("celestial_{alias}");
         let doc = format!("/** Legacy alias for {canonical}(). @see {canonical} */");
         if seen.insert(alias.clone()) {
@@ -640,6 +636,24 @@ fn cmd_stubs() {
             ));
         }
     }
+}
+
+fn cmd_stubs() {
+    let root = workspace_root();
+    let php_src = fs::read_to_string(root.join("bindings/php/src/lib.rs"))
+        .expect("cannot read bindings/php/src/lib.rs");
+    let out_path = root.join("bindings/php/phpstan-stubs.php");
+
+    let mut out = String::from("<?php\n");
+    out.push_str("// Auto-generated by `cargo xtask stubs` — do not edit.\n// Regenerate: cargo xtask stubs\n");
+
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+
+    emit_stub_constants(&mut out, &mut seen, &php_src);
+    for entry in regex_find_php_fns(&php_src) {
+        emit_stub_function(&mut out, &mut seen, &entry);
+    }
+    emit_stub_aliases(&mut out, &mut seen);
 
     fs::write(&out_path, &out).expect("cannot write phpstan-stubs.php");
     println!("✓ {} symbols written to {}", seen.len(), out_path.display());
@@ -683,8 +697,50 @@ fn regex_find_php_fns(src: &str) -> Vec<PhpFnEntry> {
     out
 }
 
+/// Find the index of the `)` matching the `(` at `p_open` in `s`.
+fn matching_paren(s: &str, p_open: usize) -> Option<usize> {
+    let mut depth = 0usize;
+    for (i, ch) in s[p_open..].char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(p_open + i);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Try to parse a single trimmed parameter chunk into (ptype, pname).
+/// Returns `None` for self/py/empty/invalid identifiers.
+fn parse_param_chunk(p: &str) -> Option<(String, String)> {
+    let p = p.trim().trim_start_matches("mut").trim();
+    if p.is_empty() {
+        return None;
+    }
+    let colon = p.find(':')?;
+    let pname = p[..colon].trim().to_string();
+    let ptype = p[colon + 1..].trim().to_string();
+    if pname == "py" || pname == "self" {
+        return None;
+    }
+    let starts_with_digit = pname
+        .chars()
+        .next()
+        .map(|c| c.is_ascii_digit())
+        .unwrap_or(true);
+    let valid_chars = pname.chars().all(|c| c.is_alphanumeric() || c == '_');
+    if pname.is_empty() || starts_with_digit || !valid_chars {
+        return None;
+    }
+    Some((ptype, pname))
+}
+
 fn parse_fn_sig(sig: &str) -> Option<PhpFnEntry> {
-    // Strip // inline comments from every line before joining
     let sig_clean: String = sig
         .lines()
         .map(|l| l.find("//").map(|c| &l[..c]).unwrap_or(l))
@@ -692,7 +748,6 @@ fn parse_fn_sig(sig: &str) -> Option<PhpFnEntry> {
         .join(" ");
     let sig_clean = sig_clean.trim();
 
-    // Extract function name
     let fn_kw = sig_clean.find("fn ")?;
     let after = &sig_clean[fn_kw + 3..];
     let n_end = after.find('(')?;
@@ -701,58 +756,15 @@ fn parse_fn_sig(sig: &str) -> Option<PhpFnEntry> {
         return None;
     }
 
-    // Find matching parentheses for the parameter list
     let p_open = sig_clean.find('(')?;
-    let mut depth = 0usize;
-    let mut p_close = None;
-    for (i, ch) in sig_clean[p_open..].char_indices() {
-        match ch {
-            '(' => depth += 1,
-            ')' => {
-                depth -= 1;
-                if depth == 0 {
-                    p_close = Some(p_open + i);
-                    break;
-                }
-            }
-            _ => {}
-        }
-    }
-    let p_close = p_close?;
+    let p_close = matching_paren(sig_clean, p_open)?;
     let params_str = sig_clean[p_open + 1..p_close].trim();
 
-    // Parse parameters — split on commas, respecting <> nesting
     let params: Vec<(String, String)> = split_params(params_str)
-        .into_iter()
-        .filter_map(|p| {
-            let p = p.trim().trim_start_matches("mut").trim().to_string();
-            if p.is_empty() {
-                return None;
-            }
-            let colon = p.find(':')?;
-            let pname = p[..colon].trim().to_string();
-            let ptype = p[colon + 1..].trim().to_string();
-            // Skip pyo3 context and self
-            if pname == "py" || pname == "self" {
-                return None;
-            }
-            // Validate: must be a non-empty valid identifier (letters/digits/underscore,
-            // not starting with a digit)
-            if pname.is_empty()
-                || pname
-                    .chars()
-                    .next()
-                    .map(|c| c.is_ascii_digit())
-                    .unwrap_or(true)
-                || !pname.chars().all(|c| c.is_alphanumeric() || c == '_')
-            {
-                return None;
-            }
-            Some((ptype, pname))
-        })
+        .iter()
+        .filter_map(|p| parse_param_chunk(p))
         .collect();
 
-    // Extract return type: text after `->` up to `{`
     let ret = if let Some(arrow) = sig_clean[p_close..].find("->") {
         let start = p_close + arrow + 2;
         let chunk = &sig_clean[start..];
@@ -1081,6 +1093,21 @@ fn report_stubs_result(errors: &[String], fn_total: usize) {
     std::process::exit(1);
 }
 
+/// Find every byte offset in `line` where a literal `$` is immediately followed
+/// by an ASCII digit.
+fn dollar_digit_columns(line: &str) -> Vec<usize> {
+    let mut hits = Vec::new();
+    let mut chars = line.chars().peekable();
+    let mut col = 0usize;
+    while let Some(ch) = chars.next() {
+        if ch == '$' && chars.peek().map(char::is_ascii_digit).unwrap_or(false) {
+            hits.push(col);
+        }
+        col += ch.len_utf8();
+    }
+    hits
+}
+
 /// Find all `$<digit>` occurrences (invalid PHP variable names) and return
 /// (line_number, snippet) pairs.
 fn regex_lite_find_dollar_digit(src: &str) -> Vec<(usize, String)> {
@@ -1088,19 +1115,10 @@ fn regex_lite_find_dollar_digit(src: &str) -> Vec<(usize, String)> {
     for (i, line) in src.lines().enumerate() {
         let t = line.trim();
         if t.starts_with("/**") || t.starts_with('*') || t.starts_with("//") {
-            continue; // skip docblocks
+            continue;
         }
-        let mut chars = line.chars().peekable();
-        let mut col = 0usize;
-        while let Some(ch) = chars.next() {
-            if ch == '$' {
-                if let Some(&next) = chars.peek() {
-                    if next.is_ascii_digit() {
-                        out.push((i + 1, line[col..].chars().take(20).collect::<String>()));
-                    }
-                }
-            }
-            col += ch.len_utf8();
+        for col in dollar_digit_columns(line) {
+            out.push((i + 1, line[col..].chars().take(20).collect::<String>()));
         }
     }
     out
@@ -1121,6 +1139,46 @@ struct DecoratedFn {
 /// The attribute tag is matched flexibly: `#[attr]`, `#[attr(...)]`, `#[attr ...]`.
 /// Returns the attribute line (trimmed) alongside the parsed signature so callers
 /// can extract attribute options like `js_name = "X"`.
+/// Has `line` started with `#[<prefix>]`, `#[<prefix>(`, or `#[<prefix> `?
+fn starts_with_attr(line: &str, prefix: &str) -> bool {
+    line.starts_with(&format!("#[{prefix}]"))
+        || line.starts_with(&format!("#[{prefix}("))
+        || line.starts_with(&format!("#[{prefix} "))
+}
+
+/// Skip further attribute lines, returning the index of the first `fn`-like line.
+fn find_fn_line(lines: &[&str], from: usize) -> Option<usize> {
+    let mut j = from;
+    while j < lines.len() {
+        let l = lines[j].trim_start();
+        if l.starts_with("#[") {
+            j += 1;
+            continue;
+        }
+        if l.contains("fn ") {
+            return Some(j);
+        }
+        j += 1;
+    }
+    None
+}
+
+/// Collect the signature text (joined lines) starting at `from`, up through
+/// the line that contains the opening `{`. Returns (signature, last_index).
+fn collect_signature(lines: &[&str], from: usize) -> (String, usize) {
+    let mut sig = String::new();
+    let mut k = from;
+    while k < lines.len() {
+        sig.push_str(lines[k]);
+        sig.push('\n');
+        if lines[k].contains('{') {
+            break;
+        }
+        k += 1;
+    }
+    (sig, k)
+}
+
 fn scan_decorated_fns_full(src: &str, attr_prefix: &str) -> Vec<DecoratedFn> {
     let mut out = Vec::new();
     let lines: Vec<&str> = src.lines().collect();
@@ -1128,44 +1186,16 @@ fn scan_decorated_fns_full(src: &str, attr_prefix: &str) -> Vec<DecoratedFn> {
     let mut i = 0;
     while i < n {
         let line = lines[i].trim_start();
-        let starts_attr = line.starts_with(&format!("#[{attr_prefix}]"))
-            || line.starts_with(&format!("#[{attr_prefix}("))
-            || line.starts_with(&format!("#[{attr_prefix} "));
-        if !starts_attr {
+        if !starts_with_attr(line, attr_prefix) {
             i += 1;
             continue;
         }
         let attr_line = line.to_string();
-
-        // Skip further attributes (cfg, allow, other decorators) until a fn line
-        let mut j = i + 1;
-        while j < n {
-            let l = lines[j].trim_start();
-            if l.starts_with("#[") {
-                j += 1;
-                continue;
-            }
-            if l.contains("fn ") {
-                break;
-            }
-            j += 1;
-        }
-        if j >= n {
+        let Some(j) = find_fn_line(&lines, i + 1) else {
             i += 1;
             continue;
-        }
-
-        // Collect signature up to the opening brace
-        let mut sig = String::new();
-        let mut k = j;
-        while k < n {
-            sig.push_str(lines[k]);
-            sig.push('\n');
-            if lines[k].contains('{') {
-                break;
-            }
-            k += 1;
-        }
+        };
+        let (sig, k) = collect_signature(&lines, j);
         if let Some(entry) = parse_fn_sig(&sig) {
             out.push(DecoratedFn { attr_line, entry });
         }
@@ -1400,6 +1430,16 @@ struct NapiConst {
 }
 
 /// Scan a Rust source file for all `#[napi] pub const X: T = ...;` items.
+/// Parse a single `pub const NAME: TYPE = ...;` declaration line.
+fn parse_napi_const_decl(decl: &str) -> Option<NapiConst> {
+    let rest = decl.trim().strip_prefix("pub const ")?;
+    let colon = rest.find(':')?;
+    let name = rest[..colon].trim().to_string();
+    let eq = rest[colon..].find('=')?;
+    let ty = rest[colon + 1..colon + eq].trim().to_string();
+    Some(NapiConst { name, ty })
+}
+
 fn scan_napi_consts(src: &str) -> Vec<NapiConst> {
     let mut out = Vec::new();
     let lines: Vec<&str> = src.lines().collect();
@@ -1407,34 +1447,17 @@ fn scan_napi_consts(src: &str) -> Vec<NapiConst> {
     let mut i = 0;
     while i < n {
         let line = lines[i].trim_start();
-        if line.starts_with("#[napi]") || line.starts_with("#[napi(") {
-            // Walk forward skipping further attrs
-            let mut j = i + 1;
-            while j < n {
-                let l = lines[j].trim_start();
-                if l.starts_with("#[") {
-                    j += 1;
-                    continue;
-                }
-                break;
-            }
-            if j < n {
-                let decl = lines[j].trim();
-                // Match: pub const NAME: TYPE = ...;  (single-line only)
-                if let Some(rest) = decl.strip_prefix("pub const ") {
-                    if let Some(colon) = rest.find(':') {
-                        let name = rest[..colon].trim().to_string();
-                        if let Some(eq) = rest[colon..].find('=') {
-                            let ty = rest[colon + 1..colon + eq].trim().to_string();
-                            out.push(NapiConst { name, ty });
-                        }
-                    }
-                }
-            }
-            i = j + 1;
+        if !(line.starts_with("#[napi]") || line.starts_with("#[napi(")) {
+            i += 1;
             continue;
         }
-        i += 1;
+        let j = skip_attrs(&lines, i + 1);
+        if j < n {
+            if let Some(c) = parse_napi_const_decl(lines[j]) {
+                out.push(c);
+            }
+        }
+        i = j + 1;
     }
     out
 }
@@ -1594,6 +1617,71 @@ fn rust_type_to_ts_known(rust: &str, known_structs: &BTreeSet<String>) -> String
     }
 }
 
+fn emit_dts_struct_field(out: &mut String, f: &NapiStructField, known: &BTreeSet<String>) {
+    let (ts_ty, optional) = if let Some(inner) = f
+        .ty
+        .strip_prefix("Option<")
+        .and_then(|s| s.strip_suffix('>'))
+    {
+        (rust_type_to_ts_known(inner, known), true)
+    } else {
+        (rust_type_to_ts_known(&f.ty, known), false)
+    };
+    let cam = to_camel(&f.name);
+    if optional {
+        out.push_str(&format!("  {cam}?: {ts_ty} | null;\n"));
+    } else {
+        out.push_str(&format!("  {cam}: {ts_ty};\n"));
+    }
+}
+
+fn emit_dts_structs(out: &mut String, structs: &[NapiStruct], known: &BTreeSet<String>) {
+    for st in structs {
+        out.push_str(&format!("export interface {} {{\n", st.name));
+        for f in &st.fields {
+            emit_dts_struct_field(out, f, known);
+        }
+        out.push_str("}\n\n");
+    }
+}
+
+fn dts_param_string(typ: &str, nam: &str, known: &BTreeSet<String>) -> String {
+    let cam = to_camel(nam);
+    if let Some(inner) = typ
+        .strip_prefix("Option<")
+        .and_then(|s| s.strip_suffix('>'))
+    {
+        let inner_ts = rust_type_to_ts_known(inner, known);
+        format!("{cam}?: {inner_ts} | null")
+    } else {
+        format!("{cam}: {}", rust_type_to_ts_known(typ, known))
+    }
+}
+
+fn emit_dts_functions(out: &mut String, src: &str, known: &BTreeSet<String>) -> usize {
+    let mut seen: BTreeSet<String> = BTreeSet::new();
+    for d in scan_decorated_fns_full(src, "napi") {
+        let js_name = extract_js_name(&d.attr_line).unwrap_or_else(|| to_camel(&d.entry.name));
+        if !seen.insert(js_name.clone()) {
+            continue;
+        }
+        let params: Vec<String> = d
+            .entry
+            .params
+            .iter()
+            .map(|(typ, nam)| dts_param_string(typ, nam, known))
+            .collect();
+        let ret = rust_type_to_ts_known(&d.entry.ret, known);
+        out.push_str(&format!(
+            "export declare function {}({}): {};\n",
+            js_name,
+            params.join(", "),
+            ret
+        ));
+    }
+    seen.len()
+}
+
 fn cmd_dts(check: bool) {
     let root = workspace_root();
     let js_src = fs::read_to_string(root.join("bindings/js/src/lib.rs"))
@@ -1605,34 +1693,11 @@ fn cmd_dts(check: bool) {
          // Regenerate: cargo xtask dts\n\n",
     );
 
-    // ── 1. Scan napi structs first so their names are known to the type converter
     let structs = scan_napi_structs(&js_src);
     let known_structs: BTreeSet<String> = structs.iter().map(|s| s.name.clone()).collect();
 
-    // Emit struct interfaces
-    for st in &structs {
-        out.push_str(&format!("export interface {} {{\n", st.name));
-        for f in &st.fields {
-            // Fields with Option<T> become `name?: T | null`
-            let (ts_ty, optional) = if let Some(inner) =
-                f.ty.strip_prefix("Option<")
-                    .and_then(|s| s.strip_suffix('>'))
-            {
-                (rust_type_to_ts_known(inner, &known_structs), true)
-            } else {
-                (rust_type_to_ts_known(&f.ty, &known_structs), false)
-            };
-            let cam = to_camel(&f.name);
-            if optional {
-                out.push_str(&format!("  {cam}?: {ts_ty} | null;\n"));
-            } else {
-                out.push_str(&format!("  {cam}: {ts_ty};\n"));
-            }
-        }
-        out.push_str("}\n\n");
-    }
+    emit_dts_structs(&mut out, &structs, &known_structs);
 
-    // ── 2. Emit napi constants
     let consts = scan_napi_consts(&js_src);
     for c in &consts {
         let ts_ty = rust_type_to_ts_known(&c.ty, &known_structs);
@@ -1642,43 +1707,9 @@ fn cmd_dts(check: bool) {
         out.push('\n');
     }
 
-    // ── 3. Emit function declarations
-    let mut seen: BTreeSet<String> = BTreeSet::new();
-    for d in scan_decorated_fns_full(&js_src, "napi") {
-        // Skip const/struct items (they're already handled above) — decorated
-        // fns only have function signatures.
-        let js_name = extract_js_name(&d.attr_line).unwrap_or_else(|| to_camel(&d.entry.name));
-        if !seen.insert(js_name.clone()) {
-            continue;
-        }
-        let params: Vec<String> = d
-            .entry
-            .params
-            .iter()
-            .map(|(typ, nam)| {
-                let cam = to_camel(nam);
-                // Option<T> params → optional
-                if let Some(inner) = typ
-                    .strip_prefix("Option<")
-                    .and_then(|s| s.strip_suffix('>'))
-                {
-                    let inner_ts = rust_type_to_ts_known(inner, &known_structs);
-                    format!("{cam}?: {inner_ts} | null")
-                } else {
-                    format!("{cam}: {}", rust_type_to_ts_known(typ, &known_structs))
-                }
-            })
-            .collect();
-        let ret = rust_type_to_ts_known(&d.entry.ret, &known_structs);
-        out.push_str(&format!(
-            "export declare function {}({}): {};\n",
-            js_name,
-            params.join(", "),
-            ret
-        ));
-    }
+    let fn_count = emit_dts_functions(&mut out, &js_src, &known_structs);
 
-    let total = structs.len() + consts.len() + seen.len();
+    let total = structs.len() + consts.len() + fn_count;
     write_or_check(&out_path, &out, check, "declarations", "dts", total);
 }
 

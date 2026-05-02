@@ -4,6 +4,29 @@
 //! Run with: `cargo run --manifest-path fuzz/Cargo.toml`
 
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
+use celestial_core::{
+    almuten, annual_profection, arabic_parts_seven, ayanamsa, azalt, bahai_holy_days, calc,
+    calc_many, calc_ut, christian_feasts, christian_fixed_feasts, coord_transform,
+    coord_transform_with_speed, day_of_week, days_in_hebrew_year, decan_ruler, deg_to_cs,
+    degsplit, deltat, diff_deg_signed, distance_to_mc, easter_gregorian, easter_jd,
+    easter_orthodox, egyptian_decan, egyptian_terms_ruler, firdaria, format_coord, four_pillars,
+    full_dignity, gregorian_to_solar_hijri, haab, hebrew_month_days, hebrew_new_year_jd,
+    hijri_from_jd, hijri_month_days, hijri_month_start_jd, hijri_new_year_jd, houses,
+    islamic_observances, jewish_holidays, julday, lon_to_sign, long_to_navamsa,
+    lun_occult_when_glob, lunar_return_jd, mean_sidtime, medicine_wheel_totem, midpoint_table,
+    monthly_profection, moon_phase_angle, moon_phase_info, moon_phases_for_month,
+    mooncross_back_ut, mooncross_node, mooncross_node_ut, mooncross_ut, months_in_hebrew_year,
+    naw_ruz_jd, next_aspect, next_aspect_with, next_full_moon_after, next_new_moon, next_retro,
+    norm_cs, norm_deg, norm_rad, nowruz_jd, nutation, ochchabala, omer_days, omer_period,
+    omer_start_jd, panchanga, planet_conjunct_mc, refrac, residential_strength,
+    retrograde_station_ut, revjul, rise_trans, secondary_progressions, set_sid_mode, set_topo,
+    sidtime, sign_exaltation, sign_ingress_ut, sign_ruler, sol_eclipse_when_glob,
+    solar_arc_directions, solar_hijri_to_gregorian, solar_return_jd, solar_term_position,
+    solcross_back_ut, solcross_ut, split_deg, time_equ, tonalpohualli, transit_to_degree,
+    triplicity_rulers, true_obliquity, tzolkin, uposatha_days, utc_time_zone, vesak_jd,
+    vimshottari_dasha, xiuhpohualli, AspectOrbs, CalcOptions, EsbatName, SabbatKind, UtcDate,
+    CALC_MTRANSIT, CALC_RISE, CALC_SET, ECL_OCCULTATION, SIDM_LAHIRI,
+};
 use std::f64::consts::TAU;
 
 // ─── Minimal PRNG ─────────────────────────────────────────────────────────────
@@ -216,12 +239,30 @@ fn test_time(n: u32) -> Suite {
 
 const HOUSE_SYSTEMS: &[u8] = b"PKEOCRWXMBHT";
 
+fn check_equal_house_spacing(s: &mut Suite, cusps: &[f64]) {
+    for h in 1..cusps.len().saturating_sub(1) {
+        let diff = (cusps[h + 1] - cusps[h] + 360.0) % 360.0;
+        s.check((diff - 30.0).abs() < 0.01, || {
+            format!("Equal diff at h{h}: {diff}")
+        });
+    }
+}
+
+fn check_whole_sign_boundaries(s: &mut Suite, cusps: &[f64]) {
+    for (i, &c) in cusps.iter().enumerate() {
+        let rem = c % 30.0;
+        s.check(!(0.01..=29.99).contains(&rem), || {
+            format!("Whole Sign cusp[{i}]={c} not on boundary")
+        });
+    }
+}
+
 fn test_houses(n: u32) -> Suite {
     let mut s = Suite::new("houses");
     let mut rng = Xorshift64::new(0xCAFE_BABE_1234_5678);
 
     for _ in 0..n {
-        let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0); // 1900–2100;
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         let lat = rng.range_f64(-83.0, 83.0);
         let lon = rng.range_f64(-180.0, 180.0);
         let sys_i = (rng.next_u64() % HOUSE_SYSTEMS.len() as u64) as usize;
@@ -244,23 +285,11 @@ fn test_houses(n: u32) -> Suite {
             });
         }
 
-        // Equal houses: 30° apart
         if hsys == HouseSystem::EQUAL {
-            for h in 1..r.cusps.len().saturating_sub(1) {
-                let diff = (r.cusps[h + 1] - r.cusps[h] + 360.0) % 360.0;
-                s.check((diff - 30.0).abs() < 0.01, || {
-                    format!("Equal diff at h{h}: {diff}")
-                });
-            }
+            check_equal_house_spacing(&mut s, &r.cusps);
         }
-        // Whole sign: multiples of 30°
         if hsys == HouseSystem::WHOLE_SIGN {
-            for (i, &c) in r.cusps.iter().enumerate() {
-                let rem = c % 30.0;
-                s.check(!(0.01..=29.99).contains(&rem), || {
-                    format!("Whole Sign cusp[{i}]={c} not on boundary")
-                });
-            }
+            check_whole_sign_boundaries(&mut s, &r.cusps);
         }
     }
     s
@@ -523,40 +552,45 @@ fn test_nod_aps(n: u32) -> Suite {
     s
 }
 
+#[allow(clippy::too_many_arguments)]
+fn check_body_crossing(
+    s: &mut Suite,
+    label: &str,
+    body: Body,
+    target: f64,
+    jd_start: f64,
+    jd: f64,
+    max_days: f64,
+    tol_deg: f64,
+) {
+    s.check(jd > jd_start, || format!("{label} must be after start"));
+    s.check(jd < jd_start + max_days, || {
+        format!("{label} too far: {:.1}", jd - jd_start)
+    });
+    let Ok(p) = calc_ut(jd, body, CalcFlags::BUILTIN) else {
+        return;
+    };
+    let mut diff = (p.lon - target + 360.0).rem_euclid(360.0);
+    if diff > 180.0 {
+        diff = 360.0 - diff;
+    }
+    s.check(diff < tol_deg, || {
+        format!("{label} lon={:.3} target={:.3}", p.lon, target)
+    });
+}
+
 fn test_crossings(n: u32) -> Suite {
     use celestial_core::{mooncross, solcross};
     let mut s = Suite::new("crossings");
     let mut rng = Xorshift64::new(0x9A8B7C6D5E4F3A2B);
     for _ in 0..n {
-        let jd_start = 2_415_021.0 + rng.range_f64(0.0, 73049.0); // 1900-2100;
+        let jd_start = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         let target = rng.range_f64(0.0, 360.0);
-        // Sun crossing: should complete within 366 days
         if let Ok(jd) = solcross(target, jd_start, CalcFlags::BUILTIN) {
-            s.check(jd > jd_start, || "solcross must be after start".into());
-            s.check(jd < jd_start + 370.0, || {
-                format!("solcross too far: {:.1}", jd - jd_start)
-            });
-            if let Ok(sun) = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN) {
-                let diff = (sun.lon - target + 360.0).rem_euclid(360.0);
-                let diff = if diff > 180.0 { 360.0 - diff } else { diff };
-                s.check(diff < 0.5, || {
-                    format!("solcross lon={:.3} target={:.3}", sun.lon, target)
-                });
-            }
+            check_body_crossing(&mut s, "solcross", Body::SUN, target, jd_start, jd, 370.0, 0.5);
         }
-        // Moon crossing: within 28 days
         if let Ok(jd) = mooncross(target, jd_start, CalcFlags::BUILTIN) {
-            s.check(jd > jd_start, || "mooncross must be after start".into());
-            s.check(jd < jd_start + 30.0, || {
-                format!("mooncross too far: {:.1}", jd - jd_start)
-            });
-            if let Ok(moon) = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN) {
-                let diff = (moon.lon - target + 360.0).rem_euclid(360.0);
-                let diff = if diff > 180.0 { 360.0 - diff } else { diff };
-                s.check(diff < 1.0, || {
-                    format!("mooncross lon={:.3} target={:.3}", moon.lon, target)
-                });
-            }
+            check_body_crossing(&mut s, "mooncross", Body::MOON, target, jd_start, jd, 30.0, 1.0);
         }
     }
     s
@@ -1690,6 +1724,38 @@ fn test_searches_stations(n: u32) -> Suite {
     s
 }
 
+fn check_node_crossing(s: &mut Suite, jd: f64, flags: CalcFlags) {
+    match mooncross_node(jd, flags) {
+        Ok(r) => {
+            s.check(r.jd_cross > 0.0, || {
+                format!("mooncross_node jd={:.2}", r.jd_cross)
+            });
+            s.check(r.xlon >= 0.0 && r.xlon < 360.0, || {
+                format!("mooncross_node lon={:.2}", r.xlon)
+            });
+        }
+        Err(_) => s.passed += 1,
+    }
+    match mooncross_node_ut(jd, flags) {
+        Ok(r) => {
+            s.check(r.jd_cross > 0.0, || {
+                format!("mooncross_node_ut jd={:.2}", r.jd_cross)
+            });
+        }
+        Err(_) => s.passed += 1,
+    }
+}
+
+fn check_next_full_moon(s: &mut Suite, jd: f64) {
+    let nm = next_full_moon_after(jd);
+    s.check(nm > jd, || {
+        format!("next_full_moon_after {nm:.2} not after {jd:.2}")
+    });
+    s.check(nm < jd + 30.0, || {
+        format!("next_full_moon_after too far: {:.2}d", nm - jd)
+    });
+}
+
 fn test_searches_moon_crossings(n: u32) -> Suite {
     let mut s = Suite::new("searches_moon_crossings");
     let mut rng = Xorshift64::new(0xD4E5F60718293041);
@@ -1697,37 +1763,55 @@ fn test_searches_moon_crossings(n: u32) -> Suite {
 
     for _ in 0..n / 5 {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
-        match mooncross_node(jd, flags) {
-            Ok(r) => {
-                s.check(r.jd_cross > 0.0, || {
-                    format!("mooncross_node jd={:.2}", r.jd_cross)
-                });
-                s.check(r.xlon >= 0.0 && r.xlon < 360.0, || {
-                    format!("mooncross_node lon={:.2}", r.xlon)
-                });
-            }
-            Err(_) => s.passed += 1,
-        }
-        match mooncross_node_ut(jd, flags) {
-            Ok(r) => {
-                s.check(r.jd_cross > 0.0, || {
-                    format!("mooncross_node_ut jd={:.2}", r.jd_cross)
-                });
-            }
-            Err(_) => s.passed += 1,
-        }
-        let nm = next_full_moon_after(jd);
-        s.check(nm > jd, || {
-            format!("next_full_moon_after {nm:.2} not after {jd:.2}")
-        });
-        s.check(nm < jd + 30.0, || {
-            format!("next_full_moon_after too far: {:.2}d", nm - jd)
-        });
+        check_node_crossing(&mut s, jd, flags);
+        check_next_full_moon(&mut s, jd);
     }
     s
 }
 
 // ─── Moon phase fuzz suite ───────────────────────────────────────────────────
+
+fn check_random_moon_phase(s: &mut Suite, jd: f64) {
+    match moon_phase_angle(jd) {
+        Ok(a) => s.check((0.0..360.0).contains(&a), || {
+            format!("moon_phase_angle {a:.2}° out of [0,360)")
+        }),
+        Err(_) => s.passed += 1,
+    }
+    match moon_phase_info(jd) {
+        Ok(info) => {
+            s.check(info.illumination >= 0.0 && info.illumination <= 1.0, || {
+                format!("moon_phase_info illumination={:.4}", info.illumination)
+            });
+            s.check(info.elongation >= 0.0 && info.elongation < 360.0, || {
+                format!("moon_phase_info elongation={:.2}", info.elongation)
+            });
+        }
+        Err(_) => s.passed += 1,
+    }
+    match next_new_moon(jd) {
+        Ok(nm) => s.check(nm > jd && nm < jd + 30.0, || {
+            format!("next_new_moon {nm:.2} after {jd:.2}")
+        }),
+        Err(_) => s.passed += 1,
+    }
+}
+
+fn check_month_phases(s: &mut Suite, year: i32, month: u8) {
+    let Ok(phases) = moon_phases_for_month(year, month) else {
+        s.passed += 1;
+        return;
+    };
+    s.check(phases.len() >= 4 && phases.len() <= 5, || {
+        format!(
+            "moon_phases_for_month({year},{month}): {} phases",
+            phases.len()
+        )
+    });
+    for w in phases.windows(2) {
+        s.check(w[0].jd < w[1].jd, || "phases not chronological".into());
+    }
+}
 
 fn test_moon_phases(n: u32) -> Suite {
     let mut s = Suite::new("moon_phases");
@@ -1735,48 +1819,12 @@ fn test_moon_phases(n: u32) -> Suite {
 
     for _ in 0..n / 5 {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
-        match moon_phase_angle(jd) {
-            Ok(a) => s.check((0.0..360.0).contains(&a), || {
-                format!("moon_phase_angle {a:.2}° out of [0,360)")
-            }),
-            Err(_) => s.passed += 1,
-        }
-        match moon_phase_info(jd) {
-            Ok(info) => {
-                s.check(info.illumination >= 0.0 && info.illumination <= 1.0, || {
-                    format!("moon_phase_info illumination={:.4}", info.illumination)
-                });
-                s.check(info.elongation >= 0.0 && info.elongation < 360.0, || {
-                    format!("moon_phase_info elongation={:.2}", info.elongation)
-                });
-            }
-            Err(_) => s.passed += 1,
-        }
-        match next_new_moon(jd) {
-            Ok(nm) => s.check(nm > jd && nm < jd + 30.0, || {
-                format!("next_new_moon {nm:.2} after {jd:.2}")
-            }),
-            Err(_) => s.passed += 1,
-        }
+        check_random_moon_phase(&mut s, jd);
     }
 
     for year in 2020i32..=2030 {
         for month in [1u8, 4, 7, 10] {
-            match moon_phases_for_month(year, month) {
-                Ok(phases) => {
-                    // Most months have 4 phases; a blue moon month has 5
-                    s.check(phases.len() >= 4 && phases.len() <= 5, || {
-                        format!(
-                            "moon_phases_for_month({year},{month}): {} phases",
-                            phases.len()
-                        )
-                    });
-                    for w in phases.windows(2) {
-                        s.check(w[0].jd < w[1].jd, || "phases not chronological".into());
-                    }
-                }
-                Err(_) => s.passed += 1,
-            }
+            check_month_phases(&mut s, year, month);
         }
     }
     s
@@ -1937,6 +1985,50 @@ fn test_profections(n: u32) -> Suite {
     s
 }
 
+fn check_calc_options_single(s: &mut Suite, jd: f64, flags: CalcFlags) {
+    let via_builder = CalcOptions::ut(jd, flags).body(Body::SUN).get();
+    let direct = calc_ut(jd, Body::SUN, flags);
+    match (via_builder, direct) {
+        (Ok(b), Ok(d)) => {
+            s.check((b.lon - d.lon).abs() < 1e-9, || {
+                format!("CalcOptions JD {jd:.2}: lon mismatch {} vs {}", b.lon, d.lon)
+            });
+        }
+        (Err(_), Err(_)) => s.passed += 1,
+        _ => s.check(false, || format!("CalcOptions/calc_ut disagree at JD {jd:.2}")),
+    }
+}
+
+fn check_calc_options_multi(s: &mut Suite, jd: f64, flags: CalcFlags) {
+    let bodies = [Body::SUN, Body::MOON, Body::MERCURY];
+    let multi = CalcOptions::ut(jd, flags).bodies(&bodies).get_many();
+    s.check(multi.len() == bodies.len(), || {
+        format!(
+            "CalcOptions multi: expected {} results, got {}",
+            bodies.len(),
+            multi.len()
+        )
+    });
+    for (i, &body) in bodies.iter().enumerate() {
+        if let (Ok(m), Ok(d)) = (&multi[i], calc_ut(jd, body, flags)) {
+            s.check((m.lon - d.lon).abs() < 1e-9, || {
+                format!("CalcOptions multi body {i}: lon mismatch")
+            });
+        }
+    }
+}
+
+fn check_aspect_orbs_symmetry(s: &mut Suite, rng: &mut Xorshift64) {
+    let orbs = AspectOrbs::new(2.0, 1.5);
+    let pos0 = rng.range_f64(0.0, 360.0);
+    let pos1 = rng.range_f64(0.0, 360.0);
+    let m1 = orbs.check(pos0, 0.5, pos1, -0.3, 120.0);
+    let m2 = orbs.check(pos1, -0.3, pos0, 0.5, 120.0);
+    s.check(m1.matched == m2.matched, || {
+        format!("AspectOrbs: swapping bodies changed match result at {pos0:.2}/{pos1:.2}")
+    });
+}
+
 fn test_builder_api(n: u32) -> Suite {
     let mut s = Suite::new("builder_api");
     let mut rng = Xorshift64::new(0xB1C2D3E4F5061728);
@@ -1944,52 +2036,9 @@ fn test_builder_api(n: u32) -> Suite {
 
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
-
-        // CalcOptions::ut single body must match calc_ut
-        let via_builder = CalcOptions::ut(jd, flags).body(Body::SUN).get();
-        let direct = calc_ut(jd, Body::SUN, flags);
-        match (via_builder, direct) {
-            (Ok(b), Ok(d)) => {
-                s.check((b.lon - d.lon).abs() < 1e-9, || {
-                    format!(
-                        "CalcOptions JD {jd:.2}: lon mismatch {} vs {}",
-                        b.lon, d.lon
-                    )
-                });
-            }
-            (Err(_), Err(_)) => s.passed += 1,
-            _ => s.check(false, || {
-                format!("CalcOptions/calc_ut disagree at JD {jd:.2}")
-            }),
-        }
-
-        // CalcOptions multi-body order must match individual calls
-        let bodies = [Body::SUN, Body::MOON, Body::MERCURY];
-        let multi = CalcOptions::ut(jd, flags).bodies(&bodies).get_many();
-        s.check(multi.len() == bodies.len(), || {
-            format!(
-                "CalcOptions multi: expected {} results, got {}",
-                bodies.len(),
-                multi.len()
-            )
-        });
-        for (i, &body) in bodies.iter().enumerate() {
-            if let (Ok(m), Ok(d)) = (&multi[i], calc_ut(jd, body, flags)) {
-                s.check((m.lon - d.lon).abs() < 1e-9, || {
-                    format!("CalcOptions multi body {i}: lon mismatch")
-                });
-            }
-        }
-
-        // AspectOrbs: within-orb match must be symmetric
-        let orbs = AspectOrbs::new(2.0, 1.5);
-        let pos0 = rng.range_f64(0.0, 360.0);
-        let pos1 = rng.range_f64(0.0, 360.0);
-        let m1 = orbs.check(pos0, 0.5, pos1, -0.3, 120.0);
-        let m2 = orbs.check(pos1, -0.3, pos0, 0.5, 120.0);
-        s.check(m1.matched == m2.matched, || {
-            format!("AspectOrbs: swapping bodies changed match result at {pos0:.2}/{pos1:.2}")
-        });
+        check_calc_options_single(&mut s, jd, flags);
+        check_calc_options_multi(&mut s, jd, flags);
+        check_aspect_orbs_symmetry(&mut s, &mut rng);
     }
     s
 }

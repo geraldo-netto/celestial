@@ -78,6 +78,46 @@ pub struct RetroResult {
 ///
 /// Returns `None` if the planet cannot go retrograde (Sun, Moon, Earth),
 /// or if the station isn't found within the search window.
+/// Bisect the retrograde-station bracket `[jd-dir, jd]` (sign change in speed_lon).
+fn bisect_retro_station<F>(
+    ja_in: f64,
+    jb_in: f64,
+    sa_in: f64,
+    p_hi: crate::PlanetPos,
+    pos_at: &F,
+) -> Option<RetroResult>
+where
+    F: Fn(f64) -> Option<crate::PlanetPos>,
+{
+    let (mut ja, mut jb) = (ja_in, jb_in);
+    let mut sa = sa_in;
+    let mut pm = p_hi;
+    let to_arr = |p: &crate::PlanetPos| -> [f64; 6] {
+        [p.lon, p.lat, p.dist, p.speed_lon, p.speed_lat, p.speed_dist]
+    };
+    for _ in 0..50 {
+        let jm = (ja + jb) / 2.0;
+        pm = pos_at(jm)?;
+        let sm = pm.speed_lon;
+        if sm.abs() < 1e-9 {
+            return Some(RetroResult {
+                jd: jm,
+                pos: to_arr(&pm),
+            });
+        }
+        if sa * sm < 0.0 {
+            jb = jm;
+        } else {
+            ja = jm;
+            sa = sm;
+        }
+    }
+    Some(RetroResult {
+        jd: (ja + jb) / 2.0,
+        pos: to_arr(&pm),
+    })
+}
+
 pub fn next_retro(
     body: Body,
     jd_start: f64,
@@ -87,7 +127,6 @@ pub fn next_retro(
 ) -> Option<RetroResult> {
     use crate::functions::calc::calc_ut;
 
-    // Bodies that don't retrograde (Sun, Moon, Earth)
     if matches!(body.as_raw(), 0 | 1 | 14) {
         return None;
     }
@@ -96,13 +135,7 @@ pub fn next_retro(
     let dir = if backward { -step } else { step };
     let flags_with_speed = flags | CalcFlags::SPEED;
 
-    // `pos_at` returns the full PlanetPos so that the bisected endpoint can be
-    // extracted without a redundant calc_ut call at the end. Each calc_ut is
-    // expensive (VSOP87 trig expansion) and this saves one per successful search.
     let pos_at = |jd: f64| calc_ut(jd, body, flags_with_speed).ok();
-    let to_arr = |p: &crate::PlanetPos| -> [f64; 6] {
-        [p.lon, p.lat, p.dist, p.speed_lon, p.speed_lat, p.speed_dist]
-    };
 
     let mut jd = jd_start;
     let max_jd = jd_start + if stop_days > 0.0 { stop_days } else { 50_000.0 } * dir.signum();
@@ -117,33 +150,8 @@ pub fn next_retro(
 
         let p1 = pos_at(jd)?;
         let s1 = p1.speed_lon;
-
         if s0 * s1 < 0.0 {
-            // Sign change found — bisect, carrying full PlanetPos alongside speed.
-            let (mut ja, mut jb) = (jd - dir, jd);
-            let mut sa = s0;
-            let mut pm = p1;
-            for _ in 0..50 {
-                let jm = (ja + jb) / 2.0;
-                pm = pos_at(jm)?;
-                let sm = pm.speed_lon;
-                if sm.abs() < 1e-9 {
-                    return Some(RetroResult {
-                        jd: jm,
-                        pos: to_arr(&pm),
-                    });
-                }
-                if sa * sm < 0.0 {
-                    jb = jm;
-                } else {
-                    ja = jm;
-                    sa = sm;
-                }
-            }
-            return Some(RetroResult {
-                jd: (ja + jb) / 2.0,
-                pos: to_arr(&pm),
-            });
+            return bisect_retro_station(jd - dir, jd, s0, p1, &pos_at);
         }
         s0 = s1;
     }
@@ -814,34 +822,18 @@ pub fn lower_meridian_transit_ut(
         1013.25,
         15.0,
     )?;
-    let mut jd = upper.tret + 0.1 / 24.0; // just after upper transit
-    let limit = upper.tret + 1.0; // search 1 day ahead
+    let mut jd = upper.tret + 0.1 / 24.0;
+    let limit = upper.tret + 1.0;
     let mut d0 = diff(jd);
 
     while jd < limit {
         jd += step;
         let d1 = diff(jd);
         if d0 * d1 < 0.0 && (d1 - d0).abs() < 180.0 {
-            // Bisect to refine
-            let (mut lo, mut hi) = (jd - step, jd);
-            let mut dlo = d0;
-            for _ in 0..40 {
-                let mid = (lo + hi) / 2.0;
-                let dm = diff(mid);
-                if dm.abs() < 1e-8 {
-                    lo = mid;
-                    break;
-                }
-                if dlo * dm <= 0.0 {
-                    hi = mid;
-                } else {
-                    lo = mid;
-                    dlo = dm;
-                }
-            }
+            let tret = bisect_diff_zero(jd - step, jd, d0, &diff);
             return Ok(RiseTransResult {
                 ret_flags: 0,
-                tret: (lo + hi) / 2.0,
+                tret,
             });
         }
         d0 = d1;
@@ -849,6 +841,26 @@ pub fn lower_meridian_transit_ut(
     Err(crate::Error::RiseTrans(
         "lower meridian transit not found within 2 days".into(),
     ))
+}
+
+/// Bisect a sign change in `diff` over `[lo, hi]` (closed) where `diff(lo) = dlo`.
+fn bisect_diff_zero<F: Fn(f64) -> f64>(lo_in: f64, hi_in: f64, dlo_in: f64, diff: &F) -> f64 {
+    let (mut lo, mut hi) = (lo_in, hi_in);
+    let mut dlo = dlo_in;
+    for _ in 0..40 {
+        let mid = (lo + hi) / 2.0;
+        let dm = diff(mid);
+        if dm.abs() < 1e-8 {
+            return mid;
+        }
+        if dlo * dm <= 0.0 {
+            hi = mid;
+        } else {
+            lo = mid;
+            dlo = dm;
+        }
+    }
+    (lo + hi) / 2.0
 }
 
 // ── SearchOptions builder ─────────────────────────────────────────────────────

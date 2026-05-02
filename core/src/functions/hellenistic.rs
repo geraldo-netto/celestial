@@ -265,50 +265,47 @@ pub fn triplicity_rulers(lon: f64) -> (Body, Body, Body) {
 /// Returns the highest-ranking `Dignity` and a numeric score:
 /// Domicile=5, Exaltation=4, Triplicity=3, Term=2, Decan=1,
 /// Peregrine=0, Detriment=−5, Fall=−4.
+/// Body rules `sign` (classical or modern).
+fn rules_sign(body: Body, sign: u8) -> bool {
+    sign_ruler(sign) == body || sign_ruler_modern(sign) == body
+}
+
+/// Triplicity score: 3 if same sect, else 2.
+fn triplicity_score(body: Body, lon: f64, is_day: bool) -> Option<i8> {
+    let (day_r, night_r, part_r) = triplicity_rulers(lon);
+    if body == day_r || body == night_r || body == part_r {
+        Some(if same_sect(body, is_day) { 3 } else { 2 })
+    } else {
+        None
+    }
+}
+
 pub fn full_dignity(body: Body, lon: f64, is_day: bool) -> (Dignity, i8) {
     let sign = (lon / 30.0) as u8 % 12;
     let opp = (sign + 6) % 12;
-    let _raw = body.as_raw(); // reserved for future term table lookup
+    let ex = sign_exaltation(body);
 
-    // Detriment
-    let _ = sign_ruler(sign) == body || sign_ruler_modern(sign) == body;
-    // (checked below via domicile)
-
-    // Domicile
-    if sign_ruler(sign) == body || sign_ruler_modern(sign) == body {
+    if rules_sign(body, sign) {
         return (Dignity::Domicile, 5);
     }
-    // Detriment (opposite domicile)
-    if sign_ruler(opp) == body || sign_ruler_modern(opp) == body {
+    if rules_sign(body, opp) {
         return (Dignity::Detriment, -5);
     }
-    // Exaltation
-    let ex = sign_exaltation(body);
     if ex >= 0 && ex as u8 == sign {
         return (Dignity::Exaltation, 4);
     }
-    // Fall (opposite exaltation)
     if ex >= 0 && (ex as u8 + 6) % 12 == sign {
         return (Dignity::Fall, -4);
     }
-    // Triplicity
-    let (day_r, night_r, part_r) = triplicity_rulers(lon);
-    if body == day_r || body == night_r || body == part_r {
-        // Stronger if same sect
-        return (
-            Dignity::Triplicity,
-            if same_sect(body, is_day) { 3 } else { 2 },
-        );
+    if let Some(score) = triplicity_score(body, lon, is_day) {
+        return (Dignity::Triplicity, score);
     }
-    // Term
     if egyptian_terms_ruler(lon) == body {
         return (Dignity::Term, 2);
     }
-    // Decan/Face
     if decan_ruler(lon) == body {
         return (Dignity::Decan, 1);
     }
-    // Peregrine
     (Dignity::Peregrine, 0)
 }
 

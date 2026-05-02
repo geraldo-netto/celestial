@@ -217,71 +217,7 @@ pub fn render_omer_grid_svg(ctx: &Value) -> String {
     // Cells
     if let Some(cells) = ctx["cells"].as_array() {
         for c in cells {
-            let x = c["x"].as_f64().unwrap_or(0.0);
-            let y = c["y"].as_f64().unwrap_or(0.0);
-            let w = c["w"].as_f64().unwrap_or(110.0);
-            let h = c["h"].as_f64().unwrap_or(100.0);
-            let day = c["day"].as_u64().unwrap_or(0);
-            let week_sef = c["week_sefirah"].as_str().unwrap_or("?");
-            let day_sef = c["day_sefirah"].as_str().unwrap_or("?");
-            let date = c["date"].as_str().unwrap_or("");
-            let is_lag = c["is_lag_baomer"].as_bool().unwrap_or(false);
-
-            let cell_fill = if is_lag {
-                format!(r#"fill="{lag}" fill-opacity=".18""#)
-            } else {
-                "fill=\"none\"".to_string()
-            };
-
-            let _ = writeln!(
-                s,
-                r#"  <rect x="{x:.1}" y="{y:.1}" width="{w:.1}" height="{h:.1}" {cell_fill} stroke="{ring}" stroke-width=".6"/>"#
-            );
-
-            // Day number (top-left)
-            let dx = c["day_num_x"].as_f64().unwrap_or(x + 8.0);
-            let dy = c["day_num_y"].as_f64().unwrap_or(y + 18.0);
-            let day_color = if is_lag { lag } else { ring };
-            let _ = writeln!(
-                s,
-                r#"  <text x="{dx:.1}" y="{dy:.1}" font-size="11" font-weight="700" font-family="system-ui,sans-serif" fill="{day_color}">Day {day}</text>"#
-            );
-
-            // Sefirot pairing (centred)
-            let sx = c["sefirah_x"].as_f64().unwrap_or(x + w / 2.0);
-            let wsy = c["week_sefirah_y"].as_f64().unwrap_or(y + 44.0);
-            let oy = c["of_y"].as_f64().unwrap_or(y + 56.0);
-            let dsy = c["day_sefirah_y"].as_f64().unwrap_or(y + 70.0);
-            let _ = writeln!(
-                s,
-                r#"  <text x="{sx:.1}" y="{wsy:.1}" text-anchor="middle" font-size="13" font-weight="600" font-family="Georgia,serif" fill="{txt}">{day_sef}</text>"#
-            );
-            let _ = writeln!(
-                s,
-                r#"  <text x="{sx:.1}" y="{oy:.1}" text-anchor="middle" font-size="9" font-style="italic" font-family="Georgia,serif" fill="{ring}">of</text>"#
-            );
-            let _ = writeln!(
-                s,
-                r#"  <text x="{sx:.1}" y="{dsy:.1}" text-anchor="middle" font-size="13" font-weight="600" font-family="Georgia,serif" fill="{txt}">{week_sef}</text>"#
-            );
-
-            // Date (bottom)
-            let datex = c["date_x"].as_f64().unwrap_or(x + w / 2.0);
-            let datey = c["date_y"].as_f64().unwrap_or(y + h - 10.0);
-            let _ = writeln!(
-                s,
-                r#"  <text x="{datex:.1}" y="{datey:.1}" text-anchor="middle" font-size="9" font-family="system-ui,sans-serif" fill="{ring}" opacity=".85">{date}</text>"#
-            );
-
-            // Lag Ba'Omer star
-            if is_lag {
-                let star_x = x + w - 14.0;
-                let star_y = y + 18.0;
-                let _ = writeln!(
-                    s,
-                    r#"  <text x="{star_x:.1}" y="{star_y:.1}" text-anchor="middle" font-size="14" fill="{lag}">★</text>"#
-                );
-            }
+            render_omer_cell(&mut s, c, OmerCellPalette { txt, ring, lag });
         }
     }
 
@@ -303,6 +239,79 @@ pub fn render_omer_grid_svg(ctx: &Value) -> String {
 
     s.push_str("</svg>\n");
     s
+}
+
+struct OmerCellPalette<'a> {
+    txt: &'a str,
+    ring: &'a str,
+    lag: &'a str,
+}
+
+fn render_omer_cell(s: &mut String, c: &Value, pal: OmerCellPalette<'_>) {
+    use std::fmt::Write;
+    let OmerCellPalette { txt, ring, lag } = pal;
+
+    let x = c["x"].as_f64().unwrap_or(0.0);
+    let y = c["y"].as_f64().unwrap_or(0.0);
+    let w = c["w"].as_f64().unwrap_or(110.0);
+    let h = c["h"].as_f64().unwrap_or(100.0);
+    let day = c["day"].as_u64().unwrap_or(0);
+    let week_sef = c["week_sefirah"].as_str().unwrap_or("?");
+    let day_sef = c["day_sefirah"].as_str().unwrap_or("?");
+    let date = c["date"].as_str().unwrap_or("");
+    let is_lag = c["is_lag_baomer"].as_bool().unwrap_or(false);
+
+    let cell_fill = if is_lag {
+        format!(r#"fill="{lag}" fill-opacity=".18""#)
+    } else {
+        "fill=\"none\"".to_string()
+    };
+
+    let _ = writeln!(
+        s,
+        r#"  <rect x="{x:.1}" y="{y:.1}" width="{w:.1}" height="{h:.1}" {cell_fill} stroke="{ring}" stroke-width=".6"/>"#
+    );
+
+    let dx = c["day_num_x"].as_f64().unwrap_or(x + 8.0);
+    let dy = c["day_num_y"].as_f64().unwrap_or(y + 18.0);
+    let day_color = if is_lag { lag } else { ring };
+    let _ = writeln!(
+        s,
+        r#"  <text x="{dx:.1}" y="{dy:.1}" font-size="11" font-weight="700" font-family="system-ui,sans-serif" fill="{day_color}">Day {day}</text>"#
+    );
+
+    let sx = c["sefirah_x"].as_f64().unwrap_or(x + w / 2.0);
+    let wsy = c["week_sefirah_y"].as_f64().unwrap_or(y + 44.0);
+    let oy = c["of_y"].as_f64().unwrap_or(y + 56.0);
+    let dsy = c["day_sefirah_y"].as_f64().unwrap_or(y + 70.0);
+    let _ = writeln!(
+        s,
+        r#"  <text x="{sx:.1}" y="{wsy:.1}" text-anchor="middle" font-size="13" font-weight="600" font-family="Georgia,serif" fill="{txt}">{day_sef}</text>"#
+    );
+    let _ = writeln!(
+        s,
+        r#"  <text x="{sx:.1}" y="{oy:.1}" text-anchor="middle" font-size="9" font-style="italic" font-family="Georgia,serif" fill="{ring}">of</text>"#
+    );
+    let _ = writeln!(
+        s,
+        r#"  <text x="{sx:.1}" y="{dsy:.1}" text-anchor="middle" font-size="13" font-weight="600" font-family="Georgia,serif" fill="{txt}">{week_sef}</text>"#
+    );
+
+    let datex = c["date_x"].as_f64().unwrap_or(x + w / 2.0);
+    let datey = c["date_y"].as_f64().unwrap_or(y + h - 10.0);
+    let _ = writeln!(
+        s,
+        r#"  <text x="{datex:.1}" y="{datey:.1}" text-anchor="middle" font-size="9" font-family="system-ui,sans-serif" fill="{ring}" opacity=".85">{date}</text>"#
+    );
+
+    if is_lag {
+        let star_x = x + w - 14.0;
+        let star_y = y + 18.0;
+        let _ = writeln!(
+            s,
+            r#"  <text x="{star_x:.1}" y="{star_y:.1}" text-anchor="middle" font-size="14" fill="{lag}">★</text>"#
+        );
+    }
 }
 
 #[cfg(test)]

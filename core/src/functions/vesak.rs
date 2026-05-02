@@ -156,6 +156,25 @@ pub enum UposathaPhase {
     LastQuarter,
 }
 
+/// Has the moon's elongation crossed `target` between successive samples?
+fn phase_crossed(prev: f64, cur: f64, target: f64) -> bool {
+    if !(30.0..=330.0).contains(&target) {
+        prev > 300.0 && cur < 60.0
+    } else {
+        prev < target && cur >= target
+    }
+}
+
+/// Signed distance of `e` from `target`, handling wrap near 0°.
+fn elongation_distance(e: f64, target: f64) -> f64 {
+    if target < 30.0 {
+        let e2 = if e > 300.0 { e - 360.0 } else { e };
+        e2 - target
+    } else {
+        e - target
+    }
+}
+
 fn find_phase(jd_start: f64, target: f64) -> f64 {
     let elongation = |jd: f64| -> f64 {
         let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
@@ -169,31 +188,17 @@ fn find_phase(jd_start: f64, target: f64) -> f64 {
     loop {
         jd += 0.5;
         let cur = elongation(jd);
-        let crossed = if !(30.0..=330.0).contains(&target) {
-            // Near 0°: detect wrap
-            prev > 300.0 && cur < 60.0
-        } else {
-            prev < target && cur >= target
-        };
-        if crossed || jd > jd_start + 35.0 {
+        if phase_crossed(prev, cur, target) || jd > jd_start + 35.0 {
             break;
         }
         prev = cur;
     }
 
-    // Bisect
     let mut lo = jd - 1.0;
     let mut hi = jd;
     for _ in 0..40 {
         let mid = (lo + hi) / 2.0;
-        let e = elongation(mid);
-        let dist = if target < 30.0 {
-            let e2 = if e > 300.0 { e - 360.0 } else { e };
-            e2 - target
-        } else {
-            e - target
-        };
-        if dist < 0.0 {
+        if elongation_distance(elongation(mid), target) < 0.0 {
             lo = mid;
         } else {
             hi = mid;

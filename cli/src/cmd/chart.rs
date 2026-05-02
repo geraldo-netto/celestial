@@ -317,7 +317,22 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
     let asc = chart.asc;
     let mut s = String::with_capacity(64 * 1024);
 
-    // ── SVG header ──────────────────────────────────────────────────────────
+    write_chart_header(&mut s);
+    write_zodiac_ring(&mut s, asc);
+    write_zodiac_ticks(&mut s, asc);
+    write_house_cusps(&mut s, chart, asc);
+    write_house_numbers(&mut s, chart, asc);
+    write_aspects_section(&mut s, chart, asc);
+    write_planets_section(&mut s, chart, asc);
+    write_angle_labels(&mut s, chart, asc);
+    write_ring_borders(&mut s);
+    write_centre_metadata(&mut s, chart, name);
+
+    s.push_str("</svg>\n");
+    s
+}
+
+fn write_chart_header(s: &mut String) {
     s.push_str(
         r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800"
      font-family="Georgia, 'DejaVu Serif', serif">
@@ -338,15 +353,15 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
   <rect width="800" height="800" fill="#fafaf7"/>
 "##,
     );
+}
 
-    // ── Zodiac ring (coloured sectors) ──────────────────────────────────────
+fn write_zodiac_ring(s: &mut String, asc: f64) {
     for sign in 0u8..12 {
         let lon_start = sign as f64 * 30.0;
         let lon_end = lon_start + 30.0;
         let a1 = ecl_to_svg_angle(lon_start, asc);
         let a2 = ecl_to_svg_angle(lon_end, asc);
 
-        // Fill sector between R_ZODIAC and R_OUTER
         let (ox1, oy1) = polar(a1, R_OUTER);
         let (ox2, oy2) = polar(a2, R_OUTER);
         let (ix2, iy2) = polar(a2, R_ZODIAC);
@@ -360,7 +375,6 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
              fill=\"{color}\" fill-opacity=\"0.18\" stroke=\"{color}\" stroke-width=\"0.5\"/>\n"
         ));
 
-        // Sign glyph at mid-sector
         let mid_a = ecl_to_svg_angle(lon_start + 15.0, asc);
         let r_text = (R_OUTER + R_ZODIAC) / 2.0;
         let (tx, ty) = polar(mid_a, r_text);
@@ -369,8 +383,9 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
             "  <text x=\"{tx:.2}\" y=\"{ty:.2}\" class=\"sign-glyph\" fill=\"{color}\">{glyph}</text>\n"
         ));
     }
+}
 
-    // ── Zodiac degree ticks ─────────────────────────────────────────────────
+fn write_zodiac_ticks(s: &mut String, asc: f64) {
     for deg in 0..360 {
         let a = ecl_to_svg_angle(deg as f64, asc);
         let (r_in, stroke, sw) = if deg % 10 == 0 {
@@ -387,15 +402,15 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
              stroke=\"{stroke}\" stroke-width=\"{sw}\"/>\n"
         ));
     }
+}
 
-    // ── House cusps ─────────────────────────────────────────────────────────
+fn write_house_cusps(s: &mut String, chart: &ChartData, asc: f64) {
     for (i, &cusp_lon) in chart.cusps[1..=12]
         .iter()
         .enumerate()
         .map(|(i, v)| (i + 1, v))
     {
         let a = ecl_to_svg_angle(cusp_lon, asc);
-        // Main cusp line
         let (x1, y1) = polar(a, R_ZODIAC);
         let (x2, y2) = polar(a, R_INNER);
         let is_angle = i == 1 || i == 4 || i == 7 || i == 10;
@@ -409,13 +424,13 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
              stroke=\"{stroke}\" stroke-width=\"{sw}\"/>\n"
         ));
     }
+}
 
-    // ── House numbers (1–12) ────────────────────────────────────────────────
+fn write_house_numbers(s: &mut String, chart: &ChartData, asc: f64) {
     for i in 1usize..=12 {
         let next = if i == 12 { 1 } else { i + 1 };
         let c1 = chart.cusps[i];
         let c2 = chart.cusps[next];
-        // Midpoint of the house arc
         let span = (c2 - c1).rem_euclid(360.0);
         let mid_lon = c1 + span / 2.0;
         let a = ecl_to_svg_angle(mid_lon, asc);
@@ -424,8 +439,9 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
             "  <text x=\"{tx:.2}\" y=\"{ty:.2}\" class=\"house-num\">{i}</text>\n"
         ));
     }
+}
 
-    // ── Aspect lines ─────────────────────────────────────────────────────────
+fn write_aspects_section(s: &mut String, chart: &ChartData, asc: f64) {
     let positions: Vec<(Body, f64, f64)> = chart
         .planets
         .iter()
@@ -435,53 +451,50 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
 
     s.push_str("  <g opacity=\"0.35\">\n");
     for asp in &aspects {
-        let p1 = chart.planets.iter().find(|p| p.body == asp.body1);
-        let p2 = chart.planets.iter().find(|p| p.body == asp.body2);
-        if let (Some(p1), Some(p2)) = (p1, p2) {
-            let a1 = ecl_to_svg_angle(p1.lon, asc);
-            let a2 = ecl_to_svg_angle(p2.lon, asc);
-            let (x1, y1) = polar(a1, R_INNER - 5.0);
-            let (x2, y2) = polar(a2, R_INNER - 5.0);
-            let color = aspect_color(asp.aspect);
-            // Tighter orb = more opaque line
-            let opacity = 1.0 - (asp.orb / 8.0).min(0.85);
-            s.push_str(&format!(
-                "  <line x1=\"{x1:.2}\" y1=\"{y1:.2}\" x2=\"{x2:.2}\" y2=\"{y2:.2}\" \
-                 stroke=\"{color}\" stroke-width=\"1.2\" opacity=\"{opacity:.2}\"/>\n"
-            ));
-        }
+        let Some(p1) = chart.planets.iter().find(|p| p.body == asp.body1) else { continue };
+        let Some(p2) = chart.planets.iter().find(|p| p.body == asp.body2) else { continue };
+        let a1 = ecl_to_svg_angle(p1.lon, asc);
+        let a2 = ecl_to_svg_angle(p2.lon, asc);
+        let (x1, y1) = polar(a1, R_INNER - 5.0);
+        let (x2, y2) = polar(a2, R_INNER - 5.0);
+        let color = aspect_color(asp.aspect);
+        let opacity = 1.0 - (asp.orb / 8.0).min(0.85);
+        s.push_str(&format!(
+            "  <line x1=\"{x1:.2}\" y1=\"{y1:.2}\" x2=\"{x2:.2}\" y2=\"{y2:.2}\" \
+             stroke=\"{color}\" stroke-width=\"1.2\" opacity=\"{opacity:.2}\"/>\n"
+        ));
     }
     s.push_str("  </g>\n");
+}
 
-    // ── Planets ──────────────────────────────────────────────────────────────
-    // Spread overlapping planets
-    let mut placed: Vec<(f64, f64)> = Vec::new(); // (angle, radius)
+fn nudge_planet_angle(base_a: f64, placed: &[(f64, f64)]) -> f64 {
+    let mut a = base_a;
+    for _ in 0..8 {
+        let conflict = placed.iter().any(|&(pa, _)| {
+            let diff = (a - pa).abs().min(360.0 - (a - pa).abs());
+            diff < 8.0
+        });
+        if !conflict {
+            return a;
+        }
+        a = (a + 9.0).rem_euclid(360.0);
+    }
+    a
+}
+
+fn write_planets_section(s: &mut String, chart: &ChartData, asc: f64) {
+    let mut placed: Vec<(f64, f64)> = Vec::new();
     for planet in &chart.planets {
         let base_a = ecl_to_svg_angle(planet.lon, asc);
-
-        // Nudge angle if too close to an already-placed glyph
-        let mut a = base_a;
-        for _ in 0..8 {
-            let conflict = placed.iter().any(|&(pa, _)| {
-                let diff = (a - pa).abs().min(360.0 - (a - pa).abs());
-                diff < 8.0
-            });
-            if !conflict {
-                break;
-            }
-            a = (a + 9.0).rem_euclid(360.0);
-        }
+        let a = nudge_planet_angle(base_a, &placed);
         placed.push((a, R_PLANET));
 
         let (gx, gy) = polar(a, R_PLANET);
-
-        // Small dot on the zodiac ring at the actual longitude
         let (dx, dy) = polar(base_a, R_ZODIAC - 6.0);
         s.push_str(&format!(
             "  <circle cx=\"{dx:.2}\" cy=\"{dy:.2}\" r=\"2.5\" fill=\"#333\"/>\n"
         ));
 
-        // Line from dot to glyph if displaced
         if (a - base_a).abs() > 1.0 {
             let (lx1, ly1) = polar(base_a, R_ZODIAC - 14.0);
             let (lx2, ly2) = polar(a, R_PLANET + 14.0);
@@ -491,7 +504,6 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
             ));
         }
 
-        // Planet glyph
         let fill = if planet.retro { "#c0392b" } else { "#1a1a2e" };
         let retro = if planet.retro { " ℞" } else { "" };
         s.push_str(&format!(
@@ -499,7 +511,6 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
             planet.glyph
         ));
 
-        // Degree label below glyph
         let (sign, deg) = lon_to_sign(planet.lon);
         let deg_label = format!("{:.0}°{}", deg, sign_glyph(sign));
         let (lx, ly) = polar(a, R_PLANET - 18.0);
@@ -507,8 +518,9 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
             "  <text x=\"{lx:.2}\" y=\"{ly:.2}\" class=\"degree\">{deg_label}</text>\n"
         ));
     }
+}
 
-    // ── Angle labels: ASC / MC / DSC / IC ───────────────────────────────────
+fn write_angle_labels(s: &mut String, chart: &ChartData, asc: f64) {
     for (lon, label) in [
         (chart.asc, "ASC"),
         (chart.mc, "MC"),
@@ -521,8 +533,9 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
             "  <text x=\"{x:.2}\" y=\"{y:.2}\" class=\"angle-lbl\" fill=\"#333\">{label}</text>\n"
         ));
     }
+}
 
-    // ── Ring borders ─────────────────────────────────────────────────────────
+fn write_ring_borders(s: &mut String) {
     for (r, stroke, sw) in [
         (R_OUTER, "#555", "2.0"),
         (R_ZODIAC, "#777", "1.2"),
@@ -533,8 +546,9 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
              fill=\"none\" stroke=\"{stroke}\" stroke-width=\"{sw}\"/>\n"
         ));
     }
+}
 
-    // ── Centre: title & date ─────────────────────────────────────────────────
+fn write_centre_metadata(s: &mut String, chart: &ChartData, name: &str) {
     let date_str = parse::jd_to_str(chart.jd);
     let lat_dir = if chart.lat >= 0.0 { "N" } else { "S" };
     let lon_dir = if chart.lon >= 0.0 { "E" } else { "W" };
@@ -566,14 +580,20 @@ pub fn render_svg(chart: &ChartData, name: &str) -> String {
         CY + 32.0,
         parse::hsys_name(chart.hsys)
     ));
-
-    s.push_str("</svg>\n");
-    s
 }
 
 // ─── Text table output ────────────────────────────────────────────────────────
 
 fn print_table(chart: &ChartData, name: &str) {
+    print_table_header(chart, name);
+    print_table_angles(chart);
+    print_table_planets(chart);
+    print_table_houses(chart);
+    print_table_aspects(chart);
+    eprintln!();
+}
+
+fn print_table_header(chart: &ChartData, name: &str) {
     let date_str = parse::jd_to_str(chart.jd);
     eprintln!();
     if !name.is_empty() {
@@ -590,7 +610,9 @@ fn print_table(chart: &ChartData, name: &str) {
         lon_dir,
         parse::hsys_name(chart.hsys)
     );
+}
 
+fn print_table_angles(chart: &ChartData) {
     eprintln!("\n  {} Angles {}", fmt::rule(22), fmt::rule(22));
     for (label, lon) in [
         ("ASC", chart.asc),
@@ -600,7 +622,9 @@ fn print_table(chart: &ChartData, name: &str) {
     ] {
         eprintln!("  {:<6}  {}", label, fmt::lon_zodiac(lon));
     }
+}
 
+fn print_table_planets(chart: &ChartData) {
     eprintln!("\n  {} Planets {}", fmt::rule(20), fmt::rule(20));
     eprintln!("  {:<11} {:<16} {:<8} Speed", "Body", "Longitude", "Lat");
     eprintln!("  {}", fmt::rule(52));
@@ -615,7 +639,9 @@ fn print_table(chart: &ChartData, name: &str) {
             fmt::speed_dday(p.speed),
         );
     }
+}
 
+fn print_table_houses(chart: &ChartData) {
     eprintln!(
         "\n  {} Houses ({}) {}",
         fmt::rule(14),
@@ -625,37 +651,41 @@ fn print_table(chart: &ChartData, name: &str) {
     for i in 1..=12 {
         eprintln!("  House {:2}  {}", i, fmt::lon_zodiac(chart.cusps[i]));
     }
+}
 
-    // Aspects
+fn aspect_short_name(d: f64) -> &'static str {
+    match d as i32 {
+        0 => "Conj",
+        60 => "Sext",
+        90 => "Sqre",
+        120 => "Trin",
+        180 => "Oppo",
+        _ => "Asp",
+    }
+}
+
+fn print_table_aspects(chart: &ChartData) {
     let positions: Vec<(Body, f64, f64)> = chart
         .planets
         .iter()
         .map(|p| (p.body, p.lon, p.speed))
         .collect();
     let aspects = calc_chart_aspects(&positions, MAJOR_ASPECTS, 8.0);
-    if !aspects.is_empty() {
-        eprintln!("\n  {} Aspects {}", fmt::rule(20), fmt::rule(20));
-        let asp_name = |d: f64| match d as i32 {
-            0 => "Conj",
-            60 => "Sext",
-            90 => "Sqre",
-            120 => "Trin",
-            180 => "Oppo",
-            _ => "Asp",
-        };
-        for a in &aspects {
-            let app = if a.applying { "Apl" } else { "Sep" };
-            eprintln!(
-                "  {:<11} {} {:<5}  orb {:.2}°  {}",
-                parse::body_name(a.body1),
-                asp_name(a.aspect),
-                parse::body_name(a.body2),
-                a.orb,
-                app,
-            );
-        }
+    if aspects.is_empty() {
+        return;
     }
-    eprintln!();
+    eprintln!("\n  {} Aspects {}", fmt::rule(20), fmt::rule(20));
+    for a in &aspects {
+        let app = if a.applying { "Apl" } else { "Sep" };
+        eprintln!(
+            "  {:<11} {} {:<5}  orb {:.2}°  {}",
+            parse::body_name(a.body1),
+            aspect_short_name(a.aspect),
+            parse::body_name(a.body2),
+            a.orb,
+            app,
+        );
+    }
 }
 
 // ─── Entry point ─────────────────────────────────────────────────────────────

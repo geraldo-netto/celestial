@@ -227,29 +227,37 @@ pub fn naisargika_relation(gr1: i32, gr2: i32) -> Option<i32> {
 
 /// Residential strength of a graha given 12 bhavamadhya longitudes.
 /// Returns value in [0, 1] or `None` on error.
+/// Strength contribution within a single bhava `[c1, c2]`. `None` means the
+/// graha lies outside this house; `Some(s)` returns the residential strength.
+fn residential_within(graha: f64, c1: f64, c2: f64) -> Option<f64> {
+    if graha == c1 || graha == c2 {
+        return Some(0.0);
+    }
+    let arc1 = diff_deg_signed(c1, graha);
+    let arc2 = diff_deg_signed(c2, graha);
+    let inside = (arc1 >= 0.0) != (arc2 >= 0.0) && arc1.abs() + arc2.abs() < 180.0;
+    if !inside {
+        return None;
+    }
+    let midp = norm360(crate::midpoint_deg(c1, c2));
+    if graha == midp {
+        return Some(1.0);
+    }
+    let a1 = arc1.abs();
+    let a2 = arc2.abs();
+    let strength = if a1 < a2 {
+        a1 / diff_deg_signed(midp, c1).abs()
+    } else {
+        a2 / diff_deg_signed(midp, c2).abs()
+    };
+    Some(strength)
+}
+
 pub fn residential_strength(graha: f64, bm: &[f64; 12]) -> Option<f64> {
     let wrap = |i: usize| if i >= 12 { 0 } else { i };
     for i in 0..12 {
-        let c1 = bm[i];
-        let c2 = bm[wrap(i + 1)];
-        if graha == c1 || graha == c2 {
-            return Some(0.0);
-        }
-        let arc1 = diff_deg_signed(c1, graha);
-        let arc2 = diff_deg_signed(c2, graha);
-        if (arc1 >= 0.0) != (arc2 >= 0.0) && arc1.abs() + arc2.abs() < 180.0 {
-            let midp = norm360(crate::midpoint_deg(c1, c2));
-            if graha == midp {
-                return Some(1.0);
-            }
-            let a1 = arc1.abs();
-            let a2 = arc2.abs();
-            let strength = if a1 < a2 {
-                a1 / diff_deg_signed(midp, c1).abs()
-            } else {
-                a2 / diff_deg_signed(midp, c2).abs()
-            };
-            return Some(strength);
+        if let Some(s) = residential_within(graha, bm[i], bm[wrap(i + 1)]) {
+            return Some(s);
         }
     }
     None
