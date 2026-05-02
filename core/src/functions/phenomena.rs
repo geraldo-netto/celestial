@@ -42,7 +42,6 @@ pub fn gauquelin_sector(
     use crate::body::HouseSystem;
     let r = crate::functions::houses::houses(jd_ut, lat_geo, lon_geo, HouseSystem::PLACIDUS)?;
     let asc = r.ascmc[0];
-    let _mc = r.ascmc[1];
     // Angular distance from ASC in the diurnal direction
     let d = (lon_body - asc + 360.0).rem_euclid(360.0);
     // Map to 36 sectors

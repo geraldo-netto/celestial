@@ -1,11 +1,5 @@
-#![allow(dead_code, unused_imports)]
 //! Indigenous chart builders — split from render.rs.
 
-use super::{
-    antiscion_lon, contra_antiscion_lon, jd_to_date_str, key_to_body, moon_phase_str,
-    planet_dignity, render_south_indian_svg, sarvashtakavarga, spread_labels, ASPECT_DEFS,
-    NI_CELLS, RASI_GLYPHS, RASI_NAMES, RM, RP, SI_CELLS,
-};
 
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::calc_ut;

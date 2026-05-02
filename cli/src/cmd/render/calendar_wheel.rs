@@ -1,4 +1,3 @@
-#![allow(dead_code, unused_imports)]
 //! Calendar-wheel renderers — Celtic Wheel of the Year (sabbats).
 
 use celestial_core::{revjul, sabbats_for_year, Calendar};

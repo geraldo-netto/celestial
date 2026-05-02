@@ -1,4 +1,3 @@
-#![allow(dead_code, unused_imports)]
 //! Chinese chart builders — split from render.rs.
 
 use celestial_core::body::{Body, CalcFlags};
@@ -163,7 +162,6 @@ pub fn render_bazi_svg(ctx: &Value) -> String {
     // Four pillar columns
     for (ci, p) in pillars.iter().enumerate() {
         let cx = OX + ci as f64 * CW;
-        let _name = p["name"].as_str().unwrap_or("?");
         let stem_n = p["stem_name"].as_str().unwrap_or("?");
         let branch_n = p["branch_name"].as_str().unwrap_or("?");
         let animal = p["animal"].as_str().unwrap_or("?");

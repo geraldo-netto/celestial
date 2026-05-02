@@ -201,7 +201,7 @@ pub fn find_heliacal_event(
     jd_start: f64,
     dgeo: [f64; 3],
     datm: [f64; 4],
-    dobs: [f64; 6],
+    _dobs: [f64; 6],
     body_num: i32,
     event: HeliacalEvent,
 ) -> Option<HeliacalResult> {
@@ -210,7 +210,6 @@ pub fn find_heliacal_event(
 
     let pressure_mb = datm[0].clamp(900.0, 1100.0);
     let temp_c = datm[1];
-    let _age = if dobs[0] > 0.0 { dobs[0] } else { 45.0 };
     let geolat = dgeo[1];
     let geolon = dgeo[0];
 

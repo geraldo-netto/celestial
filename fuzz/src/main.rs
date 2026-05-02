@@ -1,4 +1,3 @@
-#![allow(dead_code, unused_imports)]
 //! Property-based test suite for celestial-core (pure-Rust engine).
 //!
 //! Self-contained: uses a stdlib xorshift64 PRNG — no external crates needed.
@@ -6,7 +5,7 @@
 
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::*;
-use std::f64::consts::{PI, TAU};
+use std::f64::consts::TAU;
 // flat imports via celestial_core::* above
 
 // ─── Minimal PRNG ─────────────────────────────────────────────────────────────
@@ -2151,7 +2150,6 @@ fn test_ashtakavarga(n: u32) -> Suite {
 
 fn test_shadbala(n: u32) -> Suite {
     let mut s = Suite::new("shadbala");
-    let _flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut rng = Xorshift64::new(0x2940B3C4D5E6F718);
 
     // Ochchabala: for any sidereal longitude the result must be in [0, 60]

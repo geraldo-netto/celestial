@@ -4,12 +4,6 @@
 //! Formulae from Meeus "Astronomical Algorithms", Mallama & Hilton (2018)
 //! and the Explanatory Supplement to the Astronomical Almanac.
 
-use std::f64::consts::PI;
-
-fn to_rad(d: f64) -> f64 {
-    d * PI / 180.0
-}
-
 /// All quantities returned by `pheno`.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Phenomena {
@@ -42,14 +36,12 @@ pub fn compute_phenomena(
     lon_sun: f64,
 ) -> Phenomena {
     // ── elongation ────────────────────────────────────────────────────────────
+    // Simple formula: elong = |lon_body - lon_sun| normalised to 0–180.
+    // Latitude is small enough that the great-circle correction is negligible
+    // for the visual-magnitude use case below.
     let dl = (lon_body - lon_sun + 360.0).rem_euclid(360.0);
-    let _elong = {
-        // great-circle elongation including latitude
-        let cos_e = to_rad(lat_body).cos() * to_rad(dl.min(360.0 - dl)).cos();
-        to_rad(cos_e.acos().to_degrees().clamp(0.0, 180.0)).to_degrees()
-    };
-    // simpler formula: elong = |lon_body - lon_sun| normalised to 0–180
     let elongation = if dl > 180.0 { 360.0 - dl } else { dl };
+    let _ = lat_body;
 
     // ── phase angle ───────────────────────────────────────────────────────────
     // Cosine rule in the Sun–body–Earth triangle:
@@ -105,7 +97,6 @@ pub fn compute_phenomena(
 fn visual_magnitude(body: i32, r: f64, delta: f64, i: f64) -> f64 {
     // r = heliocentric AU, delta = geocentric AU, i = phase angle degrees
     let log_rd = 5.0 * (r * delta).log10();
-    let _ir = to_rad(i);
     match body {
         0 => -26.74, // Sun (geocentric)
         1 => {

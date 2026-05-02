@@ -1,8 +1,7 @@
 //! `celestial omer` — Sefirat HaOmer (Counting of the Omer).
 
 use crate::{format as fmt, parse};
-use celestial_core::body::Calendar;
-use celestial_core::{omer_days, omer_declaration, omer_from_jd, omer_period, revjul};
+use celestial_core::{omer_days, omer_declaration, omer_from_jd, omer_period};
 use clap::Args;
 
 #[derive(Args)]
@@ -132,7 +131,6 @@ fn run_not_in_omer_mode(jd: f64, json: bool) {
         return;
     }
     let period = omer_period(jd);
-    let _d = revjul(period.start_jd, Calendar::Gregorian);
     println!();
     println!("  Not currently in the Omer period.");
     println!(

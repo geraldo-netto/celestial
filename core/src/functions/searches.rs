@@ -473,10 +473,13 @@ pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
         let dec = diff_deg(sun1, sun2) / 360.0;
         let mut jd = jd1;
         loop {
-            let _r = crate::functions::motion::solcross(sun1, jd - 1e-5, CalcFlags::BUILTIN)
+            // Sanity-check that a Sun crossing of `sun1` exists in the search
+            // neighbourhood before walking backward. Result intentionally
+            // discarded — only the propagated error is consumed.
+            let _ = crate::functions::motion::solcross(sun1, jd - 1e-5, CalcFlags::BUILTIN)
                 .map_err(|e| crate::error::Error::Calc(e.to_string()))?;
-            // backward crossing returns future JD when called with backward=false
-            // so we need to search backward
+            // solcross searches forward; for the backward branch we use
+            // find_crossing with `forward=false` to walk into the past.
             let rb = crate::astronomy::crossings::find_crossing(
                 0,
                 sun1,

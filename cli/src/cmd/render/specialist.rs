@@ -1,9 +1,7 @@
-#![allow(dead_code, unused_imports)]
 //! Specialist chart builders — split from render.rs.
 
 use super::{
-    build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI,
-    RM, RO, SI_CELLS,
+    build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI, RO,
 };
 use celestial_core::AzAlt;
 use celestial_core::{lon_to_sign, zodiac_sign_name};

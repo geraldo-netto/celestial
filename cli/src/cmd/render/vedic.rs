@@ -1,10 +1,9 @@
-#![allow(dead_code, unused_imports)]
 //! Vedic chart builders — split from render.rs.
 
 use super::{
-    build_context, fmt_lon_dms, jd_to_date_str, key_to_body, render_builtin_svg,
-    render_south_indian_svg, sarvashtakavarga, wx, wy, BODIES, CX, CY, NI_CELLS, RASI_GLYPHS,
-    RASI_NAMES, RO,
+    fmt_lon_dms, jd_to_date_str,
+    render_south_indian_svg, sarvashtakavarga, BODIES, NI_CELLS, RASI_GLYPHS,
+    RASI_NAMES,
 };
 
 use celestial_core::body::{Body, CalcFlags, HouseSystem};

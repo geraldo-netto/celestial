@@ -1,4 +1,3 @@
-#![allow(dead_code, unused_imports)]
 //! Hellenistic chart builders — split from render.rs.
 
 use super::{build_context, jd_to_date_str, key_to_body, render_builtin_svg, wx, wy, CX, CY, RO};

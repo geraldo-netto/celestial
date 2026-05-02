@@ -217,11 +217,11 @@ fn oblique_ascension(lon: f64, lat: f64, eps: f64, geolat: f64) -> f64 {
     let lon_r = to_rad(lon);
     let lat_r = to_rad(lat);
     let eps_r = to_rad(eps);
-    let _lat_g = to_rad(geolat);
+    let geolat_r = to_rad(geolat);
 
     let ra_r = (lon_r.sin() * eps_r.cos() - lat_r.tan() * eps_r.sin()).atan2(lon_r.cos());
     let dec = (lat_r.sin() * eps_r.cos() + lat_r.cos() * eps_r.sin() * lon_r.sin()).asin();
-    let ad_arg = (to_rad(geolat).tan() * dec.tan()).clamp(-1.0, 1.0);
+    let ad_arg = (geolat_r.tan() * dec.tan()).clamp(-1.0, 1.0);
     let ad = ad_arg.asin();
     norm_deg(to_deg(ra_r) - to_deg(ad))
 }

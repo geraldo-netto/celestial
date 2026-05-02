@@ -1,4 +1,3 @@
-#![allow(dead_code, unused_imports)]
 //! Compositional calendar overlays for the `--chart-type calendar` renderer.
 //!
 //! Each overlay function takes the requested period and returns a JSON value

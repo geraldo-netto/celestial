@@ -1,4 +1,3 @@
-#![allow(dead_code, unused_imports)]
 //! Sefirat HaOmer 7×7 sefirot grid — the canonical visual layout for the
 //! 49-day count, with each cell showing one day's pairing of sefirot.
 //!
@@ -6,7 +5,7 @@
 //! holds day number `(week - 1) * 7 + day`. Lag Ba'Omer (day 33) is highlighted.
 
 use celestial_core::{
-    approx_hebrew_year, omer_days, omer_period, revjul, Calendar, OmerDay,
+    omer_days, omer_period, revjul, Calendar,
 };
 use serde_json::{json, Value};
 use std::collections::BTreeMap;

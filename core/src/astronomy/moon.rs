@@ -42,7 +42,9 @@ pub fn lunar_position(jde: f64) -> LunarPos {
         + t * t * t * t / 863_310_000.0;
 
     // Longitude of the ascending node of Moon's orbit (Ω)
-    let omega = 125.044_547_9 - 1_934.136_261_0 * t + 0.002_070_2 * t * t + t * t * t / 450_160.0;
+    // omega (Moon's ascending node) is not used in the truncated ELP terms below;
+    // it is left out intentionally — the contribution would be < 1″ for the Moon's
+    // longitude in the orders kept here.
 
     // Additional arguments E, A1, A2, A3
     let e = 1.0 - 0.002_516 * t - 0.000_007_4 * t * t;
@@ -62,7 +64,6 @@ pub fn lunar_position(jde: f64) -> LunarPos {
     let mp_r = to_rad(m_prime);
     let ms_r = to_rad(m_sun);
     let f_r = to_rad(f);
-    let _om_r = to_rad(omega);
     let a1_r = to_rad(a1);
     let a2_r = to_rad(a2);
     let a3_r = to_rad(a3);

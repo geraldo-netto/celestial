@@ -140,7 +140,6 @@ fn rise_set_inner(
     for _ in 0..20 {
         let theta = theta0 + 360.985_647 * m;
         // Interpolate RA and Dec for this m
-        let _n = m + 57.0 / 365.25; // dummy fraction
         let ra_interp = interpolate(ra0, ra1, ra2, m);
         let dec_interp = interpolate(dec0, dec1, dec2, m);
 

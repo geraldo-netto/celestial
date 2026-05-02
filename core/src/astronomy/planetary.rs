@@ -201,8 +201,6 @@ fn aberration(lon: f64, lat: f64, jde: f64) -> (f64, f64) {
     let kappa = to_rad(20.496_55 / 3600.0);
     // Sun's mean longitude
     let l0 = to_rad(280.46646 + 36_000.769_83 * t);
-    // Sun's mean anomaly
-    let _m = to_rad(357.52911 + 35_999.050_29 * t);
     let e = 0.016708634 - 0.000042037 * t;
     // Longitude of perihelion
     let pi = to_rad(102.93735 + 1.71946 * t + 0.000_46 * t * t);

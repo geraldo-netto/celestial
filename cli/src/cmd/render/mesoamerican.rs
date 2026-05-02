@@ -1,7 +1,5 @@
-#![allow(dead_code, unused_imports)]
 //! Mesoamerican chart builders — split from render.rs.
 
-use celestial_core::AzAlt;
 
 use celestial_core::{calendar_round, haab, tonalpohualli, tzolkin, xiuhpohualli};
 use serde_json::{json, Value};
