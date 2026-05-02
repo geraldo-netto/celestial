@@ -81,14 +81,14 @@ fn test_math(n: u32) -> Suite {
         // --- norm_deg ---;
         let x = rng.range_f64(-1e9, 1e9);
         let d = norm_deg(x);
-        s.check(d >= 0.0 && d < 360.0, || format!("norm_deg({x}) = {d}"));
+        s.check((0.0..360.0).contains(&d), || format!("norm_deg({x}) = {d}"));
         s.check((norm_deg(d) - d).abs() < 1e-10, || {
             format!("norm_deg idempotent fail at {d}")
         });
 
         // --- norm_rad ---;
         let r = norm_rad(x);
-        s.check(r >= 0.0 && r < TAU, || format!("norm_rad({x}) = {r}"));
+        s.check((0.0..TAU).contains(&r), || format!("norm_rad({x}) = {r}"));
 
         // --- diff_deg_signed ---;
         let a = rng.range_f64(-1e9, 1e9);
@@ -101,7 +101,7 @@ fn test_math(n: u32) -> Suite {
         // --- norm_cs ---;
         let cs = rng.next_u64() as i32;
         let cn = norm_cs(cs);
-        s.check(cn >= 0 && cn < 360 * 360_000_i64, || {
+        s.check((0..360 * 360_000_i64).contains(&cn), || {
             format!("norm_cs({cs}) = {cn}")
         });
         s.check(norm_cs(cn as i32) == cn, || {
@@ -136,7 +136,7 @@ fn test_math(n: u32) -> Suite {
         let x = rng.range_f64(-1e6, 1e6);
         let (d, m, sec, frac, _) = split_deg(x, 0);
         s.check(
-            d >= 0 && m >= 0 && m < 60 && sec >= 0 && sec < 60 && frac >= 0.0 && frac < 1.0,
+            d >= 0 && (0..60).contains(&m) && (0..60).contains(&sec) && (0.0..1.0).contains(&frac),
             || format!("split_deg({x}) → ({d},{m},{sec},{frac:.4})"),
         );
 
@@ -178,7 +178,7 @@ fn test_time(n: u32) -> Suite {
 
         // day_of_week in [0,6];
         let dow = day_of_week(jd);
-        s.check(dow >= 0 && dow <= 6, || format!("day_of_week={dow}"));
+        s.check((0..=6).contains(&dow), || format!("day_of_week={dow}"));
 
         // 7-day cycle
         s.check(day_of_week(jd) == day_of_week(jd + 7.0), || {
@@ -234,7 +234,7 @@ fn test_houses(n: u32) -> Suite {
         };
 
         for (i, &c) in r.cusps.iter().enumerate() {
-            s.check(c.is_finite() && c >= 0.0 && c < 360.0, || {
+            s.check(c.is_finite() && (0.0..360.0).contains(&c), || {
                 format!(
                     "sys='{}' cusp[{i}]={c} (lat={lat:.1})",
                     hsys.as_raw() as char
@@ -260,7 +260,7 @@ fn test_houses(n: u32) -> Suite {
         if hsys == HouseSystem::WHOLE_SIGN {
             for (i, &c) in r.cusps.iter().enumerate() {
                 let rem = c % 30.0;
-                s.check(rem < 0.01 || rem > 29.99, || {
+                s.check(!(0.01..=29.99).contains(&rem), || {
                     format!("Whole Sign cusp[{i}]={c} not on boundary")
                 });
             }
@@ -397,7 +397,7 @@ fn test_rise_set(n: u32) -> Suite {
                     format!("rise_trans jd diff {:.3}", (r.tret - jd).abs())
                 });
                 let h = ((r.tret + 0.5).rem_euclid(1.0)) * 24.0;
-                s.check(h >= 0.0 && h < 24.0, || {
+                s.check((0.0..24.0).contains(&h), || {
                     format!("rise_trans hours_ut={h:.2}")
                 });
             }
@@ -704,31 +704,31 @@ fn test_swephelp_vedic(n: u32) -> Suite {
         let lon = rng.range_f64(0.0, 360.0);
 
         let rasi = long_to_rasi(lon);
-        s.check(rasi >= 0 && rasi < 12, || format!("rasi={rasi}"));
+        s.check((0..12).contains(&rasi), || format!("rasi={rasi}"));
 
         let (nak, pada) = long_to_nakshatra(lon);
-        s.check(nak >= 0 && nak < 27, || format!("nak={nak}"));
-        s.check(pada >= 0 && pada < 4, || format!("pada={pada}"));
+        s.check((0..27).contains(&nak), || format!("nak={nak}"));
+        s.check((0..4).contains(&pada), || format!("pada={pada}"));
 
         let nav = long_to_navamsa(lon);
-        s.check(nav >= 0 && nav < 12, || format!("nav={nav}"));
+        s.check((0..12).contains(&nav), || format!("nav={nav}"));
 
         // Raman houses: all 12 cusps in [0,360);
         let asc = rng.range_f64(0.0, 360.0);
         let mc = rng.range_f64(0.0, 360.0);
         let cusps = raman_houses(asc, mc, false);
         for (i, &c) in cusps.iter().enumerate() {
-            s.check(c >= 0.0 && c < 360.0, || format!("raman cusp[{i}]={c}"));
+            s.check((0.0..360.0).contains(&c), || format!("raman cusp[{i}]={c}"));
         }
 
         // Rasi diff in [0,11];
         let r1 = (rng.next_u64() % 12) as i32;
         let r2 = (rng.next_u64() % 12) as i32;
         let d = rasi_diff(r1, r2);
-        s.check(d >= 0 && d < 12, || format!("rasi_diff={d}"));
+        s.check((0..12).contains(&d), || format!("rasi_diff={d}"));
 
         let rn = rasi_norm((rng.next_u64() as i64 % 100 - 50) as i32);
-        s.check(rn >= 0 && rn < 12, || format!("rasi_norm={rn}"));
+        s.check((0..12).contains(&rn), || format!("rasi_norm={rn}"));
 
         let tr = tatkalika_relation(r1, r2);
         s.check(tr == 1 || tr == -1, || format!("tatkalika={tr}"));
@@ -737,7 +737,7 @@ fn test_swephelp_vedic(n: u32) -> Suite {
             for g2 in 0..7i32 {
                 let rel = naisargika_relation(g1, g2);
                 s.check(rel.is_some(), || format!("naisargika({g1},{g2}) is None"));
-                s.check(matches!(rel.unwrap(), -1 | 0 | 1), || {
+                s.check(matches!(rel.unwrap(), -1..=1), || {
                     "relation out of range".into()
                 });
             }
@@ -808,67 +808,61 @@ fn test_tz_table(_n: u32) -> Suite {
 
 // ─── Sabbat property tests ────────────────────────────────────────────────────
 
-fn test_sabbats(_n: u32) -> Suite {
-    let mut s = Suite::new("sabbats");
+fn check_sabbat_chronology(s: &mut Suite, year: i32, sabbats: &[celestial_core::Sabbat]) {
+    s.check(sabbats.len() == 8, || {
+        format!("year {year}: expected 8 sabbats, got {}", sabbats.len())
+    });
+    for w in sabbats.windows(2) {
+        s.check(w[0].jd < w[1].jd, || {
+            format!(
+                "year {year}: {} ({:.1}) >= {} ({:.1})",
+                w[0].name, w[0].jd, w[1].name, w[1].jd
+            )
+        });
+        let gap = w[1].jd - w[0].jd;
+        s.check(gap > 40.0 && gap < 55.0, || {
+            format!(
+                "year {year}: gap {} → {} = {gap:.1} days (expected 40-55)",
+                w[0].name, w[1].name
+            )
+        });
+    }
+}
 
-    // Check sabbats for a range of years around J2000
-    for year in (1990..=2030).step_by(5) {
-        let sabbats = match celestial_core::sabbats_for_year(year) {
-            Ok(v) => v,
-            Err(e) => {
-                s.check(false, || format!("sabbats_for_year({year}) failed: {e}"));
+fn check_sabbat_solar_longitudes(s: &mut Suite, year: i32, sabbats: &[celestial_core::Sabbat]) {
+    for sab in sabbats {
+        let sun = match calc_ut(sab.jd, Body::SUN, CalcFlags::BUILTIN) {
+            Ok(p) => p,
+            Err(_) => {
+                s.passed += 1;
                 continue;
             }
         };
-
-        // Must have exactly 8 sabbats
-        s.check(sabbats.len() == 8, || {
-            format!("year {year}: expected 8 sabbats, got {}", sabbats.len())
+        let expected = sab.kind.solar_longitude();
+        let raw = (sun.lon - expected).rem_euclid(360.0);
+        let diff = if raw > 180.0 { raw - 360.0 } else { raw }.abs();
+        s.check(diff < 0.01, || {
+            format!(
+                "year {year} {}: Sun at {:.6}°, expected {expected}°, diff {diff:.6}°",
+                sab.name, sun.lon
+            )
         });
-
-        // Must be in chronological order
-        for w in sabbats.windows(2) {
-            s.check(w[0].jd < w[1].jd, || {
-                format!(
-                    "year {year}: {} ({:.1}) >= {} ({:.1})",
-                    w[0].name, w[0].jd, w[1].name, w[1].jd
-                )
-            });
-        }
-
-        // Each sabbat's Sun longitude must match its definition within 0.01°
-        for sab in &sabbats {
-            let sun = match calc_ut(sab.jd, Body::SUN, CalcFlags::BUILTIN) {
-                Ok(p) => p,
-                Err(_) => {
-                    s.passed += 1;
-                    continue;
-                }
-            };
-            let expected = sab.kind.solar_longitude();
-            let diff = (sun.lon - expected).rem_euclid(360.0);
-            let diff = if diff > 180.0 { diff - 360.0 } else { diff }.abs();
-            s.check(diff < 0.01, || {
-                format!(
-                    "year {year} {}: Sun at {:.6}°, expected {expected}°, diff {diff:.6}°",
-                    sab.name, sun.lon
-                )
-            });
-        }
-
-        // Consecutive sabbats must be 40-55 days apart
-        for w in sabbats.windows(2) {
-            let gap = w[1].jd - w[0].jd;
-            s.check(gap > 40.0 && gap < 55.0, || {
-                format!(
-                    "year {year}: gap {} → {} = {gap:.1} days (expected 40-55)",
-                    w[0].name, w[1].name
-                )
-            });
-        }
     }
+}
 
-    // SabbatKind metadata invariants
+fn check_sabbats_for_year(s: &mut Suite, year: i32) {
+    let sabbats = match celestial_core::sabbats_for_year(year) {
+        Ok(v) => v,
+        Err(e) => {
+            s.check(false, || format!("sabbats_for_year({year}) failed: {e}"));
+            return;
+        }
+    };
+    check_sabbat_chronology(s, year, &sabbats);
+    check_sabbat_solar_longitudes(s, year, &sabbats);
+}
+
+fn check_sabbat_metadata(s: &mut Suite) {
     for kind in SabbatKind::all_by_longitude() {
         s.check(!kind.name().is_empty(), || {
             "sabbat name is empty".to_string()
@@ -877,48 +871,168 @@ fn test_sabbats(_n: u32) -> Suite {
             format!("{} has no alt names", kind.name())
         });
         let lon = kind.solar_longitude();
-        s.check(lon >= 0.0 && lon < 360.0, || {
+        s.check((0.0..360.0).contains(&lon), || {
             format!("{} lon {lon} out of range", kind.name())
         });
     }
+}
 
-    // Quarter days are at multiples of 90°
-    for kind in [
+fn check_sabbat_longitude_alignment(s: &mut Suite) {
+    let quarters = [
         SabbatKind::Yule,
         SabbatKind::Ostara,
         SabbatKind::Litha,
         SabbatKind::Mabon,
-    ] {
+    ];
+    for kind in quarters {
         let lon = kind.solar_longitude();
         let rem = (lon % 90.0).abs();
         s.check(rem < 1e-10, || {
             format!("{} lon {lon} is not a multiple of 90°", kind.name())
         });
     }
-
-    // Cross-quarter days are at odd multiples of 45°
-    for kind in [
+    let cross_quarters = [
         SabbatKind::Imbolc,
         SabbatKind::Beltane,
         SabbatKind::Lughnasadh,
         SabbatKind::Samhain,
-    ] {
+    ];
+    for kind in cross_quarters {
         let lon = kind.solar_longitude();
         let rem = (lon % 90.0 - 45.0).abs();
         s.check(rem < 1e-10, || {
             format!("{} lon {lon} is not at 45° offset", kind.name())
         });
     }
+}
 
+fn test_sabbats(_n: u32) -> Suite {
+    let mut s = Suite::new("sabbats");
+    for year in (1990..=2030).step_by(5) {
+        check_sabbats_for_year(&mut s, year);
+    }
+    check_sabbat_metadata(&mut s);
+    check_sabbat_longitude_alignment(&mut s);
     s
 }
 
 // ─── Esbat property tests ─────────────────────────────────────────────────────
 
+fn check_full_moon_elongation_at(s: &mut Suite, jd_start: f64) {
+    let jd_fm = match celestial_core::next_full_moon(jd_start) {
+        Ok(jd) => jd,
+        Err(e) => {
+            s.check(false, || {
+                format!("next_full_moon({jd_start:.1}) failed: {e}")
+            });
+            return;
+        }
+    };
+    s.check(jd_fm >= jd_start, || {
+        format!("full moon {jd_fm:.1} is before search start {jd_start:.1}")
+    });
+    let sun = calc_ut(jd_fm, Body::SUN, CalcFlags::BUILTIN).ok();
+    let moon = calc_ut(jd_fm, Body::MOON, CalcFlags::BUILTIN).ok();
+    let (Some(sun), Some(moon)) = (sun, moon) else {
+        return;
+    };
+    let elong = (moon.lon - sun.lon).rem_euclid(360.0);
+    let err = (elong - 180.0).abs().min(360.0 - (elong - 180.0).abs());
+    s.check(err < 0.05, || {
+        format!("full moon at JD {jd_fm:.4}: elongation {elong:.4}°, err {err:.4}°")
+    });
+}
+
+fn check_esbat_chronology(s: &mut Suite, year: i32, esbats: &[celestial_core::Esbat]) {
+    s.check(esbats.len() == 12 || esbats.len() == 13, || {
+        format!(
+            "year {year}: expected 12 or 13 esbats, got {}",
+            esbats.len()
+        )
+    });
+    for w in esbats.windows(2) {
+        s.check(w[0].jd < w[1].jd, || {
+            format!(
+                "year {year}: {} ({:.1}) >= {} ({:.1})",
+                w[0].display_name, w[0].jd, w[1].display_name, w[1].jd
+            )
+        });
+        let gap = w[1].jd - w[0].jd;
+        s.check(gap > 28.5 && gap < 30.5, || {
+            format!(
+                "year {year}: gap {} → {} = {gap:.2} days (expected 28.5-30.5)",
+                w[0].display_name, w[1].display_name
+            )
+        });
+    }
+}
+
+fn check_esbat_calendar_year(s: &mut Suite, year: i32, esbats: &[celestial_core::Esbat]) {
+    let year_start = julday(year, 1, 1, 0.0, Calendar::Gregorian);
+    let year_end = julday(year + 1, 1, 1, 0.0, Calendar::Gregorian);
+    for e in esbats {
+        s.check(e.jd >= year_start && e.jd < year_end, || {
+            format!(
+                "year {year} {}: JD {:.1} outside calendar year",
+                e.display_name, e.jd
+            )
+        });
+    }
+}
+
+fn check_esbat_special_moons(s: &mut Suite, year: i32, esbats: &[celestial_core::Esbat]) {
+    let harvest_count = esbats
+        .iter()
+        .filter(|e| e.name == EsbatName::Harvest)
+        .count();
+    s.check(harvest_count == 1, || {
+        format!("year {year}: {harvest_count} Harvest Moons (expected 1)")
+    });
+
+    let blue_count = esbats.iter().filter(|e| e.name == EsbatName::Blue).count();
+    let expected_blue = if esbats.len() == 12 { 0 } else { 1 };
+    s.check(blue_count == expected_blue, || {
+        format!(
+            "year {year}: {blue_count} Blue Moons (expected {expected_blue}, {} esbats)",
+            esbats.len()
+        )
+    });
+}
+
+fn check_esbat_elongations(s: &mut Suite, year: i32, esbats: &[celestial_core::Esbat]) {
+    for e in esbats {
+        let sun = calc_ut(e.jd, Body::SUN, CalcFlags::BUILTIN).ok();
+        let moon = calc_ut(e.jd, Body::MOON, CalcFlags::BUILTIN).ok();
+        let (Some(sun), Some(moon)) = (sun, moon) else {
+            continue;
+        };
+        let elong = (moon.lon - sun.lon).rem_euclid(360.0);
+        let err = (elong - 180.0).abs();
+        s.check(err < 0.05, || {
+            format!(
+                "year {year} {}: elongation {elong:.4}°, err {err:.6}°",
+                e.display_name
+            )
+        });
+    }
+}
+
+fn check_esbats_for_year(s: &mut Suite, year: i32) {
+    let esbats = match celestial_core::esbats_for_year(year) {
+        Ok(v) => v,
+        Err(e) => {
+            s.check(false, || format!("esbats_for_year({year}) failed: {e}"));
+            return;
+        }
+    };
+    check_esbat_chronology(s, year, &esbats);
+    check_esbat_calendar_year(s, year, &esbats);
+    check_esbat_special_moons(s, year, &esbats);
+    check_esbat_elongations(s, year, &esbats);
+}
+
 fn test_esbats(_n: u32) -> Suite {
     let mut s = Suite::new("esbats");
-
-    // Full moon elongation invariant: must be 180° ± 0.05°;
     let test_jds = [
         2_451_545.0, // J2000
         2_458_849.5, // Jan 1, 2020
@@ -926,117 +1040,11 @@ fn test_esbats(_n: u32) -> Suite {
         2_460_676.5, // Jan 1, 2025
     ];
     for &jd_start in &test_jds {
-        match celestial_core::next_full_moon(jd_start) {
-            Ok(jd_fm) => {
-                s.check(jd_fm >= jd_start, || {
-                    format!("full moon {jd_fm:.1} is before search start {jd_start:.1}")
-                });
-                // Check elongation;
-                let sun = calc_ut(jd_fm, Body::SUN, CalcFlags::BUILTIN).ok();
-                let moon = calc_ut(jd_fm, Body::MOON, CalcFlags::BUILTIN).ok();
-                if let (Some(sun), Some(moon)) = (sun, moon) {
-                    let elong = (moon.lon - sun.lon).rem_euclid(360.0);
-                    let err = (elong - 180.0).abs().min(360.0 - (elong - 180.0).abs());
-                    s.check(err < 0.05, || {
-                        format!("full moon at JD {jd_fm:.4}: elongation {elong:.4}°, err {err:.4}°")
-                    });
-                }
-            }
-            Err(e) => s.check(false, || {
-                format!("next_full_moon({jd_start:.1}) failed: {e}")
-            }),
-        }
+        check_full_moon_elongation_at(&mut s, jd_start);
     }
-
-    // Esbats for a range of years
     for year in (2000..=2024).step_by(4) {
-        let esbats = match celestial_core::esbats_for_year(year) {
-            Ok(v) => v,
-            Err(e) => {
-                s.check(false, || format!("esbats_for_year({year}) failed: {e}"));
-                continue;
-            }
-        };
-
-        // Must have 12 or 13 full moons
-        s.check(esbats.len() == 12 || esbats.len() == 13, || {
-            format!(
-                "year {year}: expected 12 or 13 esbats, got {}",
-                esbats.len()
-            )
-        });
-
-        // Must be sorted chronologically
-        for w in esbats.windows(2) {
-            s.check(w[0].jd < w[1].jd, || {
-                format!(
-                    "year {year}: {} ({:.1}) >= {} ({:.1})",
-                    w[0].display_name, w[0].jd, w[1].display_name, w[1].jd
-                )
-            });
-        }
-
-        // Consecutive full moons must be 28.5-30.5 days apart
-        for w in esbats.windows(2) {
-            let gap = w[1].jd - w[0].jd;
-            s.check(gap > 28.5 && gap < 30.5, || {
-                format!(
-                    "year {year}: gap {} → {} = {gap:.2} days (expected 28.5-30.5)",
-                    w[0].display_name, w[1].display_name
-                )
-            });
-        }
-
-        // All full moons must be within the calendar year;
-        let year_start = julday(year, 1, 1, 0.0, Calendar::Gregorian);
-        let year_end = julday(year + 1, 1, 1, 0.0, Calendar::Gregorian);
-        for e in &esbats {
-            s.check(e.jd >= year_start && e.jd < year_end, || {
-                format!(
-                    "year {year} {}: JD {:.1} outside calendar year",
-                    e.display_name, e.jd
-                )
-            });
-        }
-
-        // Must have exactly one Harvest Moon;
-        let harvest_count = esbats
-            .iter()
-            .filter(|e| e.name == EsbatName::Harvest)
-            .count();
-        s.check(harvest_count == 1, || {
-            format!("year {year}: {harvest_count} Harvest Moons (expected 1)")
-        });
-
-        // Blue Moon only present in 13-moon years;
-        let blue_count = esbats.iter().filter(|e| e.name == EsbatName::Blue).count();
-        if esbats.len() == 12 {
-            s.check(blue_count == 0, || {
-                format!("year {year}: Blue Moon in 12-moon year")
-            });
-        } else {
-            s.check(blue_count == 1, || {
-                format!("year {year}: {blue_count} Blue Moons in 13-moon year (expected 1)")
-            });
-        }
-
-        // All elongations at 180° ± 0.05°
-        for e in &esbats {
-            let sun = calc_ut(e.jd, Body::SUN, CalcFlags::BUILTIN).ok();
-            let moon = calc_ut(e.jd, Body::MOON, CalcFlags::BUILTIN).ok();
-            if let (Some(sun), Some(moon)) = (sun, moon) {
-                let elong = (moon.lon - sun.lon).rem_euclid(360.0);
-                let err = (elong - 180.0).abs();
-                s.check(err < 0.05, || {
-                    format!(
-                        "year {year} {}: elongation {elong:.4}°, err {err:.6}°",
-                        e.display_name
-                    )
-                });
-            }
-        }
+        check_esbats_for_year(&mut s, year);
     }
-
     s
 }
 
@@ -1226,7 +1234,7 @@ fn test_antiscia(n: u32) -> Suite {
             format!("double contra of {lon:.4} = {contra2:.4}")
         });
         // Result always in [0, 360)
-        s.check(anti >= 0.0 && anti < 360.0, || {
+        s.check((0.0..360.0).contains(&anti), || {
             format!("antiscion {anti:.4} out of [0,360)")
         });
     }
@@ -1303,7 +1311,7 @@ fn test_dignities(_n: u32) -> Suite {
     // Exaltation signs 0–11 or -1 for outer planets
     for body_raw in 0i32..12 {
         let ex = sign_exaltation(Body::from_raw(body_raw));
-        s.check(ex == -1 || (ex >= 0 && ex < 12), || {
+        s.check(ex == -1 || (0..12).contains(&ex), || {
             format!("body {body_raw}: exaltation {ex} out of range")
         });
     }
@@ -1377,7 +1385,7 @@ fn test_progressions(n: u32) -> Suite {
         if let Ok((arc, directed, _mc)) =
             solar_arc_directions(jd_natal, age, &nat_pos, nat_mc, CalcFlags::BUILTIN)
         {
-            s.check(arc >= 0.0 && arc < 360.0, || {
+            s.check((0.0..360.0).contains(&arc), || {
                 format!("solar arc {arc:.4}° out of [0,360)")
             });
             for (_, lon) in &directed {
@@ -1400,7 +1408,7 @@ fn test_midpoint_dial(n: u32) -> Suite {
         let lon = rng.range_f64(0.0, 360.0);
         // 90° dial compression: lon % 90 is always in [0, 90)
         let dial = lon % 90.0;
-        s.check(dial >= 0.0 && dial < 90.0, || {
+        s.check((0.0..90.0).contains(&dial), || {
             format!("dial_lon {dial:.4} outside [0,90) for lon {lon:.4}")
         });
         // 4 quadrant markers at lon=0,90,180,270 all map to dial=0
@@ -1464,16 +1472,16 @@ fn test_calendar_islamic(n: u32) -> Suite {
         s.check(year > 1300 && year < 1600, || {
             format!("hijri_from_jd({jd:.2}): year {year} out of expected range")
         });
-        s.check(month >= 1 && month <= 12, || {
+        s.check((1..=12).contains(&month), || {
             format!("hijri_from_jd({jd:.2}): month {month} out of 1-12")
         });
-        let days = hijri_month_days(year as i32, month);
+        let days = hijri_month_days(year, month);
         s.check(days == 29 || days == 30, || {
             format!("hijri_month_days({year},{month}) = {days}")
         });
-        let ny_jd = hijri_new_year_jd(year as i32);
+        let ny_jd = hijri_new_year_jd(year);
         s.check(ny_jd > 0.0, || format!("hijri_new_year_jd({year}) ≤ 0"));
-        let month_start = hijri_month_start_jd(year as i32, month);
+        let month_start = hijri_month_start_jd(year, month);
         s.check(month_start > 0.0, || {
             format!("hijri_month_start_jd({year},{month}) ≤ 0")
         });
@@ -1599,7 +1607,7 @@ fn test_searches_aspects(n: u32) -> Suite {
 
     for _ in 0..n / 10 {
         let jd_start = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
-        let backward = rng.next_u64() % 2 == 0;
+        let backward = rng.next_u64().is_multiple_of(2);
         let stop = 365.0;
         // next_aspect to 0° point with 90° aspect
         match next_aspect(Body::SUN, 90.0, 0.0, jd_start, backward, stop, flags) {
@@ -1609,7 +1617,7 @@ fn test_searches_aspects(n: u32) -> Suite {
                 } else {
                     r.jd > jd_start
                 };
-                s.check(jd_ok, || format!("next_aspect JD direction wrong"));
+                s.check(jd_ok, || "next_aspect JD direction wrong".to_string());
             }
             None => s.passed += 1,
         }
@@ -1731,7 +1739,7 @@ fn test_moon_phases(n: u32) -> Suite {
     for _ in 0..n / 5 {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
         match moon_phase_angle(jd) {
-            Ok(a) => s.check(a >= 0.0 && a < 360.0, || {
+            Ok(a) => s.check((0.0..360.0).contains(&a), || {
                 format!("moon_phase_angle {a:.2}° out of [0,360)")
             }),
             Err(_) => s.passed += 1,
@@ -1878,7 +1886,7 @@ fn test_geo_utilities(n: u32) -> Suite {
         s.check(sign_n < 12, || {
             format!("lon_to_sign({lon:.2}) sign={sign_n}")
         });
-        s.check(sign_deg >= 0.0 && sign_deg < 30.0, || {
+        s.check((0.0..30.0).contains(&sign_deg), || {
             format!("lon_to_sign({lon:.2}) deg={sign_deg:.2}")
         });
 
@@ -1889,7 +1897,7 @@ fn test_geo_utilities(n: u32) -> Suite {
         // norm_deg: result in [0, 360)
         let raw = rng.range_f64(-720.0, 720.0);
         let n = norm_deg(raw);
-        s.check(n >= 0.0 && n < 360.0, || {
+        s.check((0.0..360.0).contains(&n), || {
             format!("norm_deg({raw:.2})={n:.4}")
         });
 
@@ -1909,8 +1917,8 @@ fn test_profections(n: u32) -> Suite {
 
     let cusps: [f64; 13] = {
         let mut c = [0.0f64; 13];
-        for i in 1..=12 {
-            c[i] = (i as f64) * 30.0;
+        for (i, slot) in c.iter_mut().enumerate().take(13).skip(1) {
+            *slot = (i as f64) * 30.0;
         }
         c
     };
@@ -1920,12 +1928,12 @@ fn test_profections(n: u32) -> Suite {
         let age_months = (rng.next_u64() % 12) as u32;
 
         let (house_a, _deg_a) = annual_profection(&cusps, age_years);
-        s.check(house_a >= 1 && house_a <= 12, || {
+        s.check((1..=12).contains(&house_a), || {
             format!("annual_profection house={house_a}")
         });
 
         let (house_m, _deg_m) = monthly_profection(&cusps, age_years, age_months);
-        s.check(house_m >= 1 && house_m <= 12, || {
+        s.check((1..=12).contains(&house_m), || {
             format!("monthly_profection house={house_m}")
         });
     }
@@ -2104,7 +2112,7 @@ fn test_composite(n: u32) -> Suite {
                 0.0
             })
         .rem_euclid(360.0);
-        s.check(comp >= 0.0 && comp < 360.0, || {
+        s.check((0.0..360.0).contains(&comp), || {
             format!("composite {comp:.4} outside [0,360) for {lon1:.4}/{lon2:.4}")
         });
     }
@@ -2121,7 +2129,7 @@ fn test_ashtakavarga(n: u32) -> Suite {
         let lon = rng.range_f64(0.0, 360.0);
         for raw in 0i32..7 {
             if let Some(v) = ochchabala(raw, lon) {
-                s.check(v >= 0.0 && v <= 60.0, || {
+                s.check((0.0..=60.0).contains(&v), || {
                     format!("ochchabala({raw}, {lon:.4}) = {v:.4} outside [0,60]")
                 });
             } else {
@@ -2151,7 +2159,7 @@ fn test_shadbala(n: u32) -> Suite {
         let lon = rng.range_f64(0.0, 360.0);
         for raw in 0i32..7 {
             if let Some(v) = ochchabala(raw, lon) {
-                s.check(v >= 0.0 && v <= 60.0, || {
+                s.check((0.0..=60.0).contains(&v), || {
                     format!("ochchabala({raw}, {lon:.4}) = {v:.4} outside [0,60]")
                 });
             } else {
@@ -2182,10 +2190,10 @@ fn test_north_indian(n: u32) -> Suite {
         (180.0, 270.0),
     ];
     for (i, &(cx, cy)) in NI_CELLS_FUZZ.iter().enumerate() {
-        s.check(cx >= 0.0 && cx <= 540.0, || {
+        s.check((0.0..=540.0).contains(&cx), || {
             format!("NI_CELLS[{i}] cx={cx} out of [0,540]")
         });
-        s.check(cy >= 0.0 && cy <= 540.0, || {
+        s.check((0.0..=540.0).contains(&cy), || {
             format!("NI_CELLS[{i}] cy={cy} out of [0,540]")
         });
     }
@@ -2198,7 +2206,7 @@ fn test_north_indian(n: u32) -> Suite {
         let lagna = (rng.next_u64() % 12) as usize;
         for house0 in 0..12usize {
             let house_num = (house0 + 12 - lagna) % 12 + 1;
-            s.check(house_num >= 1 && house_num <= 12, || {
+            s.check((1..=12).contains(&house_num), || {
                 format!("house_num {house_num} out of [1,12] for lagna={lagna} house0={house0}")
             });
             // House 1 must be exactly at the lagna sign
@@ -2264,7 +2272,7 @@ fn test_firdaria(n: u32) -> Suite {
 
     for _ in 0..n / 10 {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
-        let is_day = rng.next_u64() % 2 == 0;
+        let is_day = rng.next_u64().is_multiple_of(2);
         let span = rng.range_f64(10.0, 75.0);
 
         let periods = firdaria(jd, is_day, span);
@@ -2313,12 +2321,12 @@ fn test_full_dignity(n: u32) -> Suite {
 
     for _ in 0..n {
         let lon = rng.range_f64(0.0, 360.0);
-        let is_day = rng.next_u64() % 2 == 0;
+        let is_day = rng.next_u64().is_multiple_of(2);
 
         for &body in &bodies {
             let (_dignity, score) = full_dignity(body, lon, is_day);
             // Score must be in [-5, 5]
-            s.check(score >= -5 && score <= 5, || {
+            s.check((-5..=5).contains(&score), || {
                 format!("dignity score {score} out of [-5,5] for {body:?} at {lon:.4}")
             });
 
@@ -2327,7 +2335,7 @@ fn test_full_dignity(n: u32) -> Suite {
             s.check(bodies.contains(&alm), || {
                 format!("almuten {alm:?} not a traditional planet at {lon:.4}")
             });
-            s.check(alm_score >= -5 && alm_score <= 5, || {
+            s.check((-5..=5).contains(&alm_score), || {
                 format!("almuten score {alm_score} out of range")
             });
         }
@@ -2370,7 +2378,7 @@ fn test_mesoamerican(n: u32) -> Suite {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
 
         let (trecena, sign_idx, _, _) = tonalpohualli(jd);
-        s.check(trecena >= 1 && trecena <= 13, || {
+        s.check((1..=13).contains(&trecena), || {
             format!("tonalpohualli trecena {trecena} out of [1,13]")
         });
         s.check(sign_idx < 20, || {
@@ -2382,7 +2390,7 @@ fn test_mesoamerican(n: u32) -> Suite {
         s.check(day >= 1, || format!("xiuhpohualli day {day} < 1"));
 
         let (zt, zi, _, _) = tzolkin(jd);
-        s.check(zt >= 1 && zt <= 13, || {
+        s.check((1..=13).contains(&zt), || {
             format!("tzolkin trecena {zt} out of [1,13]")
         });
         s.check(zi < 20, || format!("tzolkin sign {zi} >= 20"));
@@ -2422,7 +2430,7 @@ fn test_indigenous(n: u32) -> Suite {
 fn test_iso_week(n: u32) -> Suite {
     use celestial_core::{day_of_week, day_of_year, iso_week, julday, weeks_in_iso_year};
     let mut s = Suite::new("iso_week");
-    let mut rng = Xorshift64::new(0x1501_001);
+    let mut rng = Xorshift64::new(0x0150_1001);
 
     for _ in 0..n {
         let year = rng.range_i32(1800, 2300);
@@ -2437,13 +2445,13 @@ fn test_iso_week(n: u32) -> Suite {
 
         // day_of_year must be 1..=366
         let doy = day_of_year(year, month, day);
-        s.check(doy >= 1 && doy <= 366, || {
+        s.check((1..=366).contains(&doy), || {
             format!("doy={doy} for {year}-{month}-{day}")
         });
 
         // iso_week: week must be 1..=53, iso_year within ±1 of calendar year
         let (iy, wk) = iso_week(jd);
-        s.check(wk >= 1 && wk <= 53, || {
+        s.check((1..=53).contains(&wk), || {
             format!("wk={wk} for {year}-{month}-{day}")
         });
         s.check((iy - year).abs() <= 1, || {
@@ -2456,7 +2464,7 @@ fn test_iso_week(n: u32) -> Suite {
 
         // day_of_week sanity
         let dow = day_of_week(jd);
-        s.check(dow >= 0 && dow <= 6, || format!("dow={dow}"));
+        s.check((0..=6).contains(&dow), || format!("dow={dow}"));
     }
 
     // Known anchors: 2024-01-01 is a Monday in ISO week 2024-W1
@@ -2486,7 +2494,7 @@ fn test_iso_week(n: u32) -> Suite {
 fn test_maya_long_count(n: u32) -> Suite {
     use celestial_core::{maya_long_count, maya_long_count_str};
     let mut s = Suite::new("maya_long_count");
-    let mut rng = Xorshift64::new(0x1502_002);
+    let mut rng = Xorshift64::new(0x0150_2002);
 
     for _ in 0..n {
         // Plausible JD range (1 AD through ~3000 AD)
@@ -2541,7 +2549,7 @@ fn test_maya_long_count(n: u32) -> Suite {
 fn test_yallop(n: u32) -> Suite {
     use celestial_core::{best_time_method, yallop_q};
     let mut s = Suite::new("yallop");
-    let mut rng = Xorshift64::new(0x1503_003);
+    let mut rng = Xorshift64::new(0x0150_3003);
 
     for _ in 0..n {
         // Plausible ranges for crescent observation
@@ -2598,7 +2606,7 @@ fn test_coptic(n: u32) -> Suite {
         jd_to_ethiopic,
     };
     let mut s = Suite::new("coptic");
-    let mut rng = Xorshift64::new(0x1504_004);
+    let mut rng = Xorshift64::new(0x0150_4004);
 
     for _ in 0..n {
         let year = rng.range_i32(1, 3000);
@@ -2688,7 +2696,7 @@ fn test_fasli(_n: u32) -> Suite {
         if let Some((fy, m, d)) = jd_to_fasli(nowruz_1906 + 0.5) {
             s.check(fy == 1, || format!("fasli year 1906: got {fy}"));
             s.check(m == 1, || format!("month 1: got {m}"));
-            s.check(d >= 1 && d <= 2, || format!("day: got {d}"));
+            s.check((1..=2).contains(&d), || format!("day: got {d}"));
         } else {
             s.check(false, || "jd_to_fasli at Nowruz 1906 returned None".into());
         }
@@ -2704,7 +2712,7 @@ fn test_fasli(_n: u32) -> Suite {
 fn test_tibetan(n: u32) -> Suite {
     use celestial_core::tibetan_year_name;
     let mut s = Suite::new("tibetan");
-    let mut rng = Xorshift64::new(0x1506_006);
+    let mut rng = Xorshift64::new(0x0150_6006);
 
     const VALID_ELEMENTS: [&str; 5] = ["Wood", "Fire", "Earth", "Iron", "Water"];
     const VALID_GENDERS: [&str; 2] = ["Male", "Female"];
@@ -2718,7 +2726,7 @@ fn test_tibetan(n: u32) -> Suite {
         let (cycle, yic, element, gender, animal) = tibetan_year_name(year);
 
         s.check(cycle < 100, || format!("cycle={cycle} for year {year}"));
-        s.check(yic >= 1 && yic <= 60, || {
+        s.check((1..=60).contains(&yic), || {
             format!("yic={yic} for year {year}")
         });
         s.check(VALID_ELEMENTS.contains(&element), || {
@@ -2734,22 +2742,22 @@ fn test_tibetan(n: u32) -> Suite {
         // Successive years: animal cycles through 12, element through 5 (pair-wise)
         let (_, _, _, gender2, animal2) = tibetan_year_name(year + 1);
         s.check(gender2 != gender, || {
-            format!("gender should flip year→year+1")
+            "gender should flip year→year+1".to_string()
         });
         s.check(animal2 != animal, || {
-            format!("animal should change year→year+1")
+            "animal should change year→year+1".to_string()
         });
 
         // After 60 years, everything wraps
         let (_c3, _yic3, element3, gender3, animal3) = tibetan_year_name(year + 60);
         s.check(element3 == element, || {
-            format!("element should repeat after 60y")
+            "element should repeat after 60y".to_string()
         });
         s.check(gender3 == gender, || {
-            format!("gender should repeat after 60y")
+            "gender should repeat after 60y".to_string()
         });
         s.check(animal3 == animal, || {
-            format!("animal should repeat after 60y")
+            "animal should repeat after 60y".to_string()
         });
     }
 
@@ -2773,7 +2781,7 @@ fn test_vietnamese(n: u32) -> Suite {
         VIETNAM_TZ_OFFSET_HOURS,
     };
     let mut s = Suite::new("vietnamese");
-    let mut rng = Xorshift64::new(0x1507_007);
+    let mut rng = Xorshift64::new(0x0150_7007);
 
     // Timezone constants
     s.check(
@@ -3033,7 +3041,7 @@ fn test_calc_ut_many_consistency(n: u32) -> Suite {
 /// `arabic_part(asc, body2, body1)` returns Part of Fortune — must be in [0, 360).
 fn test_arabic_part_range(n: u32) -> Suite {
     let mut s = Suite::new("arabic_parts_range");
-    let mut rng = Xorshift64::new(0xFADED_FEED_C0DE);
+    let mut rng = Xorshift64::new(0x0FAD_EDFE_EDC0_DE00);
     for _ in 0..n {
         let asc  = rng.range_f64(0.0, 360.0);
         let sun  = rng.range_f64(0.0, 360.0);
@@ -3088,7 +3096,7 @@ fn test_hebrew_calendar(n: u32) -> Suite {
 /// `calc_pctr` (planetocentric): exhaustively call without panicking.
 fn test_calc_pctr_no_panic(n: u32) -> Suite {
     let mut s = Suite::new("calc_pctr");
-    let mut rng = Xorshift64::new(0xBA_DBABE_DEADCAFE);
+    let mut rng = Xorshift64::new(0x0BAD_BABE_DEAD_CAFE);
     let bodies = [Body::MERCURY, Body::VENUS, Body::MARS, Body::JUPITER];
     let centers = [Body::SUN, Body::EARTH, Body::JUPITER];
     for _ in 0..n {
@@ -3273,7 +3281,7 @@ fn test_sidereal_all_modes(n: u32) -> Suite {
         // Ayanamsa ranges from 0° to ~80° over the searchable historical period
         // (5000 BCE to 5000 CE). The diff must be in [0°, 90°] or [270°, 360°].
         let diff = (trop.lon - sid.lon).rem_euclid(360.0);
-        s.check(diff < 90.0 || diff > 270.0, || {
+        s.check(!(90.0..=270.0).contains(&diff), || {
             format!("sidereal-tropical diff {diff:.3}° implausible (mode {mode})")
         });
     }

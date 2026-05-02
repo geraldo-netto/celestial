@@ -10,6 +10,78 @@ use super::calc_ut;
 /// ecliptic longitude `x2cross` (degrees).
 ///
 /// Returns `Some(jd_ut)` or `None` if not found within the search window.
+/// Step size in days based on body speed (Moon=1, Sun/Mercury=5, …).
+fn crossing_step(body: i32) -> f64 {
+    match body {
+        1 => 1.0,
+        0 => 5.0,
+        2 => 5.0,
+        3 => 10.0,
+        4 => 20.0,
+        _ => 50.0,
+    }
+}
+
+/// Walk forward/backward in `step`-day increments until a sign change in `diff`
+/// is detected. Returns `(jd_a, d_a, jd_b, d_b)` bracket, or `None`.
+fn bracket_crossing<F, D>(
+    jd_start: f64,
+    dir: f64,
+    step: f64,
+    lon_at: &F,
+    diff: &D,
+) -> Option<(f64, f64, f64, f64)>
+where
+    F: Fn(f64) -> Option<f64>,
+    D: Fn(f64) -> f64,
+{
+    let mut jd = jd_start;
+    let mut d0 = diff(lon_at(jd)?);
+    let max_jd = jd_start + dir * 400.0;
+    let max_iter = (400.0 / step) as i32 + 10;
+    for _ in 0..max_iter {
+        jd += dir * step;
+        if (jd - jd_start) * dir > (max_jd - jd_start) * dir {
+            return None;
+        }
+        let d1 = diff(lon_at(jd)?);
+        // Sign change & not an antipodal ±180° jump
+        if d0 * d1 <= 0.0 && (d1 - d0).abs() < 180.0 {
+            return Some((jd - dir * step, d0, jd, d1));
+        }
+        d0 = d1;
+    }
+    None
+}
+
+/// Bisection refinement on a confirmed bracket. `da` is the value at `ja`.
+fn refine_crossing<F, D>(
+    mut ja: f64,
+    mut da: f64,
+    mut jb: f64,
+    lon_at: &F,
+    diff: &D,
+) -> Option<f64>
+where
+    F: Fn(f64) -> Option<f64>,
+    D: Fn(f64) -> f64,
+{
+    for _ in 0..60 {
+        let jm = (ja + jb) / 2.0;
+        let dm = diff(lon_at(jm)?);
+        if dm.abs() < 1e-8 || (jb - ja).abs() < 1e-8 / 86400.0 {
+            return Some(jm);
+        }
+        if da * dm <= 0.0 {
+            jb = jm;
+        } else {
+            ja = jm;
+            da = dm;
+        }
+    }
+    Some((ja + jb) / 2.0)
+}
+
 pub fn find_crossing(
     body: i32,
     x2cross: f64,
@@ -17,18 +89,9 @@ pub fn find_crossing(
     forward: bool, // true = forward in time, false = backward
     flags: i32,
 ) -> Option<f64> {
-    // Step size: choose based on body speed
-    let step = match body {
-        1 => 1.0,  // Moon: fast, 1 day steps
-        0 => 5.0,  // Sun
-        2 => 5.0,  // Mercury
-        3 => 10.0, // Venus
-        4 => 20.0, // Mars
-        _ => 50.0, // outer planets
-    };
+    let step = crossing_step(body);
     let dir = if forward { 1.0 } else { -1.0 };
 
-    // Get body longitude, wrapping to range centred on x2cross
     let lon_at = |jd: f64| -> Option<f64> {
         let pos = calc_ut(jd, body, flags).ok()?;
         Some(pos.lon)
@@ -40,54 +103,8 @@ pub fn find_crossing(
     // produces a ±180° discontinuity, which is rejected by the |d1-d0|>180 filter.
     let diff = |lon: f64| -> f64 { (x2cross - lon + 540.0).rem_euclid(360.0) - 180.0 };
 
-    let mut jd = jd_start;
-    let max_jd = jd_start + dir * 400.0; // search at most ~1 year ahead
-
-    let mut d0 = diff(lon_at(jd)?);
-
-    let max_iter = (400.0 / step) as i32 + 10;
-    let mut bracket: Option<(f64, f64, f64, f64)> = None; // (jd_a, d_a, jd_b, d_b)
-
-    for _ in 0..max_iter {
-        jd += dir * step;
-        if (jd - jd_start) * dir > (max_jd - jd_start) * dir {
-            break;
-        }
-
-        let lon_new = lon_at(jd)?;
-        let d1 = diff(lon_new);
-
-        if d0 * d1 <= 0.0 {
-            // Sign change → but skip antipodal jumps (|diff| change > 180°)
-            if (d1 - d0).abs() < 180.0 {
-                bracket = Some((jd - dir * step, d0, jd, d1));
-                break;
-            }
-        }
-        d0 = d1;
-        let _lon = lon_new;
-    }
-
-    let (mut ja, mut da, mut jb, _db) = bracket?;
-
-    // Bisection to refine
-    for _ in 0..60 {
-        let jm = (ja + jb) / 2.0;
-        let lon_m = lon_at(jm)?;
-        let dm = diff(lon_m);
-
-        if dm.abs() < 1e-8 || (jb - ja).abs() < 1e-8 / 86400.0 {
-            return Some(jm);
-        }
-        if da * dm <= 0.0 {
-            jb = jm;
-        } else {
-            ja = jm;
-            da = dm;
-        }
-    }
-
-    Some((ja + jb) / 2.0)
+    let (ja, da, jb, _db) = bracket_crossing(jd_start, dir, step, &lon_at, &diff)?;
+    refine_crossing(ja, da, jb, &lon_at, &diff)
 }
 
 /// Sun crosses longitude `x2cross` after `jd_start`.

@@ -232,8 +232,6 @@ fn oblique_ascension(lon: f64, lat: f64, eps: f64, geolat: f64) -> f64 {
 fn placidus(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
     let lat_r = to_rad(lat);
     let eps_r = to_rad(eps);
-    let _cos_lat = lat_r.cos();
-    let _sin_eps = eps_r.sin();
 
     let mut cusps = [0.0f64; 13];
     cusps[1] = asc;
@@ -268,9 +266,6 @@ fn placidus(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
 /// Iteratively solve for one Placidus cusp.
 fn placidus_cusp(armc_offset: f64, lat_r: f64, eps_r: f64, sign: f64) -> f64 {
     let armc_r = to_rad(armc_offset);
-    let _sin_eps = eps_r.sin();
-    let _cos_lat = lat_r.cos();
-
     let mut lon = norm_deg(to_deg(armc_r)) + 90.0;
     for _ in 0..20 {
         let lon_r = to_rad(lon);
@@ -692,6 +687,10 @@ pub fn obliquity_simple(jd_ut: f64) -> f64 {
     let t = (jd_ut - 2_451_545.0) / 36_525.0;
     23.439_291_111 - 0.013_004_2 * t - 0.000_001_64 * t * t + 0.000_000_504 * t * t * t
 }
+/// Alias for `houses_armc` — compute house cusps directly from ARMC, latitude and obliquity.
+pub fn houses_from_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> Option<HouseResult> {
+    Some(houses_armc(armc, geolat, eps, hsys))
+}
 
 #[cfg(test)]
 mod tests {
@@ -770,8 +769,4 @@ mod tests {
         assert_eq!(HouseSystem::from_char(b'W').unwrap().name(), "Whole Sign");
         assert!(HouseSystem::from_char(b'Z').is_none());
     }
-}
-/// Alias for `houses_armc` — compute house cusps directly from ARMC, latitude and obliquity.
-pub fn houses_from_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> Option<HouseResult> {
-    Some(houses_armc(armc, geolat, eps, hsys))
 }

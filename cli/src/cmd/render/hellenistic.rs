@@ -22,7 +22,6 @@ pub fn build_hellenistic_context(
     hsys: char,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, String> {
-    let _flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert("Hellenistic Chart".to_string());
@@ -78,13 +77,88 @@ pub fn build_hellenistic_context(
     Ok(ctx)
 }
 
+const HELL_HEADERS: [&str; 8] = [
+    "Glyph",
+    "Planet",
+    "Dignity",
+    "Score",
+    "Term lord",
+    "Decan lord",
+    "Triplicity D/N",
+    "Sect",
+];
+const HELL_COL_X: [f64; 8] = [24.0, 48.0, 110.0, 210.0, 258.0, 358.0, 458.0, 600.0];
+
+fn write_hell_table_header(extra: &mut String, ring: &str, is_day: bool, ly: f64) {
+    let chart = if is_day { "Day" } else { "Night" };
+    extra.push_str(&format!(
+        "  <text x=\"24\" y=\"{ly:.0}\" font-size=\"12\" font-weight=\"600\" \
+         font-family=\"'Segoe UI',system-ui,sans-serif\" fill=\"{ring}\">\
+         Hellenistic Dignities — {chart} chart</text>\n",
+    ));
+    extra.push_str(&format!(
+        "  <line x1=\"24\" y1=\"{:.0}\" x2=\"876\" y2=\"{:.0}\" \
+         stroke=\"{ring}\" stroke-width=\".5\" opacity=\".35\"/>\n",
+        ly + 3.0,
+        ly + 3.0
+    ));
+    for (h, &x) in HELL_HEADERS.iter().zip(HELL_COL_X.iter()) {
+        extra.push_str(&format!(
+            "  <text x=\"{x:.0}\" y=\"{:.0}\" font-size=\"8\" font-weight=\"600\" \
+             fill=\"{ring}\" opacity=\".6\">{h}</text>\n",
+            ly + 14.0
+        ));
+    }
+}
+
+fn hell_score_color(score: i64, txt: &str) -> &str {
+    if score >= 4 {
+        "#1a6030"
+    } else if score < 0 {
+        "#901020"
+    } else {
+        txt
+    }
+}
+
+fn write_hell_planet_row(extra: &mut String, p: &Value, ry: f64, txt: &str) {
+    let score = p["dignity_score"].as_i64().unwrap_or(0);
+    let ret = p["retro"].as_bool().unwrap_or(false);
+    let sect = p["same_sect"].as_bool().unwrap_or(true);
+    let trip_d = p["triplicity_day"].as_str().unwrap_or("—");
+    let trip_n = p["triplicity_night"].as_str().unwrap_or("—");
+
+    let score_col = hell_score_color(score, txt);
+    let pfg = if ret { "#b01020" } else { txt };
+    let sect_lbl = if sect { "in sect" } else { "out of sect" };
+    let trip_pair = format!("{trip_d}/{trip_n}");
+    let score_str = score.to_string();
+
+    let values: [&str; 8] = [
+        p["glyph"].as_str().unwrap_or("?"),
+        p["name"].as_str().unwrap_or("?"),
+        p["dignity5"].as_str().unwrap_or("—"),
+        &score_str,
+        p["term_ruler"].as_str().unwrap_or("—"),
+        p["decan_ruler"].as_str().unwrap_or("—"),
+        &trip_pair,
+        sect_lbl,
+    ];
+    for (&x, val) in HELL_COL_X.iter().zip(values.iter()) {
+        let col = if x == 210.0 { score_col } else { pfg };
+        extra.push_str(&format!(
+            "  <text x=\"{x:.0}\" y=\"{ry:.0}\" font-size=\"9\" \
+             font-family=\"'Segoe UI',system-ui,sans-serif\" fill=\"{col}\">{val}</text>\n"
+        ));
+    }
+}
+
 pub fn render_hellenistic_svg(ctx: &Value) -> String {
     // Delegate to the full natal SVG — the dignity5/term/decan fields
     // are in the context and visible via --print-context.
     // We add an extra dignities legend section below the normal wheel.
     let mut s = render_builtin_svg(ctx);
 
-    let _bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
     let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
     let is_day = ctx["is_day"].as_bool().unwrap_or(true);
@@ -94,84 +168,11 @@ pub fn render_hellenistic_svg(ctx: &Value) -> String {
         .map(|v| v.to_vec())
         .unwrap_or_default();
 
-    // Build extended dignities table below the SVG
-    let ly = CY + RO + 260.0; // below the existing legend
-    let mut extra = format!(
-        "  <text x=\"24\" y=\"{ly:.0}\" font-size=\"12\" font-weight=\"600\" \
-         font-family=\"'Segoe UI',system-ui,sans-serif\" fill=\"{ring}\">\
-         Hellenistic Dignities — {} chart</text>\n",
-        if is_day { "Day" } else { "Night" }
-    );
-    extra.push_str(&format!(
-        "  <line x1=\"24\" y1=\"{:.0}\" x2=\"876\" y2=\"{:.0}\" \
-         stroke=\"{ring}\" stroke-width=\".5\" opacity=\".35\"/>\n",
-        ly + 3.0,
-        ly + 3.0
-    ));
-
-    // Column headers
-    let headers = [
-        "Glyph",
-        "Planet",
-        "Dignity",
-        "Score",
-        "Term lord",
-        "Decan lord",
-        "Triplicity D/N",
-        "Sect",
-    ];
-    let col_x = [24.0_f64, 48.0, 110.0, 210.0, 258.0, 358.0, 458.0, 600.0];
-    for (h, &x) in headers.iter().zip(col_x.iter()) {
-        extra.push_str(&format!(
-            "  <text x=\"{x:.0}\" y=\"{:.0}\" font-size=\"8\" font-weight=\"600\" \
-             fill=\"{ring}\" opacity=\".6\">{h}</text>\n",
-            ly + 14.0
-        ));
-    }
-
+    let ly = CY + RO + 260.0;
+    let mut extra = String::new();
+    write_hell_table_header(&mut extra, ring, is_day, ly);
     for (i, p) in planets.iter().enumerate() {
-        let ry = ly + 26.0 + i as f64 * 15.0;
-        let g = p["glyph"].as_str().unwrap_or("?");
-        let name = p["name"].as_str().unwrap_or("?");
-        let dig = p["dignity5"].as_str().unwrap_or("—");
-        let score = p["dignity_score"].as_i64().unwrap_or(0);
-        let term = p["term_ruler"].as_str().unwrap_or("—");
-        let decan = p["decan_ruler"].as_str().unwrap_or("—");
-        let trip_d = p["triplicity_day"].as_str().unwrap_or("—");
-        let trip_n = p["triplicity_night"].as_str().unwrap_or("—");
-        let sect = p["same_sect"].as_bool().unwrap_or(true);
-        let ret = p["retro"].as_bool().unwrap_or(false);
-
-        let score_col = if score >= 4 {
-            "#1a6030"
-        } else if score < 0 {
-            "#901020"
-        } else {
-            txt
-        };
-        let sect_lbl = if sect { "in sect" } else { "out of sect" };
-
-        let pfg = if ret { "#b01020" } else { txt };
-
-        for (&x, val) in col_x.iter().zip(
-            [
-                g,
-                name,
-                dig,
-                &score.to_string(),
-                term,
-                decan,
-                &format!("{trip_d}/{trip_n}"),
-                sect_lbl,
-            ]
-            .iter(),
-        ) {
-            let col = if x == 210.0 { score_col } else { pfg };
-            extra.push_str(&format!(
-                "  <text x=\"{x:.0}\" y=\"{ry:.0}\" font-size=\"9\" \
-                 font-family=\"'Segoe UI',system-ui,sans-serif\" fill=\"{col}\">{val}</text>\n"
-            ));
-        }
+        write_hell_planet_row(&mut extra, p, ly + 26.0 + i as f64 * 15.0, txt);
     }
 
     if let Some(idx) = s.rfind("</svg>") {
@@ -417,7 +418,6 @@ pub fn render_profection_svg(ctx: &Value) -> String {
     // Start from the natal wheel, add a profection marker
     let mut s = render_builtin_svg(ctx);
 
-    let _ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
     let prof_house = ctx["profection_house"].as_u64().unwrap_or(1);
     let prof_lon = ctx["profection_lon"].as_f64().unwrap_or(0.0);

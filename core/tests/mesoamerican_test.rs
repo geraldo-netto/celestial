@@ -10,7 +10,7 @@ mod mesoamerican {
             let jd = 2_451_545.0 + i as f64;
             let (trecena, sign_idx, _, _) = tonalpohualli(jd);
             assert!(
-                trecena >= 1 && trecena <= 13,
+                (1..=13).contains(&trecena),
                 "trecena {trecena} out of [1,13] at day {i}"
             );
             assert!(sign_idx < 20, "sign {sign_idx} >= 20 at day {i}");
@@ -81,7 +81,7 @@ mod extra_mesoamerican {
     #[test]
     fn tonalpohualli_cycle_length_260() {
         // Exactly 260 days later should give the same position
-        let jd = GMT as f64;
+        let jd = GMT;
         let (t0, s0, _, _) = tonalpohualli(jd);
         let (t260, s260, _, _) = tonalpohualli(jd + 260.0);
         assert_eq!(t0, t260, "trecena repeats at 260 days");
@@ -94,14 +94,14 @@ mod extra_mesoamerican {
         for offset in 0..260i64 {
             let jd = GMT + offset as f64;
             let (t, s, _, _) = tonalpohualli(jd);
-            assert!(t >= 1 && t <= 13, "trecena {t} out of range [1,13]");
+            assert!((1..=13).contains(&t), "trecena {t} out of range [1,13]");
             assert!(s < 20, "sign_idx {s} out of range [0,19]");
         }
     }
 
     #[test]
     fn tonalpohualli_day_one_is_cipactli() {
-        let (t, s, name, _) = tonalpohualli(GMT as f64);
+        let (t, s, name, _) = tonalpohualli(GMT);
         assert_eq!(t, 1, "GMT day: trecena 1");
         assert_eq!(s, 0, "GMT day: sign 0 (Cipactli)");
         assert_eq!(name, "Cipactli", "GMT day: name Cipactli");
@@ -109,7 +109,7 @@ mod extra_mesoamerican {
 
     #[test]
     fn xiuhpohualli_365_day_cycle() {
-        let jd = GMT as f64;
+        let jd = GMT;
         let (m0, d0, _, _) = xiuhpohualli(jd);
         let (m365, d365, _, _) = xiuhpohualli(jd + 365.0);
         assert_eq!(m0, m365, "xiuhpohualli month repeats at 365 days");
@@ -119,7 +119,7 @@ mod extra_mesoamerican {
     #[test]
     fn tzolkin_matches_tonalpohualli_cycle() {
         // Tzolkin is the Maya equivalent of Tonalpohualli — same 260-day period
-        let jd = GMT as f64 + 17.0;
+        let jd = GMT + 17.0;
         let (tt, _, _, _) = tonalpohualli(jd);
         let (tz, _, _, _) = tzolkin(jd);
         assert_eq!(
@@ -130,7 +130,7 @@ mod extra_mesoamerican {
 
     #[test]
     fn haab_365_day_cycle() {
-        let jd = GMT as f64;
+        let jd = GMT;
         let (m0, d0, _) = haab(jd);
         let (m365, d365, _) = haab(jd + 365.0);
         assert_eq!(m0, m365);
@@ -140,7 +140,7 @@ mod extra_mesoamerican {
     #[test]
     fn calendar_round_18980_day_cycle() {
         // Calendar Round = LCM(260, 365) = 18980 days
-        let jd = GMT as f64;
+        let jd = GMT;
         let cr0 = calendar_round(jd);
         let cr18980 = calendar_round(jd + 18980.0);
         assert_eq!(cr0, cr18980, "Calendar Round repeats at 18980 days");

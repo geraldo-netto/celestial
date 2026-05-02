@@ -47,12 +47,11 @@ pub fn moon_true_node(jd_et: f64) -> f64 {
     let om = moon_mean_node(jd_et);
 
     // Periodic terms (Meeus table 47.b, truncated to significant terms)
-    let mut delta = 0.0;
-    delta += -1.4979 * (2.0 * to_rad(f - om)).sin();
-    delta += 0.1500 * to_rad(m).sin();
-    delta += 0.1226 * (2.0 * to_rad(f)).sin();
-    delta += -0.1176 * (2.0 * to_rad(om)).sin();
-    delta += -0.0801 * (2.0 * to_rad(mp - f)).sin();
+    let delta = -1.4979 * (2.0 * to_rad(f - om)).sin()
+        + 0.1500 * to_rad(m).sin()
+        + 0.1226 * (2.0 * to_rad(f)).sin()
+        + -0.1176 * (2.0 * to_rad(om)).sin()
+        + -0.0801 * (2.0 * to_rad(mp - f)).sin();
 
     norm360(om + delta)
 }

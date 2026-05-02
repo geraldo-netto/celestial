@@ -15,7 +15,6 @@ pub(super) fn build_progressed_context(
     hsys: char,
     user_vars: BTreeMap<String, String>,
 ) -> Result<serde_json::Value, String> {
-    let _flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let prog_jd = jd + years * 365.25;
     let prog_date = jd_to_date_str(prog_jd);
     let mut vars = user_vars;
@@ -44,7 +43,6 @@ pub(super) fn build_solar_arc_context(
     user_vars: BTreeMap<String, String>,
 ) -> Result<serde_json::Value, String> {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
-    let _target_jd = jd + years * 365.25;
     let mut ctx = build_context(jd, lat, lon, date_str, hsys, user_vars)?;
     // Compute solar arc delta
     let sun_natal = calc_ut(jd, Body::SUN, flags).map_err(|e| e.to_string())?;

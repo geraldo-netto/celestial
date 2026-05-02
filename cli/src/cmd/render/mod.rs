@@ -905,12 +905,14 @@ fn vars_with_title(
     v
 }
 
+type ChartRenderer = fn(&serde_json::Value) -> String;
+
 fn dispatch_chart_type(
     chart_type: &str,
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(serde_json::Value, fn(&serde_json::Value) -> String), String> {
+) -> Result<(serde_json::Value, ChartRenderer), String> {
     Ok(match chart_type {
             "natal" | "" => {
                 let v = vars_with_title(user_vars, "Natal Chart");
@@ -1081,7 +1083,7 @@ fn dispatch_chart_type(
                  omer_grid::render_omer_grid_svg)
             }
             "calendar" => (
-                build_calendar_context(jd, &args, &user_vars)?,
+                build_calendar_context(jd, args, user_vars)?,
                 calendar_overlays::render_default_calendar_svg,
             ),
             other => return Err(format!("unknown --type '{other}'; valid: natal cosmogram solar-return lunar-return progressed solar-arc biwheel composite triwheel dial ephemeris local-space rasi navamsa dasha north-indian ashtakavarga shadbala hellenistic firdaria profection bazi mesoamerican medicine-wheel wheel-of-year omer-grid calendar"))})
@@ -1244,13 +1246,34 @@ mod tests {
         assert!(!svg.contains("inf"), "SVG must not contain inf");
     }
 
+    fn assert_natal_fields_present(ctx: &Value) {
+        assert!(ctx["asc"].is_number(), "asc should still be present");
+        assert!(ctx["planets"].is_array(), "planets should still be array");
+    }
+
+    fn assert_omer_overlay_for_may_15_2024(ctx: &Value) {
+        assert!(ctx["omer"].is_object(), "omer overlay missing");
+        let today = &ctx["omer"]["today"];
+        assert!(!today.is_null(), "May 15 2024 is in Omer 5784 — today should be set");
+        assert_eq!(today["day"].as_u64(), Some(23), "day 23 of Omer 5784");
+        assert_eq!(today["day_sefirah"].as_str(), Some("Gevurah"));
+        assert_eq!(today["week_sefirah"].as_str(), Some("Netzach"));
+    }
+
+    fn assert_sabbats_overlay_2024(ctx: &Value) {
+        let sabbats = ctx["sabbats"]["sabbats"].as_array().expect("sabbats array");
+        assert_eq!(sabbats.len(), 8);
+        assert_eq!(sabbats[0]["index"].as_u64(), Some(0));
+        assert_eq!(sabbats[0]["list_y"].as_i64(), Some(0));
+        assert_eq!(sabbats[7]["index"].as_u64(), Some(7));
+        assert_eq!(sabbats[7]["list_y"].as_i64(), Some(98)); // 7 × 14
+    }
+
     /// Universal overlay: `--calendar omer` should add an `omer.today` field
     /// to ANY chart-type's context, not just `--chart-type calendar`.
     /// Verifies the post-dispatch overlay-merge step in `run()`.
     #[test]
     fn overlays_merge_into_non_calendar_context() {
-        // Build a natal context directly, then apply the overlay logic
-        // exactly as `run()` does for non-calendar chart types.
         let jd = celestial_core::julday(2024, 5, 15, 12.0, Calendar::Gregorian);
         let mut ctx = build_context(
             jd,
@@ -1262,32 +1285,13 @@ mod tests {
         )
         .expect("natal context");
 
-        // Simulate the universal overlay step (mirrors mod.rs run() logic)
-        if let Some(obj) = ctx.as_object_mut() {
-            obj.insert("omer".into(), calendar_overlays::omer_overlay(jd));
-            obj.insert("sabbats".into(), calendar_overlays::sabbats_overlay(2024));
-        }
+        let obj = ctx.as_object_mut().expect("ctx is object");
+        obj.insert("omer".into(), calendar_overlays::omer_overlay(jd));
+        obj.insert("sabbats".into(), calendar_overlays::sabbats_overlay(2024));
 
-        // Natal-chart standard fields must still be present (overlays don't clobber)
-        assert!(ctx["asc"].is_number(), "asc should still be present");
-        assert!(ctx["planets"].is_array(), "planets should still be array");
-
-        // Overlays merged in
-        assert!(ctx["omer"].is_object(), "omer overlay missing");
-        let today = &ctx["omer"]["today"];
-        assert!(!today.is_null(), "May 15 2024 is in Omer 5784 — today should be set");
-        assert_eq!(today["day"].as_u64(), Some(23),
-                   "May 15 2024 is day 23 of Omer 5784");
-        assert_eq!(today["day_sefirah"].as_str(), Some("Gevurah"));
-        assert_eq!(today["week_sefirah"].as_str(), Some("Netzach"));
-
-        // Sabbats overlay has 8 entries with index + list_y for templates
-        let sabbats = ctx["sabbats"]["sabbats"].as_array().expect("sabbats array");
-        assert_eq!(sabbats.len(), 8);
-        assert_eq!(sabbats[0]["index"].as_u64(), Some(0));
-        assert_eq!(sabbats[0]["list_y"].as_i64(), Some(0));
-        assert_eq!(sabbats[7]["index"].as_u64(), Some(7));
-        assert_eq!(sabbats[7]["list_y"].as_i64(), Some(98)); // 7 × 14
+        assert_natal_fields_present(&ctx);
+        assert_omer_overlay_for_may_15_2024(&ctx);
+        assert_sabbats_overlay_2024(&ctx);
     }
 
     /// MiniJinja contract: math, filters, and loop.index work as expected.
@@ -1321,7 +1325,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let ctx = serde_json::json!({
             "x": 12,
             "y": 30,
-            "pi": 3.14159265,
+            "pi": std::f64::consts::PI,
             "nums": ["a", "b", "c"],
         });
         let out = env
@@ -1578,7 +1582,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
                 "aspect endpoints not finite"
             );
             let orb = asp["orb"].as_f64().unwrap();
-            assert!(orb >= 0.0 && orb <= 8.0, "orb out of range: {orb}");
+            assert!((0.0..=8.0).contains(&orb), "orb out of range: {orb}");
         }
     }
 
@@ -1785,7 +1789,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let ctx = build_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
         assert_eq!(ctx["vars"]["no_houses"].as_str(), Some("1"));
         // Should still have planets and signs
-        assert!(ctx["planets"].as_array().unwrap().len() > 0);
+        assert!(!ctx["planets"].as_array().unwrap().is_empty());
         assert!(ctx["signs"].as_array().unwrap().len() == 12);
     }
 
@@ -1862,7 +1866,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         )
         .unwrap();
         assert!(
-            ctx["planets"].as_array().unwrap().len() > 0,
+            !ctx["planets"].as_array().unwrap().is_empty(),
             "inner planets missing"
         );
         assert!(
@@ -1907,7 +1911,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         // Every planet dial_lon must be in [0, 90)
         for p in ctx["planets"].as_array().unwrap() {
             let dl = p["dial_lon"].as_f64().unwrap_or(-1.0);
-            assert!(dl >= 0.0 && dl < 90.0, "dial_lon {dl} out of [0,90)");
+            assert!((0.0..90.0).contains(&dl), "dial_lon {dl} out of [0,90)");
         }
     }
 
@@ -1933,7 +1937,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         // Composite ASC should be the midpoint of the two individual ASCs
         let comp_asc = ctx["asc"].as_f64().unwrap();
         assert!(
-            comp_asc >= 0.0 && comp_asc < 360.0,
+            (0.0..360.0).contains(&comp_asc),
             "composite ASC out of range: {comp_asc}"
         );
     }
@@ -2000,7 +2004,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         for p in planets {
             let az = p["azimuth"].as_f64().unwrap_or(-1.0);
             assert!(
-                az >= 0.0 && az < 360.0,
+                (0.0..360.0).contains(&az),
                 "azimuth {az} out of [0,360) for {}",
                 p["name"]
             );
@@ -2407,7 +2411,7 @@ mod tests_vedic {
         for p in planets {
             let rasi = p["rasi"].as_i64().unwrap_or(-1);
             assert!(
-                rasi >= 0 && rasi < 12,
+                (0..12).contains(&rasi),
                 "rasi {rasi} out of range for {}",
                 p["name"]
             );
@@ -2423,12 +2427,12 @@ mod tests_vedic {
         for p in planets {
             let nak = p["nakshatra"].as_i64().unwrap_or(-1);
             assert!(
-                nak >= 0 && nak < 27,
+                (0..27).contains(&nak),
                 "nakshatra {nak} out of range for {}",
                 p["name"]
             );
             let pada = p["pada"].as_i64().unwrap_or(-1);
-            assert!(pada >= 1 && pada <= 4, "pada {pada} out of range");
+            assert!((1..=4).contains(&pada), "pada {pada} out of range");
         }
     }
 
@@ -2461,8 +2465,8 @@ mod tests_vedic {
             let rasi = long_to_rasi(sun.lon);
             let navamsa = long_to_navamsa(sun.lon);
             // Can't assert they differ (they might coincide), but both must be valid
-            assert!(rasi >= 0 && rasi < 12, "rasi {rasi} invalid");
-            assert!(navamsa >= 0 && navamsa < 12, "navamsa {navamsa} invalid");
+            assert!((0..12).contains(&rasi), "rasi {rasi} invalid");
+            assert!((0..12).contains(&navamsa), "navamsa {navamsa} invalid");
         }
     }
 
@@ -2516,7 +2520,7 @@ mod tests_vedic {
         for p in planets {
             let rasi = p["rasi"].as_i64().unwrap_or(-1);
             assert!(
-                rasi >= 0 && rasi < 12,
+                (0..12).contains(&rasi),
                 "rasi {rasi} out of [0,12) for {}",
                 p["name"]
             );
@@ -2587,12 +2591,12 @@ mod tests_vedic {
         let ctx = build_ashtakavarga_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
         let rows = ctx["ashtakavarga_rows"].as_array().unwrap();
         let totals = ctx["sarvashtakavarga"].as_array().unwrap();
-        for si in 0..12usize {
+        for (si, total_v) in totals.iter().enumerate().take(12) {
             let row_sum: u64 = rows
                 .iter()
                 .map(|r| r["bindus"].as_array().unwrap()[si].as_u64().unwrap_or(0))
                 .sum();
-            let total = totals[si].as_u64().unwrap_or(0);
+            let total = total_v.as_u64().unwrap_or(0);
             assert_eq!(
                 row_sum, total,
                 "sign {si}: row sum {row_sum} != sarvashtakavarga total {total}"
@@ -2757,7 +2761,7 @@ mod tests_vedic {
         let ctx = build_profection_context(jd, 48.85, 2.35, "2000-01-01", 'P', 35, vars).unwrap();
         let house = ctx["profection_house"].as_u64().unwrap_or(0);
         assert!(
-            house >= 1 && house <= 12,
+            (1..=12).contains(&house),
             "profection house {house} ;out of [1,12]"
         );
         assert!(ctx.get("profection_lord").is_some());
@@ -2862,7 +2866,7 @@ mod tests_vedic {
         let vars = std::collections::BTreeMap::new();
         let ctx = build_mesoamerican_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
         let t = ctx["tonal_trecena"].as_u64().unwrap_or(0);
-        assert!(t >= 1 && t <= 13, "trecena {t} out of [1,13]");
+        assert!((1..=13).contains(&t), "trecena {t} out of [1,13]");
     }
 
     #[test]

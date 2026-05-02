@@ -1152,16 +1152,10 @@ pub fn star_ecliptic_pos(star: &StarEntry, jd_ut: f64) -> (f64, f64, f64) {
     let x_lon = ra_r.cos() * dec_r.cos();
     let lon_r = y_lon.atan2(x_lon);
 
-    let mut lon = lon_r.to_degrees();
-    if lon < 0.0 {
-        lon += 360.0;
-    }
-
-    // Apply precession: ~50.29 arcsec/yr ≈ 0.01396°/yr
+    // Apply precession: ~50.29 arcsec/yr ≈ 0.01396°/yr.
+    // rem_euclid normalises any negative or out-of-range value into [0, 360).
     let prec_rate = 0.013972_f64; // deg/year
-    lon += t * prec_rate;
-    lon = lon.rem_euclid(360.0);
-
+    let lon = (lon_r.to_degrees() + t * prec_rate).rem_euclid(360.0);
     let lat = lat_r.to_degrees();
     let dist = if star.plx > 0.0 {
         1.0 / (star.plx / 1000.0) * 206_265.0

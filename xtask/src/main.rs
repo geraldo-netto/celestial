@@ -74,6 +74,41 @@ fn internal_fns() -> BTreeSet<String> {
         .collect()
 }
 
+/// Find the function name on or after line `start`, scanning at most 5 lines.
+fn scan_fn_name(lines: &[&str], start: usize) -> Option<(String, usize)> {
+    let n = lines.len();
+    if let Some(j) = (start..n.min(start + 5)).next() {
+        let l = lines[j].trim();
+        let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "))?;
+        let name = rest.split('(').next()?.trim().to_string();
+        return Some((name, j));
+    }
+    None
+}
+
+/// Find a `celestial::<name>(` delegate call within ~15 lines after `start`.
+/// Returns the called name only if it differs from `fname` (i.e. is an alias).
+fn scan_delegate(lines: &[&str], start: usize, fname: &str) -> Option<String> {
+    let n = lines.len();
+    for line in lines.iter().take(n.min(start + 15)).skip(start) {
+        let l = line.trim();
+        if let Some(after) = l.strip_prefix("celestial::") {
+            let called: String = after
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
+            if !called.is_empty() && called != fname {
+                return Some(called);
+            }
+            return None;
+        }
+        if l == "}" {
+            return None;
+        }
+    }
+    None
+}
+
 /// Legacy alias functions that exist for SwissEph / backward-compat naming.
 /// Codegen will never flag these as missing or generate new stubs for them.
 /// Maps alias_name → canonical_name.
@@ -84,49 +119,19 @@ fn legacy_aliases() -> std::collections::BTreeMap<String, String> {
     let php_src = fs::read_to_string(root.join("bindings/php/src/lib.rs")).unwrap_or_default();
     let mut map = std::collections::BTreeMap::new();
 
-    // Pattern: #[php_function]\npub fn ALIAS(...) ... { celestial::REAL(
     let lines: Vec<&str> = php_src.lines().collect();
     let n = lines.len();
     let mut i = 0;
     while i < n {
         let t = lines[i].trim();
-        if t == "#[php_function]" || t.starts_with("#[allow") {
-            // Scan forward for the fn name
-            let mut fn_name = None;
-            let mut j = i + 1;
-            while j < n.min(i + 5) {
-                let l = lines[j].trim();
-                let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "));
-                if let Some(rest) = rest {
-                    fn_name = rest.split('(').next().map(|s| s.trim().to_string());
-                    break;
-                }
-                j += 1;
-            }
-            // Scan forward for the single celestial:: call in the body
-            if let Some(ref fname) = fn_name {
-                let mut delegate = None;
-                let mut k = j + 1;
-                while k < n.min(j + 15) {
-                    let l = lines[k].trim();
-                    if let Some(after) = l.strip_prefix("celestial::") {
-                        let called: String = after
-                            .chars()
-                            .take_while(|c| c.is_alphanumeric() || *c == '_')
-                            .collect();
-                        if !called.is_empty() && &called != fname {
-                            delegate = Some(called);
-                        }
-                        break;
-                    }
-                    if l == "}" {
-                        break;
-                    } // end of fn body
-                    k += 1;
-                }
-                if let Some(real) = delegate {
-                    map.insert(fname.clone(), real);
-                }
+        let is_marker = t == "#[php_function]" || t.starts_with("#[allow");
+        if !is_marker {
+            i += 1;
+            continue;
+        }
+        if let Some((fname, j)) = scan_fn_name(&lines, i + 1) {
+            if let Some(real) = scan_delegate(&lines, j + 1, &fname) {
+                map.insert(fname, real);
             }
         }
         i += 1;
@@ -145,8 +150,8 @@ fn decorated_fns(src: &str, decorator: &str) -> BTreeSet<String> {
     while i < n {
         let t = lines[i].trim();
         if t.starts_with(&prefix) || t.starts_with("#[allow") {
-            for j in i..n.min(i + 6) {
-                let l = lines[j].trim();
+            for line in lines.iter().take(n.min(i + 6)).skip(i) {
+                let l = line.trim();
                 let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "));
                 if let Some(rest) = rest {
                     let name: String = rest.split([' ', '(', '<']).next().unwrap_or("").to_string();
@@ -848,117 +853,54 @@ fn rust_type_to_php_str(t: &str) -> &'static str {
     }
 }
 
+/// Strip a single-level `Wrapper<...>` if present.
+fn strip_wrapper<'a>(t: &'a str, wrapper: &str) -> Option<&'a str> {
+    t.strip_prefix(wrapper)
+        .and_then(|s| s.strip_suffix('>'))
+        .map(str::trim)
+}
+
+/// Map a non-nullable Rust core type to the PHPDoc base type.
+fn php_doc_base_type(core: &str) -> &'static str {
+    match core {
+        "f64" | "f32" => "float",
+        "i32" | "i64" | "u32" | "u64" | "u8" | "i8" | "usize" | "isize" => "int",
+        "bool" => "bool",
+        "String" | "&str" | "&'static str" => "string",
+        "()" => "void",
+        t if t.starts_with("Vec<f") => "float[]",
+        t if t.starts_with("Vec<i") || t.starts_with("Vec<u") => "int[]",
+        t if t.starts_with("Vec<String") || t.starts_with("Vec<&str") => "string[]",
+        t if t.starts_with("HashMap<") => "array<string,mixed>",
+        _ => "array",
+    }
+}
+
 /// Return the PHPDoc @return type string (can use int[], float[], etc.).
 fn php_array_doctype(rust: &str) -> &'static str {
     let t = rust.trim();
-    let inner = if let Some(s) = t
-        .strip_prefix("PhpResult<")
-        .and_then(|s| s.strip_suffix('>'))
-    {
-        s.trim()
-    } else if let Some(s) = t.strip_prefix("Result<").and_then(|s| s.strip_suffix('>')) {
-        s.trim()
-    } else {
-        t
+    let inner = strip_wrapper(t, "PhpResult<")
+        .or_else(|| strip_wrapper(t, "Result<"))
+        .unwrap_or(t);
+    let (nullable, core) = match strip_wrapper(inner, "Option<") {
+        Some(s) => (true, s),
+        None => (false, inner),
     };
-
-    let (nullable, core) = if let Some(s) = inner
-        .strip_prefix("Option<")
-        .and_then(|s| s.strip_suffix('>'))
-    {
-        (true, s.trim())
-    } else {
-        (false, inner)
-    };
-
-    let doc = match core {
-        "f64" | "f32" => {
-            if nullable {
-                "float|null"
-            } else {
-                "float"
-            }
-        }
-        "i32" | "i64" | "u32" | "u64" | "u8" | "i8" | "usize" | "isize" => {
-            if nullable {
-                "int|null"
-            } else {
-                "int"
-            }
-        }
-        "bool" => {
-            if nullable {
-                "bool|null"
-            } else {
-                "bool"
-            }
-        }
-        "String" | "&str" | "&'static str" => {
-            if nullable {
-                "string|null"
-            } else {
-                "string"
-            }
-        }
-        "()" => "void",
-        t if t.starts_with("Vec<f") => {
-            if nullable {
-                "float[]|null"
-            } else {
-                "float[]"
-            }
-        }
-        t if t.starts_with("Vec<i") || t.starts_with("Vec<u") => {
-            if nullable {
-                "int[]|null"
-            } else {
-                "int[]"
-            }
-        }
-        t if t.starts_with("Vec<String") || t.starts_with("Vec<&str") => {
-            if nullable {
-                "string[]|null"
-            } else {
-                "string[]"
-            }
-        }
-        t if t.starts_with("Vec<Vec<") => {
-            if nullable {
-                "array|null"
-            } else {
-                "array"
-            }
-        }
-        t if t.starts_with("HashMap<") => {
-            if nullable {
-                "array<string,mixed>|null"
-            } else {
-                "array<string,mixed>"
-            }
-        }
-        t if t.starts_with("Vec<HashMap") => {
-            if nullable {
-                "array|null"
-            } else {
-                "array"
-            }
-        }
-        t if t.starts_with("Vec<") => {
-            if nullable {
-                "array|null"
-            } else {
-                "array"
-            }
-        }
-        _ => {
-            if nullable {
-                "array|null"
-            } else {
-                "array"
-            }
-        }
-    };
-    doc
+    let base = php_doc_base_type(core);
+    if !nullable || base == "void" {
+        return base;
+    }
+    match base {
+        "float" => "float|null",
+        "int" => "int|null",
+        "bool" => "bool|null",
+        "string" => "string|null",
+        "float[]" => "float[]|null",
+        "int[]" => "int[]|null",
+        "string[]" => "string[]|null",
+        "array<string,mixed>" => "array<string,mixed>|null",
+        _ => "array|null",
+    }
 }
 
 /// Sanitise a Rust parameter name to a valid PHP variable name.
@@ -990,56 +932,61 @@ fn cmd_test_stubs() {
 
     let mut errors: Vec<String> = Vec::new();
 
-    // ── Rule 1: must start with <?php ────────────────────────────────────────
+    check_php_opening(&src, &mut errors);
+    check_typed_array_hints(&src, &mut errors);
+    check_dollar_digit(&src, &mut errors);
+    check_rust_type_remnants(&src, &mut errors);
+    let seen_fns = check_duplicate_functions(&src, &mut errors);
+    check_double_prefix(&src, &mut errors);
+    check_function_bodies(&src, &mut errors);
+    check_suspicious_signatures(&src, &mut errors);
+
+    report_stubs_result(&errors, seen_fns.len());
+}
+
+fn check_php_opening(src: &str, errors: &mut Vec<String>) {
     if !src.starts_with("<?php") {
         errors.push("missing <?php opening tag".into());
     }
+}
 
-    // ── Rule 2: no typed array hints in function signatures ───────────────────
-    // `int[]`, `float[]`, `string[]` are only valid in PHPDoc @return tags.
+fn check_typed_array_hints(src: &str, errors: &mut Vec<String>) {
     for (i, line) in src.lines().enumerate() {
         let t = line.trim();
-        if t.starts_with("function ") {
-            // Check params and return type (not docblocks)
-            if let Some(start) = t.find('(') {
-                if let Some(end) = t.rfind(')') {
-                    let params_and_ret = &t[start..];
-                    if params_and_ret.contains("int[]")
-                        || params_and_ret.contains("float[]")
-                        || params_and_ret.contains("string[]")
-                    {
-                        errors.push(format!(
-                            "line {}: typed array hint in function signature: {}",
-                            i + 1,
-                            &t[..t.len().min(80)]
-                        ));
-                        let _ = end;
-                    }
-                }
-            }
+        if !t.starts_with("function ") {
+            continue;
+        }
+        let Some(start) = t.find('(') else { continue };
+        if t.rfind(')').is_none() {
+            continue;
+        }
+        let params_and_ret = &t[start..];
+        if params_and_ret.contains("int[]")
+            || params_and_ret.contains("float[]")
+            || params_and_ret.contains("string[]")
+        {
+            errors.push(format!(
+                "line {}: typed array hint in function signature: {}",
+                i + 1,
+                &t[..t.len().min(80)]
+            ));
         }
     }
+}
 
-    // ── Rule 3: no invalid variable names (starting with digit) ───────────────
-    let dollar_digit = regex_lite_find_dollar_digit(&src);
-    for (line_no, snippet) in dollar_digit {
+fn check_dollar_digit(src: &str, errors: &mut Vec<String>) {
+    for (line_no, snippet) in regex_lite_find_dollar_digit(src) {
         errors.push(format!(
             "line {line_no}: invalid variable name starting with digit: {snippet}"
         ));
     }
+}
 
-    // ── Rule 4: no Rust type remnants in function signatures ──────────────────
-    let rust_types = [
-        "i32",
-        "u32",
-        "i64",
-        "u64",
-        "usize",
-        "Vec<",
-        "Option<",
-        "PhpResult",
+fn check_rust_type_remnants(src: &str, errors: &mut Vec<String>) {
+    const RUST_TYPES: &[&str] = &[
+        "i32", "u32", "i64", "u64", "usize", "Vec<", "Option<", "PhpResult",
     ];
-    for rt in rust_types {
+    for rt in RUST_TYPES {
         for (i, line) in src.lines().enumerate() {
             let t = line.trim();
             if t.starts_with("function ") && t.contains(rt) {
@@ -1052,25 +999,31 @@ fn cmd_test_stubs() {
             }
         }
     }
+}
 
-    // ── Rule 5: no duplicate function names ───────────────────────────────────
+fn check_duplicate_functions(
+    src: &str,
+    errors: &mut Vec<String>,
+) -> std::collections::BTreeMap<String, usize> {
     let mut seen_fns: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
     for (i, line) in src.lines().enumerate() {
         let t = line.trim();
-        if t.starts_with("function ") {
-            if let Some(paren) = t.find('(') {
-                let name = t["function ".len()..paren].trim().to_string();
-                if let Some(prev) = seen_fns.insert(name.clone(), i + 1) {
-                    errors.push(format!(
-                        "line {}: duplicate function {name} (first at line {prev})",
-                        i + 1
-                    ));
-                }
-            }
+        if !t.starts_with("function ") {
+            continue;
+        }
+        let Some(paren) = t.find('(') else { continue };
+        let name = t["function ".len()..paren].trim().to_string();
+        if let Some(prev) = seen_fns.insert(name.clone(), i + 1) {
+            errors.push(format!(
+                "line {}: duplicate function {name} (first at line {prev})",
+                i + 1
+            ));
         }
     }
+    seen_fns
+}
 
-    // ── Rule 6: no double-prefix celestial_celestial_ ─────────────────────────
+fn check_double_prefix(src: &str, errors: &mut Vec<String>) {
     for (i, line) in src.lines().enumerate() {
         if line.contains("celestial_celestial_") {
             errors.push(format!(
@@ -1080,10 +1033,9 @@ fn cmd_test_stubs() {
             ));
         }
     }
+}
 
-    // ── Rule 7: every function must have a body {} ────────────────────────────
-    // (multiline signatures are fine — just check the whole file has balanced {})
-    // Simple check: count function declarations vs {} occurrences nearby
+fn check_function_bodies(src: &str, errors: &mut Vec<String>) {
     let fn_count = src
         .lines()
         .filter(|l| l.trim().starts_with("function "))
@@ -1094,40 +1046,39 @@ fn cmd_test_stubs() {
             "{fn_count} function declarations but only {body_count} empty bodies ({{}})"
         ));
     }
+}
 
-    // ── Rule 8: fuzz — check 20 random-ish lines for obvious garbage ─────────
-    let suspicious: Vec<_> = src
-        .lines()
-        .enumerate()
-        .filter(|(_, l)| {
-            let t = l.trim();
-            t.starts_with("function ")
-                && (t.contains("flat:")        // raw comment fragment
-                    || t.contains("...")        // raw comment fragment
-                    || t.contains("$//")        // $ before comment
-                    || t.contains(", $,")       // empty param name
-                    || t.contains("($,")) // empty first param
-        })
-        .collect();
-    for (i, line) in suspicious {
-        errors.push(format!(
-            "line {}: suspicious/malformed signature: {}",
-            i + 1,
-            line.trim().chars().take(80).collect::<String>()
-        ));
+fn is_suspicious_signature(t: &str) -> bool {
+    t.starts_with("function ")
+        && (t.contains("flat:")
+            || t.contains("...")
+            || t.contains("$//")
+            || t.contains(", $,")
+            || t.contains("($,"))
+}
+
+fn check_suspicious_signatures(src: &str, errors: &mut Vec<String>) {
+    for (i, line) in src.lines().enumerate() {
+        if is_suspicious_signature(line.trim()) {
+            errors.push(format!(
+                "line {}: suspicious/malformed signature: {}",
+                i + 1,
+                line.trim().chars().take(80).collect::<String>()
+            ));
+        }
     }
+}
 
-    // ── Report ────────────────────────────────────────────────────────────────
-    let fn_total = seen_fns.len();
+fn report_stubs_result(errors: &[String], fn_total: usize) {
     if errors.is_empty() {
         println!("✓ phpstan-stubs.php: {fn_total} functions — all PHP 8.0 syntax checks passed");
-    } else {
-        eprintln!("✗ phpstan-stubs.php: {} error(s):\n", errors.len());
-        for e in &errors {
-            eprintln!("  {e}");
-        }
-        std::process::exit(1);
+        return;
     }
+    eprintln!("✗ phpstan-stubs.php: {} error(s):\n", errors.len());
+    for e in errors {
+        eprintln!("  {e}");
+    }
+    std::process::exit(1);
 }
 
 /// Find all `$<digit>` occurrences (invalid PHP variable names) and return
@@ -1500,6 +1451,65 @@ struct NapiStruct {
     fields: Vec<NapiStructField>,
 }
 
+/// Skip past `#[..]` attribute lines starting at `j`. Returns first non-attribute line index, or `n`.
+fn skip_attrs(lines: &[&str], mut j: usize) -> usize {
+    let n = lines.len();
+    while j < n && lines[j].trim_start().starts_with("#[") {
+        j += 1;
+    }
+    j
+}
+
+fn parse_struct_name(decl: &str) -> String {
+    decl.strip_prefix("pub struct ")
+        .and_then(|s| s.split([' ', '{']).next())
+        .unwrap_or("")
+        .trim()
+        .to_string()
+}
+
+/// Find the line index immediately after the line containing the opening brace.
+fn find_field_start(lines: &[&str], decl: &str, j: usize) -> usize {
+    if decl.contains('{') {
+        return j + 1;
+    }
+    let n = lines.len();
+    let mut k = j + 1;
+    while k < n && !lines[k].contains('{') {
+        k += 1;
+    }
+    k + 1
+}
+
+fn parse_struct_field(line: &str) -> Option<NapiStructField> {
+    let rest = line.strip_prefix("pub ")?.trim_end_matches(',').trim();
+    let colon = rest.find(':')?;
+    let name = rest[..colon].trim().to_string();
+    let ty = rest[colon + 1..].trim().to_string();
+    if name.is_empty() || ty.is_empty() {
+        return None;
+    }
+    Some(NapiStructField { name, ty })
+}
+
+/// Parse field list until the closing `}`. Returns (fields, line index of `}`).
+fn parse_struct_fields(lines: &[&str], start: usize) -> (Vec<NapiStructField>, usize) {
+    let n = lines.len();
+    let mut fields = Vec::new();
+    let mut k = start;
+    while k < n {
+        let l = lines[k].trim();
+        if l.starts_with('}') {
+            break;
+        }
+        if let Some(field) = parse_struct_field(l) {
+            fields.push(field);
+        }
+        k += 1;
+    }
+    (fields, k)
+}
+
 /// Scan a Rust source file for all `#[napi(object)] pub struct X { ... }` items.
 fn scan_napi_structs(src: &str) -> Vec<NapiStruct> {
     let mut out = Vec::new();
@@ -1507,71 +1517,25 @@ fn scan_napi_structs(src: &str) -> Vec<NapiStruct> {
     let n = lines.len();
     let mut i = 0;
     while i < n {
-        let line = lines[i].trim_start();
-        if line.starts_with("#[napi(object)]") {
-            // Find the struct line (skip any other attrs)
-            let mut j = i + 1;
-            while j < n {
-                let l = lines[j].trim_start();
-                if l.starts_with("#[") {
-                    j += 1;
-                    continue;
-                }
-                break;
-            }
-            if j >= n {
-                i += 1;
-                continue;
-            }
-            let decl = lines[j].trim();
-            let name = decl
-                .strip_prefix("pub struct ")
-                .and_then(|s| s.split(|c: char| c == ' ' || c == '{').next())
-                .unwrap_or("")
-                .trim()
-                .to_string();
-            if name.is_empty() {
-                i = j + 1;
-                continue;
-            }
-            // Parse fields until closing brace
-            let mut fields = Vec::new();
-            let mut k = j + 1;
-            // If the struct decl didn't have `{` on the same line, advance
-            if !decl.contains('{') {
-                while k < n && !lines[k].contains('{') {
-                    k += 1;
-                }
-                k += 1;
-            } else {
-                k = j + 1;
-            }
-            while k < n {
-                let l = lines[k].trim();
-                if l.starts_with('}') {
-                    break;
-                }
-                // Accept `pub name: Type,` (strip trailing comma + comments)
-                if let Some(rest) = l.strip_prefix("pub ") {
-                    let rest = rest.trim_end_matches(',').trim();
-                    if let Some(colon) = rest.find(':') {
-                        let fname = rest[..colon].trim().to_string();
-                        let fty = rest[colon + 1..].trim().to_string();
-                        if !fname.is_empty() && !fty.is_empty() {
-                            fields.push(NapiStructField {
-                                name: fname,
-                                ty: fty,
-                            });
-                        }
-                    }
-                }
-                k += 1;
-            }
-            out.push(NapiStruct { name, fields });
-            i = k + 1;
+        if !lines[i].trim_start().starts_with("#[napi(object)]") {
+            i += 1;
             continue;
         }
-        i += 1;
+        let j = skip_attrs(&lines, i + 1);
+        if j >= n {
+            i += 1;
+            continue;
+        }
+        let decl = lines[j].trim();
+        let name = parse_struct_name(decl);
+        if name.is_empty() {
+            i = j + 1;
+            continue;
+        }
+        let field_start = find_field_start(&lines, decl, j);
+        let (fields, end) = parse_struct_fields(&lines, field_start);
+        out.push(NapiStruct { name, fields });
+        i = end + 1;
     }
     out
 }

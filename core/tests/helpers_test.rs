@@ -212,7 +212,7 @@ fn test_geo_to_dms() {
     assert_eq!(d, 51);
     assert_eq!(m, 30);
     // seconds approximately 26-27
-    assert!(s >= 25 && s <= 28, "s={s}");
+    assert!((25..=28).contains(&s), "s={s}");
 }
 
 #[test]
@@ -236,7 +236,7 @@ fn test_raman_houses_bhavamadhya_count() {
     assert_eq!(cusps.len(), 12);
     // All longitudes in [0,360)
     for &c in &cusps {
-        assert!(c >= 0.0 && c < 360.0, "cusp={c}");
+        assert!((0.0..360.0).contains(&c), "cusp={c}");
     }
 }
 
@@ -269,7 +269,7 @@ fn test_long_to_rasi() {
 #[test]
 fn test_long_to_navamsa() {
     let nav = long_to_navamsa(0.0);
-    assert!(nav >= 0 && nav < 12);
+    assert!((0..12).contains(&nav));
 }
 
 #[test]
@@ -297,7 +297,7 @@ fn test_rasi_diff() {
 #[test]
 fn test_rasi_diff2_signed() {
     let d = rasi_diff2(0, 3);
-    assert!(d >= -5 && d <= 6, "d={d}");
+    assert!((-5..=6).contains(&d), "d={d}");
 }
 
 #[test]
@@ -438,7 +438,7 @@ fn test_next_aspect_cusp() {
     assert!(r.jd > JD);
     // All 12 cusps returned
     for &c in &r.cusps[1..=12] {
-        assert!(c >= 0.0 && c < 360.0);
+        assert!((0.0..360.0).contains(&c));
     }
 }
 
@@ -481,7 +481,7 @@ fn test_saturn_4_stars() {
     assert!(r[5] >= 0.0, "index={}", r[5]);
     // All star/planet longitudes in [0,360)
     for &v in &r[..5] {
-        assert!(v >= 0.0 && v < 360.0, "lon={v}");
+        assert!((0.0..360.0).contains(&v), "lon={v}");
     }
 }
 
@@ -504,8 +504,8 @@ mod hebrew_public_api {
         let jd = 2_451_545.0;
         let (y, m, d) = jd_to_hebrew_date(jd);
         assert!(y > 5000, "Hebrew year should be > 5000");
-        assert!(m >= 1 && m <= 13, "month {m} out of range");
-        assert!(d >= 1 && d <= 30, "day {d} out of range");
+        assert!((1..=13).contains(&m), "month {m} out of range");
+        assert!((1..=30).contains(&d), "day {d} out of range");
     }
 
     #[cfg(feature = "calendar-traditions")]

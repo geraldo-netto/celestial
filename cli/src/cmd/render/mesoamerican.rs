@@ -82,11 +82,6 @@ pub fn render_mesoamerican_svg(ctx: &Value) -> String {
     let xiu_name = ctx["xiu_month_name"].as_str().unwrap_or("?");
     let xiu_en = ctx["xiu_month_en"].as_str().unwrap_or("?");
     let xiu_day = ctx["xiu_day"].as_u64().unwrap_or(1);
-    let _tzol_name = ctx["tzol_name"].as_str().unwrap_or("?");
-    let _tzol_en = ctx["tzol_english"].as_str().unwrap_or("?");
-    let _tzol_tre = ctx["tzol_trecena"].as_u64().unwrap_or(1);
-    let _haab_name = ctx["haab_month_name"].as_str().unwrap_or("?");
-    let _haab_day = ctx["haab_day"].as_u64().unwrap_or(0);
     let cr_tre = ctx["cr_trecena"].as_u64().unwrap_or(1);
     let cr_sign = ctx["cr_sign"].as_str().unwrap_or("?");
     let cr_hday = ctx["cr_haab_day"].as_u64().unwrap_or(0);

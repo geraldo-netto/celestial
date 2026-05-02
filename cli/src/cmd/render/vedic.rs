@@ -202,6 +202,131 @@ pub fn build_ashtakavarga_context(
         "vars": Value::Object(palette.into_iter().collect())}))
 }
 
+const AV_LM: f64 = 80.0;
+const AV_TM: f64 = 65.0;
+const AV_CW: f64 = 52.0;
+const AV_RH: f64 = 26.0;
+
+fn av_bindu_color(bv: u64, txt: &str) -> &str {
+    if bv >= 5 {
+        "#1a6030"
+    } else if bv <= 2 {
+        "#901020"
+    } else {
+        txt
+    }
+}
+
+fn av_total_color(bv: u64, txt: &str) -> &str {
+    if bv >= 28 {
+        "#1a6030"
+    } else if bv <= 18 {
+        "#901020"
+    } else {
+        txt
+    }
+}
+
+fn write_av_header(s: &mut String, bg: &str, txt: &str, title: &str, date: &str, total_w: f64, total_h: f64) {
+    let cx = total_w / 2.0;
+    let _ = writeln!(
+        s,
+        r##"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w:.0} {total_h:.0}" width="{total_w:.0}" height="{total_h:.0}">
+  <rect width="{total_w:.0}" height="{total_h:.0}" fill="{bg}"/>
+  <text x="{cx:.1}" y="22" text-anchor="middle" font-size="15" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
+  <text x="{cx:.1}" y="40" text-anchor="middle" font-size="8"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".6">{date}</text>"##
+    );
+}
+
+fn write_av_column_headers(s: &mut String, txt: &str) {
+    for (si, glyph) in RASI_GLYPHS.iter().enumerate() {
+        let x = AV_LM + si as f64 * AV_CW + AV_CW / 2.0;
+        let _ = writeln!(
+            s,
+            r##"  <text x="{x:.1}" y="{:.1}" font-size="13" text-anchor="middle" font-family="serif" fill="{txt}">{}</text>
+  <text x="{x:.1}" y="{:.1}" font-size="8" text-anchor="middle" fill="{txt}" opacity=".5">{}</text>"##,
+            AV_TM - 16.0,
+            glyph,
+            AV_TM - 5.0,
+            si + 1
+        );
+    }
+}
+
+fn write_av_grid_lines(s: &mut String, border: &str, n_rows: usize) {
+    for si in 0..=12usize {
+        let x = AV_LM + si as f64 * AV_CW;
+        let _ = writeln!(
+            s,
+            r##"  <line x1="{x:.1}" y1="{AV_TM:.1}" x2="{x:.1}" y2="{:.1}" stroke="{border}" stroke-width="0.6" opacity=".4"/>"##,
+            AV_TM + n_rows as f64 * AV_RH
+        );
+    }
+}
+
+fn write_av_planet_row(s: &mut String, row: &Value, ri: usize, border: &str, pcol: &str, txt: &str) {
+    let ry = AV_TM + ri as f64 * AV_RH;
+    let name = row["planet"].as_str().unwrap_or("?");
+    let bindus = row["bindus"]
+        .as_array()
+        .map(|v| v.to_vec())
+        .unwrap_or_default();
+    if ri.is_multiple_of(2) {
+        let _ = writeln!(
+            s,
+            r##"  <rect x="{AV_LM:.1}" y="{ry:.1}" width="{:.1}" height="{AV_RH}" fill="{border}" opacity=".04"/>"##,
+            12.0 * AV_CW
+        );
+    }
+    let _ = writeln!(
+        s,
+        r##"  <line x1="{AV_LM:.1}" y1="{ry:.1}" x2="{:.1}" y2="{ry:.1}" stroke="{border}" stroke-width="0.4" opacity=".3"/>"##,
+        AV_LM + 12.0 * AV_CW
+    );
+    let _ = writeln!(
+        s,
+        r##"  <text x="{:.1}" y="{:.1}" font-size="10" text-anchor="end" dominant-baseline="central" fill="{pcol}" font-weight="500">{name}</text>"##,
+        AV_LM - 4.0,
+        ry + AV_RH / 2.0
+    );
+    for (si, b) in bindus.iter().enumerate() {
+        let bv = b.as_u64().unwrap_or(0);
+        let x = AV_LM + si as f64 * AV_CW + AV_CW / 2.0;
+        let col = av_bindu_color(bv, txt);
+        let _ = writeln!(
+            s,
+            r##"  <text x="{x:.1}" y="{:.1}" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="{col}">{bv}</text>"##,
+            ry + AV_RH / 2.0
+        );
+    }
+}
+
+fn write_av_totals_row(s: &mut String, totals: &[Value], ty: f64, border: &str, txt: &str) {
+    let _ = writeln!(
+        s,
+        r##"  <rect x="{AV_LM:.1}" y="{ty:.1}" width="{:.1}" height="{AV_RH}" fill="{border}" opacity=".1"/>
+  <line x1="{AV_LM:.1}" y1="{ty:.1}" x2="{:.1}" y2="{ty:.1}" stroke="{border}" stroke-width="1.5" opacity=".6"/>
+  <text x="{:.1}" y="{:.1}" font-size="10" text-anchor="end" dominant-baseline="central" fill="{txt}" font-weight="700">Total</text>"##,
+        12.0 * AV_CW,
+        AV_LM + 12.0 * AV_CW,
+        AV_LM - 4.0,
+        ty + AV_RH / 2.0
+    );
+    for (si, b) in totals.iter().enumerate() {
+        let bv = b.as_u64().unwrap_or(0);
+        let x = AV_LM + si as f64 * AV_CW + AV_CW / 2.0;
+        let col = av_total_color(bv, txt);
+        let _ = writeln!(
+            s,
+            r##"  <text x="{x:.1}" y="{:.1}" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="{col}">{bv}</text>"##,
+            ty + AV_RH / 2.0
+        );
+    }
+}
+
 pub fn render_ashtakavarga_svg(ctx: &Value) -> String {
     let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
     let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
@@ -213,11 +338,6 @@ pub fn render_ashtakavarga_svg(ctx: &Value) -> String {
         .unwrap_or("Ashtakavarga");
     let date = ctx["date"].as_str().unwrap_or("");
 
-    const LM: f64 = 80.0; // left margin (planet names)
-    const TM: f64 = 65.0; // top margin
-    const CW: f64 = 52.0; // cell width
-    const RH: f64 = 26.0; // row height
-
     let rows = ctx["ashtakavarga_rows"]
         .as_array()
         .map(|v| v.to_vec())
@@ -227,125 +347,19 @@ pub fn render_ashtakavarga_svg(ctx: &Value) -> String {
         .map(|v| v.to_vec())
         .unwrap_or_default();
 
-    let n_rows = rows.len() + 1; // +1 for totals
-    let total_h = TM + n_rows as f64 * RH + 60.0;
-    let total_w = LM + 12.0 * CW + 20.0;
+    let n_rows = rows.len() + 1;
+    let total_h = AV_TM + n_rows as f64 * AV_RH + 60.0;
+    let total_w = AV_LM + 12.0 * AV_CW + 20.0;
 
     let mut s = String::with_capacity(8 * 1024);
-    let _ = writeln!(
-        s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w:.0} {total_h:.0}" width="{total_w:.0}" height="{total_h:.0}">
-  <rect width="{total_w:.0}" height="{total_h:.0}" fill="{bg}"/>
-  <text x="{:.1}" y="22" text-anchor="middle" font-size="15" font-weight="600"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
-  <text x="{:.1}" y="40" text-anchor="middle" font-size="8"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".6">{date}</text>"##,
-        total_w / 2.0,
-        total_w / 2.0
-    );
-
-    // Column headers (rasi glyphs + numbers)
-    for (si, glyph) in RASI_GLYPHS.iter().enumerate() {
-        let x = LM + si as f64 * CW + CW / 2.0;
-        let _ = writeln!(
-            s,
-            r##"  <text x="{x:.1}" y="{:.1}" font-size="13" text-anchor="middle" font-family="serif" fill="{txt}">{}</text>
-  <text x="{x:.1}" y="{:.1}" font-size="8" text-anchor="middle" fill="{txt}" opacity=".5">{}</text>"##,
-            TM - 16.0,
-            glyph,
-            TM - 5.0,
-            si + 1
-        );
-    }
-
-    // Grid lines
-    for si in 0..=12usize {
-        let x = LM + si as f64 * CW;
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{x:.1}" y1="{TM:.1}" x2="{x:.1}" y2="{:.1}" stroke="{border}" stroke-width="0.6" opacity=".4"/>"##,
-            TM + n_rows as f64 * RH
-        );
-    }
-
-    // Planet rows
+    write_av_header(&mut s, bg, txt, title, date, total_w, total_h);
+    write_av_column_headers(&mut s, txt);
+    write_av_grid_lines(&mut s, border, n_rows);
     for (ri, row) in rows.iter().enumerate() {
-        let ry = TM + ri as f64 * RH;
-        let name = row["planet"].as_str().unwrap_or("?");
-        let bindus = row["bindus"]
-            .as_array()
-            .map(|v| v.to_vec())
-            .unwrap_or_default();
-
-        // Row background alternating
-        if ri % 2 == 0 {
-            let _ = writeln!(
-                s,
-                r##"  <rect x="{LM:.1}" y="{ry:.1}" width="{:.1}" height="{RH}" fill="{border}" opacity=".04"/>"##,
-                12.0 * CW
-            );
-        }
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{LM:.1}" y1="{ry:.1}" x2="{:.1}" y2="{ry:.1}" stroke="{border}" stroke-width="0.4" opacity=".3"/>"##,
-            LM + 12.0 * CW
-        );
-        let _ = writeln!(
-            s,
-            r##"  <text x="{:.1}" y="{:.1}" font-size="10" text-anchor="end" dominant-baseline="central" fill="{pcol}" font-weight="500">{name}</text>"##,
-            LM - 4.0,
-            ry + RH / 2.0
-        );
-
-        for (si, b) in bindus.iter().enumerate() {
-            let bv = b.as_u64().unwrap_or(0);
-            let x = LM + si as f64 * CW + CW / 2.0;
-            // Colour-code: 4+ is strong (green tint), 0-2 weak (red tint)
-            let col = if bv >= 5 {
-                "#1a6030"
-            } else if bv <= 2 {
-                "#901020"
-            } else {
-                txt
-            };
-            let _ = writeln!(
-                s,
-                r##"  <text x="{x:.1}" y="{:.1}" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="{col}">{bv}</text>"##,
-                ry + RH / 2.0
-            );
-        }
+        write_av_planet_row(&mut s, row, ri, border, pcol, txt);
     }
-
-    // Totals row
-    let ty = TM + rows.len() as f64 * RH;
-    let _ = writeln!(
-        s,
-        r##"  <rect x="{LM:.1}" y="{ty:.1}" width="{:.1}" height="{RH}" fill="{border}" opacity=".1"/>
-  <line x1="{LM:.1}" y1="{ty:.1}" x2="{:.1}" y2="{ty:.1}" stroke="{border}" stroke-width="1.5" opacity=".6"/>
-  <text x="{:.1}" y="{:.1}" font-size="10" text-anchor="end" dominant-baseline="central" fill="{txt}" font-weight="700">Total</text>"##,
-        12.0 * CW,
-        LM + 12.0 * CW,
-        LM - 4.0,
-        ty + RH / 2.0
-    );
-    for (si, b) in totals.iter().enumerate() {
-        let bv = b.as_u64().unwrap_or(0);
-        let x = LM + si as f64 * CW + CW / 2.0;
-        let col = if bv >= 28 {
-            "#1a6030"
-        } else if bv <= 18 {
-            "#901020"
-        } else {
-            txt
-        };
-        let _ = writeln!(
-            s,
-            r##"  <text x="{x:.1}" y="{:.1}" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="{col}">{bv}</text>"##,
-            ty + RH / 2.0
-        );
-    }
-
+    let ty = AV_TM + rows.len() as f64 * AV_RH;
+    write_av_totals_row(&mut s, &totals, ty, border, txt);
     let _ = writeln!(s, "</svg>");
     s
 }

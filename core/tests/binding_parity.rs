@@ -24,8 +24,9 @@ fn decorated_fns(src: &str, decorator: &str) -> BTreeSet<String> {
     while i < lines.len() {
         let t = lines[i].trim();
         if t.starts_with(&prefix) || t.starts_with("#[allow") {
-            for j in i..lines.len().min(i + 6) {
-                let l = lines[j].trim();
+            let n = lines.len();
+            for line in lines.iter().take(n.min(i + 6)).skip(i) {
+                let l = line.trim();
                 let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "));
                 if let Some(rest) = rest {
                     let name: String = rest.split([' ', '(', '<']).next().unwrap_or("").to_string();
@@ -62,7 +63,7 @@ fn internal_fns() -> BTreeSet<String> {
         .collect()
 }
 
-fn load_fns(root: &PathBuf, rel: &str, decorator: &str, include_wrap: bool) -> BTreeSet<String> {
+fn load_fns(root: &std::path::Path, rel: &str, decorator: &str, include_wrap: bool) -> BTreeSet<String> {
     let src =
         std::fs::read_to_string(root.join(rel)).unwrap_or_else(|_| panic!("cannot read {rel}"));
     let skip = internal_fns();

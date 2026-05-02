@@ -305,30 +305,27 @@ mod tests {
         );
     }
 
+    fn assert_locales_map_to(expected: Lang, locales: &[&str]) {
+        for loc in locales {
+            assert_eq!(Lang::from_locale(loc), Some(expected), "locale {loc:?}");
+        }
+    }
+
     /// `Lang::from_locale` must handle the most common POSIX/BCP-47 forms.
     #[test]
     fn locale_parsing_common_forms() {
-        // English variants
-        assert_eq!(Lang::from_locale("en"), Some(Lang::En));
-        assert_eq!(Lang::from_locale("en_US"), Some(Lang::En));
-        assert_eq!(Lang::from_locale("en-US"), Some(Lang::En));
-        assert_eq!(Lang::from_locale("en_GB.UTF-8"), Some(Lang::En));
-        assert_eq!(Lang::from_locale("EN"), Some(Lang::En));
-
-        // Portuguese (Brazilian and otherwise)
-        assert_eq!(Lang::from_locale("pt_BR"), Some(Lang::PtBr));
-        assert_eq!(Lang::from_locale("pt-BR"), Some(Lang::PtBr));
-        assert_eq!(Lang::from_locale("pt_BR.UTF-8"), Some(Lang::PtBr));
-        assert_eq!(Lang::from_locale("pt"), Some(Lang::PtBr));
+        assert_locales_map_to(
+            Lang::En,
+            &["en", "en_US", "en-US", "en_GB.UTF-8", "EN"],
+        );
         // European Portuguese also routes to PtBr (only variant we ship).
-        assert_eq!(Lang::from_locale("pt_PT"), Some(Lang::PtBr));
-
-        // Spanish, Italian, German variants
-        assert_eq!(Lang::from_locale("es_ES.UTF-8"), Some(Lang::Es));
-        assert_eq!(Lang::from_locale("es-MX"), Some(Lang::Es));
-        assert_eq!(Lang::from_locale("it_IT"), Some(Lang::It));
-        assert_eq!(Lang::from_locale("de_AT.UTF-8"), Some(Lang::De));
-        assert_eq!(Lang::from_locale("de_CH"), Some(Lang::De));
+        assert_locales_map_to(
+            Lang::PtBr,
+            &["pt_BR", "pt-BR", "pt_BR.UTF-8", "pt", "pt_PT"],
+        );
+        assert_locales_map_to(Lang::Es, &["es_ES.UTF-8", "es-MX"]);
+        assert_locales_map_to(Lang::It, &["it_IT"]);
+        assert_locales_map_to(Lang::De, &["de_AT.UTF-8", "de_CH"]);
     }
 
     #[test]

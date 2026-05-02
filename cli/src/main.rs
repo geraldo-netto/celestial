@@ -126,7 +126,7 @@ fn main() {
         "--list-plugins",
         "",
     ];
-    let sub = raw.get(1).map(String::as_str).unwrap_or(&"");
+    let sub = raw.get(1).map(String::as_str).unwrap_or("");
     let is_builtin = BUILTIN_COMMANDS.contains(&sub);
     if !is_builtin && !sub.starts_with('-') {
         if let Err(msg) = plugin::try_exec(sub, &raw[2..]) {

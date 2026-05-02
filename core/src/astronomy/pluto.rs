@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn pluto_j2000_reasonable() {
         let (lon, lat, r) = pluto_pos(2_451_545.0);
-        assert!(lon >= 0.0 && lon < 360.0, "lon={lon}");
+        assert!((0.0..360.0).contains(&lon), "lon={lon}");
         assert!(lat.abs() < 20.0, "lat={lat}");
         assert!(r > 28.0 && r < 50.0, "r={r} AU");
         // Pluto was at ~246° (Sagittarius) around J2000

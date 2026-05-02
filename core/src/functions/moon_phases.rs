@@ -464,7 +464,7 @@ mod tests {
         assert_eq!(d.day, 27);
         // Elongation should be ≈ 0°
         let e = moon_elongation(nm).unwrap();
-        assert!(e < 0.1 || e > 359.9, "elongation {e:.4}°");
+        assert!(!(0.1..=359.9).contains(&e), "elongation {e:.4}°");
     }
 
     #[test]

@@ -223,7 +223,7 @@ mod extra_chinese {
                 lon
             );
             assert!(
-                into >= 0.0 && into < 15.5,
+                (0.0..15.5).contains(&into),
                 "deg_into={into:.2} out of range"
             );
         }

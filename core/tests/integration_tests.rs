@@ -210,7 +210,7 @@ fn test_csnorm() {
     for v in [-1_000_000_000i32, -1, 0, 1, 1_000_000_000i32] {
         let n = norm_cs(v);
         assert!(
-            n >= 0 && n < 360 * 360_000,
+            (0..360 * 360_000).contains(&n),
             "norm_cs({v}) = {n} out of range"
         );
     }
@@ -651,7 +651,7 @@ fn test_sol_eclipse_when_glob() {
     let r = sol_eclipse_when_glob(2454466.5, CalcFlags::BUILTIN, 0, false).unwrap();
     assert_eq!(r.ret_flags, 9);
     // Tolerance: 0.003 JD ≈ 4 minutes — acceptable for iterative eclipse search
-    assert_approx_tol!(r.tret[0], 2454503.661_408_138_927, 0.003);
+    assert_approx_tol!(r.tret[0], 2_454_503.661_408_139, 0.003);
 }
 
 #[test]
@@ -661,7 +661,7 @@ fn test_lun_eclipse_when() {
     let r = lun_eclipse_when(2454466.5, CalcFlags::BUILTIN, 0, false).unwrap();
     assert_eq!(r.ret_flags, 4);
     // Tolerance: 0.02 JD ≈ 29 minutes — lunar eclipse search is less precise
-    assert_approx_tol!(r.tret[0], 2454517.658_386_768_308, 0.02);
+    assert_approx_tol!(r.tret[0], 2_454_517.658_386_768_3, 0.02);
 }
 
 #[test]
@@ -695,7 +695,7 @@ fn test_rise_trans_moon() {
     )
     .unwrap();
     // Tolerance: 0.003 JD ≈ 4 minutes
-    assert_approx_tol!(r.tret, 2459415.103_969_239_164, 0.003);
+    assert_approx_tol!(r.tret, 2_459_415.103_969_239, 0.003);
 }
 
 #[test]
@@ -936,8 +936,8 @@ fn precision_houses_placidus_reference() {
     let mc = r.ascmc[1];
     let asc = r.ascmc[0];
     // For J2000 Paris midday: MC ≈ Capricorn/Aquarius region, ASC ≈ Aries region
-    assert!(mc >= 0.0 && mc < 360.0, "MC out of range: {mc}");
-    assert!(asc >= 0.0 && asc < 360.0, "ASC out of range: {asc}");
+    assert!((0.0..360.0).contains(&mc), "MC out of range: {mc}");
+    assert!((0.0..360.0).contains(&asc), "ASC out of range: {asc}");
     // IC = MC + 180°
     assert!(
         (r.cusps[4] - ((mc + 180.0) % 360.0)).abs() < 0.01,
@@ -987,14 +987,12 @@ fn heliacal_pheno_ut_smoke() {
     let atm = [1013.25_f64, 15.0, 50.0, 0.25];
     let dobs = [0.0_f64; 6];
     let r = heliacal_pheno_ut(2_451_545.0, geo, atm, dobs, "Venus", 0, CalcFlags::BUILTIN);
-    match r {
-        Ok(v) => {
-            for &x in &v {
-                assert!(x.is_finite(), "non-finite in heliacal_pheno_ut");
-            }
+    if let Ok(v) = r {
+        for &x in &v {
+            assert!(x.is_finite(), "non-finite in heliacal_pheno_ut");
         }
-        Err(_) => {} // no event is acceptable
     }
+    // Err: no event is acceptable
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1283,7 +1281,7 @@ fn annual_profection_real_chart_age_39() {
     // age 39 → house (39 % 12) + 1 = 4
     assert_eq!(house, 4, "age 39 → house 4");
     assert!(
-        lon >= 0.0 && lon < 360.0,
+        (0.0..360.0).contains(&lon),
         "profected lon {lon:.2} out of range"
     );
 }

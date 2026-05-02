@@ -233,9 +233,7 @@ mod profections {
         let h = houses(jd, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
         let cusps: [f64; 13] = {
             let mut a = [0.0f64; 13];
-            for i in 0..13 {
-                a[i] = h.cusps[i];
-            }
+            a.copy_from_slice(&h.cusps);
             a
         };
         let (house, lon) = annual_profection(&cusps, 0);
@@ -252,9 +250,7 @@ mod profections {
         let h = houses(jd, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
         let cusps: [f64; 13] = {
             let mut a = [0.0f64; 13];
-            for i in 0..13 {
-                a[i] = h.cusps[i];
-            }
+            a.copy_from_slice(&h.cusps);
             a
         };
         let (h0, _) = annual_profection(&cusps, 0);
@@ -268,15 +264,13 @@ mod profections {
         let h = houses(jd, 0.0, 0.0, HouseSystem::PLACIDUS).unwrap();
         let cusps: [f64; 13] = {
             let mut a = [0.0f64; 13];
-            for i in 0..13 {
-                a[i] = h.cusps[i];
-            }
+            a.copy_from_slice(&h.cusps);
             a
         };
         for age in 0..36u32 {
             let (house, _) = annual_profection(&cusps, age);
             assert!(
-                house >= 1 && house <= 12,
+                (1..=12).contains(&house),
                 "profection house {house} out of [1,12] for age {age}"
             );
         }

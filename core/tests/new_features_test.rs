@@ -361,7 +361,7 @@ fn test_house_pos_in_range() {
     // Compute ARMC and epsilon at JD
     let armc = sidtime(JD) * 15.0; // sidereal time in degrees
     let r = house_pos(armc, 48.0, 23.4393, HouseSystem::PLACIDUS, [120.0, 5.0]).unwrap();
-    assert!(r >= 1.0 && r <= 13.0, "house position = {}", r);
+    assert!((1.0..=13.0).contains(&r), "house position = {}", r);
 }
 
 #[test]
@@ -418,7 +418,7 @@ fn test_gauquelin_sector_range() {
         15.0,
     )
     .unwrap();
-    assert!(s >= 1.0 && s <= 36.0, "Gauquelin sector = {}", s);
+    assert!((1.0..=36.0).contains(&s), "Gauquelin sector = {}", s);
 }
 
 // ─── Visibility ───────────────────────────────────────────────────────────────
@@ -557,11 +557,11 @@ fn test_sol_eclipse_where_returns_valid_coordinates() {
     let lon = result.geopos[0];
     let lat = result.geopos[1];
     assert!(
-        lon >= -180.0 && lon <= 180.0,
+        (-180.0..=180.0).contains(&lon),
         "eclipse longitude {lon:.2}° outside valid range"
     );
     assert!(
-        lat >= -90.0 && lat <= 90.0,
+        (-90.0..=90.0).contains(&lat),
         "eclipse latitude {lat:.2}° outside valid range"
     );
     // 2024 eclipse was over North America: path from Mexico (~18°N) to Maine (~47°N)
@@ -592,8 +592,8 @@ fn test_sol_eclipse_where_near_arbitrary_date() {
     let result = sol_eclipse_where(jd, CalcFlags::BUILTIN).unwrap();
     let lon = result.geopos[0];
     let lat = result.geopos[1];
-    assert!(lon >= -180.0 && lon <= 180.0);
-    assert!(lat >= -90.0 && lat <= 90.0);
+    assert!((-180.0..=180.0).contains(&lon));
+    assert!((-90.0..=90.0).contains(&lat));
     assert!(
         result.ret_flags != 0,
         "ret_flags should indicate eclipse type"
@@ -663,7 +663,7 @@ fn test_lun_occult_when_loc_returns_altitude() {
             // attr[1] = Moon altitude — should be a valid angle
             let alt = r.attr[1];
             assert!(
-                alt >= -90.0 && alt <= 90.0,
+                (-90.0..=90.0).contains(&alt),
                 "Moon altitude {alt:.2}° out of range"
             );
             println!(
@@ -903,7 +903,7 @@ fn mc_transit_sidereal() {
     );
     set_sid_mode(SiderealMode::FAGAN_BRADLEY, 0.0, 0.0);
     if let Ok(jd) = result {
-        assert!(jd >= J2000 && jd < J2000 + 400.0);
+        assert!((J2000..J2000 + 400.0).contains(&jd));
         println!("  Sun sidereal MC transit: JD={jd:.4}");
     }
 }
@@ -1220,7 +1220,7 @@ fn arabic_part_lot_of_fortune_range() {
     let asc = chart.ascmc[0];
     let fortune = arabic_part(asc, moon.lon, sun.lon);
     assert!(
-        fortune >= 0.0 && fortune < 360.0,
+        (0.0..360.0).contains(&fortune),
         "Fortune={fortune:.2}° out of range"
     );
     println!(
@@ -1469,8 +1469,8 @@ fn monthly_profection_degree_in_range() {
     for age in [0u32, 12, 25, 36, 47] {
         for month in 0u32..12 {
             let (h, deg) = monthly_profection(&chart.cusps, age, month);
-            assert!(h >= 1 && h <= 12, "house {h} out of range");
-            assert!(deg >= 0.0 && deg < 360.0, "degree {deg:.2}° out of range");
+            assert!((1..=12).contains(&h), "house {h} out of range");
+            assert!((0.0..360.0).contains(&deg), "degree {deg:.2}° out of range");
         }
     }
 }
@@ -1572,7 +1572,7 @@ fn calc_chart_aspects_auto_finds_aspects() {
 #[test]
 fn local_apparent_solar_time_range() {
     let last = local_apparent_solar_time(J2000, 2.35).unwrap(); // Paris
-    assert!(last >= 0.0 && last < 24.0, "LAST={last:.4}h out of [0,24)");
+    assert!((0.0..24.0).contains(&last), "LAST={last:.4}h out of [0,24)");
     println!("  LAST Paris J2000: {last:.4}h");
 }
 
@@ -1734,7 +1734,7 @@ fn houses_placidus_equator_asc_direction() {
         "ASC {asc} should be ~191.099° (not ~11° which would mean returning DSC)"
     );
     // MC must be in valid range
-    assert!(mc >= 0.0 && mc < 360.0, "MC {mc} out of range");
+    assert!((0.0..360.0).contains(&mc), "MC {mc} out of range");
     // ASC - MC ≈ 90° at the equator (structural relationship)
     let asc_mc_diff = (asc - mc).rem_euclid(360.0);
     assert!(
@@ -1802,7 +1802,7 @@ fn fuzz_php_binding_equivalence() {
     assert!((midpoint(10.0, 20.0) - 15.0).abs() < 1e-10);
     let fortune = arabic_part(206.77, 223.32, 280.38);
     assert!((fortune - 149.71).abs() < 0.1);
-    assert!(fortune >= 0.0 && fortune < 360.0);
+    assert!((0.0..360.0).contains(&fortune));
 
     // sign_ruler / zodiac_sign_name / lon_to_sign
     assert_eq!(sign_ruler(0), Body::MARS); // Aries → Mars

@@ -235,7 +235,7 @@ mod fixed_stars {
         let pos = fixstar_ut("Regulus", 2_451_545.0, CalcFlags::BUILTIN).unwrap();
         let lon = pos.xx[0];
         assert!(
-            lon >= 148.0 && lon <= 162.0,
+            (148.0..=162.0).contains(&lon),
             "Regulus lon = {lon:.2}° (expected near 150°-160°)"
         );
     }
@@ -246,7 +246,7 @@ mod fixed_stars {
         let pos = fixstar_ut("Algol", 2_451_545.0, CalcFlags::BUILTIN).unwrap();
         let lon = pos.xx[0];
         assert!(
-            lon >= 50.0 && lon <= 65.0,
+            (50.0..=65.0).contains(&lon),
             "Algol lon = {lon:.2}° (expected 50°-65° Gemini region at J2000)"
         );
     }

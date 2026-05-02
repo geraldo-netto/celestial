@@ -253,12 +253,6 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
     let speed_at =
         |jd: f64| -> Option<f64> { calc_ut(jd, body, flags_speed).ok().map(|p| p.speed_lon) };
 
-    // Get current speed to determine which station to look for first
-    let start_speed = speed_at(jd_start).unwrap_or(0.0);
-
-    let mut retrograde_jd: Option<f64> = None;
-    let mut direct_jd: Option<f64> = None;
-
     let window = match body.as_raw() {
         4 => 800.0,
         5 => 1500.0,
@@ -269,8 +263,10 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
         _ => 200.0,
     };
 
+    let mut retrograde_jd: Option<f64> = None;
+    let mut direct_jd: Option<f64> = None;
     let mut jd = jd_start;
-    let mut prev_speed = start_speed;
+    let mut prev_speed = speed_at(jd_start).unwrap_or(0.0);
 
     for _ in 0..(window / step) as i32 + 1 {
         jd += step;

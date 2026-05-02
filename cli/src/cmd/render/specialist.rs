@@ -227,7 +227,6 @@ pub fn build_triwheel_context(
 pub fn render_triwheel_svg(ctx: &Value) -> String {
     let mut s = render_builtin_svg(ctx);
 
-    let _asc = ctx["asc"].as_f64().unwrap_or(0.0);
     let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
     let retro_c = ctx["vars"]["retro_color"].as_str().unwrap_or("#b01020");
 
@@ -350,16 +349,26 @@ pub fn build_graphic_ephemeris_context(
         "vars": Value::Object(palette.into_iter().collect())}))
 }
 
+// Graphic ephemeris layout constants
+const GE_W: f64 = 860.0;
+const GE_H: f64 = 480.0;
+const GE_LM: f64 = 32.0;
+const GE_TM: f64 = 60.0;
+const GE_BM: f64 = 80.0;
+
+const GE_PLANET_COLORS: &[&str] = &[
+    "#d4a800", "#9b59b6", "#3498db", "#27ae60", "#e74c3c", "#e67e22", "#1a5276", "#117a65",
+    "#6c3483", "#7f8c8d", "#2e86c1", "#b7950b",
+];
+
+const GE_SIGN_GLYPHS: [&str; 12] = [
+    "♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓",
+];
+
 pub fn render_graphic_ephemeris_svg(ctx: &Value) -> String {
     let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
     let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
-
-    const W: f64 = 860.0; // chart width
-    const H: f64 = 480.0; // chart height
-    const LM: f64 = 32.0; // left margin (degree labels)
-    const TM: f64 = 60.0; // top margin
-    const BM: f64 = 80.0; // bottom margin (date labels)
 
     let jd_start = ctx["jd_start"].as_f64().unwrap_or(0.0);
     let jd_end = ctx["jd_end"].as_f64().unwrap_or(0.0);
@@ -369,8 +378,7 @@ pub fn render_graphic_ephemeris_svg(ctx: &Value) -> String {
         .as_array()
         .map(|v| v.to_vec())
         .unwrap_or_default();
-    let n = jd_points.len();
-    if n == 0 {
+    if jd_points.is_empty() {
         return String::new();
     }
 
@@ -380,7 +388,31 @@ pub fn render_graphic_ephemeris_svg(ctx: &Value) -> String {
         .unwrap_or("Graphic Ephemeris");
 
     let mut s = String::with_capacity(64 * 1024);
-    let total_h = TM + H + BM + 40.0;
+    let total_h = GE_TM + GE_H + GE_BM + 40.0;
+    write_ge_header(&mut s, bg, txt, title, total_h);
+    write_ge_y_axis(&mut s, ring);
+
+    let x_scale = GE_W / jd_span;
+    let series = ctx["planet_series"]
+        .as_array()
+        .map(|v| v.to_vec())
+        .unwrap_or_default();
+    for (pi, planet) in series.iter().enumerate() {
+        write_ge_planet_series(&mut s, planet, pi, &jd_points, jd_start, x_scale);
+    }
+
+    write_ge_x_axis_labels(&mut s, ring, jd_start, jd_end, jd_span, x_scale);
+
+    let _ = writeln!(
+        s,
+        r##"  <rect x="{:.2}" y="{GE_TM:.2}" width="{GE_W:.2}" height="{GE_H:.2}" fill="none" stroke="{ring}" stroke-width="0.8" opacity=".4"/>"##,
+        GE_LM
+    );
+    let _ = writeln!(s, "</svg>");
+    s
+}
+
+fn write_ge_header(s: &mut String, bg: &str, txt: &str, title: &str, total_h: f64) {
     let _ = writeln!(
         s,
         r##"<?xml version="1.0" encoding="UTF-8"?>
@@ -389,120 +421,123 @@ pub fn render_graphic_ephemeris_svg(ctx: &Value) -> String {
   <text x="450" y="28" text-anchor="middle" font-size="16" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>"##
     );
+}
 
-    // Y-axis: 0–360° longitude
-    // Grid lines every 30° (sign boundaries) + labels
-    let sign_glyphs = [
-        "♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓",
-    ];
+fn write_ge_y_axis(s: &mut String, ring: &str) {
     for s_idx in 0..=12u32 {
         let lon = s_idx as f64 * 30.0;
-        let y = TM + H - (lon / 360.0) * H;
+        let y = GE_TM + GE_H - (lon / 360.0) * GE_H;
         let op = if s_idx % 3 == 0 { ".4" } else { ".2" };
         let _ = writeln!(
             s,
             r##"  <line x1="{:.2}" y1="{y:.2}" x2="{:.2}" y2="{y:.2}" stroke="{ring}" stroke-width="0.6" opacity="{op}"/>"##,
-            LM,
-            LM + W
+            GE_LM,
+            GE_LM + GE_W
         );
         if s_idx < 12 {
-            let gy = TM + H - ((lon + 15.0) / 360.0) * H;
+            let gy = GE_TM + GE_H - ((lon + 15.0) / 360.0) * GE_H;
             let _ = writeln!(
                 s,
                 r##"  <text x="{:.2}" y="{gy:.2}" font-size="11" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{ring}" opacity=".6">{}</text>"##,
-                LM - 10.0,
-                sign_glyphs[s_idx as usize]
+                GE_LM - 10.0,
+                GE_SIGN_GLYPHS[s_idx as usize]
             );
         }
     }
+}
 
-    // Planet color palette (12 distinct colors)
-    const PLANET_COLORS: &[&str] = &[
-        "#d4a800", "#9b59b6", "#3498db", "#27ae60", "#e74c3c", "#e67e22", "#1a5276", "#117a65",
-        "#6c3483", "#7f8c8d", "#2e86c1", "#b7950b",
-    ];
+fn ge_build_path(lons: &[Value], jd_points: &[Value], jd_start: f64, x_scale: f64) -> String {
+    let mut path = String::new();
+    let mut first = true;
+    for (xi, jd_val) in jd_points.iter().enumerate() {
+        let jd_v = jd_val.as_f64().unwrap_or(0.0);
+        let lon = lons.get(xi).and_then(|v| v.as_f64()).unwrap_or(f64::NAN);
+        if !lon.is_finite() {
+            first = true;
+            continue;
+        }
+        let x = GE_LM + (jd_v - jd_start) * x_scale;
+        let y = GE_TM + GE_H - (lon / 360.0) * GE_H;
+        let cmd = if first { 'M' } else { 'L' };
+        let _ = write!(path, "{cmd}{x:.1},{y:.1}");
+        first = false;
+    }
+    path
+}
 
-    // X-axis: time
-    let x_scale = W / jd_span;
+fn write_ge_end_glyph(
+    s: &mut String,
+    lons: &[Value],
+    jd_points: &[Value],
+    jd_start: f64,
+    x_scale: f64,
+    col: &str,
+    glyph: &str,
+) {
+    let last_jd = jd_points.last().and_then(|v| v.as_f64());
+    let last_lon = lons.last().and_then(|v| v.as_f64());
+    let (Some(last_jd), Some(last_lon)) = (last_jd, last_lon) else {
+        return;
+    };
+    if !last_lon.is_finite() {
+        return;
+    }
+    let lx = GE_LM + (last_jd - jd_start) * x_scale + 8.0;
+    let ly = GE_TM + GE_H - (last_lon / 360.0) * GE_H;
+    let _ = writeln!(
+        s,
+        r##"  <text x="{lx:.1}" y="{ly:.1}" font-size="12" dominant-baseline="central" font-family="serif" fill="{col}">{glyph}</text>"##
+    );
+}
 
-    // Plot each planet
-    let series = ctx["planet_series"]
+fn write_ge_planet_series(
+    s: &mut String,
+    planet: &Value,
+    pi: usize,
+    jd_points: &[Value],
+    jd_start: f64,
+    x_scale: f64,
+) {
+    let lons = planet["lons"]
         .as_array()
         .map(|v| v.to_vec())
         .unwrap_or_default();
-    for (pi, planet) in series.iter().enumerate() {
-        let lons = planet["lons"]
-            .as_array()
-            .map(|v| v.to_vec())
-            .unwrap_or_default();
-        let col = PLANET_COLORS.get(pi).copied().unwrap_or("#888");
-        let glyph = planet["glyph"].as_str().unwrap_or("?");
-
-        let mut path = String::new();
-        let mut first = true;
-        for (xi, jd_val) in jd_points.iter().enumerate() {
-            let jd_v = jd_val.as_f64().unwrap_or(0.0);
-            let lon = lons.get(xi).and_then(|v| v.as_f64()).unwrap_or(f64::NAN);
-            if !lon.is_finite() {
-                first = true;
-                continue;
-            }
-            let x = LM + (jd_v - jd_start) * x_scale;
-            let y = TM + H - (lon / 360.0) * H;
-            if first {
-                let _ = write!(path, "M{x:.1},{y:.1}");
-                first = false;
-            } else {
-                let _ = write!(path, "L{x:.1},{y:.1}");
-            }
-        }
-        if !path.is_empty() {
-            let _ = writeln!(
-                s,
-                r##"  <path d="{path}" fill="none" stroke="{col}" stroke-width="1.5" opacity=".8"/>"##
-            );
-        }
-
-        // Glyph label at end of line
-        if let Some(last_jd) = jd_points.last().and_then(|v| v.as_f64()) {
-            if let Some(last_lon) = lons.last().and_then(|v| v.as_f64()) {
-                if last_lon.is_finite() {
-                    let lx = LM + (last_jd - jd_start) * x_scale + 8.0;
-                    let ly = TM + H - (last_lon / 360.0) * H;
-                    let _ = writeln!(
-                        s,
-                        r##"  <text x="{lx:.1}" y="{ly:.1}" font-size="12" dominant-baseline="central" font-family="serif" fill="{col}">{glyph}</text>"##
-                    );
-                }
-            }
-        }
+    let col = GE_PLANET_COLORS.get(pi).copied().unwrap_or("#888");
+    let glyph = planet["glyph"].as_str().unwrap_or("?");
+    let path = ge_build_path(&lons, jd_points, jd_start, x_scale);
+    if !path.is_empty() {
+        let _ = writeln!(
+            s,
+            r##"  <path d="{path}" fill="none" stroke="{col}" stroke-width="1.5" opacity=".8"/>"##
+        );
     }
+    write_ge_end_glyph(s, &lons, jd_points, jd_start, x_scale, col, glyph);
+}
 
-    // X-axis date labels (approx monthly)
+fn write_ge_x_axis_labels(
+    s: &mut String,
+    ring: &str,
+    jd_start: f64,
+    jd_end: f64,
+    jd_span: f64,
+    x_scale: f64,
+) {
     let label_interval = (jd_span / 6.0).max(7.0);
     let mut jd_lbl = jd_start;
     while jd_lbl <= jd_end + 1.0 {
-        let x = LM + (jd_lbl - jd_start) * x_scale;
+        let x = GE_LM + (jd_lbl - jd_start) * x_scale;
         let d = celestial_core::revjul(jd_lbl, celestial_core::body::Calendar::Gregorian);
         let lbl = format!("{:.0}-{:02.0}", d.year, d.month);
         let _ = writeln!(
             s,
             r##"  <line x1="{x:.1}" y1="{:.1}" x2="{x:.1}" y2="{:.1}" stroke="{ring}" stroke-width="0.6" opacity=".3"/>
   <text x="{x:.1}" y="{:.1}" font-size="9" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".7">{lbl}</text>"##,
-            TM,
-            TM + H,
-            TM + H + 14.0
+            GE_TM,
+            GE_TM + GE_H,
+            GE_TM + GE_H + 14.0
         );
         jd_lbl += label_interval;
     }
-
-    let _ = writeln!(
-        s,
-        r##"  <rect x="{:.2}" y="{TM:.2}" width="{W:.2}" height="{H:.2}" fill="none" stroke="{ring}" stroke-width="0.8" opacity=".4"/>"##,
-        LM
-    );
-    let _ = writeln!(s, "</svg>");
-    s
 }
 
 pub fn build_local_space_context(
@@ -551,6 +586,114 @@ pub fn build_local_space_context(
         "vars": Value::Object(palette.into_iter().collect())}))
 }
 
+const LS_CX: f64 = 450.0;
+const LS_CY: f64 = 450.0;
+const LS_R: f64 = 320.0;
+
+#[allow(clippy::too_many_arguments)]
+fn write_ls_header(s: &mut String, bg: &str, ring: &str, txt: &str, title: &str, date: &str, lat: f64, lon_v: f64) {
+    let ns = if lat >= 0.0 { "N" } else { "S" };
+    let ew = if lon_v >= 0.0 { "E" } else { "W" };
+    let _ = writeln!(
+        s,
+        r##"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 980" width="900" height="980">
+  <rect width="900" height="980" fill="{bg}"/>
+  <text x="450" y="30" text-anchor="middle" font-size="16" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
+  <text x="450" y="48" text-anchor="middle" font-size="9"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">{date}</text>
+  <text x="450" y="62" text-anchor="middle" font-size="9"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".5">{:.4}°{ns} {:.4}°{ew}</text>
+  <!-- Compass rings -->"##,
+        lat.abs(),
+        lon_v.abs(),
+    );
+}
+
+fn write_ls_concentric_rings(s: &mut String, ring: &str) {
+    for i in 1..=3u32 {
+        let r = LS_R * i as f64 / 3.0;
+        let deg = 90 * i;
+        let ring_a = (-90.0_f64).to_radians();
+        let tx = LS_CX + (r + 4.0) * ring_a.cos();
+        let ty = LS_CY - (r + 4.0) * ring_a.sin();
+        let _ = writeln!(
+            s,
+            r##"  <circle cx="{LS_CX}" cy="{LS_CY}" r="{r:.1}" fill="none" stroke="{ring}" stroke-width="0.7" opacity=".2"/>
+  <text x="{tx:.2}" y="{ty:.2}" font-size="8" text-anchor="middle" fill="{ring}" opacity=".35">{deg}°</text>"##
+        );
+    }
+}
+
+fn write_ls_cardinals(s: &mut String, ring: &str) {
+    for (deg, label) in [(0.0_f64, "N"), (90.0, "E"), (180.0, "S"), (270.0, "W")] {
+        let a = (deg - 90.0).to_radians();
+        let x1 = LS_CX + (LS_R - 5.0) * a.cos();
+        let y1 = LS_CY + (LS_R - 5.0) * a.sin();
+        let x2 = LS_CX + (LS_R + 20.0) * a.cos();
+        let y2 = LS_CY + (LS_R + 20.0) * a.sin();
+        let _ = writeln!(
+            s,
+            r##"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{ring}" stroke-width="1.5" opacity=".55"/>
+  <text x="{x2:.2}" y="{y2:.2}" font-size="14" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="{ring}">{label}</text>"##
+        );
+    }
+}
+
+fn write_ls_degree_tick(s: &mut String, ring: &str, deg: u32) {
+    let a = (deg as f64 - 90.0).to_radians();
+    let is_30 = deg.is_multiple_of(30);
+    let (r1, r2) = if is_30 { (LS_R - 10.0, LS_R) } else { (LS_R - 5.0, LS_R) };
+    let x1 = LS_CX + r1 * a.cos();
+    let y1 = LS_CY + r1 * a.sin();
+    let x2 = LS_CX + r2 * a.cos();
+    let y2 = LS_CY + r2 * a.sin();
+    let _ = writeln!(
+        s,
+        r##"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{ring}" stroke-width="0.8" opacity=".4"/>"##
+    );
+    if is_30 && deg > 0 {
+        let xd = LS_CX + (LS_R + 12.0) * a.cos();
+        let yd = LS_CY + (LS_R + 12.0) * a.sin();
+        let _ = writeln!(
+            s,
+            r##"  <text x="{xd:.2}" y="{yd:.2}" font-size="8" text-anchor="middle" dominant-baseline="central" fill="{ring}" opacity=".5">{deg}°</text>"##
+        );
+    }
+}
+
+fn write_ls_planet(s: &mut String, p: &Value, pfg: &str) {
+    let az = p["azimuth"].as_f64().unwrap_or(0.0);
+    let alt = p["altitude"].as_f64().unwrap_or(0.0);
+    let above = p["above_horizon"].as_bool().unwrap_or(false);
+    let g = p["glyph"].as_str().unwrap_or("?");
+    let r_planet = if above { LS_R * 0.88 } else { LS_R * 0.55 };
+    let a = (az - 90.0).to_radians();
+    let px = LS_CX + r_planet * a.cos();
+    let py = LS_CY + r_planet * a.sin();
+    let (sw, dash, op) = if above {
+        ("1.5", "", ".7")
+    } else {
+        ("1.0", r##" stroke-dasharray="4,3""##, ".4")
+    };
+    let _ = writeln!(
+        s,
+        r##"  <line x1="{LS_CX}" y1="{LS_CY}" x2="{px:.2}" y2="{py:.2}" stroke="{pfg}" stroke-width="{sw}" opacity="{op}"{dash}/>
+  <text x="{px:.2}" y="{py:.2}" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{pfg}" opacity="{op}">{g}</text>
+  <text x="{:.2}" y="{:.2}" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="{pfg}" opacity=".55">{az:.0}°</text>"##,
+        px + (px - LS_CX) * 0.12,
+        py + (py - LS_CY) * 0.12
+    );
+    let _ = writeln!(
+        s,
+        r##"  <text x="{:.2}" y="{:.2}" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="{pfg}" opacity=".4">{:+.1}°</text>"##,
+        px + (px - LS_CX) * 0.2,
+        py + (py - LS_CY) * 0.2,
+        alt
+    );
+}
+
 pub fn render_local_space_svg(ctx: &Value) -> String {
     let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
     let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
@@ -564,119 +707,20 @@ pub fn render_local_space_svg(ctx: &Value) -> String {
     let lat = ctx["lat"].as_f64().unwrap_or(0.0);
     let lon_v = ctx["lon"].as_f64().unwrap_or(0.0);
 
-    const CX: f64 = 450.0;
-    const CY: f64 = 450.0;
-    const R: f64 = 320.0;
-
     let mut s = String::with_capacity(32 * 1024);
-    let _ = writeln!(
-        s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 980" width="900" height="980">
-  <rect width="900" height="980" fill="{bg}"/>
-  <text x="450" y="30" text-anchor="middle" font-size="16" font-weight="600"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
-  <text x="450" y="48" text-anchor="middle" font-size="9"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">{date}</text>
-  <text x="450" y="62" text-anchor="middle" font-size="9"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".5">{:.4}°{} {:.4}°{}</text>
-  <!-- Compass rings -->"##,
-        lat.abs(),
-        if lat >= 0.0 { "N" } else { "S" },
-        lon_v.abs(),
-        if lon_v >= 0.0 { "E" } else { "W" }
-    );
-
-    // Concentric rings (every 30°)
-    for i in 1..=3u32 {
-        let r = R * i as f64 / 3.0;
-        let deg = 90 * i;
-        let ring_a = (-90.0_f64).to_radians(); // label at top of ring
-        let tx = CX + (r + 4.0) * ring_a.cos();
-        let ty = CY - (r + 4.0) * ring_a.sin();
-        let _ = writeln!(
-            s,
-            r##"  <circle cx="{CX}" cy="{CY}" r="{r:.1}" fill="none" stroke="{ring}" stroke-width="0.7" opacity=".2"/>
-  <text x="{tx:.2}" y="{ty:.2}" font-size="8" text-anchor="middle" fill="{ring}" opacity=".35">{deg}°</text>"##
-        );
-    }
-
-    // Cardinal direction lines and labels
-    for (deg, label) in [(0.0_f64, "N"), (90.0, "E"), (180.0, "S"), (270.0, "W")] {
-        let a = (deg - 90.0).to_radians();
-        let x1 = CX + (R - 5.0) * a.cos();
-        let y1 = CY + (R - 5.0) * a.sin();
-        let x2 = CX + (R + 20.0) * a.cos();
-        let y2 = CY + (R + 20.0) * a.sin();
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{ring}" stroke-width="1.5" opacity=".55"/>
-  <text x="{x2:.2}" y="{y2:.2}" font-size="14" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="{ring}">{label}</text>"##
-        );
-    }
-
-    // Degree ticks (every 10°)
+    write_ls_header(&mut s, bg, ring, txt, title, date, lat, lon_v);
+    write_ls_concentric_rings(&mut s, ring);
+    write_ls_cardinals(&mut s, ring);
     for deg in (0..360u32).step_by(10) {
-        let a = (deg as f64 - 90.0).to_radians();
-        let is_30 = deg % 30 == 0;
-        let (r1, r2) = if is_30 { (R - 10.0, R) } else { (R - 5.0, R) };
-        let x1 = CX + r1 * a.cos();
-        let y1 = CY + r1 * a.sin();
-        let x2 = CX + r2 * a.cos();
-        let y2 = CY + r2 * a.sin();
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{ring}" stroke-width="0.8" opacity=".4"/>"##
-        );
-        if is_30 && deg > 0 {
-            let xd = CX + (R + 12.0) * a.cos();
-            let yd = CY + (R + 12.0) * a.sin();
-            let _ = writeln!(
-                s,
-                r##"  <text x="{xd:.2}" y="{yd:.2}" font-size="8" text-anchor="middle" dominant-baseline="central" fill="{ring}" opacity=".5">{deg}°</text>"##
-            );
-        }
+        write_ls_degree_tick(&mut s, ring, deg);
     }
-
-    // Planet lines (direction lines from centre)
     let planets = ctx["planets"]
         .as_array()
         .map(|v| v.to_vec())
         .unwrap_or_default();
     for p in &planets {
-        let az = p["azimuth"].as_f64().unwrap_or(0.0);
-        let alt = p["altitude"].as_f64().unwrap_or(0.0);
-        let above = p["above_horizon"].as_bool().unwrap_or(false);
-        let g = p["glyph"].as_str().unwrap_or("?");
-        // Distance from centre proportional to azimuth radius (horizon = R)
-        // Above horizon: full R; below: 60% R with dashed
-        let r_planet = if above { R * 0.88 } else { R * 0.55 };
-        let a = (az - 90.0).to_radians();
-        let px = CX + r_planet * a.cos();
-        let py = CY + r_planet * a.sin();
-        // Line from center
-        let (sw, dash, op) = if above {
-            ("1.5", "", ".7")
-        } else {
-            ("1.0", r##" stroke-dasharray="4,3""##, ".4")
-        };
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{CX}" y1="{CY}" x2="{px:.2}" y2="{py:.2}" stroke="{pfg}" stroke-width="{sw}" opacity="{op}"{dash}/>
-  <text x="{px:.2}" y="{py:.2}" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{pfg}" opacity="{op}">{g}</text>
-  <text x="{:.2}" y="{:.2}" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="{pfg}" opacity=".55">{az:.0}°</text>"##,
-            px + (px - CX) * 0.12,
-            py + (py - CY) * 0.12
-        );
-        let _ = writeln!(
-            s,
-            r##"  <text x="{:.2}" y="{:.2}" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="{pfg}" opacity=".4">{:+.1}°</text>"##,
-            px + (px - CX) * 0.2,
-            py + (py - CY) * 0.2,
-            alt
-        );
+        write_ls_planet(&mut s, p, pfg);
     }
-
     let _ = writeln!(s, "</svg>");
     s
 }

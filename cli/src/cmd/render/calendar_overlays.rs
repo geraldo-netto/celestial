@@ -407,16 +407,15 @@ pub fn hebrew_overlay(jd_start: f64, jd_end: f64) -> Value {
     while jd_cur <= jd_end {
         let h_year = approx_hebrew_year(jd_cur);
         let n_months = months_in_hebrew_year(h_year);
-        let mut found = None;
-        for m in 1..=n_months {
+        let found = (1..=n_months).find_map(|m| {
             let m_start = hebrew_month_start_jd(h_year, m) as f64;
             let m_days = hebrew_month_days(h_year, m) as f64;
             if jd_cur >= m_start && jd_cur < m_start + m_days {
-                let day_in_month = (jd_cur - m_start).floor() as i32 + 1;
-                found = Some((m, day_in_month));
-                break;
+                Some((m, (jd_cur - m_start).floor() as i32 + 1))
+            } else {
+                None
             }
-        }
+        });
         if let Some((m, d)) = found {
             let month_name = HEBREW_MONTH_NAMES
                 .get((m as usize).saturating_sub(1))

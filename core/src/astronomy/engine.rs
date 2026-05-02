@@ -44,83 +44,9 @@ pub fn calc_tt(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
         body::URANUS => apparent_planet(Planet::Uranus, jde),
         body::NEPTUNE => apparent_planet(Planet::Neptune, jde),
         body::MOON => apparent_moon(jde),
-        body::MEAN_NODE | body::TRUE_NODE => {
-            return {
-                let lon = if body_num == body::MEAN_NODE {
-                    crate::astronomy::nodes::moon_mean_node(jde)
-                } else {
-                    crate::astronomy::nodes::moon_true_node(jde)
-                };
-                let spd = if body_num == body::MEAN_NODE {
-                    crate::astronomy::nodes::moon_mean_node_speed(jde)
-                } else {
-                    crate::astronomy::nodes::moon_true_node_speed(jde)
-                };
-                let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
-                    (spd, 0.0, 0.0)
-                } else {
-                    (0.0, 0.0, 0.0)
-                };
-                Ok(PlanetPos {
-                    lon,
-                    lat: 0.0,
-                    dist: 1.0,
-                    speed_lon,
-                    speed_lat,
-                    speed_dist,
-                    ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
-                })
-            };
-        }
-        body::CHIRON => {
-            return {
-                let (lon, lat, dist) = crate::astronomy::chiron::chiron_pos(jde);
-                let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
-                    crate::astronomy::chiron::chiron_speed(jde)
-                } else {
-                    (0.0, 0.0, 0.0)
-                };
-                Ok(PlanetPos {
-                    lon,
-                    lat,
-                    dist,
-                    speed_lon,
-                    speed_lat,
-                    speed_dist,
-                    ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
-                })
-            };
-        }
-        body::PLUTO => {
-            return {
-                let (lon, lat, dist) = crate::astronomy::pluto::pluto_geocentric(jde);
-                // Apply nutation and aberration correction (small for outer planets)
-                let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
-                    let p = crate::astronomy::pluto::pluto_geocentric(jde + 0.5);
-                    let m = crate::astronomy::pluto::pluto_geocentric(jde - 0.5);
-                    let raw = p.0 - m.0;
-                    let spd = if raw > 180.0 {
-                        raw - 360.0
-                    } else if raw < -180.0 {
-                        raw + 360.0
-                    } else {
-                        raw
-                    };
-                    (spd, p.1 - m.1, p.2 - m.2)
-                } else {
-                    (0.0, 0.0, 0.0)
-                };
-                Ok(PlanetPos {
-                    lon,
-                    lat,
-                    dist,
-                    speed_lon,
-                    speed_lat,
-                    speed_dist,
-                    ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
-                })
-            };
-        }
+        body::MEAN_NODE | body::TRUE_NODE => return calc_node(jde, body_num, flags),
+        body::CHIRON => return calc_chiron(jde, flags),
+        body::PLUTO => return calc_pluto(jde, flags),
         _ => {
             return Err(Error::Calc(
                 "body not implemented in pure-Rust engine".into(),
@@ -128,143 +54,25 @@ pub fn calc_tt(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
         }
     };
 
-    // Heliocentric mode: return VSOP87 position directly (lon/lat relative to Sun)
     if flags as u32 & flag::FLG_HELCTR != 0 {
-        if let Some(vsop_planet) = body_to_vsop(body_num) {
-            let h = heliocentric(vsop_planet, jde);
-            let lon_deg = h.lon.to_degrees().rem_euclid(360.0);
-            let lat_deg = h.lat.to_degrees();
-            let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
-                let h2 = heliocentric(vsop_planet, jde + 0.5);
-                let h0 = heliocentric(vsop_planet, jde - 0.5);
-                let sl = (h2.lon - h0.lon).to_degrees();
-                let sl = if sl > 180.0 {
-                    sl - 360.0
-                } else if sl < -180.0 {
-                    sl + 360.0
-                } else {
-                    sl
-                };
-                (sl, (h2.lat - h0.lat).to_degrees(), h2.rad - h0.rad)
-            } else {
-                (0.0, 0.0, 0.0)
-            };
-            return Ok(PlanetPos {
-                lon: lon_deg,
-                lat: lat_deg,
-                dist: h.rad,
-                speed_lon,
-                speed_lat,
-                speed_dist,
-                ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
-            });
+        if let Some(pos) = calc_heliocentric(jde, body_num, flags) {
+            return Ok(pos);
         }
     }
 
     let mut lon = if use_equatorial { geo.ra } else { geo.lon };
     let lat = if use_equatorial { geo.dec } else { geo.lat };
 
-    // Sidereal mode: subtract ayanamsa using the mode set by set_sid_mode()
     if flags as u32 & flag::FLG_SIDEREAL != 0 {
-        let sid_mode = crate::functions::config::current_sid_mode();
-        let mode = SidMode::from_i32(sid_mode).unwrap_or(SidMode::Lahiri);
-        let ay = calc_ayanamsa(jde, mode);
-        lon = norm_deg(lon - ay);
+        lon = norm_deg(lon - sidereal_ayanamsa(jde));
     }
 
-    // Topocentric parallax correction (FLG_TOPOCTR)
-    // Applies the diurnal parallax shift based on observer position set with set_topo().
-    // Significant for Moon (~57'), smaller for Sun (~8.8"), negligible for outer planets.
     if flags & crate::FLG_TOPOCTR != 0 {
-        let (obs_lon, obs_lat, obs_alt) = crate::functions::config::current_topo();
-        let obs_lat_r = obs_lat.to_radians();
-
-        // Equatorial horizontal parallax of the body (radians)
-        // sin(π) = R_earth / dist_km  where dist_km = dist_au × 149_597_870.7
-        let dist_km = geo.dist * 149_597_870.7;
-        let sin_pi = 6_378.137 / dist_km; // Earth's equatorial radius / body distance
-        let horiz_parallax_r = sin_pi.asin();
-
-        // Greenwich Sidereal Time → Local Hour Angle of body
-        let gst_deg = crate::functions::time::sidtime(
-            jde - crate::astronomy::delta_t::delta_t(jde) / 86400.0,
-        ) * 15.0;
-        let ha_deg = (gst_deg + obs_lon - geo.ra).rem_euclid(360.0);
-        let ha_r = ha_deg.to_radians();
-
-        // Observer's geocentric coordinates (Meeus eq. 11.1)
-        // ρ sin φ' and ρ cos φ' (in units of Earth radii)
-        let u = (0.996_647_19_f64 * obs_lat_r.tan()).atan();
-        let rho_sin = 0.996_647_19 * u.sin() + (obs_alt / 6_378_137.0) * obs_lat_r.sin();
-        let rho_cos = u.cos() + (obs_alt / 6_378_137.0) * obs_lat_r.cos();
-
-        // Convert geocentric RA/Dec to use in parallax formula
-        let _ra_r = geo.ra.to_radians(); // reserved for future parallax lat correction
-        let dec_r = geo.dec.to_radians();
-
-        // Parallax corrections in RA and Dec (Meeus eq. 40.2, 40.3)
-        let delta_ra = (-rho_cos * horiz_parallax_r.sin() * ha_r.sin())
-            / (dec_r.cos() - rho_cos * horiz_parallax_r.sin() * ha_r.cos());
-        let delta_dec = ((-rho_sin * horiz_parallax_r.sin()
-            + rho_cos * horiz_parallax_r.sin() * ha_r.cos() * delta_ra.sin())
-            * dec_r.sin()
-            - rho_cos * horiz_parallax_r.sin() * ha_r.cos())
-            / (dec_r.cos() - rho_cos * horiz_parallax_r.sin() * ha_r.cos());
-
-        // delta_ra and delta_dec are in radians; convert to degrees
-        let delta_ra_deg = delta_ra.atan().to_degrees();
-        let delta_dec_deg = delta_dec.atan().to_degrees();
-
-        // Apply to equatorial position
-        let topo_ra = geo.ra + delta_ra_deg;
-        let topo_dec = geo.dec + delta_dec_deg;
-
-        // Convert back to ecliptic if needed
-        let eps_r = crate::astronomy::obliquity(jde).to_radians();
-        if use_equatorial {
-            lon = topo_ra.rem_euclid(360.0);
-        } else {
-            // Convert corrected equatorial to ecliptic
-            let ra_r2 = topo_ra.to_radians();
-            let dec_r2 = topo_dec.to_radians();
-            let ecl_lon = (ra_r2.sin() * eps_r.cos() + dec_r2.tan() * eps_r.sin())
-                .atan2(ra_r2.cos())
-                .to_degrees()
-                .rem_euclid(360.0);
-            let ecl_lat = (dec_r2.sin() * eps_r.cos() - dec_r2.cos() * eps_r.sin() * ra_r2.sin())
-                .asin()
-                .to_degrees();
-            lon = ecl_lon;
-            let _ = ecl_lat; // lat correction small, skip for now
-        }
+        lon = topocentric_lon(jde, &geo, use_equatorial);
     }
 
-    // Speed: numerical differentiation over ±0.5 day.
-    // For equatorial mode we differentiate the full equatorial pipeline so
-    // that speed reflects RA/Dec rates, not ecliptic rates.
-    let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
-        if use_equatorial {
-            // Strip FLG_SPEED from recursive calls to avoid infinite recursion
-            let flags_pos = flags & !(crate::astronomy::flag::FLG_SPEED as i32);
-            let p_plus = calc_tt(jde + 0.5, body_num, flags_pos)?;
-            let p_minus = calc_tt(jde - 0.5, body_num, flags_pos)?;
-            (
-                angle_speed(p_plus.lon, p_minus.lon),
-                p_plus.lat - p_minus.lat,
-                p_plus.dist - p_minus.dist,
-            )
-        } else {
-            let p_plus = body_position(body_num, jde + 0.5)?;
-            let p_minus = body_position(body_num, jde - 0.5)?;
-            (
-                angle_speed(p_plus.0, p_minus.0),
-                p_plus.1 - p_minus.1,
-                p_plus.2 - p_minus.2,
-            )
-        }
-    } else {
-        (0.0, 0.0, 0.0)
-    };
+    let (speed_lon, speed_lat, speed_dist) =
+        compute_speed(jde, body_num, flags, use_equatorial)?;
 
     Ok(PlanetPos {
         lon,
@@ -275,6 +83,180 @@ pub fn calc_tt(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
         speed_dist,
         ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
     })
+}
+
+fn calc_node(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
+    let lon = if body_num == body::MEAN_NODE {
+        crate::astronomy::nodes::moon_mean_node(jde)
+    } else {
+        crate::astronomy::nodes::moon_true_node(jde)
+    };
+    let spd = if body_num == body::MEAN_NODE {
+        crate::astronomy::nodes::moon_mean_node_speed(jde)
+    } else {
+        crate::astronomy::nodes::moon_true_node_speed(jde)
+    };
+    let speed_lon = if flags as u32 & flag::FLG_SPEED != 0 { spd } else { 0.0 };
+    Ok(PlanetPos {
+        lon,
+        lat: 0.0,
+        dist: 1.0,
+        speed_lon,
+        speed_lat: 0.0,
+        speed_dist: 0.0,
+        ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
+    })
+}
+
+fn calc_chiron(jde: f64, flags: i32) -> Result<PlanetPos> {
+    let (lon, lat, dist) = crate::astronomy::chiron::chiron_pos(jde);
+    let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
+        crate::astronomy::chiron::chiron_speed(jde)
+    } else {
+        (0.0, 0.0, 0.0)
+    };
+    Ok(PlanetPos {
+        lon,
+        lat,
+        dist,
+        speed_lon,
+        speed_lat,
+        speed_dist,
+        ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
+    })
+}
+
+fn calc_pluto(jde: f64, flags: i32) -> Result<PlanetPos> {
+    let (lon, lat, dist) = crate::astronomy::pluto::pluto_geocentric(jde);
+    let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
+        let p = crate::astronomy::pluto::pluto_geocentric(jde + 0.5);
+        let m = crate::astronomy::pluto::pluto_geocentric(jde - 0.5);
+        (angle_speed(p.0, m.0), p.1 - m.1, p.2 - m.2)
+    } else {
+        (0.0, 0.0, 0.0)
+    };
+    Ok(PlanetPos {
+        lon,
+        lat,
+        dist,
+        speed_lon,
+        speed_lat,
+        speed_dist,
+        ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
+    })
+}
+
+fn calc_heliocentric(jde: f64, body_num: i32, flags: i32) -> Option<PlanetPos> {
+    let vsop_planet = body_to_vsop(body_num)?;
+    let h = heliocentric(vsop_planet, jde);
+    let lon_deg = h.lon.to_degrees().rem_euclid(360.0);
+    let lat_deg = h.lat.to_degrees();
+    let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
+        let h2 = heliocentric(vsop_planet, jde + 0.5);
+        let h0 = heliocentric(vsop_planet, jde - 0.5);
+        let sl = (h2.lon - h0.lon).to_degrees();
+        (
+            angle_speed(sl, 0.0),
+            (h2.lat - h0.lat).to_degrees(),
+            h2.rad - h0.rad,
+        )
+    } else {
+        (0.0, 0.0, 0.0)
+    };
+    Some(PlanetPos {
+        lon: lon_deg,
+        lat: lat_deg,
+        dist: h.rad,
+        speed_lon,
+        speed_lat,
+        speed_dist,
+        ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
+    })
+}
+
+fn sidereal_ayanamsa(jde: f64) -> f64 {
+    let sid_mode = crate::functions::config::current_sid_mode();
+    let mode = SidMode::from_i32(sid_mode).unwrap_or(SidMode::Lahiri);
+    calc_ayanamsa(jde, mode)
+}
+
+/// Apply diurnal parallax (FLG_TOPOCTR) and return the corrected lon.
+/// Significant for Moon (~57'), smaller for Sun (~8.8"), negligible for outer planets.
+fn topocentric_lon(
+    jde: f64,
+    geo: &crate::astronomy::planetary::GeocentricPos,
+    use_equatorial: bool,
+) -> f64 {
+    let (obs_lon, obs_lat, obs_alt) = crate::functions::config::current_topo();
+    let obs_lat_r = obs_lat.to_radians();
+
+    let dist_km = geo.dist * 149_597_870.7;
+    let sin_pi = 6_378.137 / dist_km;
+    let horiz_parallax_r = sin_pi.asin();
+
+    let gst_deg = crate::functions::time::sidtime(
+        jde - crate::astronomy::delta_t::delta_t(jde) / 86400.0,
+    ) * 15.0;
+    let ha_deg = (gst_deg + obs_lon - geo.ra).rem_euclid(360.0);
+    let ha_r = ha_deg.to_radians();
+
+    let u = (0.996_647_19_f64 * obs_lat_r.tan()).atan();
+    let rho_sin = 0.996_647_19 * u.sin() + (obs_alt / 6_378_137.0) * obs_lat_r.sin();
+    let rho_cos = u.cos() + (obs_alt / 6_378_137.0) * obs_lat_r.cos();
+
+    let dec_r = geo.dec.to_radians();
+    let hp_sin = horiz_parallax_r.sin();
+    let denom = dec_r.cos() - rho_cos * hp_sin * ha_r.cos();
+    let delta_ra = (-rho_cos * hp_sin * ha_r.sin()) / denom;
+    let delta_dec = ((-rho_sin * hp_sin
+        + rho_cos * hp_sin * ha_r.cos() * delta_ra.sin())
+        * dec_r.sin()
+        - rho_cos * hp_sin * ha_r.cos())
+        / denom;
+
+    let topo_ra = geo.ra + delta_ra.atan().to_degrees();
+    let topo_dec = geo.dec + delta_dec.atan().to_degrees();
+
+    if use_equatorial {
+        return topo_ra.rem_euclid(360.0);
+    }
+    let eps_r = crate::astronomy::obliquity(jde).to_radians();
+    let ra_r2 = topo_ra.to_radians();
+    let dec_r2 = topo_dec.to_radians();
+    (ra_r2.sin() * eps_r.cos() + dec_r2.tan() * eps_r.sin())
+        .atan2(ra_r2.cos())
+        .to_degrees()
+        .rem_euclid(360.0)
+}
+
+/// Compute (speed_lon, speed_lat, speed_dist) via numerical differentiation.
+/// In equatorial mode, recursively calls calc_tt to get RA/Dec rates.
+fn compute_speed(
+    jde: f64,
+    body_num: i32,
+    flags: i32,
+    use_equatorial: bool,
+) -> Result<(f64, f64, f64)> {
+    if flags as u32 & flag::FLG_SPEED == 0 {
+        return Ok((0.0, 0.0, 0.0));
+    }
+    if use_equatorial {
+        let flags_pos = flags & !(crate::astronomy::flag::FLG_SPEED as i32);
+        let p_plus = calc_tt(jde + 0.5, body_num, flags_pos)?;
+        let p_minus = calc_tt(jde - 0.5, body_num, flags_pos)?;
+        return Ok((
+            angle_speed(p_plus.lon, p_minus.lon),
+            p_plus.lat - p_minus.lat,
+            p_plus.dist - p_minus.dist,
+        ));
+    }
+    let p_plus = body_position(body_num, jde + 0.5)?;
+    let p_minus = body_position(body_num, jde - 0.5)?;
+    Ok((
+        angle_speed(p_plus.0, p_minus.0),
+        p_plus.1 - p_minus.1,
+        p_plus.2 - p_minus.2,
+    ))
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────

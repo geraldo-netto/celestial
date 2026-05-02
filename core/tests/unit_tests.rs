@@ -99,7 +99,7 @@ fn deg_midp_simple() {
 #[test]
 fn deg_midp_wrap() {
     let m = norm_deg(midpoint_deg(10.0, 350.0));
-    assert!(m < 1.0 || m > 359.0, "wrap midpoint near 0°, got {m}");
+    assert!(!(1.0..=359.0).contains(&m), "wrap midpoint near 0°, got {m}");
 }
 
 // ── norm_cs / cs_round_sec ───────────────────────────────────────────────────────
@@ -418,7 +418,7 @@ fn test_phenomena() {
         0.0,
     )
     .unwrap();
-    assert!(sector >= 1.0 && sector <= 36.0, "sector={sector}");
+    assert!((1.0..=36.0).contains(&sector), "sector={sector}");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -648,7 +648,7 @@ fn time_functions_smoke() {
     assert!(eq_time.is_finite()); // equation of time ~(-0.27, +0.27) hours
     assert!(eq_time.abs() < 0.3, "time_equ {eq_time:.4}h out of range");
     let st0 = sidtime0(jd, 23.439, 0.0);
-    assert!(st0 >= 0.0 && st0 < 24.0);
+    assert!((0.0..24.0).contains(&st0));
 }
 
 #[test]
@@ -971,7 +971,7 @@ fn geoformat_cs2_functions() {
     let lon_cs = (10.5 * 360_000.0) as i32; // 10°30' in centiseconds
     let s = centisec_to_lonlat_str(lon_cs, 'E', 'W');
     assert!(s.contains('E') || s.contains('W') || !s.is_empty());
-    let time_cs = (12 * 360_000 + 30 * 6000) as i32; // 12:30
+    let time_cs = 12 * 360_000 + 30 * 6000; // 12:30
     let t = centisec_to_time_str(time_cs, ':', false);
     assert!(!t.is_empty());
 }
@@ -1004,26 +1004,21 @@ fn heliacal_ut_smoke() {
     let atm = [1013.25_f64, 15.0, 50.0, 0.25]; // pressure, temp, humidity, age
     let dobs = [0.0_f64; 6]; // observer data (age, Snellen, etc) — defaults
     let r = heliacal_ut(J2000, geo, atm, dobs, "Venus", 0, CalcFlags::BUILTIN);
-    match r {
-        Ok(jds) => {
-            for &jd in &jds {
-                assert!(jd.is_finite() || jd == 0.0);
-            }
+    if let Ok(jds) = r {
+        for &jd in &jds {
+            assert!(jd.is_finite() || jd == 0.0);
         }
-        Err(_) => {} // no event found is acceptable
     }
+    // Err: no event found is acceptable
 }
 
 #[test]
 fn pheno_smoke() {
     // pheno (TT variant) returns same structure as pheno_ut
     let r = pheno(J2000, Body::MARS, CalcFlags::BUILTIN);
-    match r {
-        Ok(attr) => {
-            assert!(attr[0].is_finite()); // phase angle
-            assert!(attr[1].is_finite()); // phase illuminated
-        }
-        Err(_) => {}
+    if let Ok(attr) = r {
+        assert!(attr[0].is_finite()); // phase angle
+        assert!(attr[1].is_finite()); // phase illuminated
     }
 }
 
@@ -1050,11 +1045,8 @@ fn next_aspect_cusp2_smoke() {
 fn lun_occult_where_smoke() {
     // lun_occult_where returns geographic path — still a stub but must not panic
     let r = lun_occult_where(J2000, Body::VENUS, None, CalcFlags::BUILTIN);
-    match r {
-        Ok(w) => {
-            assert!(w.geopos[0] >= -180.0);
-        }
-        Err(_) => {}
+    if let Ok(w) = r {
+        assert!(w.geopos[0] >= -180.0);
     }
 }
 
@@ -1587,7 +1579,7 @@ mod moon_and_calendar_tests {
         assert_eq!(year, 1420, "J2000 Hijri year should be 1420 AH");
         // Ramadan 1420 AH started approximately Dec 9 1999
         assert!(
-            month >= 9 && month <= 10,
+            (9..=10).contains(&month),
             "J2000 month should be Ramadan/Shawwal, got {month}"
         );
     }
@@ -1692,10 +1684,10 @@ mod calendar_deep_tests {
         let (year, month, day) = jd_to_hebrew_date(JD);
         assert_eq!(year, 5760, "J2000 Hebrew year should be 5760");
         assert!(
-            month >= 1 && month <= 13,
+            (1..=13).contains(&month),
             "Hebrew month {month} out of range 1-13"
         );
-        assert!(day >= 1 && day <= 30, "Hebrew day {day} out of range 1-30");
+        assert!((1..=30).contains(&day), "Hebrew day {day} out of range 1-30");
     }
 
     #[cfg(feature = "calendar-traditions")]
@@ -1901,7 +1893,7 @@ mod moon_phase_tests {
     fn moon_phase_angle_is_in_range() {
         let angle = moon_phase_angle(JD).unwrap();
         assert!(
-            angle >= 0.0 && angle < 360.0,
+            (0.0..360.0).contains(&angle),
             "phase angle {angle:.2}° out of [0,360)"
         );
     }

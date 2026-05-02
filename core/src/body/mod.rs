@@ -472,29 +472,45 @@ mod tests {
         assert_eq!(i32::from(b), 15);
     }
 
+    fn assert_is_node(bodies: &[Body], expect: bool) {
+        for b in bodies {
+            assert_eq!(b.is_node(), expect, "is_node mismatch for {b:?}");
+        }
+    }
+
     /// `Body::is_node` matches the four node/apside body codes (10..=13).
     /// These are: Mean Node, True Node, Mean Apogee, Osculating Apogee.
     /// Everything else — planets, Sun, Moon, Earth, Chiron, asteroids — must
     /// return `false`.
     #[test]
     fn is_node_matches_only_lunar_nodes_and_apsides() {
-        assert!(Body::MEAN_NODE.is_node());      // 10
-        assert!(Body::from_raw(11).is_node());   // True Node
-        assert!(Body::from_raw(12).is_node());   // Mean Apogee
-        assert!(Body::from_raw(13).is_node());   // Osculating Apogee
-
+        // Mean Node, True Node, Mean Apogee, Osculating Apogee
+        assert_is_node(
+            &[
+                Body::MEAN_NODE,
+                Body::from_raw(11),
+                Body::from_raw(12),
+                Body::from_raw(13),
+            ],
+            true,
+        );
         // Planets and luminaries must NOT be flagged as nodes
-        assert!(!Body::SUN.is_node());
-        assert!(!Body::MOON.is_node());
-        assert!(!Body::MERCURY.is_node());
-        assert!(!Body::JUPITER.is_node());
-        assert!(!Body::PLUTO.is_node());
-        assert!(!Body::CHIRON.is_node());
-
+        assert_is_node(
+            &[
+                Body::SUN,
+                Body::MOON,
+                Body::MERCURY,
+                Body::JUPITER,
+                Body::PLUTO,
+                Body::CHIRON,
+            ],
+            false,
+        );
         // Out-of-range codes must NOT be flagged
-        assert!(!Body::from_raw(9).is_node());   // Pluto (boundary below)
-        assert!(!Body::from_raw(14).is_node());  // Earth (boundary above)
-        assert!(!Body::from_raw(15).is_node());  // Chiron
+        assert_is_node(
+            &[Body::from_raw(9), Body::from_raw(14), Body::from_raw(15)],
+            false,
+        );
     }
 
     /// `CalcFlags::is_sidereal` checks the SIDEREAL bit. This flag tells the
