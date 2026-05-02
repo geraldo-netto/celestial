@@ -35,13 +35,10 @@ pub fn render_north_indian_svg(ctx: &Value) -> String {
     // or store asc_rasi in context if present.
     let lagna_rasi = ctx.get("asc_rasi").and_then(|v| v.as_i64()).unwrap_or(0) as usize % 12;
 
-    let planets = ctx["planets"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let planets = super::json_array(&ctx["planets"]);
     // Group planets by rasi
     let mut rasi_planets: Vec<Vec<String>> = vec![Vec::new(); 12];
-    for p in &planets {
+    for p in planets {
         let rasi = p["rasi"].as_i64().unwrap_or(0) as usize % 12;
         let g = p["glyph"].as_str().unwrap_or("?");
         let ret = p["retro"].as_bool().unwrap_or(false);
@@ -269,10 +266,7 @@ fn write_av_grid_lines(s: &mut String, border: &str, n_rows: usize) {
 fn write_av_planet_row(s: &mut String, row: &Value, ri: usize, border: &str, pcol: &str, txt: &str) {
     let ry = AV_TM + ri as f64 * AV_RH;
     let name = row["planet"].as_str().unwrap_or("?");
-    let bindus = row["bindus"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let bindus = super::json_array(&row["bindus"]);
     if ri.is_multiple_of(2) {
         let _ = writeln!(
             s,
@@ -337,14 +331,8 @@ pub fn render_ashtakavarga_svg(ctx: &Value) -> String {
         .unwrap_or("Ashtakavarga");
     let date = ctx["date"].as_str().unwrap_or("");
 
-    let rows = ctx["ashtakavarga_rows"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
-    let totals = ctx["sarvashtakavarga"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let rows = super::json_array(&ctx["ashtakavarga_rows"]);
+    let totals = super::json_array(&ctx["sarvashtakavarga"]);
 
     let n_rows = rows.len() + 1;
     let total_h = AV_TM + n_rows as f64 * AV_RH + 60.0;
@@ -358,7 +346,7 @@ pub fn render_ashtakavarga_svg(ctx: &Value) -> String {
         write_av_planet_row(&mut s, row, ri, border, pcol, txt);
     }
     let ty = AV_TM + rows.len() as f64 * AV_RH;
-    write_av_totals_row(&mut s, &totals, ty, border, txt);
+    write_av_totals_row(&mut s, totals, ty, border, txt);
     let _ = writeln!(s, "</svg>");
     s
 }
@@ -388,7 +376,7 @@ pub fn build_shadbala_context(
     // Mean daily motion (degrees/day) for each planet — used for Chesta bala
     const MEAN_SPEED: [f64; 7] = [0.9856, 13.1764, 0.5240, 1.3831, 0.0831, 0.6152, 0.0334];
 
-    let mut rows: Vec<Value> = Vec::new();
+    let mut rows: Vec<Value> = Vec::with_capacity(trad_bodies.len());
     for (i, &(body, raw, name)) in trad_bodies.iter().enumerate() {
         if let Ok(pos) = calc_ut(jd, body, flags) {
             // 1. Ochchabala: exaltation strength (0–60 shashtiamsas)
@@ -475,10 +463,7 @@ pub fn render_shadbala_svg(ctx: &Value) -> String {
     const TM: f64 = 60.0;
 
     let total_w: f64 = COLS.iter().map(|(_, w)| w).sum::<f64>() + 40.0;
-    let rows = ctx["shadbala"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let rows = super::json_array(&ctx["shadbala"]);
     let total_h = TM + (rows.len() + 1) as f64 * RH + 20.0;
 
     let mut s = String::with_capacity(6 * 1024);
@@ -607,7 +592,7 @@ pub fn build_vedic_context(
         .or_insert_with(|| format!("Vedic {chart_type}"));
 
     // Collect sidereal positions for all bodies
-    let mut planets: Vec<Value> = Vec::new();
+    let mut planets: Vec<Value> = Vec::with_capacity(BODIES.len());
     let mut moon_sid_lon = 0.0_f64;
     for &(body, key, name, glyph) in BODIES {
         if let Ok(pos) = calc_ut(jd, body, flags) {
@@ -691,13 +676,10 @@ pub fn build_vedic_context(
 
 pub fn render_navamsa_svg(ctx: &Value) -> String {
     // Navamsa uses the same South Indian grid layout but with navamsa positions
-    let planets_orig = ctx["planets"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let planets_orig = super::json_array(&ctx["planets"]);
     // Rebuild rasi_planets using navamsa index instead of rasi
     let mut rasi_planets: Vec<Vec<String>> = vec![Vec::new(); 12];
-    for p in &planets_orig {
+    for p in planets_orig {
         let nav = p["navamsa"].as_i64().unwrap_or(0) as usize % 12;
         let g = p["glyph"].as_str().unwrap_or("?");
         let ret = p["retro"].as_bool().unwrap_or(false);
@@ -741,10 +723,7 @@ pub fn render_dasha_svg(ctx: &Value) -> String {
         ("VENUS", "#3498db"),
     ];
 
-    let dashas = ctx["dashas"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let dashas = super::json_array(&ctx["dashas"]);
     if dashas.is_empty() {
         return String::new();
     }

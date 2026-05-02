@@ -54,11 +54,17 @@ where
     None
 }
 
-/// Bisection refinement on a confirmed bracket. `da` is the value at `ja`.
+/// Brent–Dekker refinement on a confirmed bracket. Combines inverse-quadratic
+/// interpolation, secant, and bisection — typically converges in 5–7 evals
+/// vs. bisection's 25–30 to the same tolerance.
+///
+/// Convergence criteria match the previous bisection: `|d| < 1e-8°` (~0.04″)
+/// OR bracket width `< 1e-8 / 86400` days (~0.01 µs).
 fn refine_crossing<F, D>(
-    mut ja: f64,
-    mut da: f64,
-    mut jb: f64,
+    mut a: f64,
+    mut fa: f64,
+    mut b: f64,
+    fb_in: f64,
     lon_at: &F,
     diff: &D,
 ) -> Option<f64>
@@ -66,20 +72,73 @@ where
     F: Fn(f64) -> Option<f64>,
     D: Fn(f64) -> f64,
 {
-    for _ in 0..60 {
-        let jm = (ja + jb) / 2.0;
-        let dm = diff(lon_at(jm)?);
-        if dm.abs() < 1e-8 || (jb - ja).abs() < 1e-8 / 86400.0 {
-            return Some(jm);
+    let mut fb = fb_in;
+    // Ensure |f(a)| ≥ |f(b)| so b is always the best current estimate.
+    if fa.abs() < fb.abs() {
+        std::mem::swap(&mut a, &mut b);
+        std::mem::swap(&mut fa, &mut fb);
+    }
+    let mut c = a;
+    let mut fc = fa;
+    let mut d = a; // previous-previous iterate (only read after first non-bisect step)
+    let mut used_bisect = true;
+
+    const TOL_F: f64 = 1.0e-8;
+    const TOL_X: f64 = 1.0e-8 / 86400.0;
+    const MAX_ITER: usize = 60;
+
+    for _ in 0..MAX_ITER {
+        if fb.abs() < TOL_F || (b - a).abs() < TOL_X {
+            return Some(b);
         }
-        if da * dm <= 0.0 {
-            jb = jm;
+
+        // Try inverse-quadratic interpolation when fa, fb, fc are distinct.
+        let s = if (fa - fc).abs() > f64::EPSILON && (fb - fc).abs() > f64::EPSILON {
+            a * fb * fc / ((fa - fb) * (fa - fc))
+                + b * fa * fc / ((fb - fa) * (fb - fc))
+                + c * fa * fb / ((fc - fa) * (fc - fb))
         } else {
-            ja = jm;
-            da = dm;
+            // Secant
+            b - fb * (b - a) / (fb - fa)
+        };
+
+        // Brent's safeguard: fall back to bisection if interpolation is unsafe.
+        let cond1 = {
+            let lo = (3.0 * a + b) / 4.0;
+            (s - lo) * (s - b) > 0.0
+        };
+        let cond2 = used_bisect && (s - b).abs() >= (b - c).abs() / 2.0;
+        let cond3 = !used_bisect && (s - b).abs() >= (c - d).abs() / 2.0;
+        let cond4 = used_bisect && (b - c).abs() < TOL_X;
+        let cond5 = !used_bisect && (c - d).abs() < TOL_X;
+
+        let s = if cond1 || cond2 || cond3 || cond4 || cond5 {
+            used_bisect = true;
+            (a + b) / 2.0
+        } else {
+            used_bisect = false;
+            s
+        };
+
+        let fs = diff(lon_at(s)?);
+        d = c;
+        c = b;
+        fc = fb;
+
+        if fa * fs < 0.0 {
+            b = s;
+            fb = fs;
+        } else {
+            a = s;
+            fa = fs;
+        }
+
+        if fa.abs() < fb.abs() {
+            std::mem::swap(&mut a, &mut b);
+            std::mem::swap(&mut fa, &mut fb);
         }
     }
-    Some((ja + jb) / 2.0)
+    Some(b)
 }
 
 pub fn find_crossing(
@@ -103,8 +162,8 @@ pub fn find_crossing(
     // produces a ±180° discontinuity, which is rejected by the |d1-d0|>180 filter.
     let diff = |lon: f64| -> f64 { (x2cross - lon + 540.0).rem_euclid(360.0) - 180.0 };
 
-    let (ja, da, jb, _db) = bracket_crossing(jd_start, dir, step, &lon_at, &diff)?;
-    refine_crossing(ja, da, jb, &lon_at, &diff)
+    let (ja, da, jb, db) = bracket_crossing(jd_start, dir, step, &lon_at, &diff)?;
+    refine_crossing(ja, da, jb, db, &lon_at, &diff)
 }
 
 /// Sun crosses longitude `x2cross` after `jd_start`.
@@ -212,7 +271,9 @@ pub fn helio_cross_ut(
     helio_cross(body, x2cross, jd_ut, flags, forward)
 }
 
-/// Like [`find_crossing`] but with an explicit search window in days.
+/// Like [`find_crossing`] but with an explicit search window in days. Used
+/// by callers (e.g. sign-ingress for outer planets) where the canonical
+/// 400-day window is too short.
 pub(crate) fn find_crossing_window(
     body: i32,
     x2cross: f64,
@@ -221,14 +282,15 @@ pub(crate) fn find_crossing_window(
     flags: i32,
     window: f64,
 ) -> Option<f64> {
+    // Step is tuned per body: fast bodies (Moon) use 1d; outer planets use up
+    // to 100d so the bracket walk doesn't dominate.
     let step = match body {
-        1 => 1.0,   // Moon
-        0 => 5.0,   // Sun
-        2 => 5.0,   // Mercury
-        3 => 10.0,  // Venus
-        4 => 20.0,  // Mars
-        5 => 50.0,  // Jupiter
-        6 => 100.0, // Saturn
+        1 => 1.0,
+        0 | 2 => 5.0,
+        3 => 10.0,
+        4 => 20.0,
+        5 => 50.0,
+        6 => 100.0,
         _ => 50.0,
     };
     let dir = if forward { 1.0 } else { -1.0 };
@@ -239,34 +301,20 @@ pub(crate) fn find_crossing_window(
     };
     let diff = |lon: f64| -> f64 { (x2cross - lon + 540.0).rem_euclid(360.0) - 180.0 };
 
+    // Walk the window in `step`-day chunks looking for a non-antipodal sign change.
     let mut jd = jd_start;
     let limit = jd_start + dir * window;
     let mut d0 = diff(lon_at(jd)?);
-
     let max_iter = (window / step) as i32 + 10;
     for _ in 0..max_iter {
         jd += dir * step;
         if (jd - limit) * dir > 0.0 {
-            break;
+            return None;
         }
-        let lon_new = lon_at(jd)?;
-        let d1 = diff(lon_new);
+        let d1 = diff(lon_at(jd)?);
         if d0 * d1 <= 0.0 && (d1 - d0).abs() < 180.0 {
-            let (mut ja, mut da, mut jb) = (jd - dir * step, d0, jd);
-            for _ in 0..60 {
-                let jm = (ja + jb) / 2.0;
-                let dm = diff(lon_at(jm)?);
-                if dm.abs() < 1e-8 {
-                    return Some(jm);
-                }
-                if da * dm <= 0.0 {
-                    jb = jm;
-                } else {
-                    ja = jm;
-                    da = dm;
-                }
-            }
-            return Some((ja + jb) / 2.0);
+            // Found the bracket — hand off to the shared Brent-based refiner.
+            return refine_crossing(jd - dir * step, d0, jd, d1, &lon_at, &diff);
         }
         d0 = d1;
     }

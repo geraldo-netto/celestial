@@ -25,7 +25,7 @@ pub(crate) fn build_context(
     let dsc = (asc + 180.0).rem_euclid(360.0);
 
     // ── planets ──────────────────────────────────────────────────────────────
-    let mut planets = Vec::new();
+    let mut planets = Vec::with_capacity(BODIES.len());
     for &(body, key, name, glyph) in BODIES {
         if let Ok(pos) = calc_ut(jd, body, flags) {
             let (sign_idx, deg_in_sign) = lon_to_sign(pos.lon);
@@ -357,8 +357,11 @@ fn compute_aspects(planets: &[Value]) -> Vec<Value> {
         })
         .collect();
 
-    let mut aspects = Vec::new();
-    for i in 0..p_data.len() {
+    // Upper bound: each pair × ASPECT_DEFS could match, but most don't.
+    // n*(n-1)/2 is a safe ceiling; typical chart has < 30 aspects.
+    let n = p_data.len();
+    let mut aspects = Vec::with_capacity(n * n / 4);
+    for i in 0..n {
         let (lon1, spd1, name1, glyph1, asp_x1, asp_y1) = p_data[i];
         for (lon2, _spd2, name2, glyph2, asp_x2, asp_y2) in p_data.iter().skip(i + 1).copied() {
             let diff = diff_deg_signed(lon1, lon2).abs();

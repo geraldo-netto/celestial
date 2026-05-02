@@ -162,10 +162,7 @@ pub fn render_hellenistic_svg(ctx: &Value) -> String {
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
     let is_day = ctx["is_day"].as_bool().unwrap_or(true);
 
-    let planets = ctx["planets"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let planets = super::json_array(&ctx["planets"]);
 
     let ly = CY + RO + 260.0;
     let mut extra = String::new();
@@ -261,10 +258,7 @@ pub fn render_firdaria_svg(ctx: &Value) -> String {
         ("TRUE_NODE", "#d35400"),
     ];
 
-    let periods = ctx["firdaria"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let periods = super::json_array(&ctx["firdaria"]);
     if periods.is_empty() {
         return String::new();
     }

@@ -64,11 +64,10 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     let phase = ctx["moon_phase_name"].as_str().unwrap_or("");
     let illum = ctx["moon_illumination"].as_f64().unwrap_or(0.0);
 
-    let empty: Vec<serde_json::Value> = vec![];
-    let planets = ctx["planets"].as_array().map_or(&empty[..], |v| v.as_slice());
-    let signs = ctx["signs"].as_array().map_or(&empty[..], |v| v.as_slice());
-    let houses = ctx["houses"].as_array().map_or(&empty[..], |v| v.as_slice());
-    let aspects = ctx["aspects"].as_array().map_or(&empty[..], |v| v.as_slice());
+    let planets = super::json_array(&ctx["planets"]);
+    let signs = super::json_array(&ctx["signs"]);
+    let houses = super::json_array(&ctx["houses"]);
+    let aspects = super::json_array(&ctx["aspects"]);
 
     let mut s = String::with_capacity(64 * 1024);
 
@@ -549,10 +548,7 @@ fn write_arabic_parts(s: &mut String, pal: &Palette, ctx: &Value, c2x: f64, ap_y
         c2x + 250.0,
         ap_y + 3.0
     );
-    let ap_vec = ctx["arabic_parts"]
-        .as_array()
-        .map(|v| v.as_slice())
-        .unwrap_or(&[]);
+    let ap_vec = super::json_array(&ctx["arabic_parts"]);
     for (i, p) in ap_vec.iter().enumerate() {
         write_arabic_part_row(s, pal, p, c2x, ap_y + 14.0 + i as f64 * RH2);
     }

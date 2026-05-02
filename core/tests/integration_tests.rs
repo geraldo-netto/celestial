@@ -746,6 +746,45 @@ fn test_solcross_equinox_2022() {
     assert!(d.day >= 19 && d.day <= 21);
 }
 
+/// Pin exact crossing JDs to ~10ms precision (1e-7 day). Guards against
+/// regressions in the find_crossing root-finder (e.g. accidentally widening
+/// the convergence tolerance during refactor/optimization).
+#[test]
+fn precision_search_root_finder_baselines() {
+    setup();
+    const TOL: f64 = 1.0e-7; // ≈ 8.6 ms in time
+    let f = CalcFlags::BUILTIN;
+    let jd_2002 = julday(2002, 1, 1, 0.0, Calendar::Gregorian);
+    let j2000 = 2_451_545.0_f64;
+
+    // Sun crossings (vernal equinox / solstices, 2002)
+    assert_approx_tol!(solcross(  0.0, jd_2002, f).unwrap(), 2452354.297022234, TOL);
+    assert_approx_tol!(solcross( 90.0, jd_2002, f).unwrap(), 2452447.052914176, TOL);
+    assert_approx_tol!(solcross(180.0, jd_2002, f).unwrap(), 2452540.699601538, TOL);
+    assert_approx_tol!(solcross(270.0, jd_2002, f).unwrap(), 2452630.546177711, TOL);
+    assert_approx_tol!(solcross(  0.0, j2000,   f).unwrap(), 2451623.810232319, TOL);
+
+    // Moon crossing — faster body, same tolerance
+    assert_approx_tol!(mooncross(45.0, jd_2002, f).unwrap(), 2452297.335581569, TOL);
+
+    // Sign ingress (Sun next sign, Saturn next sign) and solar return
+    let (jd_sun_ing, sun_sign) = sign_ingress_ut(Body::SUN, j2000, f, false).unwrap();
+    assert_approx_tol!(jd_sun_ing, 2451564.257859215, TOL);
+    assert_eq!(sun_sign, 10);
+
+    let (jd_sat_ing, sat_sign) = sign_ingress_ut(Body::SATURN, j2000, f, false).unwrap();
+    assert_approx_tol!(jd_sat_ing, 2451780.017175227, TOL);
+    assert_eq!(sat_sign, 4);
+
+    let sr = solar_return_jd(j2000, 2001, f).unwrap();
+    assert_approx_tol!(sr, 2452275.485449128, TOL);
+
+    // Sun longitude at the equinox crossing must be effectively zero.
+    let sun = calc_ut(solcross(0.0, jd_2002, f).unwrap(), Body::SUN, f).unwrap();
+    let lon_err = sun.lon.min(360.0 - sun.lon);
+    assert!(lon_err < 1.0e-6, "Sun lon err at vernal eq = {lon_err:.2e}°");
+}
+
 #[test]
 fn test_version_nonempty() {
     setup();

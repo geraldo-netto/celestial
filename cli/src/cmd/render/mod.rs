@@ -207,6 +207,14 @@ pub(super) fn wy(cy: f64, r: f64, lon: f64, asc: f64) -> f64 {
     cy - r * (180.0 - (lon - asc)).rem_euclid(360.0).to_radians().sin()
 }
 
+/// Borrow the array at `v`, or an empty slice. Avoids the `to_vec()` clone
+/// previously used in render code — every chart re-rendered the planet/aspect
+/// arrays by deep-copying them out of the JSON context. Iterating by reference
+/// is equivalent for read-only callers and ~free.
+pub(super) fn json_array(v: &serde_json::Value) -> &[serde_json::Value] {
+    v.as_array().map_or(&[], |a| a.as_slice())
+}
+
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 
 pub(super) fn fmt_lon_dms(lon: f64) -> String {
@@ -2254,17 +2262,14 @@ pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
     const OX: f64 = 30.0; // origin x
     const OY: f64 = 70.0; // origin y (below title)
 
-    let planets = ctx["planets"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let planets = json_array(&ctx["planets"]);
     // Find ASC rasi (first planet with key "asc" — we'll use the first planet's rasi
     // as placeholder; real ASC needs sidereal house calc which we approximate here)
     // For simplicity, mark which rasi is lagna from planets (we skip ASC calc here)
 
     // Group planets by rasi
     let mut rasi_planets: Vec<Vec<String>> = vec![Vec::new(); 12];
-    for p in &planets {
+    for p in planets {
         let rasi = p["rasi"].as_i64().unwrap_or(0) as usize % 12;
         let g = p["glyph"].as_str().unwrap_or("?");
         let ret = p["retro"].as_bool().unwrap_or(false);
@@ -2368,10 +2373,7 @@ pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
         r##"  <text x="{OX}" y="{dy:.2}" font-size="11" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">Vimshottari Dashas</text>"##
     );
-    let dashas = ctx["dashas"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let dashas = json_array(&ctx["dashas"]);
     for (i, d) in dashas.iter().take(9).enumerate() {
         let col_x = OX + (i % 3) as f64 * (total_w - OX * 2.0) / 3.0;
         let row_y = dy + 14.0 + (i / 3) as f64 * 14.0;

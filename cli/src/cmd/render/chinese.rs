@@ -50,7 +50,7 @@ pub fn build_bazi_context(
     // Element count from pillars (useful for balance analysis)
     let elements = ["Wood", "Fire", "Earth", "Metal", "Water"];
     let mut element_counts = [0u8; 5];
-    for p in &pillars {
+    for p in pillars {
         for (i, &el) in elements.iter().enumerate() {
             if p.stem_element == el {
                 element_counts[i] += 1;
@@ -112,14 +112,8 @@ pub fn render_bazi_svg(ctx: &Value) -> String {
         ("Water", "#1a4a8a"),
     ];
 
-    let pillars = ctx["pillars"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
-    let elements = ctx["elements"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let pillars = super::json_array(&ctx["pillars"]);
+    let elements = super::json_array(&ctx["elements"]);
     let solar_term = ctx["solar_term_current_en"].as_str().unwrap_or("—");
     let solar_term_cn = ctx["solar_term_current"].as_str().unwrap_or("—");
     let next_term_en = ctx["solar_term_next_en"].as_str().unwrap_or("—");

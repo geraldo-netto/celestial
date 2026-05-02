@@ -30,8 +30,8 @@ pub fn build_dial_context(
 
     // Collect natal positions
     let bodies = BODIES;
-    let mut positions: Vec<(Body, f64)> = Vec::new();
-    let mut planet_entries: Vec<Value> = Vec::new();
+    let mut positions: Vec<(Body, f64)> = Vec::with_capacity(bodies.len());
+    let mut planet_entries: Vec<Value> = Vec::with_capacity(bodies.len());
 
     let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
         .map_err(|e| e.to_string())?;
@@ -112,7 +112,7 @@ pub fn build_composite_context(
     let comp_asc = midpoint_deg(asc1, asc2);
 
     // Composite planet longitudes: midpoint of each body pair
-    let mut planets = Vec::new();
+    let mut planets = Vec::with_capacity(BODIES.len());
     for &(body, key, name, glyph) in BODIES {
         let p1 = calc_ut(jd1, body, flags).ok();
         let p2 = calc_ut(jd2, body, flags).ok();
@@ -179,8 +179,8 @@ pub fn build_triwheel_context(
     let asc = inner["asc"].as_f64().unwrap_or(0.0);
 
     // Rings 2 and 3: just planetary positions, no houses
-    let mut ring2 = Vec::new();
-    let mut ring3 = Vec::new();
+    let mut ring2 = Vec::with_capacity(BODIES.len());
+    let mut ring3 = Vec::with_capacity(BODIES.len());
     const R2: f64 = RH + 26.0; // progressed ring
     const R3: f64 = RI - 4.0; // transit ring (inside sign band)
 
@@ -242,11 +242,8 @@ pub fn render_triwheel_svg(ctx: &Value) -> String {
     );
 
     // Ring 2 (progressed)
-    let ring2 = ctx["ring2_planets"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
-    for p in &ring2 {
+    let ring2 = super::json_array(&ctx["ring2_planets"]);
+    for p in ring2 {
         let px = p["x"].as_f64().unwrap_or(0.0);
         let py = p["y"].as_f64().unwrap_or(0.0);
         let g = p["glyph"].as_str().unwrap_or("?");
@@ -259,11 +256,8 @@ pub fn render_triwheel_svg(ctx: &Value) -> String {
     }
 
     // Ring 3 (transits)
-    let ring3 = ctx["ring3_planets"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
-    for p in &ring3 {
+    let ring3 = super::json_array(&ctx["ring3_planets"]);
+    for p in ring3 {
         let px = p["x"].as_f64().unwrap_or(0.0);
         let py = p["y"].as_f64().unwrap_or(0.0);
         let g = p["glyph"].as_str().unwrap_or("?");
@@ -304,8 +298,11 @@ pub fn build_graphic_ephemeris_context(
     let step = if days <= 31 { 1 } else { (days / 90).max(1) };
 
     // Sample planetary positions over the date range
-    let mut series: Vec<Vec<f64>> = vec![Vec::new(); BODIES.len()];
-    let mut jd_points: Vec<f64> = Vec::new();
+    let n_samples = days / step.max(1) + 2;
+    let mut series: Vec<Vec<f64>> = (0..BODIES.len())
+        .map(|_| Vec::with_capacity(n_samples))
+        .collect();
+    let mut jd_points: Vec<f64> = Vec::with_capacity(n_samples);
 
     let mut jd = jd_start;
     while jd <= jd_end + 0.5 {
@@ -372,10 +369,7 @@ pub fn render_graphic_ephemeris_svg(ctx: &Value) -> String {
     let jd_end = ctx["jd_end"].as_f64().unwrap_or(0.0);
     let jd_span = (jd_end - jd_start).max(1.0);
 
-    let jd_points = ctx["jd_points"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let jd_points = super::json_array(&ctx["jd_points"]);
     if jd_points.is_empty() {
         return String::new();
     }
@@ -391,12 +385,9 @@ pub fn render_graphic_ephemeris_svg(ctx: &Value) -> String {
     write_ge_y_axis(&mut s, ring);
 
     let x_scale = GE_W / jd_span;
-    let series = ctx["planet_series"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let series = super::json_array(&ctx["planet_series"]);
     for (pi, planet) in series.iter().enumerate() {
-        write_ge_planet_series(&mut s, planet, pi, &jd_points, jd_start, x_scale);
+        write_ge_planet_series(&mut s, planet, pi, jd_points, jd_start, x_scale);
     }
 
     write_ge_x_axis_labels(&mut s, ring, jd_start, jd_end, jd_span, x_scale);
@@ -496,20 +487,17 @@ fn write_ge_planet_series(
     jd_start: f64,
     x_scale: f64,
 ) {
-    let lons = planet["lons"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let lons = super::json_array(&planet["lons"]);
     let col = GE_PLANET_COLORS.get(pi).copied().unwrap_or("#888");
     let glyph = planet["glyph"].as_str().unwrap_or("?");
-    let path = ge_build_path(&lons, jd_points, jd_start, x_scale);
+    let path = ge_build_path(lons, jd_points, jd_start, x_scale);
     if !path.is_empty() {
         let _ = writeln!(
             s,
             r##"  <path d="{path}" fill="none" stroke="{col}" stroke-width="1.5" opacity=".8"/>"##
         );
     }
-    write_ge_end_glyph(s, &lons, jd_points, jd_start, x_scale, col, glyph);
+    write_ge_end_glyph(s, lons, jd_points, jd_start, x_scale, col, glyph);
 }
 
 fn write_ge_x_axis_labels(
@@ -551,7 +539,7 @@ pub fn build_local_space_context(
     vars.entry("title".to_string())
         .or_insert("Local Space Chart".to_string());
 
-    let mut planets = Vec::new();
+    let mut planets = Vec::with_capacity(BODIES.len());
     for &(body, key, name, glyph) in BODIES {
         if let Ok(pos) = calc_ut(jd, body, flags) {
             // Convert to azimuth/altitude using azalt
@@ -712,11 +700,8 @@ pub fn render_local_space_svg(ctx: &Value) -> String {
     for deg in (0..360u32).step_by(10) {
         write_ls_degree_tick(&mut s, ring, deg);
     }
-    let planets = ctx["planets"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
-    for p in &planets {
+    let planets = super::json_array(&ctx["planets"]);
+    for p in planets {
         write_ls_planet(&mut s, p, pfg);
     }
     let _ = writeln!(s, "</svg>");
@@ -734,10 +719,7 @@ pub fn render_dial_svg(ctx: &serde_json::Value) -> String {
         .and_then(|v| v.as_str())
         .unwrap_or("90° Dial");
     let date = ctx["date"].as_str().unwrap_or("");
-    let planets = ctx["planets"]
-        .as_array()
-        .map(|v| v.to_vec())
-        .unwrap_or_default();
+    let planets = super::json_array(&ctx["planets"]);
 
     const CR: f64 = 200.0; // dial radius
     let mut s = String::with_capacity(8 * 1024);
@@ -766,7 +748,7 @@ pub fn render_dial_svg(ctx: &serde_json::Value) -> String {
     }
 
     // Plot planets
-    for p in &planets {
+    for p in planets {
         let dial_lon = p["dial_lon"].as_f64().unwrap_or(0.0);
         let glyph = p["glyph"].as_str().unwrap_or("●");
         let a = (dial_lon - 90.0).to_radians();

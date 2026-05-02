@@ -71,9 +71,12 @@ pub fn pluto_pos(jde: f64) -> (f64, f64, f64) {
 
     for &(jc, sc, pc, la, lb, ba, bb, ra, rb) in coeffs {
         let arg = jc * j + sc * s + pc * p;
-        lon_sum += la * arg.sin() + lb * arg.cos();
-        lat_sum += ba * arg.sin() + bb * arg.cos();
-        rad_sum += ra * arg.sin() + rb * arg.cos();
+        // Each iteration originally called sin()+cos() three times each.
+        // Pair them once via sin_cos() and reuse.
+        let (sa, ca) = arg.sin_cos();
+        lon_sum += la * sa + lb * ca;
+        lat_sum += ba * sa + bb * ca;
+        rad_sum += ra * sa + rb * ca;
     }
 
     // Convert from Meeus units (1e-6 degrees, 1e-7 AU)
@@ -94,18 +97,22 @@ pub fn pluto_geocentric(jde: f64) -> (f64, f64, f64) {
     let (pl_lon, pl_lat, pl_r) = pluto_pos(jde);
     let earth = heliocentric(Planet::Earth, jde);
 
-    // Convert to rectangular heliocentric
+    // Convert to rectangular heliocentric (each cos/sin pair → one sin_cos call)
     let plon_r = pl_lon.to_radians();
     let plat_r = pl_lat.to_radians();
-    let px = pl_r * plat_r.cos() * plon_r.cos();
-    let py = pl_r * plat_r.cos() * plon_r.sin();
-    let pz = pl_r * plat_r.sin();
+    let (sin_plon, cos_plon) = plon_r.sin_cos();
+    let (sin_plat, cos_plat) = plat_r.sin_cos();
+    let px = pl_r * cos_plat * cos_plon;
+    let py = pl_r * cos_plat * sin_plon;
+    let pz = pl_r * sin_plat;
 
     let elon_r = earth.lon;
     let elat_r = earth.lat;
-    let ex = earth.rad * elat_r.cos() * elon_r.cos();
-    let ey = earth.rad * elat_r.cos() * elon_r.sin();
-    let ez = earth.rad * elat_r.sin();
+    let (sin_elon, cos_elon) = elon_r.sin_cos();
+    let (sin_elat, cos_elat) = elat_r.sin_cos();
+    let ex = earth.rad * cos_elat * cos_elon;
+    let ey = earth.rad * cos_elat * sin_elon;
+    let ez = earth.rad * sin_elat;
 
     // Geocentric vector
     let dx = px - ex;

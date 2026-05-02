@@ -80,8 +80,11 @@ pub fn lunar_position(jde: f64) -> LunarPos {
             2 => e2,
             _ => 1.0,
         };
-        sum_l += sl * e_factor * arg.sin();
-        sum_r += sr * e_factor * arg.cos();
+        // sin_cos pairs the two evaluations into one transcendental call
+        // (`fsincos` on x86, `sincos` libm intrinsic on others).
+        let (sin_arg, cos_arg) = arg.sin_cos();
+        sum_l += sl * e_factor * sin_arg;
+        sum_r += sr * e_factor * cos_arg;
     }
 
     // ── Additive corrections to longitude ────────────────────────────────────

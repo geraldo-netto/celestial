@@ -265,15 +265,19 @@ fn placidus(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
 
 /// Iteratively solve for one Placidus cusp.
 fn placidus_cusp(armc_offset: f64, lat_r: f64, eps_r: f64, sign: f64) -> f64 {
-    let armc_r = to_rad(armc_offset);
-    let mut lon = norm_deg(to_deg(armc_r)) + 90.0;
+    // Hoist loop-invariants: trig of fixed angles (eps, lat, armc) is computed once.
+    let armc_deg = armc_offset;
+    let sin_eps = eps_r.sin();
+    let cos_eps = eps_r.cos();
+    let tan_lat = lat_r.tan();
+    let mut lon = norm_deg(armc_deg) + 90.0;
     for _ in 0..20 {
         let lon_r = to_rad(lon);
-        let dec = (eps_r.sin() * lon_r.sin()).asin();
-        let ad_arg = (lat_r.tan() * dec.tan()).clamp(-1.0, 1.0);
-        let ad = ad_arg.asin();
-        let oa = to_deg((lon_r.sin() * eps_r.cos()).atan2(lon_r.cos())) - to_deg(ad);
-        let lon_new = norm_deg(oa + to_deg(armc_r) + sign * 90.0);
+        let (sin_lon, cos_lon) = lon_r.sin_cos();
+        let dec = (sin_eps * sin_lon).asin();
+        let ad = (tan_lat * dec.tan()).clamp(-1.0, 1.0).asin();
+        let oa = to_deg((sin_lon * cos_eps).atan2(cos_lon)) - to_deg(ad);
+        let lon_new = norm_deg(oa + armc_deg + sign * 90.0);
         if (lon_new - lon).abs() < 1e-6 {
             return lon_new;
         }
