@@ -212,9 +212,9 @@ pub fn format_coord(coord: f64, is_latitude: bool) -> Option<String> {
         }
     };
     Some(if is_latitude {
-        format!("{:02}:{}:{:02}:{:02}", d, dir, m, s)
+        format!("{d:02}:{dir}:{m:02}:{s:02}")
     } else {
-        format!("{:03}:{}:{:02}:{:02}", d, dir, m, s)
+        format!("{d:03}:{dir}:{m:02}:{s:02}")
     })
 }
 

@@ -64,7 +64,7 @@ fn print_eclipse_result(label: &str, tret: &[f64], json: bool) -> Result<(), Str
     }
 
     println!();
-    println!("  {}", label);
+    println!("  {label}");
     println!("  {}", fmt::rule(40));
     println!("  Maximum       {}", parse::jd_to_str(max_jd));
     if first_jd > 0.0 {

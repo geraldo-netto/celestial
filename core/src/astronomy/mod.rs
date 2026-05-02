@@ -114,8 +114,7 @@ pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
 /// Return the display name for a house system byte.
 pub fn house_name(hsys: u8) -> &'static str {
     HouseSystem::from_char(hsys)
-        .map(|s| s.name())
-        .unwrap_or("Unknown")
+        .map_or("Unknown", houses::HouseSystem::name)
 }
 
 // ─── Ayanamsa ─────────────────────────────────────────────────────────────────

@@ -363,8 +363,7 @@ fn render_firdaria_row<'a>(
     let col = colors
         .iter()
         .find(|(n, _)| *n == major)
-        .map(|(_, c)| *c)
-        .unwrap_or("#888");
+        .map_or("#888", |(_, c)| *c);
 
     let op = if major == minor { "0.85" } else { "0.55" };
     let _ = writeln!(

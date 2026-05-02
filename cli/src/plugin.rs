@@ -64,8 +64,7 @@ fn is_exec(p: &std::path::Path) -> bool {
     {
         use std::os::unix::fs::PermissionsExt;
         p.metadata()
-            .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
-            .unwrap_or(false)
+            .is_ok_and(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
     }
     #[cfg(not(unix))]
     {
@@ -113,7 +112,7 @@ mod tests {
     /// Run a closure while holding `path_lock()`. Poison-safe: if a prior test
     /// panicked while holding the lock, we still recover and proceed.
     fn with_path_lock<F: FnOnce()>(f: F) {
-        let _guard = path_lock().lock().unwrap_or_else(|e| e.into_inner());
+        let _guard = path_lock().lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         f();
     }
 

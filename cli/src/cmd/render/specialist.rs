@@ -394,8 +394,7 @@ pub fn render_graphic_ephemeris_svg(ctx: &Value) -> String {
 
     let _ = writeln!(
         s,
-        r##"  <rect x="{:.2}" y="{GE_TM:.2}" width="{GE_W:.2}" height="{GE_H:.2}" fill="none" stroke="{ring}" stroke-width="0.8" opacity=".4"/>"##,
-        GE_LM
+        r##"  <rect x="{GE_LM:.2}" y="{GE_TM:.2}" width="{GE_W:.2}" height="{GE_H:.2}" fill="none" stroke="{ring}" stroke-width="0.8" opacity=".4"/>"##
     );
     let _ = writeln!(s, "</svg>");
     s
@@ -440,7 +439,7 @@ fn ge_build_path(lons: &[Value], jd_points: &[Value], jd_start: f64, x_scale: f6
     let mut first = true;
     for (xi, jd_val) in jd_points.iter().enumerate() {
         let jd_v = jd_val.as_f64().unwrap_or(0.0);
-        let lon = lons.get(xi).and_then(|v| v.as_f64()).unwrap_or(f64::NAN);
+        let lon = lons.get(xi).and_then(serde_json::Value::as_f64).unwrap_or(f64::NAN);
         if !lon.is_finite() {
             first = true;
             continue;
@@ -463,8 +462,8 @@ fn write_ge_end_glyph(
     col: &str,
     glyph: &str,
 ) {
-    let last_jd = jd_points.last().and_then(|v| v.as_f64());
-    let last_lon = lons.last().and_then(|v| v.as_f64());
+    let last_jd = jd_points.last().and_then(serde_json::Value::as_f64);
+    let last_lon = lons.last().and_then(serde_json::Value::as_f64);
     let (Some(last_jd), Some(last_lon)) = (last_jd, last_lon) else {
         return;
     };

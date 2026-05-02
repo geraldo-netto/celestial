@@ -62,7 +62,7 @@ fn py_wrapped_fns(src: &str) -> BTreeSet<String> {
 fn internal_fns() -> BTreeSet<String> {
     ["to_napi", "to_py", "tap"]
         .iter()
-        .map(|s| s.to_string())
+        .map(std::string::ToString::to_string)
         .collect()
 }
 

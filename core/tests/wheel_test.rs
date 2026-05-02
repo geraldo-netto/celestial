@@ -166,8 +166,7 @@ mod dignities {
                     Body::SATURN
                 ]
                 .contains(&ruler),
-                "sign {s} has unexpected ruler {:?}",
-                ruler
+                "sign {s} has unexpected ruler {ruler:?}"
             );
         }
     }

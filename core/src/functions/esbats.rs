@@ -321,8 +321,7 @@ fn assign_names(full_moons: &[f64], equinox_jd: f64) -> Vec<EsbatName> {
         .enumerate()
         .filter(|(i, _)| Some(*i) != blue_idx)
         .min_by(|(_, &a), (_, &b)| (a - equinox_jd).abs().total_cmp(&(b - equinox_jd).abs()))
-        .map(|(i, _)| i)
-        .unwrap_or(0);
+        .map_or(0, |(i, _)| i);
 
     // ── 3. Hunter's Moon: the first non-Blue full moon after the Harvest Moon ──
     let hunter_idx = ((harvest_idx + 1)..n).find(|&i| Some(i) != blue_idx);

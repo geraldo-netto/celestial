@@ -86,9 +86,7 @@ fn render_template(template_name: &str, out_name: &str, extra_args: &[&str]) -> 
     let head_str = String::from_utf8_lossy(head);
     assert!(
         head_str.contains("<?xml") || head_str.contains("<svg"),
-        "template `{}` produced output that doesn't look like SVG (first 64 bytes: {:?})",
-        template_name,
-        head_str
+        "template `{template_name}` produced output that doesn't look like SVG (first 64 bytes: {head_str:?})"
     );
 
     assert!(
@@ -106,9 +104,7 @@ fn assert_contains(svg: &[u8], needle: &str, template: &str) {
     let s = String::from_utf8_lossy(svg);
     assert!(
         s.contains(needle),
-        "template `{}` rendered SVG missing expected content `{}`",
-        template,
-        needle,
+        "template `{template}` rendered SVG missing expected content `{needle}`",
     );
 }
 

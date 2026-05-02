@@ -11,7 +11,7 @@ thread_local! {
 
 /// Returns the currently active sidereal mode (for pure-mode ayanamsa).
 pub(crate) fn current_sid_mode() -> i32 {
-    CURRENT_SID_MODE.with(|m| m.get())
+    CURRENT_SID_MODE.with(std::cell::Cell::get)
 }
 
 /// Metadata about a currently open ephemeris file.
@@ -48,7 +48,7 @@ thread_local! {
 /// Returns the currently stored topocentric observer position `(lon°, lat°, alt_m)`.
 #[allow(dead_code)]
 pub(crate) fn current_topo() -> (f64, f64, f64) {
-    TOPO_POS.with(|p| p.get())
+    TOPO_POS.with(std::cell::Cell::get)
 }
 
 /// Set the topocentric observer position.
@@ -70,7 +70,7 @@ thread_local! {
 
 /// Returns the user-defined delta T override (days), if set.
 pub(crate) fn user_delta_t() -> Option<f64> {
-    DELTA_T_USERDEF.with(|d| d.get())
+    DELTA_T_USERDEF.with(std::cell::Cell::get)
 }
 
 /// Override the automatic delta T calculation with a fixed value.

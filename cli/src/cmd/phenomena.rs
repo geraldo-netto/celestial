@@ -74,11 +74,11 @@ pub fn run(args: PhenomenaArgs) -> Result<(), String> {
     println!();
     println!("  {} — {}", parse::body_name(body), date_str);
     println!("  {}", fmt::rule(46));
-    println!("  Magnitude          {:.2}", magnitude);
-    println!("  Phase angle        {:.2}°", phase_angle);
+    println!("  Magnitude          {magnitude:.2}");
+    println!("  Phase angle        {phase_angle:.2}°");
     println!("  Illuminated        {:.1}%", illuminated * 100.0);
-    println!("  Apparent diameter  {:.2}\"", ang_diam_arcsec);
-    println!("  Elongation         {:.2}°", elongation);
+    println!("  Apparent diameter  {ang_diam_arcsec:.2}\"");
+    println!("  Elongation         {elongation:.2}°");
     println!();
     Ok(())
 }

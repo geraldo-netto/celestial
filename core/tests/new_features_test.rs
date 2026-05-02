@@ -67,13 +67,13 @@ fn test_fixstar_not_found() {
 fn test_fixstar_mag_sirius() {
     let mag = fixstar_mag("Sirius").unwrap();
     // Sirius is -1.46
-    assert!((mag - (-1.46)).abs() < 0.01, "Sirius mag = {}", mag);
+    assert!((mag - (-1.46)).abs() < 0.01, "Sirius mag = {mag}");
 }
 
 #[test]
 fn test_fixstar_mag_vega() {
     let mag = fixstar_mag("Vega").unwrap();
-    assert!((mag - 0.03).abs() < 0.1, "Vega mag = {}", mag);
+    assert!((mag - 0.03).abs() < 0.1, "Vega mag = {mag}");
 }
 
 #[test]
@@ -117,7 +117,7 @@ fn test_mean_true_node_close() {
     let tn = calc_ut(JD, Body::TRUE_NODE, CalcFlags::BUILTIN).unwrap();
     let diff = (mn.lon - tn.lon + 360.0).rem_euclid(360.0);
     let diff = if diff > 180.0 { 360.0 - diff } else { diff };
-    assert!(diff < 3.0, "Mean/true node diff = {}°", diff);
+    assert!(diff < 3.0, "Mean/true node diff = {diff}°");
 }
 
 // ─── Chiron ───────────────────────────────────────────────────────────────────
@@ -155,8 +155,7 @@ fn test_moon_nodes_apsides() {
     let diff = (r.ndsc[0] - r.nasc[0] + 360.0).rem_euclid(360.0);
     assert!(
         (diff - 180.0).abs() < 0.01,
-        "Desc node not 180° from asc: {}",
-        diff
+        "Desc node not 180° from asc: {diff}"
     );
 }
 
@@ -290,7 +289,7 @@ fn test_solar_eclipse_is_classified() {
     let r = sol_eclipse_when_glob(JD, CalcFlags::BUILTIN, 0, false).unwrap();
     let f = r.ret_flags;
     let valid = (f & (ECL_TOTAL | ECL_ANNULAR | ECL_PARTIAL | ECL_HYBRID)) != 0;
-    assert!(valid, "eclipse type flags invalid: {}", f);
+    assert!(valid, "eclipse type flags invalid: {f}");
 }
 
 #[test]
@@ -300,7 +299,7 @@ fn test_lunar_eclipse_when() {
     assert!(r.tret[0] < JD + 400.0, "lunar eclipse within ~1 year");
     let f = r.ret_flags;
     let valid = (f & (ECL_TOTAL | ECL_PARTIAL | ECL_PENUMBRAL)) != 0;
-    assert!(valid, "lunar eclipse type invalid: {}", f);
+    assert!(valid, "lunar eclipse type invalid: {f}");
 }
 
 #[test]
@@ -361,7 +360,7 @@ fn test_house_pos_in_range() {
     // Compute ARMC and epsilon at JD
     let armc = sidtime(JD) * 15.0; // sidereal time in degrees
     let r = house_pos(armc, 48.0, 23.4393, HouseSystem::PLACIDUS, [120.0, 5.0]).unwrap();
-    assert!((1.0..=13.0).contains(&r), "house position = {}", r);
+    assert!((1.0..=13.0).contains(&r), "house position = {r}");
 }
 
 #[test]
@@ -373,8 +372,7 @@ fn test_house_pos_asc_cusp1() {
     let h = house_pos(armc, 48.0, 23.4393, HouseSystem::PLACIDUS, [asc, 0.0]).unwrap();
     assert!(
         (h - 1.0).abs() < 0.5,
-        "ASC should be near house 1, got {}",
-        h
+        "ASC should be near house 1, got {h}"
     );
 }
 
@@ -387,15 +385,13 @@ fn test_houses_ex2_speeds_nonzero() {
     let asc_speed = r.ascmc_speeds[0].abs();
     assert!(
         asc_speed > 5.0 && asc_speed < 500.0,
-        "ASC speed = {}/day",
-        asc_speed
+        "ASC speed = {asc_speed}/day"
     );
     // MC moves at ~1°/4 minutes = 360°/day
     let mc_speed = r.ascmc_speeds[1].abs();
     assert!(
         mc_speed > 10.0 && mc_speed < 500.0,
-        "MC speed = {}/day",
-        mc_speed
+        "MC speed = {mc_speed}/day"
     );
     // Cusp speeds should be positive (cusps advance)
     let nonzero = r.cusp_speeds[1..=12].iter().any(|&s| s.abs() > 0.0);
@@ -418,7 +414,7 @@ fn test_gauquelin_sector_range() {
         15.0,
     )
     .unwrap();
-    assert!((1.0..=36.0).contains(&s), "Gauquelin sector = {}", s);
+    assert!((1.0..=36.0).contains(&s), "Gauquelin sector = {s}");
 }
 
 // ─── Visibility ───────────────────────────────────────────────────────────────

@@ -238,7 +238,7 @@ pub fn mooncross_node(jd_et: f64, _flags: i32) -> Option<NodeCrossing> {
     let step = 0.5;
     let max_jd = jd + 30.0;
 
-    let mut lat0 = pos_at(jd).map(|p| p.lat).unwrap_or(0.0);
+    let mut lat0 = pos_at(jd).map_or(0.0, |p| p.lat);
 
     while jd < max_jd {
         let Some(p1) = pos_at(jd + step) else {

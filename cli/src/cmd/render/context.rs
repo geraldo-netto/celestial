@@ -44,8 +44,7 @@ pub(crate) fn build_context(
             let sign_short = &sign_full[..sign_full
                 .char_indices()
                 .nth(3)
-                .map(|(i, _)| i)
-                .unwrap_or(sign_full.len())];
+                .map_or(sign_full.len(), |(i, _)| i)];
             let deg_label = format!(
                 "{:.0}\u{00B0}{}{}",
                 deg_in_sign.floor(),
@@ -159,8 +158,7 @@ pub(crate) fn build_context(
                 sun_lon >= lo || sun_lon < hi
             }
         })
-        .map(|i| i + 1)
-        .unwrap_or(1);
+        .map_or(1, |i| i + 1);
     let is_day = sun_house >= 7;
 
     let arabic_parts_raw = arabic_parts_seven(

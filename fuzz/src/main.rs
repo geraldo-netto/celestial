@@ -323,7 +323,7 @@ fn test_vsop87(n: u32) -> Suite {
 
         s.check(
             pos.lon.is_finite() && pos.lat.is_finite() && pos.dist.is_finite(),
-            || format!("body={} non-finite at jde={jde}", body),
+            || format!("body={body} non-finite at jde={jde}"),
         );
         s.check(pos.lon >= 0.0 && pos.lon < 360.0, || {
             format!("body={body} lon={} out of [0°,360°)", pos.lon)
@@ -3374,8 +3374,7 @@ fn test_backward_searches(n: u32) -> Suite {
                 });
                 s.check(jd - prev < 30.0, || {
                     format!(
-                        "mooncross_back_ut result {:.2} more than 30d before {jd:.2}",
-                        prev
+                        "mooncross_back_ut result {prev:.2} more than 30d before {jd:.2}"
                     )
                 });
             }

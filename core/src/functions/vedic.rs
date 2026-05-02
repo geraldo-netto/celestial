@@ -19,7 +19,7 @@ pub fn saturn_4_stars(jd: f64, flags: CalcFlags) -> crate::Result<[f64; 6]> {
 
     // Sort stars by ecliptic longitude
     let mut stars = [ald, reg, ant, fom];
-    stars.sort_by(|a, b| a.total_cmp(b));
+    stars.sort_by(f64::total_cmp);
 
     // Find the two bracketing stars for Saturn
     let (s0, s1) = if sat <= stars[0] || sat > stars[3] {

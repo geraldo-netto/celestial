@@ -446,7 +446,7 @@ fn test_calc_ut_all_planets_finite() {
         Body::NEPTUNE,
     ] {
         let r = calc_ut(jd, pl, flags);
-        assert!(r.is_ok(), "calc_ut failed for body {pl}: {:?}", r);
+        assert!(r.is_ok(), "calc_ut failed for body {pl}: {r:?}");
         let p = r.unwrap();
         assert!(p.lon >= 0.0 && p.lon < 360.0, "body {pl} lon = {}", p.lon);
         assert!(p.dist > 0.0, "body {pl} dist = {}", p.dist);
@@ -943,13 +943,11 @@ fn precision_nutation_meeus_22a() {
     // tolerance: 0.5" = 0.000139°
     assert!(
         (nut_lon - (-0.001052)).abs() < 0.0002,
-        "Δψ = {:.6}°, expected ≈-0.001052°",
-        nut_lon
+        "Δψ = {nut_lon:.6}°, expected ≈-0.001052°"
     );
     assert!(
         (nut_obl - 0.002623).abs() < 0.0002,
-        "Δε = {:.6}°, expected ≈+0.002623°",
-        nut_obl
+        "Δε = {nut_obl:.6}°, expected ≈+0.002623°"
     );
 }
 
@@ -961,8 +959,7 @@ fn precision_obliquity_meeus_22b() {
     let eps = true_obliquity(jde);
     assert!(
         (eps - 23.44357).abs() < 0.002,
-        "true obliquity = {:.5}°, expected ≈23.44357°",
-        eps
+        "true obliquity = {eps:.5}°, expected ≈23.44357°"
     );
 }
 
@@ -975,8 +972,7 @@ fn precision_sidtime_meeus_12a() {
     let gst = sidtime(jd);
     assert!(
         (gst - 13.1795).abs() < 0.001,
-        "GST = {:.4}h, expected ≈13.1795h",
-        gst
+        "GST = {gst:.4}h, expected ≈13.1795h"
     );
 }
 
@@ -987,8 +983,7 @@ fn precision_ayanamsa_lahiri_j2000() {
     let ay = ayanamsa(2_451_545.0);
     assert!(
         (ay - 23.855).abs() < 0.05,
-        "Lahiri ayanamsa J2000 = {:.3}°, expected ≈23.855°",
-        ay
+        "Lahiri ayanamsa J2000 = {ay:.3}°, expected ≈23.855°"
     );
 }
 

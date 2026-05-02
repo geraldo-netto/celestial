@@ -163,8 +163,7 @@ pub fn sign_ingress_ut(
     )
     .ok_or_else(|| {
         Error::Calc(format!(
-            "sign_ingress_ut: body {} did not change sign within window",
-            body
+            "sign_ingress_ut: body {body} did not change sign within window"
         ))
     })?;
 
@@ -302,8 +301,7 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
             "retrograde station found at JD {r:.2} but no direct station in window"
         ))),
         _ => Err(Error::Calc(format!(
-            "no retrograde station found for body {} within search window",
-            body
+            "no retrograde station found for body {body} within search window"
         ))),
     }
 }
@@ -769,8 +767,7 @@ pub fn default_orb(body1: Body, body2: Body, aspect: f64) -> f64 {
     let base = ASPECT_BASE_ORBS
         .iter()
         .find(|(a, _)| *a == aspect as i32)
-        .map(|(_, orb)| *orb)
-        .unwrap_or(2.0);
+        .map_or(2.0, |(_, orb)| *orb);
     base * w / 1.75 // normalise: luminaries w=2.0 → factor 1.0; others scale down
 }
 

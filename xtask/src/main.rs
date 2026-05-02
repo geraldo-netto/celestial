@@ -70,7 +70,7 @@ struct Binding {
 fn internal_fns() -> BTreeSet<String> {
     ["to_napi", "to_py", "tap"]
         .iter()
-        .map(|s| s.to_string())
+        .map(std::string::ToString::to_string)
         .collect()
 }
 
@@ -381,7 +381,7 @@ fn extract_fn_body(src: &str, name: &str) -> Option<String> {
     let needle = format!("fn {name}(");
     let fn_pos = src.find(&needle)?;
     let before = &src[..fn_pos];
-    let block_start = before.rfind("\n#[").map(|p| p + 1).unwrap_or(0);
+    let block_start = before.rfind("\n#[").map_or(0, |p| p + 1);
     let brace_off = src[fn_pos..].find('{')?;
     let body_start = fn_pos + brace_off;
 
@@ -559,9 +559,7 @@ fn parse_core_const_line(line: &str) -> Option<(String, String)> {
         || !value_raw.chars().all(|c| c.is_ascii_digit() || c == '-');
     let val = if is_expr {
         value_raw
-            .parse::<i64>()
-            .map(|v| v.to_string())
-            .unwrap_or_else(|_| "0".to_string())
+            .parse::<i64>().map_or_else(|_| "0".to_string(), |v| v.to_string())
     } else {
         value_raw.to_string()
     };
@@ -731,8 +729,7 @@ fn parse_param_chunk(p: &str) -> Option<(String, String)> {
     let starts_with_digit = pname
         .chars()
         .next()
-        .map(|c| c.is_ascii_digit())
-        .unwrap_or(true);
+        .map_or(true, |c| c.is_ascii_digit());
     let valid_chars = pname.chars().all(|c| c.is_alphanumeric() || c == '_');
     if pname.is_empty() || starts_with_digit || !valid_chars {
         return None;
@@ -743,7 +740,7 @@ fn parse_param_chunk(p: &str) -> Option<(String, String)> {
 fn parse_fn_sig(sig: &str) -> Option<PhpFnEntry> {
     let sig_clean: String = sig
         .lines()
-        .map(|l| l.find("//").map(|c| &l[..c]).unwrap_or(l))
+        .map(|l| l.find("//").map_or(l, |c| &l[..c]))
         .collect::<Vec<_>>()
         .join(" ");
     let sig_clean = sig_clean.trim();
@@ -921,8 +918,7 @@ fn sanitise_var(name: &str) -> std::borrow::Cow<'_, str> {
     if s.is_empty()
         || s.chars()
             .next()
-            .map(|c| c.is_ascii_digit())
-            .unwrap_or(false)
+            .is_some_and(|c| c.is_ascii_digit())
     {
         // Rare: needs a "p" prefix — allocate only then
         std::borrow::Cow::Owned(format!("p{s}"))
@@ -1100,7 +1096,7 @@ fn dollar_digit_columns(line: &str) -> Vec<usize> {
     let mut chars = line.chars().peekable();
     let mut col = 0usize;
     while let Some(ch) = chars.next() {
-        if ch == '$' && chars.peek().map(char::is_ascii_digit).unwrap_or(false) {
+        if ch == '$' && chars.peek().is_some_and(char::is_ascii_digit) {
             hits.push(col);
         }
         col += ch.len_utf8();
@@ -1305,8 +1301,7 @@ fn rust_type_to_lang(rust: &str, lang: &LangMap) -> String {
         .result_prefixes
         .iter()
         .find_map(|p| t.strip_prefix(p).and_then(|s| s.strip_suffix('>')))
-        .map(str::trim)
-        .unwrap_or(t);
+        .map_or(t, str::trim);
 
     // Option<T> → nullable
     if let Some(inner_opt) = inner
@@ -1379,8 +1374,7 @@ fn sanitise_pyi_var(name: &str) -> String {
     } else if s.is_empty()
         || s.chars()
             .next()
-            .map(|c| c.is_ascii_digit())
-            .unwrap_or(false)
+            .is_some_and(|c| c.is_ascii_digit())
     {
         format!("p{s}")
     } else {
@@ -1575,8 +1569,7 @@ fn rust_type_to_ts_known(rust: &str, known_structs: &BTreeSet<String>) -> String
         .result_prefixes
         .iter()
         .find_map(|p| t.strip_prefix(p).and_then(|s| s.strip_suffix('>')))
-        .map(str::trim)
-        .unwrap_or(t);
+        .map_or(t, str::trim);
 
     // Option<T> → T | null (in return position — parameters are handled specially)
     if let Some(inner_opt) = inner

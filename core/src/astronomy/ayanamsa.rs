@@ -117,8 +117,7 @@ impl SidMode {
         SID_MODE_TABLE
             .iter()
             .find(|(_, m, _)| *m == self)
-            .map(|(_, _, n)| *n)
-            .unwrap_or("Unknown")
+            .map_or("Unknown", |(_, _, n)| *n)
     }
 }
 
@@ -196,8 +195,7 @@ fn ayanamsa_j2000(mode: SidMode) -> f64 {
     AYANAMSA_J2000
         .iter()
         .find(|&&(m, _)| m == id)
-        .map(|&(_, v)| v)
-        .unwrap_or(0.0)
+        .map_or(0.0, |&(_, v)| v)
 }
 
 /// Second-order precession correction (degrees) — Lieske et al. 1977.
@@ -213,8 +211,7 @@ fn precession_correction(t: f64) -> f64 {
 /// Get ayanamsa name string for a mode integer.
 pub fn ayanamsa_name(mode_id: i32) -> &'static str {
     SidMode::from_i32(mode_id)
-        .map(SidMode::name)
-        .unwrap_or("Unknown")
+        .map_or("Unknown", SidMode::name)
 }
 
 #[cfg(test)]

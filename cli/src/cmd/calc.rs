@@ -78,7 +78,7 @@ pub fn run(args: CalcArgs) -> Result<(), String> {
                     ("latitude", format!("{:.6}", r.lat)),
                     ("distance", format!("{:.6}", r.dist)),
                     ("speed", format!("{:.6}", r.speed)),
-                    ("jd", format!("{:.4}", jd)),
+                    ("jd", format!("{jd:.4}")),
                 ])
             })
             .collect();

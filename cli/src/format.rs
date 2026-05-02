@@ -47,13 +47,13 @@ pub fn rule(width: usize) -> String {
 #[allow(dead_code)]
 /// Left-pad a string to `width` characters.
 pub fn lpad(s: &str, width: usize) -> String {
-    format!("{:>width$}", s)
+    format!("{s:>width$}")
 }
 
 #[allow(dead_code)]
 /// Right-pad a string to `width` characters.
 pub fn rpad(s: &str, width: usize) -> String {
-    format!("{:<width$}", s)
+    format!("{s:<width$}")
 }
 
 // ─── JSON helpers ─────────────────────────────────────────────────────────────

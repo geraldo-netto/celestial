@@ -116,8 +116,7 @@ fn fuzz_parse_body_no_panic() {
             let display = body_name(Body(code));
             assert!(
                 !display.is_empty(),
-                "body {} round-tripped through body_name returned empty",
-                name
+                "body {name} round-tripped through body_name returned empty"
             );
         }
     }
@@ -169,7 +168,7 @@ fn fuzz_jd_to_str_no_panic() {
         // Whatever comes out must be valid UTF-8 (it's a String, so this is automatic)
         // and not empty for finite inputs
         if jd.is_finite() && jd > 0.0 {
-            assert!(!s.is_empty(), "jd_to_str({}) returned empty", jd);
+            assert!(!s.is_empty(), "jd_to_str({jd}) returned empty");
         }
     }
     // Edge cases
@@ -194,7 +193,7 @@ fn fuzz_body_name_for_all_codes() {
     // Body wraps an i32. Test the full small-range space and a few outliers.
     for code in -10..=300i32 {
         let name = body_name(Body(code));
-        assert!(!name.is_empty(), "body_name({}) empty", code);
+        assert!(!name.is_empty(), "body_name({code}) empty");
     }
 }
 
@@ -203,6 +202,6 @@ fn fuzz_hsys_name_for_all_codes() {
     // hsys_name takes a u8; test every value
     for code in 0u8..=255 {
         let name = hsys_name(code);
-        assert!(!name.is_empty(), "hsys_name({}) empty", code);
+        assert!(!name.is_empty(), "hsys_name({code}) empty");
     }
 }

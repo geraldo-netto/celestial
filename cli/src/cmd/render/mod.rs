@@ -1750,8 +1750,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         ] {
             assert!(
                 CONTEXT_SCHEMA.contains(field),
-                "CONTEXT_SCHEMA missing documented field `{}`",
-                field
+                "CONTEXT_SCHEMA missing documented field `{field}`"
             );
         }
     }

@@ -518,8 +518,7 @@ fn dignity_color(dig: &str) -> &'static str {
     DIG_COLORS
         .iter()
         .find(|(d, _)| *d == dig)
-        .map(|(_, c)| *c)
-        .unwrap_or("#888")
+        .map_or("#888", |(_, c)| *c)
 }
 
 fn write_dignity_row(s: &mut String, pal: &Palette, p: &Value, c1x: f64, ry: f64) {

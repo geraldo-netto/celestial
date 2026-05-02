@@ -113,7 +113,7 @@ fn run_phase_mode(args: &MoonArgs, jd: f64) -> Result<(), String> {
             .map(|(name, jd_e)| {
                 fmt::json_obj(&[
                     ("phase", name.to_string()),
-                    ("jd", format!("{:.4}", jd_e)),
+                    ("jd", format!("{jd_e:.4}")),
                     ("date", parse::jd_to_str(*jd_e)),
                 ])
             })

@@ -276,8 +276,7 @@ pub fn next_principal_phase(jd_from: f64, phase: PrincipalPhase) -> Result<Phase
         }
     }
     Err(Error::Calc(format!(
-        "could not find {:?} after JD {jd_from:.1}",
-        phase
+        "could not find {phase:?} after JD {jd_from:.1}"
     )))
 }
 
@@ -436,7 +435,7 @@ mod tests {
             MoonPhase::FullMoon, MoonPhase::WaningGibbous,
             MoonPhase::LastQuarter, MoonPhase::WaningCrescent,
         ];
-        let names: Vec<&str> = phases.iter().map(|p| p.name()).collect();
+        let names: Vec<&str> = phases.iter().map(super::MoonPhase::name).collect();
         // All non-empty
         for n in &names {
             assert!(!n.is_empty());

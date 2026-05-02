@@ -857,13 +857,11 @@ fn nutation_longitude_under_20_arcsec() {
         // nutation() returns degrees; max nutation is ~17 arcsec = 0.00472°
         assert!(
             nut_lon.abs() < 0.006,
-            "nutation lon {:.6}° at JD {jd:.1} exceeds 20 arcsec",
-            nut_lon
+            "nutation lon {nut_lon:.6}° at JD {jd:.1} exceeds 20 arcsec"
         );
         assert!(
             nut_obl.abs() < 0.003,
-            "nutation obl {:.6}° at JD {jd:.1} exceeds 10 arcsec",
-            nut_obl
+            "nutation obl {nut_obl:.6}° at JD {jd:.1} exceeds 10 arcsec"
         );
     }
 }
@@ -2506,8 +2504,7 @@ mod accuracy_references {
         let jd = julday(2000, 1, 1, 12.0, Calendar::Gregorian);
         assert!(
             (jd - 2451545.0).abs() < 1e-8,
-            "J2000 = {} (want 2451545.0)",
-            jd
+            "J2000 = {jd} (want 2451545.0)"
         );
     }
 
@@ -2520,24 +2517,20 @@ mod accuracy_references {
         // Tolerance: within 1 s of published value
         assert!(
             (dt_sec - 63.83).abs() < 1.0,
-            "ΔT(J2000) = {:.4} s (IERS: 63.83 s)",
-            dt_sec
+            "ΔT(J2000) = {dt_sec:.4} s (IERS: 63.83 s)"
         );
 
         // And deltat_ex should return the same value directly in seconds
         let dt_sec_ex = deltat_ex(2451545.0, CalcFlags::BUILTIN).unwrap();
         assert!(
             (dt_sec_ex - 63.83).abs() < 1.0,
-            "deltat_ex(J2000) = {:.4} s (IERS: 63.83 s)",
-            dt_sec_ex
+            "deltat_ex(J2000) = {dt_sec_ex:.4} s (IERS: 63.83 s)"
         );
 
         // Cross-check: deltat_ex should be 86400× deltat
         assert!(
             (dt_sec_ex - dt_sec).abs() < 1e-6,
-            "deltat * 86400 ({}) != deltat_ex ({})",
-            dt_sec,
-            dt_sec_ex
+            "deltat * 86400 ({dt_sec}) != deltat_ex ({dt_sec_ex})"
         );
     }
 
@@ -2554,8 +2547,7 @@ mod accuracy_references {
         );
         assert!(
             (jd - 2457987.2685).abs() < 1e-3,
-            "2017 eclipse JD = {:.6} (NASA: 2457987.2685)",
-            jd
+            "2017 eclipse JD = {jd:.6} (NASA: 2457987.2685)"
         );
     }
 
@@ -2571,8 +2563,7 @@ mod accuracy_references {
         );
         assert!(
             (jd - 2460409.2620).abs() < 1e-3,
-            "2024 eclipse JD = {:.6} (NASA: 2460409.2620)",
-            jd
+            "2024 eclipse JD = {jd:.6} (NASA: 2460409.2620)"
         );
     }
 
@@ -2595,8 +2586,7 @@ mod accuracy_references {
         let offset = (elong - 180.0).abs();
         assert!(
             offset < 0.1,
-            "Full-moon elongation = {:.4}° (want within 0.1° of 180°)",
-            elong
+            "Full-moon elongation = {elong:.4}° (want within 0.1° of 180°)"
         );
     }
 
@@ -2656,13 +2646,11 @@ mod accuracy_references {
         // Must be a valid finite JD in the far past (≈ -720000 Julian days)
         assert!(
             jd.is_finite(),
-            "year -1 should yield a finite JD, got {}",
-            jd
+            "year -1 should yield a finite JD, got {jd}"
         );
         assert!(
             jd < 1_721_058.0,
-            "year -1 JD should be < year 1 CE JD, got {}",
-            jd
+            "year -1 JD should be < year 1 CE JD, got {jd}"
         );
 
         // Round-trip preserves the input year
@@ -2677,9 +2665,9 @@ mod accuracy_references {
         for year in [2000i32, 2004, 2020, 2024, 2400] {
             let jd = julday(year, 2, 29, 0.0, Calendar::Gregorian);
             let d = revjul(jd, Calendar::Gregorian);
-            assert_eq!(d.year, year, "leap {}-02-29 year round-trip", year);
-            assert_eq!(d.month, 2, "leap {}-02-29 month round-trip", year);
-            assert_eq!(d.day, 29, "leap {}-02-29 day round-trip", year);
+            assert_eq!(d.year, year, "leap {year}-02-29 year round-trip");
+            assert_eq!(d.month, 2, "leap {year}-02-29 month round-trip");
+            assert_eq!(d.day, 29, "leap {year}-02-29 day round-trip");
         }
     }
 
@@ -2705,7 +2693,7 @@ mod accuracy_references {
     #[test]
     fn far_future_year_9999() {
         let jd = julday(9999, 12, 31, 23.5, Calendar::Gregorian);
-        assert!(jd.is_finite(), "year 9999 JD should be finite, got {}", jd);
+        assert!(jd.is_finite(), "year 9999 JD should be finite, got {jd}");
         let d = revjul(jd, Calendar::Gregorian);
         assert_eq!(d.year, 9999);
         assert_eq!(d.month, 12);
@@ -2715,8 +2703,7 @@ mod accuracy_references {
         let dt = deltat(jd);
         assert!(
             dt.is_finite(),
-            "ΔT at year 9999 should be finite, got {}",
-            dt
+            "ΔT at year 9999 should be finite, got {dt}"
         );
     }
 
@@ -2732,8 +2719,7 @@ mod accuracy_references {
         let diff = (jd_gregorian_first - jd_julian_last).abs();
         assert!(
             (diff - 1.0).abs() < 1e-9,
-            "Julian 1582-10-04 and Gregorian 1582-10-15 should be 1 day apart, got {}",
-            diff
+            "Julian 1582-10-04 and Gregorian 1582-10-15 should be 1 day apart, got {diff}"
         );
     }
 }

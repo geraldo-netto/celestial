@@ -332,8 +332,7 @@ pub fn jdnow() -> f64 {
     use std::time::{SystemTime, UNIX_EPOCH};
     let secs = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs_f64())
-        .unwrap_or(0.0);
+        .map_or(0.0, |d| d.as_secs_f64());
     // Unix epoch = JD 2440587.5
     2_440_587.5 + secs / 86_400.0
 }
@@ -434,8 +433,7 @@ pub fn jd_duration(jd_start: f64, jd_end: f64) -> [i32; 4] {
 pub fn jd_to_iso_string(jd: f64, calendar: Calendar) -> String {
     let [y, mo, d, h, mi, s] = revjul_hms(jd, calendar);
     format!(
-        "{:04}-{:02}-{:02} {:02}:{:02}:{:02} UTC",
-        y, mo, d, h, mi, s
+        "{y:04}-{mo:02}-{d:02} {h:02}:{mi:02}:{s:02} UTC"
     )
 }
 

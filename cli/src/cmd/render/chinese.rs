@@ -166,13 +166,11 @@ pub fn render_bazi_svg(ctx: &Value) -> String {
         let stem_col = ELEM_COLORS
             .iter()
             .find(|(e, _)| *e == stem_el)
-            .map(|(_, c)| *c)
-            .unwrap_or(txt);
+            .map_or(txt, |(_, c)| *c);
         let branch_col = ELEM_COLORS
             .iter()
             .find(|(e, _)| *e == br_el)
-            .map(|(_, c)| *c)
-            .unwrap_or(txt);
+            .map_or(txt, |(_, c)| *c);
 
         // Column background
         let _ = writeln!(
@@ -220,9 +218,8 @@ pub fn render_bazi_svg(ctx: &Value) -> String {
     let ey = OY + CH + 18.0;
     let _ = writeln!(
         s,
-        r##"  <text x="{:.1}" y="{ey:.1}" font-size="11" font-weight="600"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">Element balance:</text>"##,
-        OX
+        r##"  <text x="{OX:.1}" y="{ey:.1}" font-size="11" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">Element balance:</text>"##
     );
     let ex_start = OX + 130.0;
     for (i, el) in elements.iter().enumerate() {
@@ -231,8 +228,7 @@ pub fn render_bazi_svg(ctx: &Value) -> String {
         let ec = ELEM_COLORS
             .iter()
             .find(|(e, _)| *e == name)
-            .map(|(_, c)| *c)
-            .unwrap_or(txt);
+            .map_or(txt, |(_, c)| *c);
         let ex = ex_start + i as f64 * 90.0;
         // Bar: width proportional to count (max 8)
         let bw = count as f64 * 16.0;
@@ -250,10 +246,9 @@ pub fn render_bazi_svg(ctx: &Value) -> String {
     let sy = ey + 50.0;
     let _ = writeln!(
         s,
-        r##"  <text x="{:.1}" y="{sy:.1}" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{pcol}">
+        r##"  <text x="{OX:.1}" y="{sy:.1}" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{pcol}">
         Solar term: <tspan font-weight="600">{solar_term_cn} — {solar_term}</tspan>
-        · Next: {next_term_en} in {deg_to:.1}°</text>"##,
-        OX
+        · Next: {next_term_en} in {deg_to:.1}°</text>"##
     );
 
     let _ = writeln!(s, "</svg>");

@@ -219,8 +219,7 @@ mod extra_chinese {
             let (cur, into, _next, _to) = solar_term_position(lon + 1.0);
             assert_eq!(
                 cur, i,
-                "term {i}: position at lon={:.0}°+1 should be term {i}",
-                lon
+                "term {i}: position at lon={lon:.0}°+1 should be term {i}"
             );
             assert!(
                 (0.0..15.5).contains(&into),

@@ -465,7 +465,7 @@ fn run_vesak(args: VesakArgs) -> Result<(), String> {
             "{}",
             fmt::json_obj(&[
                 ("year", year.to_string()),
-                ("jd", format!("{:.4}", vesak)),
+                ("jd", format!("{vesak:.4}")),
                 ("date", format!("{:04}-{:02}-{:02}", d.year, d.month, d.day)),
             ])
         );
@@ -548,7 +548,7 @@ fn run_nowruz(args: NowruzArgs) -> Result<(), String> {
                 ("gregorian_year", year.to_string()),
                 ("solar_hijri", solar_hijri.to_string()),
                 ("bahai_year", bahai_year.to_string()),
-                ("jd", format!("{:.4}", nowruz)),
+                ("jd", format!("{nowruz:.4}")),
                 ("date", format!("{:04}-{:02}-{:02}", d.year, d.month, d.day)),
                 ("time_ut", parse::jd_to_str(nowruz)),
             ])
@@ -559,7 +559,7 @@ fn run_nowruz(args: NowruzArgs) -> Result<(), String> {
         println!("  {}", fmt::rule(44));
         println!("  Date:         {:04}-{:02}-{:02}", d.year, d.month, d.day);
         println!("  Time (UT):    {}", parse::jd_to_str(nowruz));
-        println!("  Solar Hijri:  {} SH", solar_hijri);
+        println!("  Solar Hijri:  {solar_hijri} SH");
         println!(
             "  Bahá'í:       {} BE  (1 {}, {})",
             bd.year, bd.month_name, bd.year

@@ -70,7 +70,7 @@ pub fn run(args: CrossingArgs) -> Result<(), String> {
     );
     println!("  {}", fmt::rule(42));
     println!("  {}", parse::jd_to_str(result_jd));
-    println!("  JD {:.4}", result_jd);
+    println!("  JD {result_jd:.4}");
     println!();
     Ok(())
 }

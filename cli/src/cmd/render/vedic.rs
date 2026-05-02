@@ -33,7 +33,7 @@ pub fn render_north_indian_svg(ctx: &Value) -> String {
     // We need the ASC rasi — use the first planet as proxy; real impl
     // requires sidereal house calc. For now use Moon's rasi as lagna hint,
     // or store asc_rasi in context if present.
-    let lagna_rasi = ctx.get("asc_rasi").and_then(|v| v.as_i64()).unwrap_or(0) as usize % 12;
+    let lagna_rasi = ctx.get("asc_rasi").and_then(serde_json::Value::as_i64).unwrap_or(0) as usize % 12;
 
     let planets = super::json_array(&ctx["planets"]);
     // Group planets by rasi
@@ -822,8 +822,7 @@ pub fn render_dasha_svg(ctx: &Value) -> String {
         let col = DASHA_COLORS
             .iter()
             .find(|(n, _)| *n == body)
-            .map(|(_, c)| *c)
-            .unwrap_or(pcol);
+            .map_or(pcol, |(_, c)| *c);
         let _ = writeln!(
             s,
             r##"  <rect x="{bx:.1}" y="{by:.1}" width="{bw:.1}" height="{BH}" rx="4" fill="{col}" opacity=".75"/>
