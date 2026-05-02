@@ -158,14 +158,14 @@ pub fn apparent_moon(jde: f64) -> GeocentricPos {
 
 // ─── Coordinate helpers ───────────────────────────────────────────────────────
 
-/// Convert spherical ecliptic to rectangular.
+/// Convert spherical ecliptic to rectangular. Pairs sin/cos via `sin_cos`
+/// (one transcendental call per angle vs. two) — meaningful inside the
+/// light-time-correction loop in `apparent_planet`, which calls this 4×.
+#[inline]
 fn ecliptic_rect(lon: f64, lat: f64, r: f64) -> (f64, f64, f64) {
-    let cos_lat = lat.cos();
-    (
-        r * cos_lat * lon.cos(),
-        r * cos_lat * lon.sin(),
-        r * lat.sin(),
-    )
+    let (sin_lon, cos_lon) = lon.sin_cos();
+    let (sin_lat, cos_lat) = lat.sin_cos();
+    (r * cos_lat * cos_lon, r * cos_lat * sin_lon, r * sin_lat)
 }
 
 /// Convert ecliptic longitude/latitude (degrees) to RA/Dec (degrees).
@@ -173,47 +173,49 @@ pub fn ecl_to_equ(lon: f64, lat: f64, eps: f64) -> (f64, f64) {
     let lon_r = to_rad(lon);
     let lat_r = to_rad(lat);
     let eps_r = to_rad(eps);
-    let sin_lon = lon_r.sin();
-    let cos_lat = lat_r.cos();
-    let sin_lat = lat_r.sin();
-    let cos_eps = eps_r.cos();
-    let sin_eps = eps_r.sin();
+    let (sin_lon, cos_lon) = lon_r.sin_cos();
+    let (sin_lat, cos_lat) = lat_r.sin_cos();
+    let (sin_eps, cos_eps) = eps_r.sin_cos();
 
     let ra = norm_deg(to_deg(
-        (sin_lon * cos_eps - sin_lat / cos_lat * sin_eps).atan2(lon_r.cos()),
+        (sin_lon * cos_eps - sin_lat / cos_lat * sin_eps).atan2(cos_lon),
     ));
     let dec = to_deg((sin_lat * cos_eps + cos_lat * sin_eps * sin_lon).asin());
     (ra, dec)
 }
 
 /// FK5 correction to ecliptic longitude and latitude (radians → radians).
+#[inline]
 fn fk5_correction(lon: f64, lat: f64, t: f64) -> (f64, f64) {
     let lp = lon - to_rad(1.397) * t - to_rad(0.000_31) * t * t;
-    let delta_lon = to_rad((-0.09033 + 0.03916 * (lp.cos() - lp.sin())) / 3600.0);
-    let delta_lat = to_rad((0.03916 * (lp.cos() + lp.sin())) / 3600.0);
+    let (sin_lp, cos_lp) = lp.sin_cos();
+    let delta_lon = to_rad((-0.09033 + 0.03916 * (cos_lp - sin_lp)) / 3600.0);
+    let delta_lat = to_rad((0.03916 * (cos_lp + sin_lp)) / 3600.0);
     (lon + delta_lon, lat + delta_lat * lat.cos())
 }
 
 /// Annual aberration correction (radians → radians).
+#[inline]
 fn aberration(lon: f64, lat: f64, jde: f64) -> (f64, f64) {
     let t = julian_centuries(jde);
-    // Kappa (constant of aberration)
     let kappa = to_rad(20.496_55 / 3600.0);
-    // Sun's mean longitude
     let l0 = to_rad(280.46646 + 36_000.769_83 * t);
     let e = 0.016708634 - 0.000042037 * t;
-    // Longitude of perihelion
     let pi = to_rad(102.93735 + 1.71946 * t + 0.000_46 * t * t);
     let omega = to_rad(125.04 - 1934.136 * t);
+    // Aberration formulas only need cos(lon) (no sin_lon term) and both sin/cos(lat).
+    let cos_lon = lon.cos();
+    let (sin_lat, cos_lat) = lat.sin_cos();
+    let sin_l0 = l0.sin();
+    let sin_pi = pi.sin();
+    let sin_om = omega.sin();
+    let aberr_const = to_rad(0.000_478 / 3600.0);
 
-    let delta_lon = (-kappa * lon.cos() * l0.sin()
-        + e * kappa * lon.cos() * pi.sin()
-        + to_rad(0.000_478 / 3600.0) * omega.sin())
-        / lat.cos();
-
+    let delta_lon = (-kappa * cos_lon * sin_l0 + e * kappa * cos_lon * sin_pi
+        + aberr_const * sin_om)
+        / cos_lat;
     let delta_lat = -kappa
-        * (lon.cos() * lat.sin() * l0.sin() - lat.sin() * pi.sin()
-            + to_rad(0.000_478 / 3600.0) * omega.sin() * lat.cos());
+        * (cos_lon * sin_lat * sin_l0 - sin_lat * sin_pi + aberr_const * sin_om * cos_lat);
 
     (lon + delta_lon, lat + delta_lat)
 }

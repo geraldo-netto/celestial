@@ -20,11 +20,15 @@ type VsopSeries = (
 );
 
 /// Evaluate a VSOP87 sub-series: `Σ A·cos(B + C·τ)`.
+///
+/// Uses `f64::mul_add(c, tau, b)` so the compiler can fuse `b + c*τ` into a
+/// single FMA instruction on `target_feature = "fma"` builds (≥ Haswell).
+/// Without FMA support, mul_add still expands to a normal mul-then-add.
 #[inline]
 fn eval_series(terms: &[Term], tau: f64) -> f64 {
     terms
         .iter()
-        .map(|&Term(a, b, c)| a * (b + c * tau).cos())
+        .map(|&Term(a, b, c)| a * c.mul_add(tau, b).cos())
         .sum()
 }
 
@@ -32,15 +36,20 @@ fn eval_series(terms: &[Term], tau: f64) -> f64 {
 ///
 /// `series` = [L0, L1, L2, ...], result = L0 + L1·τ + L2·τ² + …
 ///
+/// Uses Horner's method:
+///     result = (((Lₙ·τ + Lₙ₋₁)·τ + Lₙ₋₂)·τ + … + L₁)·τ + L₀
+/// This replaces `n+1` calls to `tau.powi()` and `n+1` multiplies with `n`
+/// fused multiply-adds, and is numerically more stable when `|τ|` is small
+/// (typical: ±2 millennia from J2000 → |τ| ≤ 0.002).
+///
 /// Coefficients are stored as A×10⁻⁹ (to keep literals readable) but the
 /// Meeus tables use A×10⁻⁸, so we multiply the final sum by 10.
 fn eval_vsop(series: &[&[Term]], tau: f64) -> f64 {
-    let raw: f64 = series
-        .iter()
-        .enumerate()
-        .map(|(n, s)| eval_series(s, tau) * tau.powi(n as i32))
-        .sum();
-    raw * 10.0
+    let mut acc = 0.0_f64;
+    for s in series.iter().rev() {
+        acc = acc.mul_add(tau, eval_series(s, tau));
+    }
+    acc * 10.0
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

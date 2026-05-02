@@ -23,11 +23,13 @@ fn to_deg(r: f64) -> f64 {
 }
 
 /// Solve Kepler's equation M = E - e·sin(E) for the eccentric anomaly E.
+/// Newton iteration with paired `sin_cos` (one transcendental call per iter).
 fn kepler(m: f64, ecc: f64) -> f64 {
     let m = m.rem_euclid(TWO_PI);
     let mut e = m;
     for _ in 0..50 {
-        let de = (m - e + ecc * e.sin()) / (1.0 - ecc * e.cos());
+        let (sin_e, cos_e) = e.sin_cos();
+        let de = (m - e + ecc * sin_e) / (1.0 - ecc * cos_e);
         e += de;
         if de.abs() < 1e-12 {
             break;

@@ -785,6 +785,46 @@ fn precision_search_root_finder_baselines() {
     assert!(lon_err < 1.0e-6, "Sun lon err at vernal eq = {lon_err:.2e}°");
 }
 
+/// Pin VSOP87 / ELP / Sun apparent-place outputs at J2000 and 2024-01-01 to
+/// 1e-9° precision (~3.6 µas). Guards the per-planet apparent-place pipeline
+/// against any future micro-optimization that quietly changes outputs (e.g.
+/// Horner restructuring, FMA-related rounding, reduced-term truncation).
+#[test]
+fn precision_apparent_place_baselines_j2000_and_2024() {
+    setup();
+    const TOL: f64 = 1.0e-9;
+    let f = CalcFlags::BUILTIN;
+
+    let cases = [
+        // body,        jd,            lon,                 lat,                dist
+        (Body::MERCURY, 2_451_545.0,  271.8765228312275,  -0.9981301695052,   1.4153268254354),
+        (Body::MERCURY, 2_460_310.5,  262.2770066692142,   3.0668891947528,   0.7777288493346),
+        (Body::VENUS,   2_451_545.0,  241.5664318147962,   2.0661666543225,   1.1375660095225),
+        (Body::VENUS,   2_460_310.5,  242.6129882221621,   1.9495709246388,   1.1818888699331),
+        (Body::MARS,    2_451_545.0,  327.9531725847972,  -1.0736813714935,   1.8498090334355),
+        (Body::MARS,    2_460_310.5,  267.3148078012864,  -0.5592211390088,   2.4235954834448),
+        (Body::JUPITER, 2_451_545.0,  358.8890855479578,  -1.1508549322629,   5.0637953617583),
+        (Body::JUPITER, 2_460_310.5,    5.8967858340684,  -1.0792550537418,   4.9576512919009),
+        (Body::SATURN,  2_451_545.0,  104.9592588583662,  -2.5691969641039,   8.1940386855179),
+        (Body::SATURN,  2_460_310.5,   36.6191788562429,  -1.8276034274274,   9.2344405778357),
+        (Body::URANUS,  2_451_545.0,  314.8463892885476,  -0.6434574148391,  20.7388666310007),
+        (Body::URANUS,  2_460_310.5,   49.4926222231872,  -0.2460759070733,  18.9413547152486),
+        (Body::NEPTUNE, 2_451_545.0,  303.1938059892162,   0.2355279586170,  31.0244934218826),
+        (Body::NEPTUNE, 2_460_310.5,  355.0649465318356,  -1.2285523025799,  30.1353021195810),
+        (Body::SUN,     2_451_545.0,  280.3750271111339,   0.0001806303569,   0.9833275902306),
+        (Body::SUN,     2_460_310.5,  280.0451786488423,   0.0001308948428,   0.9833201051160),
+        (Body::MOON,    2_451_545.0,  223.3148683672493,   5.1712789870871,   0.0026901769907),
+        (Body::MOON,    2_460_310.5,  155.9831940407285,   3.5680016669497,   0.0027050511388),
+    ];
+
+    for (body, jd, lon_exp, lat_exp, dist_exp) in cases {
+        let r = calc(jd, body, f).unwrap();
+        assert_approx_tol!(r.lon, lon_exp, TOL);
+        assert_approx_tol!(r.lat, lat_exp, TOL);
+        assert_approx_tol!(r.dist, dist_exp, TOL);
+    }
+}
+
 #[test]
 fn test_version_nonempty() {
     setup();
