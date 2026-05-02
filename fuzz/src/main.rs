@@ -4,9 +4,7 @@
 //! Run with: `cargo run --manifest-path fuzz/Cargo.toml`
 
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
-use celestial_core::*;
 use std::f64::consts::TAU;
-// flat imports via celestial_core::* above
 
 // ─── Minimal PRNG ─────────────────────────────────────────────────────────────
 

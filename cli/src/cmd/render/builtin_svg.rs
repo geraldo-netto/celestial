@@ -3,7 +3,11 @@
 //!
 //! Extracted from `mod.rs` to reduce that file's size.
 
-use super::*;
+use std::fmt::Write as FmtWrite;
+
+use serde_json::Value;
+
+use super::{spread_labels, wx, wy, CX, CY, RH, RI, RM, RO, RP};
 
 const LABEL_R: f64 = RP + 26.0;
 const RH2: f64 = 16.0;

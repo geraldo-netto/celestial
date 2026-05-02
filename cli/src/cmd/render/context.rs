@@ -1,12 +1,23 @@
 //! `build_context` — converts CLI args + calculated astronomy data into
 //! the `serde_json::Value` that drives SVG template rendering.
 //!
-//! Extracted from `mod.rs` to reduce that file's size. All helpers used by
-//! `build_context` that remain in `mod.rs` are visible via `use super::*`.
+//! Extracted from `mod.rs` to reduce that file's size.
 
 #![allow(clippy::too_many_arguments)]
 
-use super::*;
+use std::collections::BTreeMap;
+
+use celestial_core::body::{CalcFlags, HouseSystem};
+use celestial_core::{
+    arabic_parts_seven, calc_ut, diff_deg_signed, fixstar_mag, fixstar_ut, houses_ex, lon_to_sign,
+    midpoint_deg, moon_illumination, zodiac_sign_name,
+};
+use serde_json::{json, Value};
+
+use super::{
+    antiscion_lon, contra_antiscion_lon, fmt_lon_dms, jd_to_date_str, moon_phase_str,
+    planet_dignity, wx, wy, ASPECT_DEFS, BODIES, CX, CY, RC, RH, RI, RM, RO, RP,
+};
 
 pub(crate) fn build_context(
     jd: f64,

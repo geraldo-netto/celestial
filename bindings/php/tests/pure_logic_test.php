@@ -501,7 +501,8 @@ for ($deg = 0; $deg < 360; $deg++) {
 }
 
 // Medicine Wheel: 12 birth totems
-assert(count(["Snow Goose","Otter","Cougar","Red Hawk","Beaver","Deer",
+const SNOW_GOOSE = 'Snow Goose';
+assert(count([SNOW_GOOSE,"Otter","Cougar","Red Hawk","Beaver","Deer",
               "Flicker","Sturgeon","Brown Bear","Raven","Snake","Elk"]) === 12,
        "Medicine Wheel should have 12 totems");
 
@@ -542,7 +543,7 @@ foreach ($fx['profections'] as $case) {
 
 // Medicine Wheel
 $TOTEMS = [
-    [300,330,'Snow Goose','Earth','Turtle','Winter'],
+    [300,330,SNOW_GOOSE,'Earth','Turtle','Winter'],
     [330,360,'Otter','Air','Butterfly','Winter'],
     [0,30,'Cougar','Air','Butterfly','Spring'],
     [30,60,'Red Hawk','Fire','Thunderbird','Spring'],
@@ -558,10 +559,11 @@ $TOTEMS = [
 function get_totem($lon, $TOTEMS) {
     $lon = fmod(fmod($lon, 360) + 360, 360);
     foreach ($TOTEMS as [$lo, $hi, $animal, $element, $clan, $season]) {
-        if ($lo < $hi ? ($lon >= $lo && $lon < $hi) : ($lon >= $lo || $lon < $hi))
+        if ($lo < $hi ? ($lon >= $lo && $lon < $hi) : ($lon >= $lo || $lon < $hi)) {
             return [$animal, $element, $clan, $season];
+        }
     }
-    return ['Snow Goose','Earth','Turtle','Winter'];
+    return [SNOW_GOOSE,'Earth','Turtle','Winter'];
 }
 foreach ($fx['medicine_wheel'] as $case) {
     [$animal, $element, $clan, $season] = get_totem($case['sun_lon'], $TOTEMS);

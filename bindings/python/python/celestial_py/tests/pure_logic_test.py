@@ -855,6 +855,16 @@ class TestNowruzBahai(unittest.TestCase):
         self.assertEqual(len(months), 19)
 
 
+_PHASE_NEW_MOON = "New Moon"
+_PHASE_WAXING_CRESCENT = "Waxing Crescent"
+_PHASE_FIRST_QUARTER = "First Quarter"
+_PHASE_WAXING_GIBBOUS = "Waxing Gibbous"
+_PHASE_FULL_MOON = "Full Moon"
+_PHASE_WANING_GIBBOUS = "Waning Gibbous"
+_PHASE_LAST_QUARTER = "Last Quarter"
+_PHASE_WANING_CRESCENT = "Waning Crescent"
+
+
 class TestMoonPhases(unittest.TestCase):
     """Moon phase pure-logic tests (no compiled extension needed)."""
 
@@ -862,32 +872,32 @@ class TestMoonPhases(unittest.TestCase):
     EPOCH_NEW_MOON = 2451550.1
 
     PHASE_NAMES = [
-        "New Moon",
-        "Waxing Crescent",
-        "First Quarter",
-        "Waxing Gibbous",
-        "Full Moon",
-        "Waning Gibbous",
-        "Last Quarter",
-        "Waning Crescent",
+        _PHASE_NEW_MOON,
+        _PHASE_WAXING_CRESCENT,
+        _PHASE_FIRST_QUARTER,
+        _PHASE_WAXING_GIBBOUS,
+        _PHASE_FULL_MOON,
+        _PHASE_WANING_GIBBOUS,
+        _PHASE_LAST_QUARTER,
+        _PHASE_WANING_CRESCENT,
     ]
 
     def _phase_from_elongation(self, e):
         if e < 22.5 or e >= 337.5:
-            return "New Moon"
+            return _PHASE_NEW_MOON
         if e < 67.5:
-            return "Waxing Crescent"
+            return _PHASE_WAXING_CRESCENT
         if e < 112.5:
-            return "First Quarter"
+            return _PHASE_FIRST_QUARTER
         if e < 157.5:
-            return "Waxing Gibbous"
+            return _PHASE_WAXING_GIBBOUS
         if e < 202.5:
-            return "Full Moon"
+            return _PHASE_FULL_MOON
         if e < 247.5:
-            return "Waning Gibbous"
+            return _PHASE_WANING_GIBBOUS
         if e < 292.5:
-            return "Last Quarter"
-        return "Waning Crescent"
+            return _PHASE_LAST_QUARTER
+        return _PHASE_WANING_CRESCENT
 
     def _illumination(self, e):
         import math
@@ -899,19 +909,19 @@ class TestMoonPhases(unittest.TestCase):
         self.assertEqual(360 / 8, 45)  # 45° per octant
 
     def test_phase_at_0_is_new_moon(self):
-        self.assertEqual(self._phase_from_elongation(0), "New Moon")
+        self.assertEqual(self._phase_from_elongation(0), _PHASE_NEW_MOON)
 
     def test_phase_at_90_is_first_quarter(self):
-        self.assertEqual(self._phase_from_elongation(90), "First Quarter")
+        self.assertEqual(self._phase_from_elongation(90), _PHASE_FIRST_QUARTER)
 
     def test_phase_at_180_is_full_moon(self):
-        self.assertEqual(self._phase_from_elongation(180), "Full Moon")
+        self.assertEqual(self._phase_from_elongation(180), _PHASE_FULL_MOON)
 
     def test_phase_at_270_is_last_quarter(self):
-        self.assertEqual(self._phase_from_elongation(270), "Last Quarter")
+        self.assertEqual(self._phase_from_elongation(270), _PHASE_LAST_QUARTER)
 
     def test_phase_at_359_is_new_moon(self):
-        self.assertEqual(self._phase_from_elongation(359), "New Moon")
+        self.assertEqual(self._phase_from_elongation(359), _PHASE_NEW_MOON)
 
     def test_illumination_at_new_moon(self):
         self.assertAlmostEqual(self._illumination(0), 0.0, places=3)
@@ -933,12 +943,12 @@ class TestMoonPhases(unittest.TestCase):
         self.assertAlmostEqual(offsets[3], 22.15, places=1)
 
     def test_waxing_phases_below_180(self):
-        self.assertIn(self._phase_from_elongation(45), ["Waxing Crescent"])
-        self.assertIn(self._phase_from_elongation(135), ["Waxing Gibbous"])
+        self.assertIn(self._phase_from_elongation(45), [_PHASE_WAXING_CRESCENT])
+        self.assertIn(self._phase_from_elongation(135), [_PHASE_WAXING_GIBBOUS])
 
     def test_waning_phases_above_180(self):
-        self.assertEqual(self._phase_from_elongation(225), "Waning Gibbous")
-        self.assertEqual(self._phase_from_elongation(315), "Waning Crescent")
+        self.assertEqual(self._phase_from_elongation(225), _PHASE_WANING_GIBBOUS)
+        self.assertEqual(self._phase_from_elongation(315), _PHASE_WANING_CRESCENT)
 
     def test_illumination_increases_to_full(self):
         illums = [self._illumination(e) for e in range(0, 181, 30)]

@@ -494,8 +494,7 @@ describe("fuzzing: boundary / adversarial inputs", () => {
       return (seed >>> 0) / 0x100000000;
     };
     let tested = 0;
-    for (let attempts = 0; tested < 500; attempts++) {
-      if (attempts > 5000) break;
+    for (let attempts = 0; tested < 500 && attempts < 5000; attempts++) {
       const y = Math.floor(rand() * 500) + 1583; // 1583..2082
       const m = Math.floor(rand() * 12) + 1;
       const d = Math.floor(rand() * 28) + 1;

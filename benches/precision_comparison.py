@@ -30,6 +30,14 @@ JD_MOON        = 2448724.5    # 1992-Apr-12 0h TT  (Meeus §47.a)
 SUN_LON_REF    = 199.909      # Sun apparent geocentric ecliptic lon, ecliptic of date
 MOON_LON_REF   = 133.167      # Moon geocentric ecliptic lon, J2000 equinox
 GMST_REF       = 280.46061837 # GMST (mean) at J2000 — Meeus §12
+
+# Test labels (used as keys into the results dict R)
+T_JULDAY  = "julday J2000"
+T_SUN     = "Sun lon 1992-Oct-13"
+T_MOON    = "Moon lon 1992-Apr-12"
+T_GMST    = "GMST at J2000"
+T_PLAC    = "Placidus ASC/MC Paris"
+T_SWEEP   = "10-planet sweep"
 # Note: celestial.sidtime() returns GAST (apparent), celestial.mean_sidtime() returns GMST
 # pyephem also returns GAST, so both show ~12.8" vs the GMST reference
 # astropy uses IERS tables for UT1 and gives true GMST (Meeus §12)
@@ -52,23 +60,23 @@ def rec(test, lib, value, err, t_us):
 # ── julday ─────────────────────────────────────────────────────────────────────
 if HAVE_CELESTIAL:
     jd = celestial.julday(2000, 1, 1, 12.0, celestial.GREG_CAL)
-    rec("julday J2000", "celestial", jd, abs(jd-J2000)*86400,
+    rec(T_JULDAY, "celestial", jd, abs(jd-J2000)*86400,
         timeit(lambda: celestial.julday(2000,1,1,12.0,celestial.GREG_CAL)))
 
 if HAVE_EPHEM:
     jd = float(ephem.Date("2000/01/01 12:00:00")) + 2415020.0
-    rec("julday J2000", "pyephem", jd, abs(jd-J2000)*86400,
+    rec(T_JULDAY, "pyephem", jd, abs(jd-J2000)*86400,
         timeit(lambda: float(ephem.Date("2000/01/01 12:00:00"))+2415020.0))
 
 if HAVE_ASTROPY:
     jd = Time("2000-01-01T12:00:00", scale="tt").jd
-    rec("julday J2000", "astropy", jd, abs(jd-J2000)*86400,
+    rec(T_JULDAY, "astropy", jd, abs(jd-J2000)*86400,
         timeit(lambda: Time("2000-01-01T12:00:00", scale="tt").jd))
 
 # ── Sun lon ────────────────────────────────────────────────────────────────────
 if HAVE_CELESTIAL:
     pos = celestial.calc(JD_SUN, celestial.SUN, celestial.FLG_BUILTIN)  # TT input
-    rec("Sun lon 1992-Oct-13", "celestial", pos[0][0], arcsec(pos[0][0], SUN_LON_REF),
+    rec(T_SUN, "celestial", pos[0][0], arcsec(pos[0][0], SUN_LON_REF),
         timeit(lambda: celestial.calc(JD_SUN, celestial.SUN, celestial.FLG_BUILTIN)))  # TT
 
 if HAVE_EPHEM:
@@ -77,13 +85,13 @@ if HAVE_EPHEM:
         e = ephem.Ecliptic(s, epoch=ephem.Date(JD_SUN-2415020.0))
         return math.degrees(float(e.lon)) % 360
     v = _sl()
-    rec("Sun lon 1992-Oct-13", "pyephem", v, arcsec(v, SUN_LON_REF), timeit(_sl, 200))
+    rec(T_SUN, "pyephem", v, arcsec(v, SUN_LON_REF), timeit(_sl, 200))
 
 if HAVE_ASTROPY:
     try:
         t = Time(JD_SUN, format="jd", scale="tt")
         v = get_body("sun",t).transform_to(GeocentricMeanEcliptic(equinox=t)).lon.deg % 360
-        rec("Sun lon 1992-Oct-13", "astropy", v, arcsec(v, SUN_LON_REF),
+        rec(T_SUN, "astropy", v, arcsec(v, SUN_LON_REF),
             timeit(lambda: get_body("sun", Time(JD_SUN,format="jd",scale="tt"))
                            .transform_to(GeocentricMeanEcliptic(equinox=Time(JD_SUN,format="jd",scale="tt")))
                            .lon.deg, 20))
@@ -92,7 +100,7 @@ if HAVE_ASTROPY:
 # ── Moon lon ───────────────────────────────────────────────────────────────────
 if HAVE_CELESTIAL:
     pos = celestial.calc(JD_MOON, celestial.MOON, celestial.FLG_BUILTIN)  # TT input
-    rec("Moon lon 1992-Apr-12", "celestial", pos[0][0], arcsec(pos[0][0], MOON_LON_REF),
+    rec(T_MOON, "celestial", pos[0][0], arcsec(pos[0][0], MOON_LON_REF),
         timeit(lambda: celestial.calc(JD_MOON, celestial.MOON, celestial.FLG_BUILTIN)))  # TT
 
 if HAVE_EPHEM:
@@ -101,13 +109,13 @@ if HAVE_EPHEM:
         e = ephem.Ecliptic(m, epoch=ephem.Date(JD_MOON-2415020.0))
         return math.degrees(float(e.lon)) % 360
     v = _ml()
-    rec("Moon lon 1992-Apr-12", "pyephem", v, arcsec(v, MOON_LON_REF), timeit(_ml, 200))
+    rec(T_MOON, "pyephem", v, arcsec(v, MOON_LON_REF), timeit(_ml, 200))
 
 if HAVE_ASTROPY:
     try:
         t = Time(JD_MOON, format="jd", scale="tt")
         v = get_body("moon",t).transform_to(GeocentricMeanEcliptic(equinox=t)).lon.deg % 360
-        rec("Moon lon 1992-Apr-12", "astropy", v, arcsec(v, MOON_LON_REF),
+        rec(T_MOON, "astropy", v, arcsec(v, MOON_LON_REF),
             timeit(lambda: get_body("moon",Time(JD_MOON,format="jd",scale="tt"))
                            .transform_to(GeocentricMeanEcliptic(equinox=Time(JD_MOON,format="jd",scale="tt")))
                            .lon.deg, 20))
@@ -116,7 +124,7 @@ if HAVE_ASTROPY:
 # ── GMST ───────────────────────────────────────────────────────────────────────
 if HAVE_CELESTIAL:
     v = celestial.sidtime(J2000) * 15.0 % 360
-    rec("GMST at J2000", "celestial", v, arcsec(v, GMST_REF),
+    rec(T_GMST, "celestial", v, arcsec(v, GMST_REF),
         timeit(lambda: celestial.sidtime(J2000)))
 
 if HAVE_EPHEM:
@@ -124,19 +132,19 @@ if HAVE_EPHEM:
         o = ephem.Observer(); o.lon="0"; o.date=ephem.Date(J2000-2415020.0)
         return math.degrees(float(o.sidereal_time())) % 360
     v = _gmst()
-    rec("GMST at J2000", "pyephem", v, arcsec(v, GMST_REF), timeit(_gmst, 300))
+    rec(T_GMST, "pyephem", v, arcsec(v, GMST_REF), timeit(_gmst, 300))
 
 if HAVE_ASTROPY:
     v = Time(J2000,format="jd",scale="ut1").sidereal_time("mean","greenwich").deg % 360
-    rec("GMST at J2000", "astropy", v, arcsec(v, GMST_REF),
+    rec(T_GMST, "astropy", v, arcsec(v, GMST_REF),
         timeit(lambda: Time(J2000,format="jd",scale="ut1").sidereal_time("mean","greenwich").deg, 50))
 
 # ── Placidus houses ────────────────────────────────────────────────────────────
 if HAVE_CELESTIAL:
     cusps, ascmc = celestial.houses_ex(J2000, 48.85, 2.35, int(ord("P")), celestial.FLG_BUILTIN)
-    rec("Placidus ASC/MC Paris", "celestial", ascmc[0], float("nan"),
+    rec(T_PLAC, "celestial", ascmc[0], float("nan"),
         timeit(lambda: celestial.houses_ex(J2000, 48.85, 2.35, int(ord("P")), celestial.FLG_BUILTIN)))
-    R["Placidus ASC/MC Paris"]["celestial"] = (ascmc[0], float("nan"), R["Placidus ASC/MC Paris"]["celestial"][2])
+    R[T_PLAC]["celestial"] = (ascmc[0], float("nan"), R[T_PLAC]["celestial"][2])
 
 # ── 10-planet sweep ────────────────────────────────────────────────────────────
 def _nat():
@@ -155,9 +163,9 @@ def _ast():
     for n in ["sun","moon","mercury","venus","mars","jupiter","saturn","uranus","neptune"]:
         get_body(n,t)
 
-if HAVE_CELESTIAL:  rec("10-planet sweep","celestial",  10,float("nan"),timeit(_nat,100))
-if HAVE_EPHEM:   rec("10-planet sweep","pyephem", 9, float("nan"),timeit(_eph,100))
-if HAVE_ASTROPY: rec("10-planet sweep","astropy",  9,float("nan"),timeit(_ast,10))
+if HAVE_CELESTIAL:  rec(T_SWEEP,"celestial",  10,float("nan"),timeit(_nat,100))
+if HAVE_EPHEM:   rec(T_SWEEP,"pyephem", 9, float("nan"),timeit(_eph,100))
+if HAVE_ASTROPY: rec(T_SWEEP,"astropy",  9,float("nan"),timeit(_ast,10))
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OUTPUT
@@ -180,10 +188,10 @@ print("PRECISION  (vs Meeus reference)                                error     
 print(SEP)
 
 prec_tests = [
-    ("julday J2000",        "seconds",  f"ref = JD {J2000}"),
-    ("Sun lon 1992-Oct-13", "arcsec",   f"Meeus §25.a = {SUN_LON_REF}°"),
-    ("Moon lon 1992-Apr-12","arcsec",   f"Meeus §47.a = {MOON_LON_REF}°"),
-    ("GMST at J2000",       "arcsec",   f"Meeus §12   = {GMST_REF:.5f}°"),
+    (T_JULDAY,        "seconds",  f"ref = JD {J2000}"),
+    (T_SUN, "arcsec",   f"Meeus §25.a = {SUN_LON_REF}°"),
+    (T_MOON,"arcsec",   f"Meeus §47.a = {MOON_LON_REF}°"),
+    (T_GMST,       "arcsec",   f"Meeus §12   = {GMST_REF:.5f}°"),
 ]
 for test, unit, note in prec_tests:
     if test not in R: continue
@@ -198,8 +206,8 @@ for test, unit, note in prec_tests:
 print(f"\n{SEP}")
 print("PERFORMANCE  (µs / call, ★ = fastest)")
 print(SEP)
-perf_tests = ["julday J2000","Sun lon 1992-Oct-13","Moon lon 1992-Apr-12",
-              "GMST at J2000","Placidus ASC/MC Paris","10-planet sweep"]
+perf_tests = [T_JULDAY,T_SUN,T_MOON,
+              T_GMST,T_PLAC,T_SWEEP]
 W = 18
 print(f"  {'Test':<32}" + "".join(f"{l:>{W}}" for l in LIBS))
 print(f"  {'─'*(32+W*len(LIBS))}")
@@ -262,13 +270,13 @@ for test, unit, _ in prec_tests:
     print(f"  celestial vs Meeus — {test:<30}  {err:.4f}{unit_str}")
 
 if HAVE_CELESTIAL and HAVE_EPHEM:
-    sw_n = R.get("10-planet sweep",{}).get("celestial",(0,0,float("nan")))[2]
-    sw_e = R.get("10-planet sweep",{}).get("pyephem",(0,0,float("nan")))[2]
+    sw_n = R.get(T_SWEEP,{}).get("celestial",(0,0,float("nan")))[2]
+    sw_e = R.get(T_SWEEP,{}).get("pyephem",(0,0,float("nan")))[2]
     if not math.isnan(sw_n) and not math.isnan(sw_e):
         print(f"\n  10-planet sweep: celestial {sw_n:.1f} µs  vs  pyephem {sw_e:.1f} µs  → celestial is {sw_e/sw_n:.1f}× faster")
 if HAVE_CELESTIAL and HAVE_ASTROPY:
-    sw_n = R.get("10-planet sweep",{}).get("celestial",(0,0,float("nan")))[2]
-    sw_a = R.get("10-planet sweep",{}).get("astropy",(0,0,float("nan")))[2]
+    sw_n = R.get(T_SWEEP,{}).get("celestial",(0,0,float("nan")))[2]
+    sw_a = R.get(T_SWEEP,{}).get("astropy",(0,0,float("nan")))[2]
     if not math.isnan(sw_n) and not math.isnan(sw_a):
         print(f"  10-planet sweep: celestial {sw_n:.1f} µs  vs  astropy  {sw_a:.1f} µs  → celestial is {sw_a/sw_n:.0f}× faster")
 print()

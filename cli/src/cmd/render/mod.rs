@@ -35,18 +35,14 @@
 //! ```
 
 use std::collections::BTreeMap;
-use std::fmt::Write as FmtWrite;
 use std::path::PathBuf;
 
-use celestial_core::body::{Body, CalcFlags, HouseSystem};
+use celestial_core::body::{Body, CalcFlags};
 use celestial_core::MoonPhase;
 use celestial_core::{
-    arabic_parts_seven, calc_ut, diff_deg_signed, houses_ex, lunar_return_jd, midpoint_deg,
-    moon_illumination, moon_phase, revjul, sign_exaltation, sign_ruler, solar_return_jd,
-    Calendar,
+    lunar_return_jd, moon_phase, revjul, sign_exaltation, sign_ruler, solar_return_jd, Calendar,
 };
-use celestial_core::{fixstar_mag, fixstar_ut};
-use celestial_core::{lon_to_sign, zodiac_sign_name};
+use celestial_core::lon_to_sign;
 use celestial_core::{long_to_nakshatra, nakshatra_name};
 use clap::Args;
 use serde_json::{json, Value};
