@@ -184,7 +184,7 @@ const DELTA_T_PIECES: &[DeltaTPiece] = &[
 /// Espenak & Meeus table range.
 fn long_term_parabola(y: f64) -> f64 {
     let u = (y - 1820.0) / 100.0;
-    -20.0 + 32.0 * u * u
+    (32.0 * u).mul_add(u, -20.0)
 }
 
 /// Compute ΔT (the difference TT − UT) for a given calendar year, in seconds.
@@ -217,7 +217,7 @@ pub fn delta_t_for_year(y: f64) -> f64 {
     }
     // 2050–2150: parabola with linear correction toward the 2150 anchor
     if y >= 2050.0 {
-        return long_term_parabola(y) - 0.5628 * (2150.0 - y);
+        return 0.5628_f64.mul_add(y - 2150.0, long_term_parabola(y));
     }
     // Regular piece-wise fit: find the first piece covering y
     for p in DELTA_T_PIECES {
@@ -235,7 +235,7 @@ pub fn delta_t_for_year(y: f64) -> f64 {
 ///
 /// `coeffs[0]` is the constant term, `coeffs[n]` is the coefficient of `x^n`.
 fn polynomial(x: f64, coeffs: &[f64]) -> f64 {
-    coeffs.iter().rev().fold(0.0, |acc, &c| acc * x + c)
+    coeffs.iter().rev().fold(0.0, |acc, &c| acc.mul_add(x, c))
 }
 
 /// Convert a UT Julian day to TT (Terrestrial Time) Julian day.

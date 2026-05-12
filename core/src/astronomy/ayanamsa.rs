@@ -186,7 +186,7 @@ pub fn ayanamsa(jde: f64, mode: SidMode) -> f64 {
     let t = julian_centuries(jde);
     let base = ayanamsa_j2000(mode);
     // Linear precession (rough approximation — good to ~1' over 1000 years)
-    base - PRECESSION_RATE * t + precession_correction(t)
+    (-PRECESSION_RATE).mul_add(t, base + precession_correction(t))
 }
 
 /// Look up the J2000 base value for a given mode.

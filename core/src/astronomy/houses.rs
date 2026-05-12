@@ -181,8 +181,10 @@ pub fn ascendant(armc: f64, lat: f64, eps: f64) -> f64 {
     //   atan2(-cos(ARMC), sin(ARMC)·cos(ε) + tan(φ)·sin(ε))
     // The raw atan2 gives the western horizon (DSC); adding 180° gives the
     // eastern horizon (ASC) — the point actually rising on the ecliptic.
-    let y = -(armc_r.cos());
-    let x = armc_r.sin() * eps_r.cos() + lat_r.tan() * eps_r.sin();
+    let (sin_armc, cos_armc) = armc_r.sin_cos();
+    let (sin_eps, cos_eps) = eps_r.sin_cos();
+    let y = -cos_armc;
+    let x = lat_r.tan().mul_add(sin_eps, sin_armc * cos_eps);
     norm_deg(to_deg(y.atan2(x)) + 180.0)
 }
 
@@ -194,7 +196,8 @@ pub fn midheaven(armc: f64, eps: f64) -> f64 {
     //   MC = atan2(sin(ARMC) · cos(ε), cos(ARMC))
     // atan2 already handles all four quadrants correctly — no manual
     // quadrant adjustment needed (the old +180° was wrong and produced DSC).
-    norm_deg(to_deg((armc_r.sin() * eps_r.cos()).atan2(armc_r.cos())))
+    let (sin_armc, cos_armc) = armc_r.sin_cos();
+    norm_deg(to_deg((sin_armc * eps_r.cos()).atan2(cos_armc)))
 }
 
 /// Vertex: the point on the ecliptic where the prime vertical intersects
@@ -219,8 +222,11 @@ fn oblique_ascension(lon: f64, lat: f64, eps: f64, geolat: f64) -> f64 {
     let eps_r = to_rad(eps);
     let geolat_r = to_rad(geolat);
 
-    let ra_r = (lon_r.sin() * eps_r.cos() - lat_r.tan() * eps_r.sin()).atan2(lon_r.cos());
-    let dec = (lat_r.sin() * eps_r.cos() + lat_r.cos() * eps_r.sin() * lon_r.sin()).asin();
+    let (sin_lon, cos_lon) = lon_r.sin_cos();
+    let (sin_eps, cos_eps) = eps_r.sin_cos();
+    let (sin_lat, cos_lat) = lat_r.sin_cos();
+    let ra_r = (-lat_r.tan()).mul_add(sin_eps, sin_lon * cos_eps).atan2(cos_lon);
+    let dec = sin_lat.mul_add(cos_eps, cos_lat * sin_eps * sin_lon).asin();
     let ad_arg = (geolat_r.tan() * dec.tan()).clamp(-1.0, 1.0);
     let ad = ad_arg.asin();
     norm_deg(to_deg(ra_r) - to_deg(ad))
@@ -436,8 +442,11 @@ fn regiomontanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
             _ => 330.0, // h == 9
         };
         let campanus_r = to_rad(armc + angle);
-        let num = campanus_r.sin() * eps_r.cos();
-        let den = campanus_r.cos() * lat_r.cos() - campanus_r.sin() * eps_r.sin() * lat_r.sin();
+        let (sin_c, cos_c) = campanus_r.sin_cos();
+        let (sin_eps, cos_eps) = eps_r.sin_cos();
+        let (sin_lat, cos_lat) = lat_r.sin_cos();
+        let num = sin_c * cos_eps;
+        let den = (-sin_c).mul_add(sin_eps * sin_lat, cos_c * cos_lat);
         cusps[h] = norm_deg(to_deg(num.atan2(den)));
     }
 
@@ -688,7 +697,12 @@ pub fn sidereal_time_deg(jd_ut: f64) -> f64 {
 /// Approximate obliquity of the ecliptic (degrees) for a UT Julian day.
 pub fn obliquity_simple(jd_ut: f64) -> f64 {
     let t = (jd_ut - 2_451_545.0) / 36_525.0;
-    23.439_291_111 - 0.013_004_2 * t - 0.000_001_64 * t * t + 0.000_000_504 * t * t * t
+    // Horner form: more accurate (single rounding per FMA on FMA hosts) and
+    // equivalent in IEEE-754 to the original term-by-term expansion within
+    // ULP precision for any practical |t|.
+    let p1 = 0.000_000_504_f64.mul_add(t, -0.000_001_64);
+    let p2 = p1.mul_add(t, -0.013_004_2);
+    p2.mul_add(t, 23.439_291_111)
 }
 /// Alias for `houses_armc` — compute house cusps directly from ARMC, latitude and obliquity.
 pub fn houses_from_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {

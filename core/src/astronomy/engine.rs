@@ -201,17 +201,21 @@ fn topocentric_lon(
     let ha_r = ha_deg.to_radians();
 
     let u = (0.996_647_19_f64 * obs_lat_r.tan()).atan();
-    let rho_sin = 0.996_647_19 * u.sin() + (obs_alt / 6_378_137.0) * obs_lat_r.sin();
-    let rho_cos = u.cos() + (obs_alt / 6_378_137.0) * obs_lat_r.cos();
+    let (sin_u, cos_u) = u.sin_cos();
+    let (sin_obs_lat, cos_obs_lat) = obs_lat_r.sin_cos();
+    let alt_ratio = obs_alt / 6_378_137.0;
+    let rho_sin = alt_ratio.mul_add(sin_obs_lat, 0.996_647_19 * sin_u);
+    let rho_cos = alt_ratio.mul_add(cos_obs_lat, cos_u);
 
     let dec_r = geo.dec.to_radians();
     let hp_sin = horiz_parallax_r.sin();
-    let denom = dec_r.cos() - rho_cos * hp_sin * ha_r.cos();
-    let delta_ra = (-rho_cos * hp_sin * ha_r.sin()) / denom;
-    let delta_dec = ((-rho_sin * hp_sin
-        + rho_cos * hp_sin * ha_r.cos() * delta_ra.sin())
-        * dec_r.sin()
-        - rho_cos * hp_sin * ha_r.cos())
+    let (sin_ha, cos_ha) = ha_r.sin_cos();
+    let (sin_dec, cos_dec) = dec_r.sin_cos();
+    let rho_cos_hp = rho_cos * hp_sin;
+    let denom = (-rho_cos_hp).mul_add(cos_ha, cos_dec);
+    let delta_ra = (-rho_cos_hp * sin_ha) / denom;
+    let delta_dec = rho_cos_hp.mul_add(cos_ha * delta_ra.sin(), -rho_sin * hp_sin)
+        .mul_add(sin_dec, -rho_cos_hp * cos_ha)
         / denom;
 
     let topo_ra = geo.ra + delta_ra.atan().to_degrees();
@@ -223,8 +227,10 @@ fn topocentric_lon(
     let eps_r = crate::astronomy::obliquity(jde).to_radians();
     let ra_r2 = topo_ra.to_radians();
     let dec_r2 = topo_dec.to_radians();
-    (ra_r2.sin() * eps_r.cos() + dec_r2.tan() * eps_r.sin())
-        .atan2(ra_r2.cos())
+    let (sin_ra2, cos_ra2) = ra_r2.sin_cos();
+    let (sin_eps2, cos_eps2) = eps_r.sin_cos();
+    dec_r2.tan().mul_add(sin_eps2, sin_ra2 * cos_eps2)
+        .atan2(cos_ra2)
         .to_degrees()
         .rem_euclid(360.0)
 }
