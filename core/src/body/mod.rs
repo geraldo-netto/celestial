@@ -95,6 +95,54 @@ impl Body {
         (0..=9).contains(&self.0)
     }
 
+    /// Approximate mean-motion window (days) for retrograde / sign-ingress
+    /// searches. Faster bodies use shorter windows; outer planets need years.
+    ///
+    /// Used by [`crate::functions::chart::next_retro`] and
+    /// [`crate::functions::chart::sign_ingress_ut`].
+    #[must_use]
+    pub fn retrograde_search_window(self) -> f64 {
+        match self.0 {
+            4 => 800.0,    // Mars
+            5 => 1500.0,   // Jupiter
+            6 => 2000.0,   // Saturn
+            7 => 5000.0,   // Uranus
+            8 => 10_000.0, // Neptune
+            9 => 30_000.0, // Pluto
+            _ => 200.0,
+        }
+    }
+
+    /// Approximate window (days) for sign-ingress crossing search.
+    /// Wider than `retrograde_search_window` to cover multi-sign hops for
+    /// outer planets.
+    #[must_use]
+    pub fn ingress_search_window(self) -> f64 {
+        match self.0 {
+            0..=3 => 400.0,
+            4 => 750.0,
+            5 => 4_500.0,
+            6 => 11_000.0,
+            7 => 31_000.0,
+            8 => 61_000.0,
+            9 => 95_000.0,
+            _ => 800.0,
+        }
+    }
+
+    /// Orb tier (multiplier) for aspect calculations: luminaries get the
+    /// widest orbs, outer planets the tightest.
+    /// Used by [`crate::functions::chart::default_orb`].
+    #[must_use]
+    pub fn orb_weight(self) -> f64 {
+        match self.0 {
+            0 | 1 => 2.0,  // Sun, Moon
+            2..=4 => 1.5,  // Mercury, Venus, Mars
+            5 | 6 => 1.0,  // Jupiter, Saturn
+            _ => 0.75,     // outer planets, nodes, asteroids
+        }
+    }
+
     /// Returns `true` if this is a lunar node or apside.
     pub fn is_node(self) -> bool {
         matches!(self.0, 10..=13)

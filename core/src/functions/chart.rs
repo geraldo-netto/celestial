@@ -144,17 +144,7 @@ pub fn sign_ingress_ut(
         ((current_sign + 1) % 12) as f64 * 30.0
     };
 
-    // Use the crossings engine with a planet-appropriate window
-    let window = match body.as_raw() {
-        0..=3 => 400.0,
-        4 => 750.0,
-        5 => 4500.0,
-        6 => 11000.0,
-        7 => 31000.0,
-        8 => 61000.0,
-        9 => 95000.0, // Pluto — signs ~20 years each
-        _ => 800.0,
-    };
+    let window = body.ingress_search_window();
     let jd = crate::astronomy::crossings::find_crossing_window(
         body.as_raw(),
         target_sign,
@@ -254,15 +244,7 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
     let speed_at =
         |jd: f64| -> Option<f64> { calc_ut(jd, body, flags_speed).ok().map(|p| p.speed_lon) };
 
-    let window = match body.as_raw() {
-        4 => 800.0,
-        5 => 1500.0,
-        6 => 2000.0,
-        7 => 5000.0,
-        8 => 10000.0,
-        9 => 30000.0,
-        _ => 200.0,
-    };
+    let window = body.retrograde_search_window();
 
     let mut retrograde_jd: Option<f64> = None;
     let mut direct_jd: Option<f64> = None;
@@ -715,21 +697,6 @@ pub fn monthly_profection(cusps: &[f64; 13], age_years: u32, age_months: u32) ->
 
 /// Default orbs (degrees) for major aspects by body type.
 ///
-/// Orbs vary by tradition and software. These are the commonly used
-/// Ptolemaic orbs, reduced for minor bodies.
-///
-/// `orb_for(body1, body2, aspect)` returns the appropriate orb.
-/// Body-weight tiers for orb calculation: luminaries widest, outer planets
-/// tightest. Keyed by `Body::as_raw()` value.
-fn body_orb_weight(body: Body) -> f64 {
-    match body.as_raw() {
-        0 | 1 => 2.0,   // Sun, Moon (luminaries)
-        2..=4 => 1.5,   // Mercury, Venus, Mars (personal)
-        5 | 6 => 1.0,   // Jupiter, Saturn (social)
-        _ => 0.75,      // outer planets, nodes, Chiron, asteroids
-    }
-}
-
 /// Base orb (in degrees) for each canonical aspect angle.
 /// Rows are `(angle_in_degrees, base_orb)`. Falls back to 2° for minor aspects
 /// not in this table.
@@ -766,7 +733,7 @@ const ASPECT_BASE_ORBS: &[(i32, f64)] = &[
 /// instead.
 #[must_use]
 pub fn default_orb(body1: Body, body2: Body, aspect: f64) -> f64 {
-    let w = (body_orb_weight(body1) + body_orb_weight(body2)) / 2.0;
+    let w = (body1.orb_weight() + body2.orb_weight()) / 2.0;
     let base = ASPECT_BASE_ORBS
         .iter()
         .find(|(a, _)| *a == aspect as i32)
