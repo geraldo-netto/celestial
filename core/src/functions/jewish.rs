@@ -39,7 +39,7 @@ pub struct JewishHoliday {
 }
 
 /// Category of a Jewish holiday.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HolidayCategory {
     /// Major festival (Yom Tov) — Torah-mandated.
     MajorFestival,

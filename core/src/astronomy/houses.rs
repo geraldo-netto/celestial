@@ -573,10 +573,8 @@ fn alcabitius(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
 
     for h in [11usize, 12, 2, 3] {
         let frac = match h {
-            11 => 1.0 / 3.0,
-            12 => 2.0 / 3.0,
-            2 => 1.0 / 3.0,
-            3 => 2.0 / 3.0,
+            11 | 2 => 1.0 / 3.0,
+            12 | 3 => 2.0 / 3.0,
             _ => unreachable!(),
         };
         let sign = if h >= 11 { 1.0 } else { -1.0 };
@@ -692,8 +690,8 @@ pub fn obliquity_simple(jd_ut: f64) -> f64 {
     23.439_291_111 - 0.013_004_2 * t - 0.000_001_64 * t * t + 0.000_000_504 * t * t * t
 }
 /// Alias for `houses_armc` — compute house cusps directly from ARMC, latitude and obliquity.
-pub fn houses_from_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> Option<HouseResult> {
-    Some(houses_armc(armc, geolat, eps, hsys))
+pub fn houses_from_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
+    houses_armc(armc, geolat, eps, hsys)
 }
 
 #[cfg(test)]

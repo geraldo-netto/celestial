@@ -40,7 +40,7 @@ const EPOCH_NEW_MOON: f64 = 2_451_550.1;
 // ── Phase enum ────────────────────────────────────────────────────────────────
 
 /// The eight named Moon phases based on elongation.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MoonPhase {
     /// Elongation 0° ± 22.5° — Moon not visible.
     NewMoon,
@@ -87,7 +87,7 @@ impl MoonPhase {
 }
 
 /// The four principal Moon phases used for `next_phase` and `moon_phases_for_month`.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrincipalPhase {
     NewMoon,
     FirstQuarter,

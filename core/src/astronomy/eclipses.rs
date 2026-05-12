@@ -19,7 +19,7 @@ fn norm360(d: f64) -> f64 {
 }
 
 /// Type of eclipse found.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EclipseKind {
     None,
     TotalSolar,

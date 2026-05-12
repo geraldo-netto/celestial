@@ -136,7 +136,7 @@ pub fn arcus_visionis(
 // ─── Heliacal rising/setting ──────────────────────────────────────────────────
 
 /// Event type for heliacal calculations.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HeliacalEvent {
     HeliacalRising = 1,
     HeliacalSetting = 2,

@@ -44,9 +44,9 @@ pub fn calc_tt(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
         body::URANUS => apparent_planet(Planet::Uranus, jde),
         body::NEPTUNE => apparent_planet(Planet::Neptune, jde),
         body::MOON => apparent_moon(jde),
-        body::MEAN_NODE | body::TRUE_NODE => return calc_node(jde, body_num, flags),
-        body::CHIRON => return calc_chiron(jde, flags),
-        body::PLUTO => return calc_pluto(jde, flags),
+        body::MEAN_NODE | body::TRUE_NODE => return Ok(calc_node(jde, body_num, flags)),
+        body::CHIRON => return Ok(calc_chiron(jde, flags)),
+        body::PLUTO => return Ok(calc_pluto(jde, flags)),
         _ => {
             return Err(Error::Calc(
                 "body not implemented in pure-Rust engine".into(),
@@ -85,7 +85,7 @@ pub fn calc_tt(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
     })
 }
 
-fn calc_node(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
+fn calc_node(jde: f64, body_num: i32, flags: i32) -> PlanetPos {
     let lon = if body_num == body::MEAN_NODE {
         crate::astronomy::nodes::moon_mean_node(jde)
     } else {
@@ -97,7 +97,7 @@ fn calc_node(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
         crate::astronomy::nodes::moon_true_node_speed(jde)
     };
     let speed_lon = if flags as u32 & flag::FLG_SPEED != 0 { spd } else { 0.0 };
-    Ok(PlanetPos {
+    PlanetPos {
         lon,
         lat: 0.0,
         dist: 1.0,
@@ -105,17 +105,17 @@ fn calc_node(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
         speed_lat: 0.0,
         speed_dist: 0.0,
         ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
-    })
+    }
 }
 
-fn calc_chiron(jde: f64, flags: i32) -> Result<PlanetPos> {
+fn calc_chiron(jde: f64, flags: i32) -> PlanetPos {
     let (lon, lat, dist) = crate::astronomy::chiron::chiron_pos(jde);
     let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
         crate::astronomy::chiron::chiron_speed(jde)
     } else {
         (0.0, 0.0, 0.0)
     };
-    Ok(PlanetPos {
+    PlanetPos {
         lon,
         lat,
         dist,
@@ -123,10 +123,10 @@ fn calc_chiron(jde: f64, flags: i32) -> Result<PlanetPos> {
         speed_lat,
         speed_dist,
         ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
-    })
+    }
 }
 
-fn calc_pluto(jde: f64, flags: i32) -> Result<PlanetPos> {
+fn calc_pluto(jde: f64, flags: i32) -> PlanetPos {
     let (lon, lat, dist) = crate::astronomy::pluto::pluto_geocentric(jde);
     let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
         let p = crate::astronomy::pluto::pluto_geocentric(jde + 0.5);
@@ -135,7 +135,7 @@ fn calc_pluto(jde: f64, flags: i32) -> Result<PlanetPos> {
     } else {
         (0.0, 0.0, 0.0)
     };
-    Ok(PlanetPos {
+    PlanetPos {
         lon,
         lat,
         dist,
@@ -143,7 +143,7 @@ fn calc_pluto(jde: f64, flags: i32) -> Result<PlanetPos> {
         speed_lat,
         speed_dist,
         ret_flags: (flags as u32 | flag::FLG_BUILTIN) as i32,
-    })
+    }
 }
 
 fn calc_heliocentric(jde: f64, body_num: i32, flags: i32) -> Option<PlanetPos> {

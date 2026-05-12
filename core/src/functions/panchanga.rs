@@ -148,7 +148,7 @@ pub const VARA_NAMES: [&str; 7] = [
 ];
 
 /// Whether a Tithi is in the waxing (Shukla) or waning (Krishna) fortnight.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Paksha {
     /// Waxing moon (Shukla Paksha), Tithis 1–15.
     Shukla,

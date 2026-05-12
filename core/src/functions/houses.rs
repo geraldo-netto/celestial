@@ -1,7 +1,7 @@
 //! House cusp calculation functions.
 
 use crate::body::{CalcFlags, HouseSystem};
-use crate::error::{Error, Result};
+use crate::error::Result;
 // Re-export the canonical types from the astronomy layer
 pub use crate::astronomy::houses::{HouseResult, HouseResultEx2};
 
@@ -18,11 +18,7 @@ pub fn house_name(hsys: HouseSystem) -> &'static str {
 
 /// Compute house cusps (UT) — pure-Rust engine.
 pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: HouseSystem) -> Result<HouseResult> {
-    let r = crate::astronomy::houses(jd_ut, geolat, geolon, hsys.as_raw());
-    Ok(HouseResult {
-        cusps: r.cusps,
-        ascmc: r.ascmc,
-    })
+    Ok(crate::astronomy::houses(jd_ut, geolat, geolon, hsys.as_raw()))
 }
 
 /// Compute house cusps with flags (UT) — pure-Rust engine.
@@ -89,11 +85,7 @@ pub fn houses_ex2(
 
 /// Compute house cusps from ARMC — pure-Rust engine.
 pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: HouseSystem) -> Result<HouseResult> {
-    let r = crate::astronomy::houses_armc(armc, geolat, eps, hsys.as_raw());
-    Ok(HouseResult {
-        cusps: r.cusps,
-        ascmc: r.ascmc,
-    })
+    Ok(crate::astronomy::houses_armc(armc, geolat, eps, hsys.as_raw()))
 }
 
 /// Compute house cusps and speeds from ARMC — pure-Rust (speeds return zeros).
@@ -155,11 +147,6 @@ pub fn houses_from_armc(
     geolat: f64,
     eps: f64,
     hsys: HouseSystem,
-) -> Result<HouseResult> {
-    crate::astronomy::houses_from_armc(armc, geolat, eps, hsys.as_raw()).ok_or(
-        Error::HouseSystemFailed {
-            system: hsys.as_raw(),
-            lat: geolat,
-        },
-    )
+) -> HouseResult {
+    crate::astronomy::houses_from_armc(armc, geolat, eps, hsys.as_raw())
 }

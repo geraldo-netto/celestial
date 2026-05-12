@@ -8,7 +8,7 @@ use crate::functions::time::revjul;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// One pillar of the Four Pillars (Ba Zi) chart.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BaZiPillar {
     /// Heavenly Stem index (0–9): Jiǎ, Yǐ, Bǐng, Dīng, Wù, Jǐ, Gēng, Xīn, Rén, Guǐ
     pub stem: u8,

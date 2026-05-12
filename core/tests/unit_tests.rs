@@ -349,7 +349,7 @@ fn test_heliocentric_mars() {
 fn test_houses_from_armc() {
     use celestial_core::houses_from_armc;
     // ARMC=0, lat=0, obliquity=23.44, Placidus
-    let h = houses_from_armc(0.0, 0.0, 23.4393, HouseSystem::PLACIDUS).unwrap();
+    let h = houses_from_armc(0.0, 0.0, 23.4393, HouseSystem::PLACIDUS);
     assert!(h.ascmc[0] >= 0.0 && h.ascmc[0] < 360.0, "ASC out of range");
 }
 

@@ -15,8 +15,7 @@ use crate::PlanetPos;
 fn crossing_step(body: i32) -> f64 {
     match body {
         1 => 1.0,
-        0 => 5.0,
-        2 => 5.0,
+        0 | 2 => 5.0,
         3 => 10.0,
         4 => 20.0,
         _ => 50.0,
@@ -296,9 +295,8 @@ pub(crate) fn find_crossing_window(
         0 | 2 => 5.0,
         3 => 10.0,
         4 => 20.0,
-        5 => 50.0,
         6 => 100.0,
-        _ => 50.0,
+        _ => 50.0, // 5 (Jupiter) and unknown bodies
     };
     let dir = if forward { 1.0 } else { -1.0 };
 

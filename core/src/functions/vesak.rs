@@ -144,7 +144,7 @@ pub struct Uposatha {
 }
 
 /// The four phases of the lunar cycle observed as Uposatha days.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UposathaPhase {
     /// New moon (0°).
     NewMoon,
