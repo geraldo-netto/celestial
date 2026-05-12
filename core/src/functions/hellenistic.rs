@@ -20,6 +20,7 @@ use crate::functions::chart::{sign_exaltation, sign_ruler, sign_ruler_modern};
 /// # Arguments
 /// * `sun_lon` — Sun's ecliptic longitude (degrees)
 /// * `cusps`   — 13-element house cusp array from `houses()` (index 1–12 used)
+#[must_use]
 pub fn is_day_chart(sun_lon: f64, cusps: &[f64; 13]) -> bool {
     // Find which house (1–12) the Sun occupies
     let house = planet_house_number(sun_lon, cusps);
@@ -34,6 +35,7 @@ pub fn is_day_chart(sun_lon: f64, cusps: &[f64; 13]) -> bool {
 /// * Mercury: diurnal if morning star (oriental), nocturnal if evening star (occidental)
 ///
 /// Returns `true` if the planet is of the *same* sect as the chart.
+#[must_use]
 pub fn same_sect(body: Body, is_day: bool) -> bool {
     match body {
         Body::SUN | Body::JUPITER | Body::SATURN => is_day,
@@ -79,6 +81,7 @@ impl std::fmt::Display for Dignity {
 /// as compiled by Ptolemy (Tetrabiblos I.20).
 ///
 /// Returns the ruling `Body` for the given longitude.
+#[must_use]
 pub fn egyptian_terms_ruler(lon: f64) -> Body {
     let sign = (lon / 30.0) as usize % 12;
     let deg = lon % 30.0;
@@ -197,6 +200,7 @@ pub fn egyptian_terms_ruler(lon: f64) -> Body {
 /// cycling through the 36 faces.
 ///
 /// Returns the ruling `Body`.
+#[must_use]
 pub fn decan_ruler(lon: f64) -> Body {
     let decan_idx = (lon / 10.0) as usize % 36;
     // Chaldean decan sequence (Firmicus Maternus / Ptolemy)
@@ -249,6 +253,7 @@ pub fn decan_ruler(lon: f64) -> Body {
 /// Water triplicity (Cancer, Scorpio, Pisces):   Venus / Mars / Moon
 ///
 /// Returns `(day_ruler, night_ruler, participating_ruler)`.
+#[must_use]
 pub fn triplicity_rulers(lon: f64) -> (Body, Body, Body) {
     let sign = (lon / 30.0) as usize % 12;
     match sign % 4 {
@@ -279,6 +284,7 @@ fn triplicity_score(body: Body, lon: f64, is_day: bool) -> Option<i8> {
     }
 }
 
+#[must_use]
 pub fn full_dignity(body: Body, lon: f64, is_day: bool) -> (Dignity, i8) {
     let sign = (lon / 30.0) as u8 % 12;
     let opp = (sign + 6) % 12;
@@ -316,6 +322,7 @@ pub fn full_dignity(body: Body, lon: f64, is_day: bool) -> (Dignity, i8) {
 /// Scores: domicile=5, exaltation=4, triplicity=3/2, term=2, decan=1.
 ///
 /// Returns `(almuten_body, score)`.
+#[must_use]
 pub fn almuten(lon: f64, is_day: bool) -> (Body, i8) {
     let planets = [
         Body::SUN,
@@ -369,6 +376,7 @@ pub struct FirdariaPeriod {
 /// * `jd_birth` — Julian Day of birth
 /// * `is_day`   — true for day chart (Sun above horizon)
 /// * `span`     — how many years forward to generate periods
+#[must_use]
 pub fn firdaria(jd_birth: f64, is_day: bool, span: f64) -> Vec<FirdariaPeriod> {
     // Major period durations (years)
     const DAY_SEQ: &[(Body, f64)] = &[

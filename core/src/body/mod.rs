@@ -86,11 +86,13 @@ impl Body {
 
     /// Return the raw integer representation.
     #[inline]
+    #[must_use]
     pub const fn as_raw(self) -> i32 {
         self.0
     }
 
     /// Returns `true` if this body is one of the nine classical planets or Moon.
+    #[must_use]
     pub fn is_planet(self) -> bool {
         (0..=9).contains(&self.0)
     }
@@ -144,11 +146,13 @@ impl Body {
     }
 
     /// Returns `true` if this is a lunar node or apside.
+    #[must_use]
     pub fn is_node(self) -> bool {
         matches!(self.0, 10..=13)
     }
 
     /// Human-readable name for well-known bodies; `"Body(N)"` otherwise.
+    #[must_use]
     pub fn name(self) -> &'static str {
         /// Display names for built-in body codes 0–20. Contiguous array so
         /// `Body(n)` looks up in O(1) via indexing; unknown values fall back
@@ -260,18 +264,21 @@ impl CalcFlags {
 
     /// Return the raw `i32` bit-pattern.
     #[inline]
+    #[must_use]
     pub const fn as_raw(self) -> i32 {
         self.0
     }
 
     /// Returns `true` if the sidereal flag is set.
     #[inline]
+    #[must_use]
     pub fn is_sidereal(self) -> bool {
         self.0 & Self::SIDEREAL.0 != 0
     }
 
     /// Returns `true` if the speed flag is set.
     #[inline]
+    #[must_use]
     pub fn is_speed(self) -> bool {
         self.0 & Self::SPEED.0 != 0
     }
@@ -344,6 +351,7 @@ impl HouseSystem {
     pub const WHOLE_SIGN_MERIDIAN: Self = HouseSystem(b'Y');
 
     #[inline]
+    #[must_use]
     pub const fn as_raw(self) -> u8 {
         self.0
     }
@@ -352,6 +360,7 @@ impl HouseSystem {
     ///
     /// Returns `"Unknown"` for non-standard bytes. For a complete listing
     /// see [`crate::functions::geoformat::HOUSE_SYSTEMS`].
+    #[must_use]
     pub fn name(self) -> &'static str {
         match self.0 {
             b'P' => "Placidus",
@@ -407,6 +416,7 @@ impl SiderealMode {
     pub const USER_DEFINED: Self = SiderealMode(255);
 
     #[inline]
+    #[must_use]
     pub const fn as_raw(self) -> i32 {
         self.0
     }
@@ -414,6 +424,7 @@ impl SiderealMode {
     /// Human-readable name of this sidereal mode (e.g. `"Lahiri"`,
     /// `"Fagan-Bradley"`). Delegates to [`crate::functions::config::ayanamsa_name`]
     /// which also handles user-defined overrides.
+    #[must_use]
     pub fn name(self) -> &'static str {
         crate::functions::config::ayanamsa_name(self.0)
     }
@@ -444,6 +455,7 @@ pub enum Calendar {
 
 impl Calendar {
     /// Convert to the raw `i32` used internally (`0` = Julian, `1` = Gregorian).
+    #[must_use]
     pub const fn as_raw(self) -> i32 {
         match self {
             Self::Julian => 0,

@@ -335,6 +335,7 @@ impl AspectOrbs {
     /// `pos0`/`speed0` — longitude and daily speed of body 1.
     /// `pos1`/`speed1` — longitude and daily speed of body 2.
     /// `aspect` — target aspect angle (0°, 60°, 90°, 120°, 180°…).
+    #[must_use]
     pub fn check(
         &self,
         pos0: f64,
@@ -356,6 +357,7 @@ impl AspectOrbs {
     }
 
     /// Test using only applying and separating orbs (no default orb).
+    #[must_use]
     pub fn check_simple(
         &self,
         pos0: f64,

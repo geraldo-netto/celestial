@@ -42,6 +42,7 @@ pub const ETHIOPIC_MONTHS: [&str; 13] = [
 /// True if the given Coptic/Ethiopic year is a leap year.
 ///
 /// Leap years occur when `year mod 4 == 3` (i.e. 3, 7, 11, ... AM/EE).
+#[must_use]
 pub fn is_coptic_leap_year(year: i32) -> bool {
     year.rem_euclid(4) == 3
 }
@@ -50,6 +51,7 @@ pub fn is_coptic_leap_year(year: i32) -> bool {
 ///
 /// Months 1–12 have 30 days; month 13 (epagomenal) has 5 days
 /// (or 6 in leap years). Returns 0 for invalid month numbers.
+#[must_use]
 pub fn coptic_month_days(year: i32, month: u32) -> u32 {
     match month {
         1..=12 => 30,
@@ -67,11 +69,13 @@ pub fn coptic_month_days(year: i32, month: u32) -> u32 {
 // ── Coptic conversions ────────────────────────────────────────────────────────
 
 /// Coptic (AM) date → Julian Day (start of civil day, JD .5).
+#[must_use]
 pub fn coptic_to_jd(year: i32, month: u32, day: u32) -> f64 {
     coptic_like_to_jd(COPTIC_EPOCH_JD, year, month, day)
 }
 
 /// Julian Day → Coptic (AM) date `(year, month, day)`.
+#[must_use]
 pub fn jd_to_coptic(jd: f64) -> (i32, u32, u32) {
     jd_to_coptic_like(COPTIC_EPOCH_JD, jd)
 }
@@ -79,11 +83,13 @@ pub fn jd_to_coptic(jd: f64) -> (i32, u32, u32) {
 // ── Ethiopic conversions ──────────────────────────────────────────────────────
 
 /// Ethiopic (EE) date → Julian Day (start of civil day).
+#[must_use]
 pub fn ethiopic_to_jd(year: i32, month: u32, day: u32) -> f64 {
     coptic_like_to_jd(ETHIOPIC_EPOCH_JD, year, month, day)
 }
 
 /// Julian Day → Ethiopic (EE) date `(year, month, day)`.
+#[must_use]
 pub fn jd_to_ethiopic(jd: f64) -> (i32, u32, u32) {
     jd_to_coptic_like(ETHIOPIC_EPOCH_JD, jd)
 }

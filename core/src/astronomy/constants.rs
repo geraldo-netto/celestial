@@ -50,30 +50,35 @@ pub(crate) fn to_rad(deg: f64) -> f64 {
 
 /// Convert radians to degrees.
 #[inline]
+#[must_use]
 pub fn to_deg(rad: f64) -> f64 {
     rad * DEG_PER_RAD
 }
 
 /// Normalise an angle in radians to [0, 2π).
 #[inline]
+#[must_use]
 pub fn norm_rad(r: f64) -> f64 {
     r.rem_euclid(TWO_PI)
 }
 
 /// Normalise an angle in degrees to [0, 360).
 #[inline]
+#[must_use]
 pub fn norm_deg(d: f64) -> f64 {
     d.rem_euclid(360.0)
 }
 
 /// Julian centuries from J2000.0.
 #[inline]
+#[must_use]
 pub fn julian_centuries(jde: f64) -> f64 {
     (jde - J2000) / DAYS_PER_CENTURY
 }
 
 /// Julian millennia from J2000.0.
 #[inline]
+#[must_use]
 pub fn julian_millennia(jde: f64) -> f64 {
     (jde - J2000) / DAYS_PER_MILLENNIUM
 }

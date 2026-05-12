@@ -13,6 +13,7 @@
 ///
 /// If a user override has been set via `set_delta_t_userdef`, that value
 /// (converted to seconds) is returned instead.
+#[must_use]
 pub fn delta_t(jd_ut: f64) -> f64 {
     // Check for user-defined override (stored in days, convert to seconds)
     if let Some(dt_days) = crate::functions::config::user_delta_t() {
@@ -240,11 +241,13 @@ fn polynomial(x: f64, coeffs: &[f64]) -> f64 {
 
 /// Convert a UT Julian day to TT (Terrestrial Time) Julian day.
 #[inline]
+#[must_use]
 pub fn ut_to_tt(jd_ut: f64) -> f64 {
     jd_ut + delta_t(jd_ut) / 86_400.0
 }
 
 /// Convert a TT Julian day to UT Julian day (iterative).
+#[must_use]
 pub fn tt_to_ut(jd_tt: f64) -> f64 {
     // ΔT as a function of TT is approximately the same as a function of UT
     // for the precision we need here.

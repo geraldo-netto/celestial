@@ -27,6 +27,7 @@ pub struct Phenomena {
 /// * `dist_body`  — geocentric distance (AU)
 /// * `dist_sun`   — heliocentric distance of body (AU; = dist_body for Sun)
 /// * `lon_sun`    — geocentric ecliptic longitude of Sun (degrees)
+#[must_use]
 pub fn compute_phenomena(
     body: i32,
     lon_body: f64,

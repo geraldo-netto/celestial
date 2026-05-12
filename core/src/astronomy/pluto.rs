@@ -10,6 +10,7 @@ use crate::astronomy::constants::to_rad;
 /// Returns `(lon_deg, lat_deg, radius_au)`.
 ///
 /// Valid range: 1885–2099. Outside this range, results degrade gracefully.
+#[must_use]
 pub fn pluto_pos(jde: f64) -> (f64, f64, f64) {
     let t = (jde - 2_451_545.0) / 36525.0; // Julian centuries from J2000
     let j = to_rad(34.35 + 3034.9057 * t);
@@ -88,6 +89,7 @@ pub fn pluto_pos(jde: f64) -> (f64, f64, f64) {
 /// Geocentric ecliptic position of Pluto at JDE.
 ///
 /// Converts heliocentric → geocentric using Earth's heliocentric position.
+#[must_use]
 pub fn pluto_geocentric(jde: f64) -> (f64, f64, f64) {
     use crate::astronomy::vsop87::{heliocentric, Planet};
 

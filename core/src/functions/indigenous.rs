@@ -13,6 +13,7 @@
 /// # Note
 /// This reflects the Sun Bear / Wabun Wind system from "The Medicine Wheel" (1980).
 /// It is NOT representative of any single traditional indigenous nation's teachings.
+#[must_use]
 pub fn medicine_wheel_totem(
     sun_lon: f64,
 ) -> (&'static str, &'static str, &'static str, &'static str) {
@@ -50,6 +51,7 @@ pub fn medicine_wheel_totem(
 /// traditional decan deity name and the rising star association.
 ///
 /// Returns `(decan_index 0–35, decan_name, associated_star)`.
+#[must_use]
 pub fn egyptian_decan(lon: f64) -> (usize, &'static str, &'static str) {
     const DECANS: &[(&str, &str)] = &[
         ("Khontarty", "Alphard"),

@@ -88,6 +88,7 @@ impl HouseSystem {
     }
 
     /// Returns the display name of the house system.
+    #[must_use]
     pub fn name(self) -> &'static str {
         match self {
             Self::Placidus => "Placidus",
@@ -118,6 +119,7 @@ impl HouseSystem {
 /// - `hsys` — house system character (`b'P'` = Placidus, etc.)
 ///
 /// Uses sidereal time computed from JD.
+#[must_use]
 pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: u8) -> HouseResult {
     let armc = sidereal_time_deg(jd_ut) + geolon;
     let armc = norm_deg(armc);
@@ -129,6 +131,7 @@ pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: u8) -> HouseResult {
 ///
 /// This is the low-level entry point used when ARMC and obliquity are
 /// already known (e.g. from the full astronomy pipeline).
+#[must_use]
 pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
     let system = HouseSystem::from_char(hsys).unwrap_or(HouseSystem::Placidus);
     compute_houses(armc, geolat, eps, system)
@@ -172,6 +175,7 @@ fn compute_houses(armc: f64, lat: f64, eps: f64, sys: HouseSystem) -> HouseResul
 // ─── Auxiliary angles ─────────────────────────────────────────────────────────
 
 /// Ascendant (degrees).
+#[must_use]
 pub fn ascendant(armc: f64, lat: f64, eps: f64) -> f64 {
     let armc_r = to_rad(armc);
     let lat_r = to_rad(lat);
@@ -189,6 +193,7 @@ pub fn ascendant(armc: f64, lat: f64, eps: f64) -> f64 {
 }
 
 /// Midheaven (MC) (degrees).
+#[must_use]
 pub fn midheaven(armc: f64, eps: f64) -> f64 {
     let armc_r = to_rad(armc);
     let eps_r = to_rad(eps);
@@ -285,7 +290,7 @@ fn placidus_cusp(armc_offset: f64, lat_r: f64, eps_r: f64, sign: f64) -> f64 {
         let dec = (sin_eps * sin_lon).asin();
         let ad = (tan_lat * dec.tan()).clamp(-1.0, 1.0).asin();
         let oa = to_deg((sin_lon * cos_eps).atan2(cos_lon)) - to_deg(ad);
-        let lon_new = norm_deg(oa + armc_deg + sign * 90.0);
+        let lon_new = norm_deg(sign.mul_add(90.0, oa + armc_deg));
         if (lon_new - lon).abs() < 1e-6 {
             return lon_new;
         }
@@ -311,13 +316,13 @@ fn koch(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
 
     for (i, h) in [11usize, 12].iter().enumerate() {
         let frac = (i as f64 + 1.0) / 3.0;
-        let armc_h = norm_deg(armc + dsa * frac);
+        let armc_h = norm_deg(dsa.mul_add(frac, armc));
         let armc_r = to_rad(armc_h);
         // Declination that rises with this ARMC in latitude lat
         let sin_armc = armc_r.sin();
         if sin_armc.abs() < 1e-8 {
             // Degenerate case: fall back to previous cusp + 30°
-            cusps[*h] = norm_deg(cusps[10] + (*h as f64 - 10.0) * 30.0);
+            cusps[*h] = norm_deg((*h as f64 - 10.0).mul_add(30.0, cusps[10]));
             cusps[*h - 9] = norm_deg(cusps[*h] + 180.0);
             continue;
         }
@@ -327,7 +332,7 @@ fn koch(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
         let ra = (armc_r.sin() * eps_r.cos()).atan2(armc_r.cos());
         let lon = ecl_lon_from_ra_dec(to_deg(ra), to_deg(dec), eps);
         if lon.is_nan() || lon.is_infinite() {
-            cusps[*h] = norm_deg(cusps[10] + (*h as f64 - 10.0) * 30.0);
+            cusps[*h] = norm_deg((*h as f64 - 10.0).mul_add(30.0, cusps[10]));
         } else {
             cusps[*h] = lon;
         }
@@ -336,7 +341,7 @@ fn koch(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
 
     for (i, h) in [9usize, 8].iter().enumerate() {
         let frac = (i as f64 + 1.0) / 3.0;
-        let armc_h = norm_deg(armc - dsa * frac);
+        let armc_h = norm_deg(dsa.mul_add(-frac, armc));
         let armc_r = to_rad(armc_h);
         let dec = (((lat_r.tan() * armc_r.cos()) / armc_r.sin().abs().max(1e-10))
             .atan()
@@ -349,7 +354,7 @@ fn koch(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
             eps,
         );
         if lon.is_nan() || lon.is_infinite() {
-            cusps[*h] = norm_deg(cusps[10] + (*h as f64 - 10.0) * 30.0);
+            cusps[*h] = norm_deg((*h as f64 - 10.0).mul_add(30.0, cusps[10]));
         } else {
             cusps[*h] = lon;
         }
@@ -391,11 +396,11 @@ fn porphyry(asc: f64, mc: f64) -> [f64; 13] {
     // Trisect each quadrant
     let q1 = arc_between(mc, asc) / 3.0;
     cusps[11] = norm_deg(mc + q1);
-    cusps[12] = norm_deg(mc + 2.0 * q1);
+    cusps[12] = norm_deg(2.0_f64.mul_add(q1, mc));
 
     let q4 = arc_between(asc, norm_deg(mc + 180.0)) / 3.0;
     cusps[2] = norm_deg(asc + q4);
-    cusps[3] = norm_deg(asc + 2.0 * q4);
+    cusps[3] = norm_deg(2.0_f64.mul_add(q4, asc));
 
     // Opposite houses
     for i in 1..=6 {
@@ -489,7 +494,7 @@ fn campanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     for &h in &[11usize, 12, 2, 3] {
         let angle = (h as f64 - 1.0) * 30.0;
         let pv_r = to_rad(armc + angle + 90.0);
-        let num = pv_r.sin() * eps_r.cos() + sin_eps * sin_lat / cos_lat;
+        let num = pv_r.sin().mul_add(eps_r.cos(), sin_eps * sin_lat / cos_lat);
         let den = pv_r.cos();
         cusps[h] = norm_deg(to_deg(num.atan2(den)));
         // Opposite house: h→ h+6 (wrapping within 1-12)
@@ -505,7 +510,7 @@ fn campanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
 fn equal_asc(asc: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     for h in 1..=12 {
-        cusps[h] = norm_deg(asc + (h as f64 - 1.0) * 30.0);
+        cusps[h] = norm_deg((h as f64 - 1.0).mul_add(30.0, asc));
     }
     cusps
 }
@@ -515,7 +520,7 @@ fn equal_asc(asc: f64) -> [f64; 13] {
 fn equal_mc(mc: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     for h in 1..=12 {
-        cusps[h] = norm_deg(mc + (h as f64 - 10.0) * 30.0);
+        cusps[h] = norm_deg((h as f64 - 10.0).mul_add(30.0, mc));
     }
     cusps
 }
@@ -526,7 +531,7 @@ fn whole_sign(asc: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     let asc_sign_start = (asc / 30.0).floor() * 30.0;
     for h in 1..=12 {
-        cusps[h] = norm_deg(asc_sign_start + (h as f64 - 1.0) * 30.0);
+        cusps[h] = norm_deg((h as f64 - 1.0).mul_add(30.0, asc_sign_start));
     }
     cusps
 }
@@ -537,7 +542,7 @@ fn meridian(armc: f64, eps: f64) -> [f64; 13] {
     let eps_r = to_rad(eps);
     let mut cusps = [0.0f64; 13];
     for h in 1..=12 {
-        let angle = armc + (h as f64 - 10.0) * 30.0;
+        let angle = (h as f64 - 10.0).mul_add(30.0, armc);
         let angle_r = to_rad(angle);
         cusps[h] = norm_deg(to_deg((angle_r.sin() * eps_r.cos()).atan2(angle_r.cos())));
     }
@@ -557,7 +562,7 @@ fn morinus(armc: f64, eps: f64) -> [f64; 13] {
     let eps_r = to_rad(eps);
     let mut cusps = [0.0f64; 13];
     for h in 1..=12 {
-        let ra = norm_deg(armc + (h as f64 - 1.0) * 30.0);
+        let ra = norm_deg((h as f64 - 1.0).mul_add(30.0, armc));
         let ra_r = to_rad(ra);
         cusps[h] = norm_deg(to_deg((ra_r.sin() * eps_r.cos()).atan2(ra_r.cos())));
     }
@@ -591,7 +596,7 @@ fn alcabitius(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
             _ => 2.0 / 3.0, // h ∈ {12, 3}
         };
         let sign = if h >= 11 { 1.0 } else { -1.0 };
-        let oa = oblique_ascension(asc, 0.0, eps, lat) + sign * (90.0 + dsa) * frac;
+        let oa = (sign * (90.0 + dsa)).mul_add(frac, oblique_ascension(asc, 0.0, eps, lat));
         let lon = ecl_lon_from_ra_dec(oa + 0.0, 0.0, eps);
         cusps[h] = norm_deg(lon);
     }
@@ -627,8 +632,8 @@ fn azimuth_to_ecliptic(az: f64, alt: f64, lat_r: f64, armc: f64, eps_r: f64) -> 
     let sin_alt = alt.sin();
     let cos_alt = alt.cos();
 
-    let dec = (sin_alt * sin_lat + cos_alt * cos_lat * az.cos()).asin();
-    let ha = (cos_alt * az.sin()).atan2(sin_alt * cos_lat - cos_alt * az.cos() * sin_lat);
+    let dec = sin_alt.mul_add(sin_lat, cos_alt * cos_lat * az.cos()).asin();
+    let ha = (cos_alt * az.sin()).atan2(sin_alt.mul_add(cos_lat, -(cos_alt * az.cos() * sin_lat)));
     let ra = norm_deg(to_deg(to_rad(armc) - ha));
     norm_deg(ecl_lon_from_ra_dec(ra, to_deg(dec), to_deg(eps_r)))
 }
@@ -646,7 +651,7 @@ fn topocentric(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
     // Adjust the three pairs of intermediate cusps and immediately re-enforce
     // the 180° opposite constraint so both houses in each pair stay consistent.
     for &(h, opp) in &[(11usize, 5usize), (12, 6), (2, 8), (3, 9)] {
-        cusps[h] = norm_deg(cusps[h] + d * 0.2);
+        cusps[h] = norm_deg(d.mul_add(0.2, cusps[h]));
         cusps[opp] = norm_deg(cusps[h] + 180.0);
     }
     for &(h, opp) in &[(8usize, 2usize), (9, 3)] {
@@ -668,7 +673,7 @@ fn gauquelin(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     cusps[1] = asc;
     cusps[10] = mc;
     for i in 1..=12 {
-        cusps[i] = norm_deg(asc + (i as f64 - 1.0) * 30.0);
+        cusps[i] = norm_deg((i as f64 - 1.0).mul_add(30.0, asc));
     }
     cusps
 }
@@ -677,10 +682,13 @@ fn gauquelin(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
 
 /// Approximate mean sidereal time (degrees) for a UT Julian day.
 /// Mean Greenwich Sidereal Time (degrees) for a UT Julian day.
+#[must_use]
 pub fn mean_sidereal_time_deg(jd_ut: f64) -> f64 {
     let t = (jd_ut - 2_451_545.0) / 36_525.0;
-    let gmst = 280.460_618_37 + 360.985_647_366_29 * (jd_ut - 2_451_545.0) + 0.000_387_93 * t * t
-        - t * t * t / 38_710_000.0;
+    let dt = jd_ut - 2_451_545.0;
+    let p1 = 360.985_647_366_29_f64.mul_add(dt, 280.460_618_37);
+    let p2 = (0.000_387_93 * t).mul_add(t, p1);
+    let gmst = (t * t).mul_add(-t / 38_710_000.0, p2);
     norm_deg(gmst)
 }
 
@@ -688,6 +696,7 @@ pub fn mean_sidereal_time_deg(jd_ut: f64) -> f64 {
 ///
 /// Adds the equation of the equinoxes (nutation in longitude × cos ε) to
 /// mean sidereal time, giving the true origin of hour angles.
+#[must_use]
 pub fn sidereal_time_deg(jd_ut: f64) -> f64 {
     let gmst = mean_sidereal_time_deg(jd_ut);
     // Equation of the equinoxes: dpsi * cos(eps)
@@ -698,6 +707,7 @@ pub fn sidereal_time_deg(jd_ut: f64) -> f64 {
 }
 
 /// Approximate obliquity of the ecliptic (degrees) for a UT Julian day.
+#[must_use]
 pub fn obliquity_simple(jd_ut: f64) -> f64 {
     let t = (jd_ut - 2_451_545.0) / 36_525.0;
     // Horner form: more accurate (single rounding per FMA on FMA hosts) and
@@ -708,6 +718,7 @@ pub fn obliquity_simple(jd_ut: f64) -> f64 {
     p2.mul_add(t, 23.439_291_111)
 }
 /// Alias for `houses_armc` — compute house cusps directly from ARMC, latitude and obliquity.
+#[must_use]
 pub fn houses_from_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
     houses_armc(armc, geolat, eps, hsys)
 }

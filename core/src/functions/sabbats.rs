@@ -47,6 +47,7 @@ pub enum SabbatKind {
 
 impl SabbatKind {
     /// The ecliptic longitude (°) of the Sun at which this sabbat occurs.
+    #[must_use]
     pub fn solar_longitude(self) -> f64 {
         match self {
             Self::Yule => 270.0,
@@ -61,6 +62,7 @@ impl SabbatKind {
     }
 
     /// Primary name.
+    #[must_use]
     pub fn name(self) -> &'static str {
         match self {
             Self::Yule => "Yule",
@@ -75,6 +77,7 @@ impl SabbatKind {
     }
 
     /// Alternative names from different Celtic and neopagan traditions.
+    #[must_use]
     pub fn alt_names(self) -> &'static [&'static str] {
         match self {
             Self::Yule => &["Winter Solstice", "Midwinter", "Alban Arthan"],
@@ -104,17 +107,20 @@ impl SabbatKind {
     }
 
     /// `true` for the four quarter days (solstices and equinoxes).
+    #[must_use]
     pub fn is_quarter_day(self) -> bool {
         matches!(self, Self::Yule | Self::Ostara | Self::Litha | Self::Mabon)
     }
 
     /// `true` for the four cross-quarter days (fire festivals).
+    #[must_use]
     pub fn is_cross_quarter(self) -> bool {
         !self.is_quarter_day()
     }
 
     /// All eight sabbats in ascending solar-longitude order
     /// (Yule at 270° → Imbolc 315° → Ostara 0° → … → Samhain 225°).
+    #[must_use]
     pub fn all_by_longitude() -> [Self; 8] {
         [
             Self::Yule,

@@ -1138,6 +1138,7 @@ pub fn find_star(query: &str) -> Option<usize> {
 ///
 /// Returns `(ecliptic_lon_deg, ecliptic_lat_deg, distance_au)`.
 /// Applies precession and proper motion only (no parallax for distant stars).
+#[must_use]
 pub fn star_ecliptic_pos(star: &StarEntry, jd_ut: f64) -> (f64, f64, f64) {
     let t = (jd_ut - J2000) / 365.25; // Julian years from J2000
 
@@ -1179,6 +1180,7 @@ pub fn star_ecliptic_pos(star: &StarEntry, jd_ut: f64) -> (f64, f64, f64) {
 
 /// Speed of a fixed star in ecliptic coordinates (deg/day).
 /// For stars this is essentially just the precession rate, which is tiny.
+#[must_use]
 pub fn star_speed(_star: &StarEntry) -> (f64, f64, f64) {
     // Precession in longitude: ~50.29 arcsec/yr → deg/day
     let speed_lon = 50.29 / 3600.0 / 365.25;

@@ -25,6 +25,7 @@ use crate::{julday, revjul};
 /// Julian day of Nowruz (vernal equinox) for the given Gregorian year.
 ///
 /// Uses `solcross_ut` to find the exact moment the Sun reaches 0° ecliptic longitude.
+#[must_use]
 pub fn nowruz_jd(year: i32) -> f64 {
     let start = julday(year, 3, 15, 0.0, Calendar::Gregorian);
     solcross_ut(0.0, start, CalcFlags::BUILTIN).unwrap_or(start)
@@ -33,6 +34,7 @@ pub fn nowruz_jd(year: i32) -> f64 {
 /// Convert a Gregorian year to the corresponding Iranian solar (Solar Hijri) year.
 ///
 /// The Solar Hijri calendar starts at Nowruz 622 CE.
+#[must_use]
 pub fn gregorian_to_solar_hijri(gregorian_year: i32) -> i32 {
     // The Solar Hijri year starts at Nowruz
     // Year 1 SH = 622 CE (approximately)
@@ -40,6 +42,7 @@ pub fn gregorian_to_solar_hijri(gregorian_year: i32) -> i32 {
 }
 
 /// Convert a Solar Hijri year to the Gregorian year (approximate).
+#[must_use]
 pub fn solar_hijri_to_gregorian(solar_hijri_year: i32) -> i32 {
     solar_hijri_year + 621
 }
@@ -125,18 +128,21 @@ pub struct BahaiDate {
 
 /// Is the given Bahá'í year a leap year?
 /// Bahá'í leap years correspond to Gregorian leap years.
+#[must_use]
 pub fn is_bahai_leap_year(bahai_year: i32) -> bool {
     let gregorian_year = bahai_year + 1843;
     gregorian_year % 4 == 0 && (gregorian_year % 100 != 0 || gregorian_year % 400 == 0)
 }
 
 /// Julian day of Naw-Rúz (Bahá'í New Year) for the given Bahá'í year.
+#[must_use]
 pub fn naw_ruz_jd(bahai_year: i32) -> f64 {
     let gregorian_year = bahai_year + 1843;
     nowruz_jd(gregorian_year)
 }
 
 /// Convert a Julian day to a Bahá'í date.
+#[must_use]
 pub fn jd_to_bahai(jd: f64) -> BahaiDate {
     // Find the Bahá'í year
     let gregorian_year = {
@@ -304,6 +310,7 @@ fn bahai_jd_of(year_start: f64, ayyam_days: u32, month: u8, day: u8) -> f64 {
 }
 
 /// Return all Bahá'í holy days for the given Bahá'í year.
+#[must_use]
 pub fn bahai_holy_days(bahai_year: i32) -> Vec<BahaiHolyDay> {
     let year_start = naw_ruz_jd(bahai_year);
     let ayyam_days = if is_bahai_leap_year(bahai_year) {

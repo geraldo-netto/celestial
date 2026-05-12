@@ -112,6 +112,7 @@ fn full_moon_jd(k_int: i64) -> f64 {
 }
 
 /// Compute the integer k for the new Moon nearest to jd_start (looking forward).
+#[must_use]
 pub fn k_from_jd(jd: f64, forward: bool) -> i64 {
     // Approximate k: months since J2000 new Moon (JD 2451550.0977)
     let months = (jd - 2_451_550.097_7) / 29.530_588_861;
@@ -211,6 +212,7 @@ pub(crate) fn check_solar_eclipse(k_int: i64) -> (EclipseKind, f64, f64) {
 }
 
 /// Check if a full Moon (k_int + 0.5) produces a lunar eclipse.
+#[must_use]
 pub fn check_lunar_eclipse(k_int: i64) -> (EclipseKind, f64, f64) {
     let k = k_int as f64 + 0.5; // full Moon
     let t = k / 1236.85;
@@ -416,6 +418,7 @@ pub fn lun_eclipse_when(jd_start: f64, ecl_type: i32, backwards: bool) -> Option
 /// the Moon's geocentric declination, which matches the geographic eclipse path
 /// to within ~8° latitude. A full solution (Besselian elements, topocentric parallax)
 /// would close the gap but requires significantly more computation.
+#[must_use]
 pub fn solar_eclipse_geopos(jde: f64, _gamma: f64) -> (f64, f64) {
     use crate::astronomy::moon::lunar_position;
 
@@ -474,6 +477,7 @@ pub fn solar_eclipse_geopos(jde: f64, _gamma: f64) -> (f64, f64) {
 /// # Parameters
 /// * `jd_ut` — Julian day (UT) near the eclipse
 /// * `geopos` — `[longitude_deg, latitude_deg, altitude_m]`
+#[must_use]
 pub fn solar_eclipse_attr(jd_ut: f64, geopos: [f64; 3]) -> [f64; 20] {
     let mut attr = [0.0f64; 20];
     // Find nearest new Moon
@@ -499,6 +503,7 @@ pub fn solar_eclipse_attr(jd_ut: f64, geopos: [f64; 3]) -> [f64; 20] {
 
 /// Attribute data for a lunar eclipse (20 values).
 /// attr[0]=penumbral_mag, attr[1]=umbral_mag, attr[2]=penumbral_partial_begin,…
+#[must_use]
 pub fn lunar_eclipse_attr(k_int: i64) -> [f64; 20] {
     let mut attr = [0.0f64; 20];
     let (_, pen_mag, umb_mag) = check_lunar_eclipse(k_int);
@@ -510,6 +515,7 @@ pub fn lunar_eclipse_attr(k_int: i64) -> [f64; 20] {
 
 /// Compute the Saros series for a given syzygy k.
 /// Returns (saros_number, saros_member) — simplified algorithm.
+#[must_use]
 pub fn saros(k_int: i64, is_solar: bool) -> (i32, i32) {
     // The Saros cycle is 223 synodic months; member within series advances by 1 each cycle.
     // Approximate: use k modulo 223 to estimate series

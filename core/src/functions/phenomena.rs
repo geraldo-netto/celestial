@@ -210,6 +210,7 @@ fn body_name_to_num(name: &str) -> i32 {
 /// - `'D'`: will need optical aid (binoculars or telescope)
 /// - `'E'`: barely visible even with telescope
 /// - `'F'`: not visible (below Danjon limit)
+#[must_use]
 pub fn yallop_q(arcv_deg: f64, arcl_deg: f64, sd_arcmin: f64) -> (f64, char) {
     // Crescent width W (arcminutes) = SD · (1 − cos(ARCL))
     let w = sd_arcmin * (1.0 - arcl_deg.to_radians().cos());
@@ -238,6 +239,7 @@ pub fn yallop_q(arcv_deg: f64, arcl_deg: f64, sd_arcmin: f64) -> (f64, char) {
 ///
 /// Inputs are Julian Days (UT). This is the standard epoch for evaluating
 /// [`yallop_q`] and related crescent-visibility criteria.
+#[must_use]
 pub fn best_time_method(jd_sunset: f64, jd_moonset: f64) -> f64 {
     jd_sunset + (4.0 / 9.0) * (jd_moonset - jd_sunset)
 }

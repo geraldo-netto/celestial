@@ -69,6 +69,7 @@ pub struct HeliocentricPos {
 ///
 /// `tau` is Julian millennia from J2000.0 (= JDE / 365250 − J2000/365250).
 #[inline]
+#[must_use]
 pub fn heliocentric(planet: Planet, jde: f64) -> HeliocentricPos {
     let tau = julian_millennia(jde);
     let (l_series, b_series, r_series) = planet.series();

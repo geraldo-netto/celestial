@@ -23,6 +23,7 @@ use crate::{calc_ut, julday};
 /// Find the next full moon at or after `jd_start`.
 ///
 /// Uses bisection to find when Moon–Sun elongation = 180°.
+#[must_use]
 pub fn next_full_moon_after(jd_start: f64) -> f64 {
     // Step forward in ~1-day steps to find the lunation
     let mut jd = jd_start;
@@ -66,6 +67,7 @@ pub fn next_full_moon_after(jd_start: f64) -> f64 {
 }
 
 /// Find the next new moon (elongation = 0°) at or after `jd_start`.
+#[must_use]
 pub fn next_new_moon_after(jd_start: f64) -> f64 {
     let elongation = |jd: f64| -> f64 {
         let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
@@ -109,6 +111,7 @@ pub fn next_new_moon_after(jd_start: f64) -> f64 {
 /// this is the full moon when the Sun is in the sidereal month of Vaisakha.
 /// This implementation finds the first full moon after the Sun enters Aries
 /// (vernal equinox), targeting April–May.
+#[must_use]
 pub fn vesak_jd(year: i32) -> f64 {
     // Start search from March 15 of the given year
     let start = julday(year, 3, 15, 0.0, Calendar::Gregorian);
@@ -208,6 +211,7 @@ fn find_phase(jd_start: f64, target: f64) -> f64 {
 }
 
 /// Return all Uposatha days in the given Gregorian year.
+#[must_use]
 pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
     let elongation_at = |jd: f64| -> f64 {
         let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();

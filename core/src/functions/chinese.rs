@@ -62,6 +62,7 @@ pub const EARTHLY_BRANCHES: &[(&str, &str, &str, bool)] = &[
 ];
 
 /// Construct a `BaZiPillar` from stem and branch indices.
+#[must_use]
 pub fn make_pillar(stem: u8, branch: u8) -> BaZiPillar {
     let s = stem as usize % 10;
     let b = branch as usize % 12;
@@ -89,6 +90,7 @@ pub fn make_pillar(stem: u8, branch: u8) -> BaZiPillar {
 /// * `jd_ut`   — Julian Day (UT)
 /// * `hour_ut` — hour of day (0.0–23.99, UT)
 /// * `sun_lon` — Sun's ecliptic longitude at `jd_ut` (degrees)
+#[must_use]
 pub fn four_pillars(jd_ut: f64, hour_ut: f64, sun_lon: f64) -> [BaZiPillar; 4] {
     // ── Year pillar ───────────────────────────────────────────────────────────
     // Chinese year starts at Lì Chūn (立春, Start of Spring, Sun ≈ 315°).
@@ -204,6 +206,7 @@ pub const SOLAR_TERMS: &[(f64, &str, &str)] = &[
 /// Return the current and next solar term for a given Sun longitude.
 ///
 /// Returns `(current_term_index, degrees_into_term, next_term_index, degrees_to_next)`.
+#[must_use]
 pub fn solar_term_position(sun_lon: f64) -> (usize, f64, usize, f64) {
     let lon = sun_lon.rem_euclid(360.0);
     let current = SOLAR_TERMS
@@ -223,6 +226,7 @@ pub fn solar_term_position(sun_lon: f64) -> (usize, f64, usize, f64) {
 }
 
 /// 60-year sexagenary cycle name (Jiǎ-Zǐ, Yǐ-Chǒu, …).
+#[must_use]
 pub fn sexagenary_name(cycle_index: u8) -> (&'static str, &'static str) {
     let s = cycle_index as usize % 10;
     let b = cycle_index as usize % 12;
@@ -274,6 +278,7 @@ pub fn vietnamese_month_start_jd(jd_ut: f64) -> Option<f64> {
 ///
 /// Useful for detecting the ~20% of new moons where the lunar month
 /// starts a different civil day in the two calendars.
+#[must_use]
 pub fn vietnamese_chinese_boundary_differs(jd_ut: f64) -> bool {
     let vn = (jd_ut + VIETNAM_TZ_OFFSET_HOURS / 24.0).floor();
     let cn = (jd_ut + CHINA_TZ_OFFSET_HOURS / 24.0).floor();

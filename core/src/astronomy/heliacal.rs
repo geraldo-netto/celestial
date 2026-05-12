@@ -41,6 +41,7 @@ fn extinction_mag(alt_deg: f64, pressure_mb: f64, temp_c: f64) -> f64 {
 
 /// Sky surface brightness (mag/arcsec²) as function of altitude above horizon
 /// and solar depression (degrees below horizon). Simple Krisciunas-Schaefer model.
+#[must_use]
 pub fn sky_brightness(alt_deg: f64, sun_alt_deg: f64, moon_alt_deg: f64) -> f64 {
     // Sky brightness near astronomical twilight
     let solar_component = if sun_alt_deg < -18.0 {
@@ -80,6 +81,7 @@ pub fn sky_brightness(alt_deg: f64, sun_alt_deg: f64, moon_alt_deg: f64) -> f64 
 /// * `pressure_mb`  — atmospheric pressure (mbar)
 /// * `temp_c`   — temperature (°C)
 /// * `age`      — observer age (for eye sensitivity; 0 = use default 45)
+#[must_use]
 pub fn limiting_magnitude(sb: f64, _atpress: f64, _attemp: f64, age: f64) -> f64 {
     let age = if age <= 0.0 { 45.0 } else { age };
     // Eye sensitivity factor (decreases with age)
@@ -98,6 +100,7 @@ pub fn limiting_magnitude(sb: f64, _atpress: f64, _attemp: f64, age: f64) -> f64
 ///
 /// Uses Yallop (1997) / Caldwell & Laney (2001) algorithm for the crescent
 /// moon; generalised for planets/stars via magnitude.
+#[must_use]
 pub fn arcus_visionis(
     obj_mag: f64, // apparent magnitude of object
     sun_alt: f64, // solar altitude (negative = below horizon)
@@ -159,6 +162,7 @@ impl HeliacalEvent {
         }
     }
     /// For rising events, search in the morning (dawn); for setting in the evening.
+    #[must_use]
     pub fn is_morning(&self) -> bool {
         matches!(
             self,
@@ -273,6 +277,7 @@ pub fn find_heliacal_event(
 
 /// Compute heliacal phenomena attributes array (50 values).
 /// Compatible with `swe_heliacal_pheno_ut` output.
+#[must_use]
 pub fn heliacal_pheno(
     jd_ut: f64,
     _dgeo: [f64; 3],
@@ -324,6 +329,7 @@ pub fn heliacal_pheno(
 /// Compatible with `swe_vis_limit_mag`.
 ///
 /// Returns [lim_mag, obj_mag, sky_brightness, elongation, arc_vision, …, …, …]
+#[must_use]
 pub fn vis_limit_mag(
     jd_ut: f64,
     _dgeo: [f64; 3],

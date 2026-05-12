@@ -20,6 +20,7 @@ pub struct LunarPos {
 
 /// Compute the Moon's geocentric ecliptic position for a given JDE (TT).
 #[inline]
+#[must_use]
 pub fn lunar_position(jde: f64) -> LunarPos {
     let t = julian_centuries(jde);
 

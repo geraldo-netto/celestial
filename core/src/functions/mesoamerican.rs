@@ -86,6 +86,7 @@ pub const XIUHPOHUALLI_MONTHS: &[(&str, &str)] = &[
 ///
 /// Uses the GMT correlation. The Aztec calendar system is in continuous
 /// synchrony with the Maya Tzolkin.
+#[must_use]
 pub fn tonalpohualli(jd: f64) -> (u8, usize, &'static str, &'static str) {
     // Aztec day number from the base correlation
     let day_num = (jd as i64 - GMT_CORRELATION).rem_euclid(260) as usize;
@@ -103,6 +104,7 @@ pub fn tonalpohualli(jd: f64) -> (u8, usize, &'static str, &'static str) {
 ///
 /// Returns `(month_index, day_in_month, month_name, month_english)`.
 /// Month 18 (index 18) is the 5-day "Nemontemi" (unlucky days).
+#[must_use]
 pub fn xiuhpohualli(jd: f64) -> (usize, u8, &'static str, &'static str) {
     let day_num = (jd as i64 - GMT_CORRELATION).rem_euclid(365) as usize;
     let month_idx = (day_num / 20).min(18);
@@ -123,6 +125,7 @@ pub fn xiuhpohualli(jd: f64) -> (usize, u8, &'static str, &'static str) {
 /// Maya Tzolkin (260-day sacred calendar) position for a Julian Day.
 ///
 /// Returns `(trecena_number, day_sign_index, day_sign_name, day_sign_english)`.
+#[must_use]
 pub fn tzolkin(jd: f64) -> (u8, usize, &'static str, &'static str) {
     let day_num = (jd as i64 - GMT_CORRELATION).rem_euclid(260) as usize;
     let trecena = (day_num % 13 + 1) as u8;
@@ -139,6 +142,7 @@ pub fn tzolkin(jd: f64) -> (u8, usize, &'static str, &'static str) {
 ///
 /// Returns `(month_index, day_in_month, month_name)`.
 /// Months 0–17 each have 20 days; month 18 (Wayeb) has 5.
+#[must_use]
 pub fn haab(jd: f64) -> (usize, u8, &'static str) {
     const HAAB_MONTHS: &[&str] = &[
         "Pop", "Wo", "Sip", "Sotz", "Sek", "Xul", "Yaxkin", "Mol", "Ch'en", "Yax", "Sak", "Keh",
@@ -157,6 +161,7 @@ pub fn haab(jd: f64) -> (usize, u8, &'static str) {
 
 /// Maya Calendar Round: the 52-year cycle combining Tzolkin + Haab.
 /// Returns `(tzolkin_trecena, tzolkin_sign, haab_day, haab_month)`.
+#[must_use]
 pub fn calendar_round(jd: f64) -> (u8, &'static str, u8, &'static str) {
     let (trecena, _, sign_name, _) = tzolkin(jd);
     let (_, haab_day, haab_month) = haab(jd);
@@ -177,6 +182,7 @@ pub fn calendar_round(jd: f64) -> (u8, &'static str, u8, &'static str) {
 /// - 1 baktun = 20 katun   (≈ 394 years)
 ///
 /// Uses the GMT correlation (JD 584 283 = Maya Day 0 = 0.0.0.0.0 4 Ajaw 8 Kumk'u).
+#[must_use]
 pub fn maya_long_count(jd: f64) -> (u32, u32, u32, u32, u32) {
     let mut days = jd.floor() as i64 - GMT_CORRELATION;
     if days < 0 {
@@ -195,6 +201,7 @@ pub fn maya_long_count(jd: f64) -> (u32, u32, u32, u32, u32) {
 }
 
 /// Long Count in canonical dotted notation, e.g. `"13.0.0.0.0"`.
+#[must_use]
 pub fn maya_long_count_str(jd: f64) -> String {
     let (b, k, t, u, ki) = maya_long_count(jd);
     format!("{b}.{k}.{t}.{u}.{ki}")

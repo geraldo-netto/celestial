@@ -304,6 +304,7 @@ fn materialize_holiday(spec: &HolidaySpec, hebrew_year: i32, purim_month: u8) ->
 /// Compute all major Jewish holidays for the given Hebrew year.
 ///
 /// Returns holidays sorted by Julian day (chronological).
+#[must_use]
 pub fn jewish_holidays(hebrew_year: i32) -> Vec<JewishHoliday> {
     let purim_month = if is_hebrew_leap_year(hebrew_year) {
         13u8
@@ -328,6 +329,7 @@ pub fn jewish_holiday_jd(hebrew_year: i32, name: &str) -> Option<f64> {
 }
 
 /// Return the current Hebrew year for a given Julian day.
+#[must_use]
 pub fn hebrew_year_from_jd(jd: f64) -> i32 {
     let mut year = ((jd - 347_997.0) * 98_496.0 / 35_975_351.0) as i32 + 1;
     while (hebrew_new_year_jd(year + 1) as f64) <= jd {
@@ -338,6 +340,7 @@ pub fn hebrew_year_from_jd(jd: f64) -> i32 {
 
 /// Convert a Julian day to a Hebrew date (year, month, day).
 /// Month: 1=Nisan, 2=Iyyar, …, 7=Tishrei, …, 12=Adar (or Adar I), 13=Adar II (leap)
+#[must_use]
 pub fn jd_to_hebrew_date(jd: f64) -> (i32, u8, u8) {
     let year = hebrew_year_from_jd(jd);
     let jd_int = jd.floor() as i64;

@@ -8,6 +8,7 @@ const J2000: f64 = 2451545.0;
 
 /// Mean ascending node of the Moon (ecliptic longitude, degrees).
 /// Meeus "Astronomical Algorithms" ch. 47.
+#[must_use]
 pub fn moon_mean_node(jd_et: f64) -> f64 {
     let t = (jd_et - J2000) / 36525.0;
     let t2 = t * t;
@@ -19,6 +20,7 @@ pub fn moon_mean_node(jd_et: f64) -> f64 {
 }
 
 /// Speed of the mean node (deg/day).
+#[must_use]
 pub fn moon_mean_node_speed(jd_et: f64) -> f64 {
     let t = (jd_et - J2000) / 36525.0;
     // d/dt of mean node (deg/century → deg/day)
@@ -30,6 +32,7 @@ pub fn moon_mean_node_speed(jd_et: f64) -> f64 {
 
 /// True (osculating) ascending node of the Moon.
 /// Adds the principal periodic corrections to the mean node.
+#[must_use]
 pub fn moon_true_node(jd_et: f64) -> f64 {
     let t = (jd_et - J2000) / 36525.0;
 
@@ -50,6 +53,7 @@ pub fn moon_true_node(jd_et: f64) -> f64 {
 }
 
 /// Speed of the true node (deg/day) — numerical derivative.
+#[must_use]
 pub fn moon_true_node_speed(jd_et: f64) -> f64 {
     let h = 0.5;
     (moon_true_node(jd_et + h) - moon_true_node(jd_et - h)) / (2.0 * h)
@@ -59,6 +63,7 @@ pub fn moon_true_node_speed(jd_et: f64) -> f64 {
 
 /// Longitude of lunar perigee (degrees) — mean value.
 /// Meeus ch. 48.
+#[must_use]
 pub fn moon_mean_perigee(jd_et: f64) -> f64 {
     let t = (jd_et - J2000) / 36525.0;
     let pi = 83.353_243_0 + 4_069.013_564 * t - 0.010_325_2 * t * t - 0.000_012_468 * t * t * t;
@@ -66,6 +71,7 @@ pub fn moon_mean_perigee(jd_et: f64) -> f64 {
 }
 
 /// Speed of mean perigee (deg/day).
+#[must_use]
 pub fn moon_mean_perigee_speed(_jd_et: f64) -> f64 {
     // ~4069.013564 deg/century → deg/day
     4_069.013_564 / 36525.0

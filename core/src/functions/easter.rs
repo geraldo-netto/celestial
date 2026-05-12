@@ -18,6 +18,7 @@
 /// Returns `(year, month, day)`.
 ///
 /// Valid for all years 1583–4099.
+#[must_use]
 pub fn easter_gregorian(year: i32) -> (i32, u8, u8) {
     let a = year % 19;
     let b = year / 100;
@@ -41,6 +42,7 @@ pub fn easter_gregorian(year: i32) -> (i32, u8, u8) {
 /// Uses the Meeus Julian algorithm.
 /// Returns `(year, month, day)` in the **Julian calendar**.
 /// To convert to Gregorian, add 13 days (for 1900–2099).
+#[must_use]
 pub fn easter_julian(year: i32) -> (i32, u8, u8) {
     let a = year % 4;
     let b = year % 7;
@@ -55,6 +57,7 @@ pub fn easter_julian(year: i32) -> (i32, u8, u8) {
 /// Compute Eastern Orthodox Easter in the **Gregorian calendar** for the given year.
 ///
 /// Converts the Julian date to Gregorian by adding the appropriate century correction.
+#[must_use]
 pub fn easter_orthodox(year: i32) -> (i32, u8, u8) {
     let (y, m, d) = easter_julian(year);
     // Julian-to-Gregorian offset: 13 days for 1900-2099
@@ -140,6 +143,7 @@ const MOVEABLE_FEASTS: &[(&str, i32)] = &[
 ];
 
 /// Compute all Western Christian moveable feasts for the given year.
+#[must_use]
 pub fn christian_feasts(year: i32) -> Vec<ChristianFeast> {
     let (ey, em, ed) = easter_gregorian(year);
     let easter_jd = gregorian_to_jd(ey, em as i32, ed as i32);
@@ -173,6 +177,7 @@ pub fn christian_feasts(year: i32) -> Vec<ChristianFeast> {
 }
 
 /// Fixed Christian feasts (non-moveable) for the given year.
+#[must_use]
 pub fn christian_fixed_feasts(year: i32) -> Vec<ChristianFeast> {
     let fixed: &[(&str, i32, i32)] = &[
         ("Epiphany", 1, 6),
@@ -204,12 +209,14 @@ pub fn christian_fixed_feasts(year: i32) -> Vec<ChristianFeast> {
 }
 
 /// Julian day of Western (Gregorian) Easter for the given year.
+#[must_use]
 pub fn easter_jd(year: i32) -> f64 {
     let (y, m, d) = easter_gregorian(year);
     gregorian_to_jd(y, m as i32, d as i32)
 }
 
 /// Julian day of Eastern Orthodox Easter (in Gregorian calendar) for the given year.
+#[must_use]
 pub fn easter_orthodox_jd(year: i32) -> f64 {
     let (y, m, d) = easter_orthodox(year);
     gregorian_to_jd(y, m as i32, d as i32)

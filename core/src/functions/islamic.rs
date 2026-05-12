@@ -54,11 +54,13 @@ pub const HIJRI_MONTH_NAMES_AR: [&str; 12] = [
 
 /// Is the given Hijri year a leap year? (Leap years have 355 days.)
 /// Uses the "Kūfan" or "astronomical" variant of the tabular calendar.
+#[must_use]
 pub fn is_hijri_leap_year(year: i32) -> bool {
     (11 * year + 14) % 30 < 11
 }
 
 /// Number of days in a Hijri month.
+#[must_use]
 pub fn hijri_month_days(year: i32, month: u8) -> u8 {
     if month % 2 == 1 || (month == 12 && is_hijri_leap_year(year)) {
         30
@@ -68,11 +70,13 @@ pub fn hijri_month_days(year: i32, month: u8) -> u8 {
 }
 
 /// Julian day of 1 Muharram of the given Hijri year.
+#[must_use]
 pub fn hijri_new_year_jd(year: i32) -> f64 {
     HIJRI_EPOCH + (year - 1) as f64 * 354.0 + (11 * year + 3) as f64 / 30.0
 }
 
 /// Julian day of the first day of a given Hijri month.
+#[must_use]
 pub fn hijri_month_start_jd(year: i32, month: u8) -> f64 {
     let mut jd = hijri_new_year_jd(year);
     for m in 1u8..month {
@@ -82,6 +86,7 @@ pub fn hijri_month_start_jd(year: i32, month: u8) -> f64 {
 }
 
 /// Convert a Julian day to a Hijri date (year, month, day).
+#[must_use]
 pub fn hijri_from_jd(jd: f64) -> (i32, u8, u8) {
     // Approximate year
     let year = ((jd - HIJRI_EPOCH) / 354.367 + 1.0) as i32;
@@ -108,11 +113,13 @@ pub fn hijri_from_jd(jd: f64) -> (i32, u8, u8) {
 }
 
 /// Convert a Hijri date to a Julian day.
+#[must_use]
 pub fn hijri_to_jd(year: i32, month: u8, day: u8) -> f64 {
     hijri_month_start_jd(year, month) + (day as f64 - 1.0)
 }
 
 /// Name of a Hijri month (1–12).
+#[must_use]
 pub fn hijri_month_name(month: u8) -> &'static str {
     if (1..=12).contains(&month) {
         HIJRI_MONTH_NAMES[(month - 1) as usize]
@@ -139,6 +146,7 @@ pub struct IslamicObservance {
 }
 
 /// Return all major Islamic observances for the given Hijri year.
+#[must_use]
 pub fn islamic_observances(hijri_year: i32) -> Vec<IslamicObservance> {
     let jd_start = |m: u8, d: u8| hijri_to_jd(hijri_year, m, d) + 0.25; // ~sunset
 
@@ -227,12 +235,14 @@ pub fn islamic_observances(hijri_year: i32) -> Vec<IslamicObservance> {
 }
 
 /// Return the Islamic observances for the Hijri year that contains the given JD.
+#[must_use]
 pub fn islamic_observances_for_jd(jd: f64) -> Vec<IslamicObservance> {
     let (year, _, _) = hijri_from_jd(jd);
     islamic_observances(year)
 }
 
 /// Gregorian year → Hijri years that overlap it (usually 2).
+#[must_use]
 pub fn gregorian_to_hijri_years(gregorian_year: i32) -> (i32, i32) {
     fn gregorian_to_jd(y: i32, m: i32, d: i32) -> f64 {
         let a = (14 - m) / 12;

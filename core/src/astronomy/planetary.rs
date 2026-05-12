@@ -32,6 +32,7 @@ pub struct GeocentricPos {
 
 /// Compute geocentric apparent position for a planet (JDE = TT).
 #[inline]
+#[must_use]
 pub fn apparent_planet(planet: Planet, jde: f64) -> GeocentricPos {
     // Earth's heliocentric position
     let earth = heliocentric(Planet::Earth, jde);
@@ -102,6 +103,7 @@ pub fn apparent_planet(planet: Planet, jde: f64) -> GeocentricPos {
 /// This is the negative of the Earth's heliocentric position with
 /// aberration and nutation applied.
 #[inline]
+#[must_use]
 pub fn apparent_sun(jde: f64) -> GeocentricPos {
     let earth = heliocentric(Planet::Earth, jde);
     let t = julian_centuries(jde);
@@ -137,6 +139,7 @@ pub fn apparent_sun(jde: f64) -> GeocentricPos {
 
 /// Compute the Moon's apparent geocentric position (JDE = TT).
 #[inline]
+#[must_use]
 pub fn apparent_moon(jde: f64) -> GeocentricPos {
     let lunar = lunar_position(jde);
     let nut = nutation(jde);
@@ -169,6 +172,7 @@ fn ecliptic_rect(lon: f64, lat: f64, r: f64) -> (f64, f64, f64) {
 }
 
 /// Convert ecliptic longitude/latitude (degrees) to RA/Dec (degrees).
+#[must_use]
 pub fn ecl_to_equ(lon: f64, lat: f64, eps: f64) -> (f64, f64) {
     let lon_r = to_rad(lon);
     let lat_r = to_rad(lat);

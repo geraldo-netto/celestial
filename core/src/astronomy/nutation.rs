@@ -33,6 +33,7 @@ pub struct Nutation {
 /// Accurate to 0.01″ over ±3000 years from J2000.
 ///
 /// Reference: Capitaine et al. (2003), A&A 412, 567–586.
+#[must_use]
 pub fn mean_obliquity(jde: f64) -> f64 {
     let t = julian_centuries(jde);
     // IAU 2006 polynomial — coefficients in arcseconds, T in Julian centuries
@@ -43,6 +44,7 @@ pub fn mean_obliquity(jde: f64) -> f64 {
 }
 
 /// True obliquity of the ecliptic (degrees), accounting for nutation.
+#[must_use]
 pub fn true_obliquity(jde: f64) -> f64 {
     let nut = nutation(jde);
     mean_obliquity(jde) + nut.deps / 3600.0
@@ -54,6 +56,7 @@ pub fn true_obliquity(jde: f64) -> f64 {
 /// former IAU 1980 implementation.
 ///
 /// Returns [`Nutation`] with components in arcseconds.
+#[must_use]
 pub fn nutation(jde: f64) -> Nutation {
     let t = julian_centuries(jde);
 
@@ -140,6 +143,7 @@ pub fn nutation(jde: f64) -> Nutation {
 }
 
 /// IAU 1980 nutation (64 terms, ~0.5″). Retained for benchmarking comparison.
+#[must_use]
 pub fn nutation_1980(jde: f64) -> Nutation {
     let t = julian_centuries(jde);
     let omega = to_rad(125.044_522_2 - 1_934.136_261_0 * t);

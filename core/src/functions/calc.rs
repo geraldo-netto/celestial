@@ -232,6 +232,7 @@ pub fn orbit_max_min_true_distance(
 ///               Body::NEPTUNE, Body::PLUTO, Body::MEAN_NODE, Body::CHIRON];
 /// let results = calc_many(2451545.0, &bodies, CalcFlags::BUILTIN | CalcFlags::SPEED);
 /// ```
+#[must_use]
 pub fn calc_many(
     jd_et: f64,
     bodies: &[Body],
@@ -245,6 +246,7 @@ pub fn calc_many(
 /// Compute positions for multiple bodies in parallel using UT input.
 ///
 /// Same as [`calc_many`] but accepts Universal Time (auto-applies ΔT).
+#[must_use]
 pub fn calc_ut_many(
     jd_ut: f64,
     bodies: &[Body],
@@ -374,11 +376,13 @@ impl CalcOptions {
     }
 
     /// Set a single body and return a ready-to-execute single-body builder.
+    #[must_use]
     pub fn body(self, body: Body) -> SingleCalc {
         SingleCalc { opts: self, body }
     }
 
     /// Set multiple bodies and return a ready-to-execute multi-body builder.
+    #[must_use]
     pub fn bodies(self, bodies: &[Body]) -> MultiCalc<'_> {
         MultiCalc { opts: self, bodies }
     }
@@ -411,6 +415,7 @@ impl<'a> MultiCalc<'a> {
     /// Execute the calculations and return one `Result<PlanetPos>` per body.
     ///
     /// Order is guaranteed to match the input `bodies` slice.
+    #[must_use]
     pub fn get_many(self) -> Vec<Result<PlanetPos>> {
         let use_parallel = match self.opts.strategy {
             CalcStrategy::Sequential => false,

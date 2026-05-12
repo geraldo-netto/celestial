@@ -109,6 +109,7 @@ impl SidMode {
     }
 
     /// Display name for the ayanamsa.
+    #[must_use]
     pub fn name(self) -> &'static str {
         // User-defined is the only variant not in the table
         if matches!(self, Self::User) {
@@ -179,6 +180,7 @@ static AYANAMSA_J2000: &[(i32, f64)] = &[
 ///
 /// Returns the tropical–sidereal offset in degrees; subtract from tropical
 /// longitude to obtain sidereal longitude.
+#[must_use]
 pub fn ayanamsa(jde: f64, mode: SidMode) -> f64 {
     if mode == SidMode::User {
         return 0.0; // user must supply their own offset externally
@@ -209,6 +211,7 @@ fn precession_correction(t: f64) -> f64 {
 }
 
 /// Get ayanamsa name string for a mode integer.
+#[must_use]
 pub fn ayanamsa_name(mode_id: i32) -> &'static str {
     SidMode::from_i32(mode_id).map_or("Unknown", SidMode::name)
 }

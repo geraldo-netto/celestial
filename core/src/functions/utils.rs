@@ -207,12 +207,14 @@ pub fn coord_transform(coords: [f64; 3], eps: f64) -> [f64; 3] {
     let lat_r = lat.to_radians();
     // Swiss Ephemeris sign convention (swe_cotrans):
     // y' = y*cos(eps) + z*sin(eps),  z' = -y*sin(eps) + z*cos(eps)
-    let cos_lat = lat_r.cos();
-    let x = lon_r.cos() * cos_lat;
-    let y = lon_r.sin() * cos_lat;
-    let z = lat_r.sin();
-    let yp = y * eps_r.cos() + z * eps_r.sin();
-    let zp = -y * eps_r.sin() + z * eps_r.cos();
+    let (sin_lat, cos_lat) = lat_r.sin_cos();
+    let (sin_lon, cos_lon) = lon_r.sin_cos();
+    let (sin_eps, cos_eps) = eps_r.sin_cos();
+    let x = cos_lon * cos_lat;
+    let y = sin_lon * cos_lat;
+    let z = sin_lat;
+    let yp = z.mul_add(sin_eps, y * cos_eps);
+    let zp = (-y).mul_add(sin_eps, z * cos_eps);
     let out_lon = yp.atan2(x).to_degrees().rem_euclid(360.0);
     let out_lat = zp.clamp(-1.0, 1.0).asin().to_degrees();
     [out_lon, out_lat, dist]

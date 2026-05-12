@@ -42,6 +42,7 @@ fn kepler(m: f64, ecc: f64) -> f64 {
 /// and distance (AU) for a given Julian day (UT ≈ ET for this purpose).
 ///
 /// Elements: epoch J2000.0, from MPC / AstDys.
+#[must_use]
 pub fn chiron_pos(jd: f64) -> (f64, f64, f64) {
     // Mean elements at epoch J2000.0
     let a = 13.648_16_f64; // AU
@@ -70,16 +71,13 @@ pub fn chiron_pos(jd: f64) -> (f64, f64, f64) {
     // Heliocentric ecliptic coordinates (IAU 76 reference plane)
     // Argument of latitude
     let u = peri + nu;
-    let cos_u = u.cos();
-    let sin_u = u.sin();
-    let cos_i = inc.cos();
-    let sin_i = inc.sin();
-    let cos_n = node.cos();
-    let sin_n = node.sin();
+    let (sin_u, cos_u) = u.sin_cos();
+    let (sin_i, cos_i) = inc.sin_cos();
+    let (sin_n, cos_n) = node.sin_cos();
 
     // 3-D heliocentric coordinates
-    let x = r * (cos_n * cos_u - sin_n * sin_u * cos_i);
-    let y = r * (sin_n * cos_u + cos_n * sin_u * cos_i);
+    let x = r * (-sin_n * sin_u).mul_add(cos_i, cos_n * cos_u);
+    let y = r * (cos_n * sin_u).mul_add(cos_i, sin_n * cos_u);
     let z = r * sin_u * sin_i;
 
     let lon = to_deg(y.atan2(x)).rem_euclid(360.0);
@@ -89,6 +87,7 @@ pub fn chiron_pos(jd: f64) -> (f64, f64, f64) {
 }
 
 /// Speed of Chiron (deg/day) via numerical differentiation.
+#[must_use]
 pub fn chiron_speed(jd: f64) -> (f64, f64, f64) {
     let h = 0.5;
     let (l0, b0, r0) = chiron_pos(jd - h);

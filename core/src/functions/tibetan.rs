@@ -48,6 +48,7 @@ pub fn losar_jd(gregorian_year: i32) -> Option<f64> {
 /// The Rabjung 60-year cycle combines 12 animals × 5 elements × 2 genders
 /// (yin/yang, tied to element parity). The first Rabjung cycle began in
 /// AD 1027.
+#[must_use]
 pub fn tibetan_year_name(
     gregorian_year: i32,
 ) -> (u32, u32, &'static str, &'static str, &'static str) {

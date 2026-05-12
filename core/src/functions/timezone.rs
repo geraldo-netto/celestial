@@ -1438,6 +1438,7 @@ pub static TZ_TABLE: &[TzAbbr] = &[
 
 /// Find timezone entries by abbreviation (case-insensitive).
 /// Returns all matching entries (multiple countries may share an abbreviation).
+#[must_use]
 pub fn tz_abbr_find(abbr: &str) -> Vec<&'static TzAbbr> {
     let lower = abbr.to_ascii_uppercase();
     TZ_TABLE

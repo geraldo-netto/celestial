@@ -801,8 +801,11 @@ pub fn lower_meridian_transit_ut(
         let lon_r = pos.lon.to_radians();
         let lat_r = pos.lat.to_radians();
         // Meeus eq.13.3: RA = atan2(sin(lon)*cos(eps) - tan(lat)*sin(eps), cos(lon))
-        let ra = (lon_r.sin() * eps.cos() - lat_r.tan() * eps.sin())
-            .atan2(lon_r.cos())
+        let (sin_lon, cos_lon) = lon_r.sin_cos();
+        let (sin_eps, cos_eps) = eps.sin_cos();
+        let ra = (-lat_r.tan())
+            .mul_add(sin_eps, sin_lon * cos_eps)
+            .atan2(cos_lon)
             .to_degrees()
             .rem_euclid(360.0);
         let gast = crate::sidtime(jd) * 15.0; // hours → degrees
@@ -984,6 +987,7 @@ impl SearchOptions {
     /// Execute a Midheaven (MC) transit search.
     ///
     /// Requires `.natal_chart()` to have been called.
+    #[must_use]
     pub fn search_mc_transit(self) -> crate::Result<f64> {
         mc_transit_ut(
             self.body,
@@ -998,6 +1002,7 @@ impl SearchOptions {
     }
 
     /// Execute an IC transit search.
+    #[must_use]
     pub fn search_ic_transit(self) -> crate::Result<f64> {
         ic_transit_ut(
             self.body,
@@ -1012,6 +1017,7 @@ impl SearchOptions {
     }
 
     /// Execute an Ascendant transit search.
+    #[must_use]
     pub fn search_asc_transit(self) -> crate::Result<f64> {
         asc_transit_ut(
             self.body,
@@ -1026,6 +1032,7 @@ impl SearchOptions {
     }
 
     /// Execute a Descendant transit search.
+    #[must_use]
     pub fn search_dsc_transit(self) -> crate::Result<f64> {
         dsc_transit_ut(
             self.body,

@@ -247,6 +247,7 @@ impl RiseTransOptions {
     }
 
     /// Execute the search and return a `RiseTransResult`.
+    #[must_use]
     pub fn search(self) -> crate::Result<RiseTransResult> {
         rise_trans_true_hor(
             self.jd_ut,

@@ -89,6 +89,7 @@ pub fn set_delta_t_userdef(dt: f64) {
 pub fn set_tid_acc(_t_acc: f64) {}
 
 /// Get the current tidal acceleration.
+#[must_use]
 pub fn tid_acc() -> f64 {
     0.0
 }
@@ -99,11 +100,13 @@ pub fn set_lapse_rate(_lapse_rate: f64) {}
 // ─── Ayanamsa ─────────────────────────────────────────────────────────────────
 
 /// Get the ayanamsa for a JDE (TT).
+#[must_use]
 pub fn ayanamsa(jd_et: f64) -> f64 {
     crate::astronomy::get_ayanamsa(jd_et, current_sid_mode())
 }
 
 /// Get the ayanamsa for a JD (UT).
+#[must_use]
 pub fn ayanamsa_ut(jd_ut: f64) -> f64 {
     crate::astronomy::get_ayanamsa(jd_ut, current_sid_mode())
 }
@@ -119,6 +122,7 @@ pub fn ayanamsa_ex_ut(jd_ut: f64, _flags: CalcFlags) -> Result<f64> {
 }
 
 /// Get the name of a sidereal mode.
+#[must_use]
 pub fn ayanamsa_name(isidmode: i32) -> &'static str {
     crate::astronomy::get_ayanamsa_name(isidmode)
 }
@@ -126,16 +130,19 @@ pub fn ayanamsa_name(isidmode: i32) -> &'static str {
 // ─── Info ─────────────────────────────────────────────────────────────────────
 
 /// Get the Swiss Ephemeris version string.
+#[must_use]
 pub fn version() -> &'static str {
     crate::astronomy::engine_version()
 }
 
 /// Get the library path.
+#[must_use]
 pub fn library_path() -> String {
     String::from("(pure-Rust engine, no library path)")
 }
 
 /// Get the planet name for a body number.
+#[must_use]
 pub fn planet_name(body: Body) -> &'static str {
     crate::astronomy::planet_name(body.as_raw())
 }

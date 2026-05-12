@@ -62,6 +62,7 @@ pub enum MoonPhase {
 
 impl MoonPhase {
     /// Return the display name of the phase.
+    #[must_use]
     pub fn name(&self) -> &'static str {
         match self {
             Self::NewMoon => "New Moon",
@@ -76,6 +77,7 @@ impl MoonPhase {
     }
 
     /// Return the target elongation (degrees) of the nearest principal phase.
+    #[must_use]
     pub fn target_elongation(&self) -> f64 {
         match self {
             Self::NewMoon | Self::WaxingCrescent | Self::WaningCrescent => 0.0,
@@ -97,6 +99,7 @@ pub enum PrincipalPhase {
 
 impl PrincipalPhase {
     /// Target elongation for this principal phase.
+    #[must_use]
     pub fn elongation_target(self) -> f64 {
         match self {
             Self::NewMoon => 0.0,
@@ -107,6 +110,7 @@ impl PrincipalPhase {
     }
 
     /// Human-readable name of this principal phase (e.g. `"Full Moon"`).
+    #[must_use]
     pub fn name(self) -> &'static str {
         match self {
             Self::NewMoon => "New Moon",

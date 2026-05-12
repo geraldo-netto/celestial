@@ -194,6 +194,7 @@ pub struct Panchanga {
 use crate::norm_deg;
 
 /// Compute the Karana name for a given karana number (1–60).
+#[must_use]
 pub fn karana_name(karana: u8) -> &'static str {
     match karana {
         1 => "Kimstughna",
@@ -208,6 +209,7 @@ pub fn karana_name(karana: u8) -> &'static str {
 /// Compute the full Panchānga for a given Julian day.
 ///
 /// Uses Lahiri (Chitrapaksha) ayanamsa for sidereal positions.
+#[must_use]
 pub fn panchanga(jd: f64) -> Panchanga {
     // Save sidereal mode and set Lahiri
     crate::set_sid_mode(crate::body::SiderealMode::LAHIRI, 0.0, 0.0);
@@ -376,6 +378,7 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
 ///
 /// Iterates day-by-day through the year, matching each day's Panchānga against
 /// the [`FESTIVAL_RULES`] table. Returns festivals in the order they occur.
+#[must_use]
 pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
     use crate::julday;
 

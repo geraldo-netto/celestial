@@ -70,6 +70,7 @@ pub enum EsbatName {
 
 impl EsbatName {
     /// Display name (e.g. `"Wolf Moon"`).
+    #[must_use]
     pub fn display_name(self) -> &'static str {
         match self {
             Self::Wolf => "Wolf Moon",
@@ -89,6 +90,7 @@ impl EsbatName {
     }
 
     /// Alternative names from various traditions.
+    #[must_use]
     pub fn alt_names(self) -> &'static [&'static str] {
         match self {
             Self::Wolf => &["Old Moon", "Ice Moon", "Moon After Yule"],

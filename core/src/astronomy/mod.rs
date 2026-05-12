@@ -102,16 +102,19 @@ pub use houses::houses_from_armc;
 /// - `geolat` — geographic latitude (degrees, N positive)
 /// - `geolon` — geographic longitude (degrees, E positive)
 /// - `hsys`   — house system byte: `b'P'` Placidus, `b'K'` Koch, `b'E'` Equal, etc.
+#[must_use]
 pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: u8) -> HouseResult {
     calc_houses(jd_ut, geolat, geolon, hsys)
 }
 
 /// Compute house cusps from ARMC, latitude and obliquity directly.
+#[must_use]
 pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
     calc_houses_armc(armc, geolat, eps, hsys)
 }
 
 /// Return the display name for a house system byte.
+#[must_use]
 pub fn house_name(hsys: u8) -> &'static str {
     HouseSystem::from_char(hsys).map_or("Unknown", houses::HouseSystem::name)
 }
@@ -121,12 +124,14 @@ pub fn house_name(hsys: u8) -> &'static str {
 /// Compute ayanamsa (degrees) for a given Julian Ephemeris Day and sidereal mode.
 ///
 /// `sid_mode` corresponds to the `SIDM_*` constants (0 = Fagan-Bradley, 1 = Lahiri, …).
+#[must_use]
 pub fn get_ayanamsa(jde: f64, sid_mode: i32) -> f64 {
     let mode = SidMode::from_i32(sid_mode).unwrap_or(SidMode::Lahiri);
     calc_ayanamsa(jde, mode)
 }
 
 /// Return the name of a sidereal mode.
+#[must_use]
 pub fn get_ayanamsa_name(sid_mode: i32) -> &'static str {
     ayanamsa_name(sid_mode)
 }
@@ -134,21 +139,25 @@ pub fn get_ayanamsa_name(sid_mode: i32) -> &'static str {
 // ─── Delta T / time ───────────────────────────────────────────────────────────
 
 /// Compute ΔT = TT − UT1 (seconds) for a given UT Julian day.
+#[must_use]
 pub fn deltat(jd_ut: f64) -> f64 {
     delta_t::delta_t(jd_ut)
 }
 
 /// Compute mean obliquity of the ecliptic (degrees) for a JDE (TT).
+#[must_use]
 pub fn obliquity(jde: f64) -> f64 {
     mean_obliquity(jde)
 }
 
 /// Compute true obliquity of the ecliptic, including nutation in obliquity.
+#[must_use]
 pub fn obliquity_true(jde: f64) -> f64 {
     true_obliquity(jde)
 }
 
 /// Compute nutation in longitude and obliquity (arcseconds each).
+#[must_use]
 pub fn get_nutation(jde: f64) -> (f64, f64) {
     let n = nutation(jde);
     (n.dpsi, n.deps)
@@ -220,6 +229,7 @@ fn body_to_vsop87(body_num: i32) -> Option<Planet> {
 // ─── Planet names ─────────────────────────────────────────────────────────────
 
 /// Return the canonical name for a body number.
+#[must_use]
 pub fn planet_name(body_num: i32) -> &'static str {
     match body_num {
         body::SUN => "Sun",
@@ -237,6 +247,7 @@ pub fn planet_name(body_num: i32) -> &'static str {
 }
 
 /// Return the engine version string.
+#[must_use]
 pub fn engine_version() -> &'static str {
     "2.10.03"
 }
