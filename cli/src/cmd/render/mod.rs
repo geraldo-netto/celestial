@@ -911,6 +911,99 @@ fn vars_with_title(
 
 type ChartRenderer = fn(&serde_json::Value) -> String;
 
+fn dispatch_natal(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Natal Chart");
+    Ok((build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, render_builtin_svg))
+}
+
+fn dispatch_cosmogram(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let mut v = vars_with_title(user_vars, "Cosmogram");
+    v.insert("no_houses".to_string(), "1".to_string());
+    Ok((build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, render_cosmogram_svg))
+}
+
+fn dispatch_solar_return(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let year = args.return_year.unwrap_or_else(|| {
+        let today_jd = crate::parse::parse_date("now").unwrap_or(2_451_545.0);
+        let d = celestial_core::revjul(today_jd, celestial_core::body::Calendar::Gregorian);
+        d.year as i32
+    });
+    let sr_jd = solar_return_jd(jd, year, CalcFlags::BUILTIN).map_err(|e| e.to_string())?;
+    let sr_date = jd_to_date_str(sr_jd);
+    let mut v = user_vars.clone();
+    v.insert("title".to_string(), format!("Solar Return {year}"));
+    v.insert("chart_type_label".to_string(), format!("Solar Return {year}"));
+    Ok((build_context(sr_jd, args.lat, args.lon, &sr_date, args.hsys, v)?, render_builtin_svg))
+}
+
+fn dispatch_lunar_return(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let start = args.date2.as_deref()
+        .map(crate::parse::parse_date)
+        .transpose()?
+        .unwrap_or(jd);
+    let lr_jd = lunar_return_jd(jd, start, CalcFlags::BUILTIN).map_err(|e| e.to_string())?;
+    let lr_date = jd_to_date_str(lr_jd);
+    let mut v = user_vars.clone();
+    v.insert("title".to_string(), "Lunar Return".to_string());
+    Ok((build_context(lr_jd, args.lat, args.lon, &lr_date, args.hsys, v)?, render_builtin_svg))
+}
+
+fn dispatch_progressed(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let years = args.years.ok_or("--years DECIMAL required for progressed chart")?;
+    let mut v = user_vars.clone();
+    v.insert("title".to_string(), format!("Secondary Progressions ({years:.1}y)"));
+    Ok((build_progressed_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?, render_progressed_svg))
+}
+
+fn dispatch_solar_arc(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let years = args.years.ok_or("--years DECIMAL required for solar-arc chart")?;
+    let mut v = user_vars.clone();
+    v.insert("title".to_string(), format!("Solar Arc Directions ({years:.1}y)"));
+    Ok((build_solar_arc_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?, render_progressed_svg))
+}
+
+fn dispatch_biwheel(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let date2 = args.date2.as_deref().ok_or("--date2 DATE required for biwheel chart")?;
+    let jd2 = crate::parse::parse_date(date2)?;
+    let lat2 = args.lat2.unwrap_or(args.lat);
+    let lon2 = args.lon2.unwrap_or(args.lon);
+    let v = vars_with_title(user_vars, "Bi-wheel");
+    Ok((build_biwheel_context(jd, jd2, args.lat, args.lon, lat2, lon2, &args.date, date2, args.hsys, v)?, render_biwheel_svg))
+}
+
+fn dispatch_composite(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let date2 = args.date2.as_deref().ok_or("--date2 DATE required for composite chart")?;
+    let jd2 = crate::parse::parse_date(date2)?;
+    let v = vars_with_title(user_vars, "Composite Chart");
+    Ok((specialist::build_composite_context(jd, jd2, args.lat, args.lon, &args.date, date2, args.hsys, v)?, render_builtin_svg))
+}
+
+fn dispatch_triwheel(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let date2 = args.date2.as_deref().ok_or("--date2 required (ring 2) for tri-wheel")?;
+    let date3 = args.date3.as_deref().ok_or("--date3 required (ring 3) for tri-wheel")?;
+    let jd2 = crate::parse::parse_date(date2)?;
+    let jd3 = crate::parse::parse_date(date3)?;
+    let v = vars_with_title(user_vars, "Tri-wheel");
+    Ok((specialist::build_triwheel_context(jd, jd2, jd3, args.lat, args.lon, &args.date, date2, date3, args.hsys, v)?, specialist::render_triwheel_svg))
+}
+
+fn dispatch_ephemeris(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let date2 = args.date2.as_deref().unwrap_or("now");
+    let jd2 = crate::parse::parse_date(date2)?;
+    let (jd_s, jd_e) = if jd < jd2 { (jd, jd2) } else { (jd2, jd) };
+    let v = vars_with_title(user_vars, "Graphic Ephemeris");
+    Ok((specialist::build_graphic_ephemeris_context(jd_s, jd_e, v)?, specialist::render_graphic_ephemeris_svg))
+}
+
+fn dispatch_profection(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+    let age = args.years.map(|y| y as u32)
+        .or(args.return_year.map(|r| r as u32))
+        .unwrap_or(0);
+    let mut v = user_vars.clone();
+    v.entry("title".to_string()).or_insert_with(|| format!("Profection — Age {age}"));
+    Ok((hellenistic::build_profection_context(jd, args.lat, args.lon, &args.date, args.hsys, age, v)?, hellenistic::render_profection_svg))
+}
+
 fn dispatch_chart_type(
     chart_type: &str,
     jd: f64,
@@ -918,173 +1011,74 @@ fn dispatch_chart_type(
     user_vars: &BTreeMap<String, String>,
 ) -> Result<(serde_json::Value, ChartRenderer), String> {
     Ok(match chart_type {
-            "natal" | "" => {
-                let v = vars_with_title(user_vars, "Natal Chart");
-                (build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, render_builtin_svg)
-            }
-            "cosmogram" => {
-                let mut v = vars_with_title(user_vars, "Cosmogram");
-                v.insert("no_houses".to_string(), "1".to_string());
-                (build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, render_cosmogram_svg)
-            }
-            "solar-return" | "solar_return" => {
-                // Default to the current year based on today's JD
-                let year = args.return_year.unwrap_or_else(|| {
-                    let today_jd = crate::parse::parse_date("now").unwrap_or(2_451_545.0);
-                    let d = celestial_core::revjul(today_jd, celestial_core::body::Calendar::Gregorian);
-                    d.year as i32
-                });
-                let sr_jd = solar_return_jd(jd, year, CalcFlags::BUILTIN)
-                    .map_err(|e| e.to_string())?;
-                let sr_date = jd_to_date_str(sr_jd);
-                let mut v = user_vars.clone();
-                v.insert("title".to_string(), format!("Solar Return {year}"));
-                v.insert("chart_type_label".to_string(), format!("Solar Return {year}"));
-                (build_context(sr_jd, args.lat, args.lon, &sr_date, args.hsys, v)?, render_builtin_svg)
-            }
-            "lunar-return" | "lunar_return" => {
-                let start = args.date2.as_deref()
-                    .map(crate::parse::parse_date)
-                    .transpose()?
-                    .unwrap_or(jd);
-                let lr_jd = lunar_return_jd(jd, start, CalcFlags::BUILTIN)
-                    .map_err(|e| e.to_string())?;
-                let lr_date = jd_to_date_str(lr_jd);
-                let mut v = user_vars.clone();
-                v.insert("title".to_string(), "Lunar Return".to_string());
-                (build_context(lr_jd, args.lat, args.lon, &lr_date, args.hsys, v)?, render_builtin_svg)
-            }
-            "progressed" | "secondary" => {
-                let years = args.years.ok_or("--years DECIMAL required for progressed chart")?;
-                let mut v = user_vars.clone();
-                v.insert("title".to_string(), format!("Secondary Progressions ({years:.1}y)"));
-                (build_progressed_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?, render_progressed_svg)
-            }
-            "solar-arc" | "solar_arc" => {
-                let years = args.years.ok_or("--years DECIMAL required for solar-arc chart")?;
-                let mut v = user_vars.clone();
-                v.insert("title".to_string(), format!("Solar Arc Directions ({years:.1}y)"));
-                (build_solar_arc_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?, render_progressed_svg)
-            }
-            "biwheel" | "bi-wheel" | "synastry" | "transit" => {
-                let date2 = args.date2.as_deref()
-                    .ok_or("--date2 DATE required for biwheel chart")?;
-                let jd2 = crate::parse::parse_date(date2)?;
-                let lat2 = args.lat2.unwrap_or(args.lat);
-                let lon2 = args.lon2.unwrap_or(args.lon);
-                let v = vars_with_title(user_vars, "Bi-wheel");
-                (build_biwheel_context(jd, jd2, args.lat, args.lon, lat2, lon2,
-                                       &args.date, date2, args.hsys, v)?, render_biwheel_svg)
-            }
-            "composite" => {
-                let date2 = args.date2.as_deref()
-                    .ok_or("--date2 DATE required for composite chart")?;
-                let jd2 = crate::parse::parse_date(date2)?;
-                let v = vars_with_title(user_vars, "Composite Chart");
-                (specialist::build_composite_context(jd, jd2, args.lat, args.lon, &args.date, date2, args.hsys, v)?,
-                 render_builtin_svg)
-            }
-            "triwheel" | "tri-wheel" => {
-                let date2 = args.date2.as_deref()
-                    .ok_or("--date2 required (ring 2) for tri-wheel")?;
-                let date3 = args.date3.as_deref()
-                    .ok_or("--date3 required (ring 3) for tri-wheel")?;
-                let jd2 = crate::parse::parse_date(date2)?;
-                let jd3 = crate::parse::parse_date(date3)?;
-                let v = vars_with_title(user_vars, "Tri-wheel");
-                (specialist::build_triwheel_context(jd, jd2, jd3, args.lat, args.lon,
-                                        &args.date, date2, date3, args.hsys, v)?,
-                 specialist::render_triwheel_svg)
-            }
+            "natal" | "" => dispatch_natal(jd, args, user_vars)?,
+            "cosmogram" => dispatch_cosmogram(jd, args, user_vars)?,
+            "solar-return" | "solar_return" => dispatch_solar_return(jd, args, user_vars)?,
+            "lunar-return" | "lunar_return" => dispatch_lunar_return(jd, args, user_vars)?,
+            "progressed" | "secondary" => dispatch_progressed(jd, args, user_vars)?,
+            "solar-arc" | "solar_arc" => dispatch_solar_arc(jd, args, user_vars)?,
+            "biwheel" | "bi-wheel" | "synastry" | "transit" => dispatch_biwheel(jd, args, user_vars)?,
+            "composite" => dispatch_composite(jd, args, user_vars)?,
+            "triwheel" | "tri-wheel" => dispatch_triwheel(jd, args, user_vars)?,
             "dial" | "90dial" | "midpoint-dial" => {
                 let v = vars_with_title(user_vars, "90° Midpoint Dial");
-                (specialist::build_dial_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
-                 specialist::render_dial_svg)
+                (specialist::build_dial_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, specialist::render_dial_svg)
             }
-            "ephemeris" | "graphic-ephemeris" => {
-                let date2 = args.date2.as_deref().unwrap_or("now");
-                let jd2 = crate::parse::parse_date(date2)?;
-                let (jd_s, jd_e) = if jd < jd2 { (jd, jd2) } else { (jd2, jd) };
-                let v = vars_with_title(user_vars, "Graphic Ephemeris");
-                (specialist::build_graphic_ephemeris_context(jd_s, jd_e, v)?, specialist::render_graphic_ephemeris_svg)
-            }
+            "ephemeris" | "graphic-ephemeris" => dispatch_ephemeris(jd, args, user_vars)?,
             "local-space" | "localspace" => {
                 let v = vars_with_title(user_vars, "Local Space");
-                (specialist::build_local_space_context(jd, args.lat, args.lon, &args.date, v)?,
-                 specialist::render_local_space_svg)
+                (specialist::build_local_space_context(jd, args.lat, args.lon, &args.date, v)?, specialist::render_local_space_svg)
             }
             "rasi" | "vedic" | "south-indian" => {
                 let v = vars_with_title(user_vars, "Rasi Chart (South Indian)");
-                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
-                 render_south_indian_svg)
+                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?, render_south_indian_svg)
             }
             "navamsa" | "d9" => {
                 let v = vars_with_title(user_vars, "Navamsa D9 Chart");
-                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Navamsa")?,
-                 vedic::render_navamsa_svg)
+                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Navamsa")?, vedic::render_navamsa_svg)
             }
             "dasha" | "vimshottari" => {
                 let v = vars_with_title(user_vars, "Vimshottari Dasha Timeline");
-                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Dasha")?,
-                 vedic::render_dasha_svg)
+                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Dasha")?, vedic::render_dasha_svg)
             }
             "north-indian" | "north_indian" => {
                 let v = vars_with_title(user_vars, "North Indian Chart");
-                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
-                 vedic::render_north_indian_svg)
+                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?, vedic::render_north_indian_svg)
             }
             "ashtakavarga" | "ashtak" => {
                 let v = vars_with_title(user_vars, "Ashtakavarga");
-                (vedic::build_ashtakavarga_context(jd, args.lat, args.lon, &args.date, v)?,
-                 vedic::render_ashtakavarga_svg)
+                (vedic::build_ashtakavarga_context(jd, args.lat, args.lon, &args.date, v)?, vedic::render_ashtakavarga_svg)
             }
             "shadbala" | "strength" => {
                 let v = vars_with_title(user_vars, "Shadbala");
-                (vedic::build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?,
-                 vedic::render_shadbala_svg)
+                (vedic::build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?, vedic::render_shadbala_svg)
             }
             "hellenistic" | "greek" => {
                 let v = vars_with_title(user_vars, "Hellenistic Chart");
-                (hellenistic::build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
-                 hellenistic::render_hellenistic_svg)
+                (hellenistic::build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, hellenistic::render_hellenistic_svg)
             }
             "firdaria" | "persian" => {
                 let v = vars_with_title(user_vars, "Firdaria Timeline");
-                (hellenistic::build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
-                 hellenistic::render_firdaria_svg)
+                (hellenistic::build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, hellenistic::render_firdaria_svg)
             }
-            "profection" => {
-                let age = args.years.map(|y| y as u32)
-                    .or(args.return_year.map(|r| r as u32))
-                    .unwrap_or(0);
-                let mut v = user_vars.clone();
-                v.entry("title".to_string())
-                    .or_insert_with(|| format!("Profection — Age {age}"));
-                (hellenistic::build_profection_context(jd, args.lat, args.lon, &args.date, args.hsys, age, v)?,
-                 hellenistic::render_profection_svg)
-            }
+            "profection" => dispatch_profection(jd, args, user_vars)?,
             "bazi" | "four-pillars" | "chinese" => {
                 let v = vars_with_title(user_vars, "Four Pillars (八字)");
-                (chinese::build_bazi_context(jd, args.lat, args.lon, &args.date, v)?,
-                 chinese::render_bazi_svg)
+                (chinese::build_bazi_context(jd, args.lat, args.lon, &args.date, v)?, chinese::render_bazi_svg)
             }
             "mesoamerican" | "aztec" | "maya" => {
                 let v = vars_with_title(user_vars, "Mesoamerican Calendars");
-                (mesoamerican::build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?,
-                 mesoamerican::render_mesoamerican_svg)
+                (mesoamerican::build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?, mesoamerican::render_mesoamerican_svg)
             }
             "medicine-wheel" | "indigenous" | "egyptian-decans" => {
                 let v = vars_with_title(user_vars, "Medicine Wheel / Egyptian Decans");
-                (indigenous::build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?,
-                 indigenous::render_medicine_wheel_svg)
+                (indigenous::build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?, indigenous::render_medicine_wheel_svg)
             }
             "wheel-of-year" | "sabbats" | "celtic" => {
-                (calendar_wheel::build_sabbat_wheel_context(jd, user_vars.clone())?,
-                 calendar_wheel::render_sabbat_wheel_svg)
+                (calendar_wheel::build_sabbat_wheel_context(jd, user_vars.clone())?, calendar_wheel::render_sabbat_wheel_svg)
             }
             "omer-grid" | "omer" | "sefirat-haomer" => {
-                (omer_grid::build_omer_grid_context(jd, user_vars.clone())?,
-                 omer_grid::render_omer_grid_svg)
+                (omer_grid::build_omer_grid_context(jd, user_vars.clone())?, omer_grid::render_omer_grid_svg)
             }
             "calendar" => (
                 build_calendar_context(jd, args, user_vars)?,
@@ -2237,32 +2231,12 @@ pub(super) const SI_CELLS: &[(usize, usize, i32)] = &[
     (3, 3, 5),
 ];
 
-pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
-    use std::fmt::Write;
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
-    let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
-    let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
-    let retro = ctx["vars"]["retro_color"].as_str().unwrap_or("#a01030");
-    let _asc_c = ctx["vars"]["asc_color"].as_str().unwrap_or("#006030"); // reserved for ASC cell highlight
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Rasi Chart");
-    let date = ctx["date"].as_str().unwrap_or("");
+const SI_CW: f64 = 140.0;
+const SI_CH: f64 = 120.0;
+const SI_OX: f64 = 30.0;
+const SI_OY: f64 = 70.0;
 
-    // Cell geometry: 4×4 grid, each cell 140×120, centre 2×2 merged
-    const CW: f64 = 140.0; // cell width
-    const CH: f64 = 120.0; // cell height
-    const OX: f64 = 30.0; // origin x
-    const OY: f64 = 70.0; // origin y (below title)
-
-    let planets = json_array(&ctx["planets"]);
-    // Find ASC rasi (first planet with key "asc" — we'll use the first planet's rasi
-    // as placeholder; real ASC needs sidereal house calc which we approximate here)
-    // For simplicity, mark which rasi is lagna from planets (we skip ASC calc here)
-
-    // Group planets by rasi
+fn group_planets_by_rasi(planets: &[Value]) -> Vec<Vec<String>> {
     let mut rasi_planets: Vec<Vec<String>> = vec![Vec::new(); 12];
     for p in planets {
         let rasi = p["rasi"].as_i64().unwrap_or(0) as usize % 12;
@@ -2270,76 +2244,63 @@ pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
         let ret = p["retro"].as_bool().unwrap_or(false);
         let deg = p["deg_in_rasi"].as_f64().unwrap_or(0.0);
         let lbl = format!("{g}{}", if ret { "℞" } else { "" });
-        let deg_s = format!("{deg:.0}°");
-        rasi_planets[rasi].push(format!("{lbl} {deg_s}"));
+        rasi_planets[rasi].push(format!("{lbl} {deg:.0}°"));
     }
+    rasi_planets
+}
 
-    let mut s = String::with_capacity(16 * 1024);
-    let total_h = OY + 4.0 * CH + 40.0;
-    let total_w = OX * 2.0 + 4.0 * CW;
-
+fn write_si_header(s: &mut String, bg: &str, txt: &str, border: &str, title: &str, date: &str, total_w: f64, total_h: f64) {
+    use std::fmt::Write;
+    let half = total_w / 2.0;
     let _ = writeln!(
         s,
         r##"<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w:.0} {total_h:.0}" width="{total_w:.0}" height="{total_h:.0}">
   <rect width="{total_w:.0}" height="{total_h:.0}" fill="{bg}"/>
-  <text x="{:.2}" y="28" text-anchor="middle" font-size="16" font-weight="600"
+  <text x="{half:.2}" y="28" text-anchor="middle" font-size="16" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
-  <text x="{:.2}" y="48" text-anchor="middle" font-size="9"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".6">{date}</text>"##,
-        total_w / 2.0,
-        total_w / 2.0
+  <text x="{half:.2}" y="48" text-anchor="middle" font-size="9"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".6">{date}</text>
+  <rect x="{SI_OX}" y="{SI_OY}" width="{:.2}" height="{:.2}" fill="none" stroke="{border}" stroke-width="2.0"/>"##,
+        4.0 * SI_CW,
+        4.0 * SI_CH
     );
+}
 
-    // Draw outer border
-    let _ = writeln!(
-        s,
-        r##"  <rect x="{OX}" y="{OY}" width="{:.2}" height="{:.2}" fill="none" stroke="{border}" stroke-width="2.0"/>"##,
-        4.0 * CW,
-        4.0 * CH
-    );
-
-    // Centre box (2×2)
-    let cx = OX + CW;
-    let cy = OY + CH;
-    let _ = writeln!(
-        s,
-        r##"  <rect x="{cx:.2}" y="{cy:.2}" width="{:.2}" height="{:.2}" fill="{bg}" stroke="{border}" stroke-width="1.5"/>"##,
-        2.0 * CW,
-        2.0 * CH
-    );
-
-    // Centre text (chart metadata)
+fn write_si_centre(s: &mut String, ctx: &Value, bg: &str, txt: &str, border: &str) {
+    use std::fmt::Write;
+    let cx = SI_OX + SI_CW;
+    let cy = SI_OY + SI_CH;
     let moon_sid = ctx["moon_sid_lon"].as_f64().unwrap_or(0.0);
     let (moon_nak, _) = long_to_nakshatra(moon_sid);
     let nak_nm = nakshatra_name(moon_nak).unwrap_or("?");
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{:.2}" text-anchor="middle" font-size="11" font-weight="600"
+        r##"  <rect x="{cx:.2}" y="{cy:.2}" width="{:.2}" height="{:.2}" fill="{bg}" stroke="{border}" stroke-width="1.5"/>
+  <text x="{:.2}" y="{:.2}" text-anchor="middle" font-size="11" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">Vedic Chart</text>
   <text x="{:.2}" y="{:.2}" text-anchor="middle" font-size="8"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".7">☽ {nak_nm}</text>"##,
-        cx + CW,
-        cy + CH * 0.85,
-        cx + CW,
-        cy + CH * 1.1
+        2.0 * SI_CW,
+        2.0 * SI_CH,
+        cx + SI_CW,
+        SI_CH.mul_add(0.85, cy),
+        cx + SI_CW,
+        SI_CH.mul_add(1.1, cy)
     );
+}
 
-    // Draw cells
+fn write_si_cells(s: &mut String, rasi_planets: &[Vec<String>], bg: &str, txt: &str, border: &str, pcol: &str, retro: &str) {
+    use std::fmt::Write;
     for &(row, col, sign_idx) in SI_CELLS {
-        let x = OX + col as f64 * CW;
-        let y = OY + row as f64 * CH;
-        let _ = writeln!(
-            s,
-            r##"  <rect x="{x:.2}" y="{y:.2}" width="{CW:.2}" height="{CH:.2}" fill="{bg}" stroke="{border}" stroke-width="1.0"/>"##
-        );
-
-        // Sign name top-left
+        let x = (col as f64).mul_add(SI_CW, SI_OX);
+        let y = (row as f64).mul_add(SI_CH, SI_OY);
         let sg = RASI_GLYPHS[sign_idx as usize % 12];
         let sn = RASI_NAMES[sign_idx as usize % 12];
         let _ = writeln!(
             s,
-            r##"  <text x="{:.2}" y="{:.2}" font-size="11" font-family="serif" fill="{txt}" opacity=".5">{sg}</text>
+            r##"  <rect x="{x:.2}" y="{y:.2}" width="{SI_CW:.2}" height="{SI_CH:.2}" fill="{bg}" stroke="{border}" stroke-width="1.0"/>
+  <text x="{:.2}" y="{:.2}" font-size="11" font-family="serif" fill="{txt}" opacity=".5">{sg}</text>
   <text x="{:.2}" y="{:.2}" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{sn}</text>"##,
             x + 4.0,
             y + 14.0,
@@ -2347,31 +2308,31 @@ pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
             y + 24.0
         );
 
-        // Planets in this rasi
         let prasi = &rasi_planets[sign_idx as usize % 12];
         for (pi, plabel) in prasi.iter().enumerate() {
-            let py = y + 36.0 + pi as f64 * 14.0;
-            let is_retro = plabel.contains('℞');
-            let col = if is_retro { retro } else { pcol };
+            let py = (pi as f64).mul_add(14.0, y + 36.0);
+            let col_s = if plabel.contains('℞') { retro } else { pcol };
             let _ = writeln!(
                 s,
-                r##"  <text x="{:.2}" y="{py:.2}" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{plabel}</text>"##,
+                r##"  <text x="{:.2}" y="{py:.2}" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{col_s}">{plabel}</text>"##,
                 x + 6.0
             );
         }
     }
+}
 
-    // Dashas mini-table below the grid
-    let dy = OY + 4.0 * CH + 10.0;
+fn write_si_dashas(s: &mut String, ctx: &Value, dy: f64, total_w: f64, txt: &str, pcol: &str) {
+    use std::fmt::Write;
     let _ = writeln!(
         s,
-        r##"  <text x="{OX}" y="{dy:.2}" font-size="11" font-weight="600"
+        r##"  <text x="{SI_OX}" y="{dy:.2}" font-size="11" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">Vimshottari Dashas</text>"##
     );
     let dashas = json_array(&ctx["dashas"]);
+    let col_w = (total_w - SI_OX * 2.0) / 3.0;
     for (i, d) in dashas.iter().take(9).enumerate() {
-        let col_x = OX + (i % 3) as f64 * (total_w - OX * 2.0) / 3.0;
-        let row_y = dy + 14.0 + (i / 3) as f64 * 14.0;
+        let col_x = ((i % 3) as f64).mul_add(col_w, SI_OX);
+        let row_y = ((i / 3) as f64).mul_add(14.0, dy + 14.0);
         let body = d["body"].as_str().unwrap_or("?");
         let yrs = d["years"].as_f64().unwrap_or(0.0);
         let start = d["start"].as_str().unwrap_or("");
@@ -2381,7 +2342,32 @@ pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
             font-family="'Segoe UI',system-ui,sans-serif" fill="{pcol}"><tspan font-weight="600">{body}</tspan> {yrs:.1}y · {start}</text>"##
         );
     }
+}
 
+pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
+    use std::fmt::Write;
+    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
+    let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
+    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
+    let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
+    let retro = ctx["vars"]["retro_color"].as_str().unwrap_or("#a01030");
+    let title = ctx["vars"]
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Rasi Chart");
+    let date = ctx["date"].as_str().unwrap_or("");
+
+    let planets = json_array(&ctx["planets"]);
+    let rasi_planets = group_planets_by_rasi(&planets);
+
+    let mut s = String::with_capacity(16 * 1024);
+    let total_h = 4.0_f64.mul_add(SI_CH, SI_OY) + 40.0;
+    let total_w = 4.0_f64.mul_add(SI_CW, SI_OX * 2.0);
+    write_si_header(&mut s, bg, txt, border, title, date, total_w, total_h);
+    write_si_centre(&mut s, ctx, bg, txt, border);
+    write_si_cells(&mut s, &rasi_planets, bg, txt, border, pcol, retro);
+    let dy = 4.0_f64.mul_add(SI_CH, SI_OY) + 10.0;
+    write_si_dashas(&mut s, ctx, dy, total_w, txt, pcol);
     let _ = writeln!(s, "</svg>");
     s
 }

@@ -90,6 +90,129 @@ pub fn build_bazi_context(
         "vars": Value::Object(palette.into_iter().collect())}))
 }
 
+const ELEM_COLORS: &[(&str, &str)] = &[
+    ("Wood", "#2d6a2d"),
+    ("Fire", "#c0392b"),
+    ("Earth", "#a0722a"),
+    ("Metal", "#707070"),
+    ("Water", "#1a4a8a"),
+];
+
+const BAZI_CW: f64 = 160.0;
+const BAZI_CH: f64 = 280.0;
+const BAZI_OX: f64 = 60.0;
+const BAZI_OY: f64 = 70.0;
+
+fn elem_color<'a>(el: &str, fallback: &'a str) -> &'a str {
+    ELEM_COLORS
+        .iter()
+        .find(|(e, _)| *e == el)
+        .map_or(fallback, |(_, c)| *c)
+}
+
+fn write_bazi_header(s: &mut String, bg: &str, txt: &str, border: &str, title: &str, date: &str, total_w: f64, total_h: f64) {
+    use std::fmt::Write;
+    let half = total_w / 2.0;
+    let _ = writeln!(
+        s,
+        r##"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w:.0} {total_h:.0}" width="{total_w:.0}" height="{total_h:.0}">
+  <rect width="{total_w:.0}" height="{total_h:.0}" fill="{bg}"/>
+  <text x="{half:.1}" y="26" text-anchor="middle" font-size="16" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
+  <text x="{half:.1}" y="44" text-anchor="middle" font-size="9"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".6">{date}</text>"##
+    );
+
+    let col_labels = ["Hour 時", "Day 日", "Month 月", "Year 年"];
+    for (ci, label) in col_labels.iter().enumerate() {
+        let cx = (ci as f64).mul_add(BAZI_CW, BAZI_OX) + BAZI_CW / 2.0;
+        let _ = writeln!(
+            s,
+            r##"  <text x="{cx:.1}" y="{:.1}" font-size="11" font-weight="600" text-anchor="middle"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{border}" opacity=".8">{label}</text>"##,
+            BAZI_OY - 8.0
+        );
+    }
+}
+
+fn write_bazi_pillars(s: &mut String, pillars: &[Value], border: &str, txt: &str) {
+    use std::fmt::Write;
+    for (ci, p) in pillars.iter().enumerate() {
+        let cx = (ci as f64).mul_add(BAZI_CW, BAZI_OX);
+        let stem_n = p["stem_name"].as_str().unwrap_or("?");
+        let branch_n = p["branch_name"].as_str().unwrap_or("?");
+        let animal = p["animal"].as_str().unwrap_or("?");
+        let stem_el = p["stem_element"].as_str().unwrap_or("?");
+        let br_el = p["branch_element"].as_str().unwrap_or("?");
+        let pol = p["polarity"].as_str().unwrap_or("?");
+
+        let stem_col = elem_color(stem_el, txt);
+        let branch_col = elem_color(br_el, txt);
+
+        let _ = writeln!(
+            s,
+            r##"  <rect x="{cx:.1}" y="{BAZI_OY:.1}" width="{BAZI_CW:.1}" height="{BAZI_CH:.1}" rx="6" fill="none" stroke="{border}" stroke-width="1.5" opacity=".5"/>"##
+        );
+
+        let div_y = BAZI_CH.mul_add(0.5, BAZI_OY);
+        let cx_end = cx + BAZI_CW;
+        let _ = writeln!(
+            s,
+            r##"  <line x1="{cx:.1}" y1="{div_y:.1}" x2="{cx_end:.1}" y2="{div_y:.1}" stroke="{border}" stroke-width="0.8" opacity=".4"/>"##
+        );
+
+        let cx_c = cx + BAZI_CW / 2.0;
+        let _ = writeln!(
+            s,
+            r##"  <text x="{cx_c:.1}" y="{:.1}" font-size="28" font-weight="700" text-anchor="middle"
+        dominant-baseline="central" font-family="serif" fill="{stem_col}">{stem_n}</text>
+  <text x="{cx_c:.1}" y="{:.1}" font-size="10" text-anchor="middle"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{stem_col}" opacity=".8">{stem_el} · {pol}</text>"##,
+            BAZI_CH.mul_add(0.25, BAZI_OY),
+            BAZI_CH.mul_add(0.40, BAZI_OY)
+        );
+
+        let _ = writeln!(
+            s,
+            r##"  <text x="{cx_c:.1}" y="{:.1}" font-size="22" font-weight="700" text-anchor="middle"
+        dominant-baseline="central" font-family="serif" fill="{branch_col}">{branch_n}</text>
+  <text x="{cx_c:.1}" y="{:.1}" font-size="11" text-anchor="middle"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{branch_col}">{animal}</text>
+  <text x="{cx_c:.1}" y="{:.1}" font-size="9" text-anchor="middle"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{branch_col}" opacity=".7">{br_el}</text>"##,
+            BAZI_CH.mul_add(0.65, BAZI_OY),
+            BAZI_CH.mul_add(0.78, BAZI_OY),
+            BAZI_CH.mul_add(0.90, BAZI_OY)
+        );
+    }
+}
+
+fn write_bazi_elements(s: &mut String, elements: &[Value], ey: f64, txt: &str) {
+    use std::fmt::Write;
+    let _ = writeln!(
+        s,
+        r##"  <text x="{BAZI_OX:.1}" y="{ey:.1}" font-size="11" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">Element balance:</text>"##
+    );
+    let ex_start = BAZI_OX + 130.0;
+    for (i, el) in elements.iter().enumerate() {
+        let name = el["element"].as_str().unwrap_or("?");
+        let count = el["count"].as_u64().unwrap_or(0);
+        let ec = elem_color(name, txt);
+        let ex = (i as f64).mul_add(90.0, ex_start);
+        let bw = count as f64 * 16.0;
+        let _ = writeln!(
+            s,
+            r##"  <rect x="{ex:.1}" y="{:.1}" width="{bw:.1}" height="12" rx="3" fill="{ec}" opacity=".7"/>
+  <text x="{:.1}" y="{:.1}" font-size="9" font-family="'Segoe UI',system-ui,sans-serif" fill="{ec}">{name} {count}</text>"##,
+            ey + 10.0,
+            ex + bw + 4.0,
+            ey + 21.0
+        );
+    }
+}
+
 pub fn render_bazi_svg(ctx: &Value) -> String {
     use std::fmt::Write;
 
@@ -103,15 +226,6 @@ pub fn render_bazi_svg(ctx: &Value) -> String {
         .unwrap_or("Ba Zi");
     let date = ctx["date"].as_str().unwrap_or("");
 
-    // Element colours
-    const ELEM_COLORS: &[(&str, &str)] = &[
-        ("Wood", "#2d6a2d"),
-        ("Fire", "#c0392b"),
-        ("Earth", "#a0722a"),
-        ("Metal", "#707070"),
-        ("Water", "#1a4a8a"),
-    ];
-
     let pillars = super::json_array(&ctx["pillars"]);
     let elements = super::json_array(&ctx["elements"]);
     let solar_term = ctx["solar_term_current_en"].as_str().unwrap_or("—");
@@ -119,134 +233,20 @@ pub fn render_bazi_svg(ctx: &Value) -> String {
     let next_term_en = ctx["solar_term_next_en"].as_str().unwrap_or("—");
     let deg_to = ctx["degrees_to_next"].as_f64().unwrap_or(0.0);
 
-    const CW: f64 = 160.0; // column width
-    const CH: f64 = 280.0; // column height
-    const OX: f64 = 60.0; // left margin
-    const OY: f64 = 70.0; // top margin
-
-    let total_w = OX * 2.0 + 4.0 * CW;
-    let total_h = OY + CH + 200.0;
+    let total_w = 4.0_f64.mul_add(BAZI_CW, BAZI_OX * 2.0);
+    let total_h = BAZI_OY + BAZI_CH + 200.0;
 
     let mut s = String::with_capacity(8 * 1024);
-    let _ = writeln!(
-        s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w:.0} {total_h:.0}" width="{total_w:.0}" height="{total_h:.0}">
-  <rect width="{total_w:.0}" height="{total_h:.0}" fill="{bg}"/>
-  <text x="{:.1}" y="26" text-anchor="middle" font-size="16" font-weight="600"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
-  <text x="{:.1}" y="44" text-anchor="middle" font-size="9"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".6">{date}</text>"##,
-        total_w / 2.0,
-        total_w / 2.0
-    );
+    write_bazi_header(&mut s, bg, txt, border, title, date, total_w, total_h);
+    write_bazi_pillars(&mut s, &pillars, border, txt);
 
-    // Column labels
-    let col_labels = ["Hour 時", "Day 日", "Month 月", "Year 年"];
-    for (ci, label) in col_labels.iter().enumerate() {
-        let cx = OX + ci as f64 * CW + CW / 2.0;
-        let _ = writeln!(
-            s,
-            r##"  <text x="{cx:.1}" y="{:.1}" font-size="11" font-weight="600" text-anchor="middle"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{border}" opacity=".8">{label}</text>"##,
-            OY - 8.0
-        );
-    }
+    let ey = BAZI_OY + BAZI_CH + 18.0;
+    write_bazi_elements(&mut s, &elements, ey, txt);
 
-    // Four pillar columns
-    for (ci, p) in pillars.iter().enumerate() {
-        let cx = OX + ci as f64 * CW;
-        let stem_n = p["stem_name"].as_str().unwrap_or("?");
-        let branch_n = p["branch_name"].as_str().unwrap_or("?");
-        let animal = p["animal"].as_str().unwrap_or("?");
-        let stem_el = p["stem_element"].as_str().unwrap_or("?");
-        let br_el = p["branch_element"].as_str().unwrap_or("?");
-        let pol = p["polarity"].as_str().unwrap_or("?");
-
-        let stem_col = ELEM_COLORS
-            .iter()
-            .find(|(e, _)| *e == stem_el)
-            .map_or(txt, |(_, c)| *c);
-        let branch_col = ELEM_COLORS
-            .iter()
-            .find(|(e, _)| *e == br_el)
-            .map_or(txt, |(_, c)| *c);
-
-        // Column background
-        let _ = writeln!(
-            s,
-            r##"  <rect x="{cx:.1}" y="{OY:.1}" width="{CW:.1}" height="{CH:.1}" rx="6" fill="none" stroke="{border}" stroke-width="1.5" opacity=".5"/>"##
-        );
-
-        // Divider line (stem / branch)
-        let div_y = OY + CH * 0.5;
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{cx:.1}" y1="{div_y:.1}" x2="{:.1}" y2="{div_y:.1}" stroke="{border}" stroke-width="0.8" opacity=".4"/>"##,
-            cx + CW
-        );
-
-        let cx_c = cx + CW / 2.0;
-
-        // Heavenly Stem (upper half)
-        let _ = writeln!(
-            s,
-            r##"  <text x="{cx_c:.1}" y="{:.1}" font-size="28" font-weight="700" text-anchor="middle"
-        dominant-baseline="central" font-family="serif" fill="{stem_col}">{stem_n}</text>
-  <text x="{cx_c:.1}" y="{:.1}" font-size="10" text-anchor="middle"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{stem_col}" opacity=".8">{stem_el} · {pol}</text>"##,
-            OY + CH * 0.25,
-            OY + CH * 0.40
-        );
-
-        // Earthly Branch (lower half)
-        let _ = writeln!(
-            s,
-            r##"  <text x="{cx_c:.1}" y="{:.1}" font-size="22" font-weight="700" text-anchor="middle"
-        dominant-baseline="central" font-family="serif" fill="{branch_col}">{branch_n}</text>
-  <text x="{cx_c:.1}" y="{:.1}" font-size="11" text-anchor="middle"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{branch_col}">{animal}</text>
-  <text x="{cx_c:.1}" y="{:.1}" font-size="9" text-anchor="middle"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{branch_col}" opacity=".7">{br_el}</text>"##,
-            OY + CH * 0.65,
-            OY + CH * 0.78,
-            OY + CH * 0.90
-        );
-    }
-
-    // Element balance row
-    let ey = OY + CH + 18.0;
-    let _ = writeln!(
-        s,
-        r##"  <text x="{OX:.1}" y="{ey:.1}" font-size="11" font-weight="600"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">Element balance:</text>"##
-    );
-    let ex_start = OX + 130.0;
-    for (i, el) in elements.iter().enumerate() {
-        let name = el["element"].as_str().unwrap_or("?");
-        let count = el["count"].as_u64().unwrap_or(0);
-        let ec = ELEM_COLORS
-            .iter()
-            .find(|(e, _)| *e == name)
-            .map_or(txt, |(_, c)| *c);
-        let ex = ex_start + i as f64 * 90.0;
-        // Bar: width proportional to count (max 8)
-        let bw = count as f64 * 16.0;
-        let _ = writeln!(
-            s,
-            r##"  <rect x="{ex:.1}" y="{:.1}" width="{bw:.1}" height="12" rx="3" fill="{ec}" opacity=".7"/>
-  <text x="{:.1}" y="{:.1}" font-size="9" font-family="'Segoe UI',system-ui,sans-serif" fill="{ec}">{name} {count}</text>"##,
-            ey + 10.0,
-            ex + bw + 4.0,
-            ey + 21.0
-        );
-    }
-
-    // Solar term row
     let sy = ey + 50.0;
     let _ = writeln!(
         s,
-        r##"  <text x="{OX:.1}" y="{sy:.1}" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{pcol}">
+        r##"  <text x="{BAZI_OX:.1}" y="{sy:.1}" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{pcol}">
         Solar term: <tspan font-weight="600">{solar_term_cn} — {solar_term}</tspan>
         · Next: {next_term_en} in {deg_to:.1}°</text>"##
     );

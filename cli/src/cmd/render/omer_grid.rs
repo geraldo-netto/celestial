@@ -15,13 +15,110 @@ use std::collections::BTreeMap;
 /// Pre-computes all 49 cell positions (`x`, `y`, `width`, `height`) plus the
 /// header geometry. Each cell carries the day number, the week-sefirah and
 /// day-sefirah pair, the Gregorian date, and a `is_lag_baomer` flag.
+// SVG layout — 7 wide × 7 tall grid, generous cell size for readability.
+const MARGIN_X: f64 = 60.0;
+const HEADER_Y: f64 = 130.0;
+const COL_HEADER_H: f64 = 36.0;
+const ROW_HEADER_W: f64 = 64.0;
+const CELL_W: f64 = 110.0;
+const CELL_H: f64 = 100.0;
+
+const SEFIROT_NAMES: [&str; 7] = [
+    "Chesed", "Gevurah", "Tiferet", "Netzach", "Hod", "Yesod", "Malkhut",
+];
+
+fn date_str_from_jd(jd: f64) -> String {
+    let d = revjul(jd, Calendar::Gregorian);
+    format!("{:04}-{:02}-{:02}", d.year, d.month, d.day)
+}
+
+fn build_cells(days: &[celestial_core::OmerDay], grid_x0: f64, grid_y0: f64) -> Vec<Value> {
+    days.iter()
+        .map(|d| {
+            let col = f64::from(d.day_of_week - 1);
+            let row = f64::from(d.week - 1);
+            let x = grid_x0 + col * CELL_W;
+            let y = grid_y0 + row * CELL_H;
+            json!({
+                "day":            d.day,
+                "week":           d.week,
+                "day_of_week":    d.day_of_week,
+                "week_sefirah":   d.week_sefirah,
+                "day_sefirah":    d.day_sefirah,
+                "hebrew_text":    d.hebrew_text,
+                "is_lag_baomer":  d.is_lag_baomer,
+                "jd":             d.jd,
+                "date":           date_str_from_jd(d.jd),
+                "x": x, "y": y,
+                "w": CELL_W, "h": CELL_H,
+                "day_num_x":      x + 8.0,
+                "day_num_y":      y + 18.0,
+                "sefirah_x":      x + CELL_W * 0.5,
+                "week_sefirah_y": y + 44.0,
+                "of_y":           y + 56.0,
+                "day_sefirah_y":  y + 70.0,
+                "date_x":         x + CELL_W * 0.5,
+                "date_y":         y + CELL_H - 10.0,
+            })
+        })
+        .collect()
+}
+
+fn build_col_headers(grid_x0: f64) -> Vec<Value> {
+    SEFIROT_NAMES
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            json!({
+                "name": name,
+                "x": grid_x0 + (i as f64 + 0.5) * CELL_W,
+                "y": HEADER_Y + COL_HEADER_H * 0.6,
+            })
+        })
+        .collect()
+}
+
+fn build_row_headers(grid_y0: f64) -> Vec<Value> {
+    SEFIROT_NAMES
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            json!({
+                "name": name,
+                "x": MARGIN_X + ROW_HEADER_W * 0.5,
+                "y": grid_y0 + (i as f64 + 0.5) * CELL_H,
+            })
+        })
+        .collect()
+}
+
+fn apply_var_defaults(
+    user_vars: BTreeMap<String, String>,
+    hebrew_year: i32,
+) -> serde_json::Map<String, Value> {
+    let mut vars = user_vars;
+    vars.entry("title".to_string())
+        .or_insert_with(|| format!("Sefirat HaOmer · Hebrew Year {hebrew_year}"));
+    for &(k, v) in &[
+        ("bg_color", "#ffffff"),
+        ("text_color", "#222"),
+        ("ring_color", "#888"),
+        ("header_color", "#5c4a8a"),
+        ("lag_color", "#c87f32"),
+    ] {
+        vars.entry(k.to_string()).or_insert_with(|| v.to_string());
+    }
+    let mut vars_json = serde_json::Map::new();
+    for (k, v) in vars {
+        vars_json.insert(k, json!(v));
+    }
+    vars_json
+}
+
 pub fn build_omer_grid_context(
     jd: f64,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, String> {
-    // Determine which Hebrew year's Omer we're rendering. If the requested
-    // JD is inside an Omer period use that one; otherwise use the upcoming
-    // Omer that starts after this date.
     let period = omer_period(jd);
     let hebrew_year = period.hebrew_year;
     let days = omer_days(hebrew_year);
@@ -32,107 +129,22 @@ pub fn build_omer_grid_context(
         ));
     }
 
-    // SVG layout — 7 wide × 7 tall grid, generous cell size for readability.
-    const MARGIN_X: f64 = 60.0;
-    const HEADER_Y: f64 = 130.0;     // top of grid (below title block)
-    const COL_HEADER_H: f64 = 36.0;  // height of "Day 1..7" header strip
-    const ROW_HEADER_W: f64 = 64.0;  // width of "Week 1..7" header strip
-    const CELL_W: f64 = 110.0;
-    const CELL_H: f64 = 100.0;
-
     let grid_x0 = MARGIN_X + ROW_HEADER_W;
     let grid_y0 = HEADER_Y + COL_HEADER_H;
+    let cells = build_cells(&days, grid_x0, grid_y0);
+    let col_headers = build_col_headers(grid_x0);
+    let row_headers = build_row_headers(grid_y0);
 
-    let mut cells = Vec::with_capacity(49);
-    for d in &days {
-        let col = (d.day_of_week - 1) as f64; // 0..6
-        let row = (d.week - 1) as f64;        // 0..6
-        let x = grid_x0 + col * CELL_W;
-        let y = grid_y0 + row * CELL_H;
-
-        let revdate = revjul(d.jd, Calendar::Gregorian);
-        let date_str = format!("{:04}-{:02}-{:02}", revdate.year, revdate.month, revdate.day);
-
-        cells.push(json!({
-            "day":            d.day,
-            "week":           d.week,
-            "day_of_week":    d.day_of_week,
-            "week_sefirah":   d.week_sefirah,
-            "day_sefirah":    d.day_sefirah,
-            "hebrew_text":    d.hebrew_text,
-            "is_lag_baomer":  d.is_lag_baomer,
-            "jd":             d.jd,
-            "date":           date_str,
-            "x": x, "y": y,
-            "w": CELL_W, "h": CELL_H,
-            // Helpful pre-computed text positions
-            "day_num_x":      x + 8.0,
-            "day_num_y":      y + 18.0,
-            "sefirah_x":      x + CELL_W * 0.5,
-            "week_sefirah_y": y + 44.0,
-            "of_y":           y + 56.0,
-            "day_sefirah_y":  y + 70.0,
-            "date_x":         x + CELL_W * 0.5,
-            "date_y":         y + CELL_H - 10.0,
-        }));
-    }
-
-    // Column headers (day-of-week sefirot in row order: Chesed, Gevurah, …).
-    // Match the spelling used in `core::omer::SEFIROT` so headers and cell
-    // text are visually aligned.
-    let col_sefirot = [
-        "Chesed", "Gevurah", "Tiferet", "Netzach", "Hod", "Yesod", "Malkhut",
-    ];
-    let mut col_headers = Vec::with_capacity(7);
-    for (i, name) in col_sefirot.iter().enumerate() {
-        col_headers.push(json!({
-            "name": name,
-            "x": grid_x0 + (i as f64 + 0.5) * CELL_W,
-            "y": HEADER_Y + COL_HEADER_H * 0.6,
-        }));
-    }
-
-    // Row headers (week sefirot — same names, applied in week order)
-    let mut row_headers = Vec::with_capacity(7);
-    for (i, name) in col_sefirot.iter().enumerate() {
-        row_headers.push(json!({
-            "name": name,
-            "x": MARGIN_X + ROW_HEADER_W * 0.5,
-            "y": grid_y0 + (i as f64 + 0.5) * CELL_H,
-        }));
-    }
-
-    // Grid bounds (for outer rect)
     let grid_w = 7.0 * CELL_W;
     let grid_h = 7.0 * CELL_H;
     let total_w = ROW_HEADER_W + grid_w + 2.0 * MARGIN_X;
     let total_h = grid_y0 + grid_h + 50.0;
-
-    let date_now = revjul(jd, Calendar::Gregorian);
-    let date_str = format!(
-        "{:04}-{:02}-{:02}",
-        date_now.year, date_now.month, date_now.day
-    );
-
-    let mut vars = user_vars;
-    vars.entry("title".to_string())
-        .or_insert_with(|| format!("Sefirat HaOmer · Hebrew Year {hebrew_year}"));
-    vars.entry("bg_color".to_string()).or_insert("#ffffff".to_string());
-    vars.entry("text_color".to_string()).or_insert("#222".to_string());
-    vars.entry("ring_color".to_string()).or_insert("#888".to_string());
-    vars.entry("header_color".to_string())
-        .or_insert("#5c4a8a".to_string());
-    vars.entry("lag_color".to_string()).or_insert("#c87f32".to_string());
-
-    let mut vars_json = serde_json::Map::new();
-    for (k, v) in vars {
-        vars_json.insert(k, json!(v));
-    }
+    let vars_json = apply_var_defaults(user_vars, hebrew_year);
 
     Ok(json!({
         "hebrew_year":  hebrew_year,
         "jd":           jd,
-        "date":         date_str,
+        "date":         date_str_from_jd(jd),
         "start_jd":     period.start_jd,
         "end_jd":       period.end_jd,
         "cells":        cells,
