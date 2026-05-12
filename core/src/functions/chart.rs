@@ -78,9 +78,9 @@ pub fn calc_chart_aspects(
 ) -> Vec<ChartAspect> {
     // Upper bound: C(n,2) pairs × aspect_kinds (usually < 30 hit per chart).
     let n = positions.len();
-    let mut result = Vec::with_capacity(n * (n.saturating_sub(1)) / 4);
-    for i in 0..positions.len() {
-        for j in (i + 1)..positions.len() {
+    let mut result = Vec::with_capacity(n * n.saturating_sub(1) / 4);
+    for i in 0..n {
+        for j in (i + 1)..n {
             let (b1, lon1, spd1) = positions[i];
             let (b2, lon2, spd2) = positions[j];
             let separation = diff_deg_signed(lon1, lon2).abs();
@@ -631,8 +631,8 @@ pub fn midpoint_table(positions: &[(Body, f64)], orb: f64) -> Vec<MidpointEntry>
     // Returns: (body1, body2, midpoint_lon, [(planet_on_midpoint, orb)])
     let n = positions.len();
     let mut result = Vec::with_capacity(n * n.saturating_sub(1) / 2);
-    for i in 0..positions.len() {
-        for j in (i + 1)..positions.len() {
+    for i in 0..n {
+        for j in (i + 1)..n {
             let (b1, lon1) = positions[i];
             let (b2, lon2) = positions[j];
             let mid = midpoint(lon1, lon2);
@@ -784,8 +784,8 @@ pub fn calc_chart_aspects_auto(
 ) -> Vec<ChartAspect> {
     let n = positions.len();
     let mut result = Vec::with_capacity(n * n.saturating_sub(1) / 4);
-    for i in 0..positions.len() {
-        for j in (i + 1)..positions.len() {
+    for i in 0..n {
+        for j in (i + 1)..n {
             let (b1, lon1, spd1) = positions[i];
             let (b2, lon2, spd2) = positions[j];
             let separation = diff_deg_signed(lon1, lon2).abs();
