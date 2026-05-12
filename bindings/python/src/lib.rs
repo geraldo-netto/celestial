@@ -1633,16 +1633,15 @@ fn next_aspect_cusp(
 
 #[pyfunction]
 fn sabbats_for_year(py: Python<'_>, year: i32) -> PyResult<PyObject> {
-    let sabbats = celestial::sabbats_for_year(year)
-        .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+    let sabbats =
+        celestial::sabbats_for_year(year).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
     let result: Vec<PyObject> = sabbats.iter().map(|s| (s.name, s.jd).into_py(py)).collect();
     Ok(result.into_py(py))
 }
 
 #[pyfunction]
 fn next_sabbat(jd_from: f64) -> PyResult<(String, f64)> {
-    let s =
-        celestial::next_sabbat(jd_from).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+    let s = celestial::next_sabbat(jd_from).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
     Ok((s.name.to_string(), s.jd))
 }
 
@@ -1678,8 +1677,7 @@ fn esbats_for_year(py: Python<'_>, year: i32) -> PyResult<PyObject> {
 
 #[pyfunction]
 fn next_esbat(jd_from: f64) -> PyResult<(String, f64)> {
-    let e =
-        celestial::next_esbat(jd_from).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+    let e = celestial::next_esbat(jd_from).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
     Ok((e.display_name.to_string(), e.jd))
 }
 
@@ -1906,7 +1904,6 @@ fn moon_phase_info(py: Python<'_>, jd: f64) -> PyResult<PyObject> {
     )
         .into_py(py))
 }
-
 
 fn register_setup_fns(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(set_ephe_path, m)?)?;

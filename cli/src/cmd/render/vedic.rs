@@ -1,9 +1,8 @@
 //! Vedic chart builders — split from render.rs.
 
 use super::{
-    fmt_lon_dms, jd_to_date_str,
-    render_south_indian_svg, sarvashtakavarga, BODIES, NI_CELLS, RASI_GLYPHS,
-    RASI_NAMES,
+    fmt_lon_dms, jd_to_date_str, render_south_indian_svg, sarvashtakavarga, BODIES, NI_CELLS,
+    RASI_GLYPHS, RASI_NAMES,
 };
 
 use celestial_core::body::{Body, CalcFlags, HouseSystem};
@@ -33,7 +32,11 @@ pub fn render_north_indian_svg(ctx: &Value) -> String {
     // We need the ASC rasi — use the first planet as proxy; real impl
     // requires sidereal house calc. For now use Moon's rasi as lagna hint,
     // or store asc_rasi in context if present.
-    let lagna_rasi = ctx.get("asc_rasi").and_then(serde_json::Value::as_i64).unwrap_or(0) as usize % 12;
+    let lagna_rasi = ctx
+        .get("asc_rasi")
+        .and_then(serde_json::Value::as_i64)
+        .unwrap_or(0) as usize
+        % 12;
 
     let planets = super::json_array(&ctx["planets"]);
     // Group planets by rasi
@@ -182,11 +185,11 @@ pub fn build_ashtakavarga_context(
 
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#ffffff"),
-        ("border_color", "#5c3a00"),
-        ("text_color", "#2a1a00"),
-        ("planet_color", "#1a3a7a"),
-        ("title", "Ashtakavarga"),
+            ("bg_color", "#ffffff"),
+            ("border_color", "#5c3a00"),
+            ("text_color", "#2a1a00"),
+            ("planet_color", "#1a3a7a"),
+            ("title", "Ashtakavarga"),
         ],
         &vars,
     );
@@ -223,7 +226,15 @@ fn av_total_color(bv: u64, txt: &str) -> &str {
     }
 }
 
-fn write_av_header(s: &mut String, bg: &str, txt: &str, title: &str, date: &str, total_w: f64, total_h: f64) {
+fn write_av_header(
+    s: &mut String,
+    bg: &str,
+    txt: &str,
+    title: &str,
+    date: &str,
+    total_w: f64,
+    total_h: f64,
+) {
     let cx = total_w / 2.0;
     let _ = writeln!(
         s,
@@ -263,7 +274,14 @@ fn write_av_grid_lines(s: &mut String, border: &str, n_rows: usize) {
     }
 }
 
-fn write_av_planet_row(s: &mut String, row: &Value, ri: usize, border: &str, pcol: &str, txt: &str) {
+fn write_av_planet_row(
+    s: &mut String,
+    row: &Value,
+    ri: usize,
+    border: &str,
+    pcol: &str,
+    txt: &str,
+) {
     let ry = AV_TM + ri as f64 * AV_RH;
     let name = row["planet"].as_str().unwrap_or("?");
     let bindus = super::json_array(&row["bindus"]);
@@ -425,10 +443,10 @@ pub fn build_shadbala_context(
 
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#ffffff"),
-        ("border_color", "#5c3a00"),
-        ("text_color", "#2a1a00"),
-        ("planet_color", "#1a3a7a"),
+            ("bg_color", "#ffffff"),
+            ("border_color", "#5c3a00"),
+            ("text_color", "#2a1a00"),
+            ("planet_color", "#1a3a7a"),
         ],
         &vars,
     );
@@ -686,12 +704,12 @@ pub fn build_vedic_context(
 
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#ffffff"),
-        ("border_color", "#5c3a00"),
-        ("text_color", "#2a1a00"),
-        ("planet_color", "#1a3a7a"),
-        ("retro_color", "#a01030"),
-        ("asc_color", "#006030"),
+            ("bg_color", "#ffffff"),
+            ("border_color", "#5c3a00"),
+            ("text_color", "#2a1a00"),
+            ("planet_color", "#1a3a7a"),
+            ("retro_color", "#a01030"),
+            ("asc_color", "#006030"),
         ],
         &vars,
     );

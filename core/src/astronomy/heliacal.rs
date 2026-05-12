@@ -212,7 +212,11 @@ fn try_heliacal_at(
     let sun = calc_ut(jd_event, 0, 0).ok()?;
 
     let elong_raw = (body.lon - sun.lon + 360.0).rem_euclid(360.0);
-    let elong = if elong_raw > 180.0 { 360.0 - elong_raw } else { elong_raw };
+    let elong = if elong_raw > 180.0 {
+        360.0 - elong_raw
+    } else {
+        elong_raw
+    };
     let obj_alt = elong.abs().clamp(0.0, 90.0) * 0.5;
 
     let arcv = arcus_visionis(body.lon, sun_alt_at_event, pressure_mb, temp_c);
@@ -426,7 +430,10 @@ mod tests {
     fn extinction_mag_grows_near_horizon() {
         let high = extinction_mag(60.0, 1013.25, 15.0);
         let low = extinction_mag(5.0, 1013.25, 15.0);
-        assert!(low > high, "low alt should have more extinction: {low} vs {high}");
+        assert!(
+            low > high,
+            "low alt should have more extinction: {low} vs {high}"
+        );
     }
 
     /// Sky brightness ladder: astronomical twilight ≈ 22 mag/arcsec², daytime ≈ 15.

@@ -431,10 +431,14 @@ mod tests {
     #[test]
     fn names_are_distinct_and_nonempty() {
         let phases = [
-            MoonPhase::NewMoon, MoonPhase::WaxingCrescent,
-            MoonPhase::FirstQuarter, MoonPhase::WaxingGibbous,
-            MoonPhase::FullMoon, MoonPhase::WaningGibbous,
-            MoonPhase::LastQuarter, MoonPhase::WaningCrescent,
+            MoonPhase::NewMoon,
+            MoonPhase::WaxingCrescent,
+            MoonPhase::FirstQuarter,
+            MoonPhase::WaxingGibbous,
+            MoonPhase::FullMoon,
+            MoonPhase::WaningGibbous,
+            MoonPhase::LastQuarter,
+            MoonPhase::WaningCrescent,
         ];
         let names: Vec<&str> = phases.iter().map(super::MoonPhase::name).collect();
         // All non-empty

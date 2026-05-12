@@ -68,10 +68,10 @@ pub fn build_bazi_context(
 
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#ffffff"),
-        ("border_color", "#8b0000"),
-        ("text_color", "#1a0a00"),
-        ("planet_color", "#2a1a60"),
+            ("bg_color", "#ffffff"),
+            ("border_color", "#8b0000"),
+            ("text_color", "#1a0a00"),
+            ("planet_color", "#2a1a60"),
         ],
         &vars,
     );
@@ -110,7 +110,16 @@ fn elem_color<'a>(el: &str, fallback: &'a str) -> &'a str {
         .map_or(fallback, |(_, c)| *c)
 }
 
-fn write_bazi_header(s: &mut String, bg: &str, txt: &str, border: &str, title: &str, date: &str, total_w: f64, total_h: f64) {
+fn write_bazi_header(
+    s: &mut String,
+    bg: &str,
+    txt: &str,
+    border: &str,
+    title: &str,
+    date: &str,
+    total_w: f64,
+    total_h: f64,
+) {
     use std::fmt::Write;
     let half = total_w / 2.0;
     let _ = writeln!(

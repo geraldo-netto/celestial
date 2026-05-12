@@ -799,9 +799,7 @@ pub fn lower_meridian_transit_ut(
     };
 
     // Signed distance from 180° in (-180, +180]
-    let diff = |jd: f64| -> f64 {
-        crate::functions::utils::wrap_signed_180(ha_at(jd) - 180.0)
-    };
+    let diff = |jd: f64| -> f64 { crate::functions::utils::wrap_signed_180(ha_at(jd) - 180.0) };
 
     // Start from upper transit to find the NEXT lower transit (~12h later)
     let upper = crate::functions::motion::rise_trans(
@@ -823,10 +821,7 @@ pub fn lower_meridian_transit_ut(
         let d1 = diff(jd);
         if d0 * d1 < 0.0 && (d1 - d0).abs() < 180.0 {
             let tret = bisect_diff_zero(jd - step, jd, d0, &diff);
-            return Ok(RiseTransResult {
-                ret_flags: 0,
-                tret,
-            });
+            return Ok(RiseTransResult { ret_flags: 0, tret });
         }
         d0 = d1;
     }

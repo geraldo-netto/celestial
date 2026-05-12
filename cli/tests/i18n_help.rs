@@ -129,10 +129,7 @@ fn celestial_lang_overrides_lang() {
 /// `LC_ALL` must override `LANG` (POSIX behavior).
 #[test]
 fn lc_all_overrides_lang() {
-    let out = help_output(&[
-        ("LC_ALL", "it_IT.UTF-8"),
-        ("LANG", "pt_BR.UTF-8"),
-    ]);
+    let out = help_output(&[("LC_ALL", "it_IT.UTF-8"), ("LANG", "pt_BR.UTF-8")]);
     assert!(
         out.contains("Calcoli astronomici"),
         "LC_ALL should win over LANG.\nGot:\n{out}"

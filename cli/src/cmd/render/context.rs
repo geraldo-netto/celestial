@@ -130,8 +130,8 @@ fn build_planets(jd: f64, asc: f64) -> Vec<Value> {
 }
 
 const SIGN_GLYPHS: [&str; 12] = [
-    "\u{2648}", "\u{2649}", "\u{264A}", "\u{264B}", "\u{264C}", "\u{264D}", "\u{264E}",
-    "\u{264F}", "\u{2650}", "\u{2651}", "\u{2652}", "\u{2653}",
+    "\u{2648}", "\u{2649}", "\u{264A}", "\u{264B}", "\u{264C}", "\u{264D}", "\u{264E}", "\u{264F}",
+    "\u{2650}", "\u{2651}", "\u{2652}", "\u{2653}",
 ];
 
 fn build_signs(asc: f64) -> Vec<Value> {
@@ -215,8 +215,21 @@ fn build_arabic_parts(planets: &[Value], h: &celestial_core::HouseResult, asc: f
 }
 
 const TOP_STARS: &[&str] = &[
-    "Algol", "Pleiades", "Aldebaran", "Rigel", "Capella", "Sirius", "Pollux",
-    "Regulus", "Spica", "Arcturus", "Antares", "Vega", "Altair", "Fomalhaut", "Achernar",
+    "Algol",
+    "Pleiades",
+    "Aldebaran",
+    "Rigel",
+    "Capella",
+    "Sirius",
+    "Pollux",
+    "Regulus",
+    "Spica",
+    "Arcturus",
+    "Antares",
+    "Vega",
+    "Altair",
+    "Fomalhaut",
+    "Achernar",
 ];
 
 fn build_fixed_stars(jd: f64, asc: f64) -> Vec<Value> {
@@ -306,16 +319,20 @@ fn collect_body_longitudes(planets: &[Value]) -> BodyLongitudes {
         venus: 0.0,
     };
     for p in planets {
-        let Some(key) = p["key"].as_str() else { continue };
-        let Some(lon) = p["lon"].as_f64() else { continue };
+        let Some(key) = p["key"].as_str() else {
+            continue;
+        };
+        let Some(lon) = p["lon"].as_f64() else {
+            continue;
+        };
         match key {
-            "sun"     => out.sun = lon,
-            "moon"    => out.moon = lon,
-            "saturn"  => out.saturn = lon,
-            "mars"    => out.mars = lon,
+            "sun" => out.sun = lon,
+            "moon" => out.moon = lon,
+            "saturn" => out.saturn = lon,
+            "mars" => out.mars = lon,
             "jupiter" => out.jupiter = lon,
             "mercury" => out.mercury = lon,
-            "venus"   => out.venus = lon,
+            "venus" => out.venus = lon,
             _ => {}
         }
     }
@@ -335,12 +352,12 @@ fn collect_body_longitudes(planets: &[Value]) -> BodyLongitudes {
 /// nearby aspects.
 fn compute_aspects(planets: &[Value]) -> Vec<Value> {
     type PRef<'a> = (
-        f64,        // lon
-        f64,        // speed
-        &'a Value,  // name
-        &'a Value,  // glyph
-        &'a Value,  // asp_x
-        &'a Value,  // asp_y
+        f64,       // lon
+        f64,       // speed
+        &'a Value, // name
+        &'a Value, // glyph
+        &'a Value, // asp_x
+        &'a Value, // asp_y
     );
     let p_data: Vec<PRef> = planets
         .iter()

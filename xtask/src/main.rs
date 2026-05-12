@@ -79,7 +79,9 @@ fn scan_fn_name(lines: &[&str], start: usize) -> Option<(String, usize)> {
     let n = lines.len();
     if let Some(j) = (start..n.min(start + 5)).next() {
         let l = lines[j].trim();
-        let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "))?;
+        let rest = l
+            .strip_prefix("pub fn ")
+            .or_else(|| l.strip_prefix("fn "))?;
         let name = rest.split('(').next()?.trim().to_string();
         return Some((name, j));
     }
@@ -143,10 +145,16 @@ fn legacy_aliases() -> std::collections::BTreeMap<String, String> {
 
 fn fn_name_from_line(line: &str) -> Option<String> {
     let l = line.trim();
-    let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "))?;
+    let rest = l
+        .strip_prefix("pub fn ")
+        .or_else(|| l.strip_prefix("fn "))?;
     let name: String = rest.split([' ', '(', '<']).next().unwrap_or("").to_string();
     let valid = !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_');
-    if valid { Some(name) } else { None }
+    if valid {
+        Some(name)
+    } else {
+        None
+    }
 }
 
 fn decorated_fns(src: &str, decorator: &str) -> BTreeSet<String> {
@@ -559,7 +567,8 @@ fn parse_core_const_line(line: &str) -> Option<(String, String)> {
         || !value_raw.chars().all(|c| c.is_ascii_digit() || c == '-');
     let val = if is_expr {
         value_raw
-            .parse::<i64>().map_or_else(|_| "0".to_string(), |v| v.to_string())
+            .parse::<i64>()
+            .map_or_else(|_| "0".to_string(), |v| v.to_string())
     } else {
         value_raw.to_string()
     };
@@ -569,9 +578,7 @@ fn parse_core_const_line(line: &str) -> Option<(String, String)> {
 /// Parse `pub const NAME: type = value;` from a Rust constants file.
 /// Returns a map of name → value string.
 fn parse_core_constants(src: &str) -> std::collections::HashMap<String, String> {
-    src.lines()
-        .filter_map(parse_core_const_line)
-        .collect()
+    src.lines().filter_map(parse_core_const_line).collect()
 }
 
 // ─── stubs command ────────────────────────────────────────────────────────────
@@ -726,10 +733,7 @@ fn parse_param_chunk(p: &str) -> Option<(String, String)> {
     if pname == "py" || pname == "self" {
         return None;
     }
-    let starts_with_digit = pname
-        .chars()
-        .next()
-        .is_none_or(|c| c.is_ascii_digit());
+    let starts_with_digit = pname.chars().next().is_none_or(|c| c.is_ascii_digit());
     let valid_chars = pname.chars().all(|c| c.is_alphanumeric() || c == '_');
     if pname.is_empty() || starts_with_digit || !valid_chars {
         return None;
@@ -915,11 +919,7 @@ fn php_array_doctype(rust: &str) -> &'static str {
 /// Sanitise a Rust parameter name to a valid PHP variable name.
 fn sanitise_var(name: &str) -> std::borrow::Cow<'_, str> {
     let s = name.trim().trim_start_matches('_');
-    if s.is_empty()
-        || s.chars()
-            .next()
-            .is_some_and(|c| c.is_ascii_digit())
-    {
+    if s.is_empty() || s.chars().next().is_some_and(|c| c.is_ascii_digit()) {
         // Rare: needs a "p" prefix — allocate only then
         std::borrow::Cow::Owned(format!("p{s}"))
     } else {
@@ -992,7 +992,14 @@ fn check_dollar_digit(src: &str, errors: &mut Vec<String>) {
 
 fn check_rust_type_remnants(src: &str, errors: &mut Vec<String>) {
     const RUST_TYPES: &[&str] = &[
-        "i32", "u32", "i64", "u64", "usize", "Vec<", "Option<", "PhpResult",
+        "i32",
+        "u32",
+        "i64",
+        "u64",
+        "usize",
+        "Vec<",
+        "Option<",
+        "PhpResult",
     ];
     for rt in RUST_TYPES {
         for (i, line) in src.lines().enumerate() {
@@ -1371,11 +1378,7 @@ fn sanitise_pyi_var(name: &str) -> String {
     let s = name.trim().trim_start_matches('_');
     if KW.contains(&s) {
         format!("{s}_")
-    } else if s.is_empty()
-        || s.chars()
-            .next()
-            .is_some_and(|c| c.is_ascii_digit())
-    {
+    } else if s.is_empty() || s.chars().next().is_some_and(|c| c.is_ascii_digit()) {
         format!("p{s}")
     } else {
         s.to_string()
@@ -1611,10 +1614,9 @@ fn rust_type_to_ts_known(rust: &str, known_structs: &BTreeSet<String>) -> String
 }
 
 fn emit_dts_struct_field(out: &mut String, f: &NapiStructField, known: &BTreeSet<String>) {
-    let (ts_ty, optional) = if let Some(inner) = f
-        .ty
-        .strip_prefix("Option<")
-        .and_then(|s| s.strip_suffix('>'))
+    let (ts_ty, optional) = if let Some(inner) =
+        f.ty.strip_prefix("Option<")
+            .and_then(|s| s.strip_suffix('>'))
     {
         (rust_type_to_ts_known(inner, known), true)
     } else {

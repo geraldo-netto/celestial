@@ -1,7 +1,8 @@
 //! Specialist chart builders — split from render.rs.
 
 use super::{
-    build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI, RO,
+    build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI,
+    RO,
 };
 use celestial_core::AzAlt;
 use celestial_core::{lon_to_sign, zodiac_sign_name};
@@ -68,12 +69,12 @@ pub fn build_dial_context(
 
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#ffffff"),
-        ("ring_color", "#1a1a2e"),
-        ("planet_color", "#0d0d1e"),
-        ("retro_color", "#b01020"),
-        ("soft_color", "#1a50b0"),
-        ("text_color", "#0d0d1e"),
+            ("bg_color", "#ffffff"),
+            ("ring_color", "#1a1a2e"),
+            ("planet_color", "#0d0d1e"),
+            ("retro_color", "#b01020"),
+            ("soft_color", "#1a50b0"),
+            ("text_color", "#0d0d1e"),
         ],
         &vars,
     );
@@ -201,13 +202,13 @@ pub fn build_triwheel_context(
     let date_str = format!("Tri-wheel: {date1} / {date2} / {date3}");
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#ffffff"),
-        ("ring_color", "#1a1a2e"),
-        ("planet_color", "#0d0d1e"),
-        ("retro_color", "#b01020"),
-        ("hard_color", "#b01020"),
-        ("soft_color", "#1a50b0"),
-        ("text_color", "#0d0d1e"),
+            ("bg_color", "#ffffff"),
+            ("ring_color", "#1a1a2e"),
+            ("planet_color", "#0d0d1e"),
+            ("retro_color", "#b01020"),
+            ("hard_color", "#b01020"),
+            ("soft_color", "#1a50b0"),
+            ("text_color", "#0d0d1e"),
         ],
         &vars,
     );
@@ -329,9 +330,9 @@ pub fn build_graphic_ephemeris_context(
 
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#ffffff"),
-        ("ring_color", "#1a1a2e"),
-        ("text_color", "#0d0d1e"),
+            ("bg_color", "#ffffff"),
+            ("ring_color", "#1a1a2e"),
+            ("text_color", "#0d0d1e"),
         ],
         &vars,
     );
@@ -439,7 +440,10 @@ fn ge_build_path(lons: &[Value], jd_points: &[Value], jd_start: f64, x_scale: f6
     let mut first = true;
     for (xi, jd_val) in jd_points.iter().enumerate() {
         let jd_v = jd_val.as_f64().unwrap_or(0.0);
-        let lon = lons.get(xi).and_then(serde_json::Value::as_f64).unwrap_or(f64::NAN);
+        let lon = lons
+            .get(xi)
+            .and_then(serde_json::Value::as_f64)
+            .unwrap_or(f64::NAN);
         if !lon.is_finite() {
             first = true;
             continue;
@@ -556,11 +560,11 @@ pub fn build_local_space_context(
 
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#ffffff"),
-        ("ring_color", "#1a1a2e"),
-        ("planet_color", "#0d0d1e"),
-        ("retro_color", "#b01020"),
-        ("text_color", "#0d0d1e"),
+            ("bg_color", "#ffffff"),
+            ("ring_color", "#1a1a2e"),
+            ("planet_color", "#0d0d1e"),
+            ("retro_color", "#b01020"),
+            ("text_color", "#0d0d1e"),
         ],
         &vars,
     );
@@ -576,7 +580,16 @@ const LS_CY: f64 = 450.0;
 const LS_R: f64 = 320.0;
 
 #[allow(clippy::too_many_arguments)]
-fn write_ls_header(s: &mut String, bg: &str, ring: &str, txt: &str, title: &str, date: &str, lat: f64, lon_v: f64) {
+fn write_ls_header(
+    s: &mut String,
+    bg: &str,
+    ring: &str,
+    txt: &str,
+    title: &str,
+    date: &str,
+    lat: f64,
+    lon_v: f64,
+) {
     let ns = if lat >= 0.0 { "N" } else { "S" };
     let ew = if lon_v >= 0.0 { "E" } else { "W" };
     let _ = writeln!(
@@ -629,7 +642,11 @@ fn write_ls_cardinals(s: &mut String, ring: &str) {
 fn write_ls_degree_tick(s: &mut String, ring: &str, deg: u32) {
     let a = (deg as f64 - 90.0).to_radians();
     let is_30 = deg.is_multiple_of(30);
-    let (r1, r2) = if is_30 { (LS_R - 10.0, LS_R) } else { (LS_R - 5.0, LS_R) };
+    let (r1, r2) = if is_30 {
+        (LS_R - 10.0, LS_R)
+    } else {
+        (LS_R - 5.0, LS_R)
+    };
     let x1 = LS_CX + r1 * a.cos();
     let y1 = LS_CY + r1 * a.sin();
     let x2 = LS_CX + r2 * a.cos();

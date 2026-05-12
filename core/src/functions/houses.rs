@@ -18,7 +18,12 @@ pub fn house_name(hsys: HouseSystem) -> &'static str {
 
 /// Compute house cusps (UT) — pure-Rust engine.
 pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: HouseSystem) -> Result<HouseResult> {
-    Ok(crate::astronomy::houses(jd_ut, geolat, geolon, hsys.as_raw()))
+    Ok(crate::astronomy::houses(
+        jd_ut,
+        geolat,
+        geolon,
+        hsys.as_raw(),
+    ))
 }
 
 /// Compute house cusps with flags (UT) — pure-Rust engine.
@@ -69,7 +74,12 @@ pub fn houses_ex2(
 
 /// Compute house cusps from ARMC — pure-Rust engine.
 pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: HouseSystem) -> Result<HouseResult> {
-    Ok(crate::astronomy::houses_armc(armc, geolat, eps, hsys.as_raw()))
+    Ok(crate::astronomy::houses_armc(
+        armc,
+        geolat,
+        eps,
+        hsys.as_raw(),
+    ))
 }
 
 /// Compute house cusps and speeds from ARMC — pure-Rust (speeds return zeros).
@@ -126,11 +136,6 @@ pub fn house_pos(
 /// House cusps from ARMC (sidereal time in degrees), latitude, and ecliptic obliquity.
 /// House cusps from ARMC (sidereal time in degrees), geographic latitude,
 /// ecliptic obliquity, and house system byte.
-pub fn houses_from_armc(
-    armc: f64,
-    geolat: f64,
-    eps: f64,
-    hsys: HouseSystem,
-) -> HouseResult {
+pub fn houses_from_armc(armc: f64, geolat: f64, eps: f64, hsys: HouseSystem) -> HouseResult {
     crate::astronomy::houses_from_armc(armc, geolat, eps, hsys.as_raw())
 }

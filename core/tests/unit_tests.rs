@@ -99,7 +99,10 @@ fn deg_midp_simple() {
 #[test]
 fn deg_midp_wrap() {
     let m = norm_deg(midpoint_deg(10.0, 350.0));
-    assert!(!(1.0..=359.0).contains(&m), "wrap midpoint near 0°, got {m}");
+    assert!(
+        !(1.0..=359.0).contains(&m),
+        "wrap midpoint near 0°, got {m}"
+    );
 }
 
 // ── norm_cs / cs_round_sec ───────────────────────────────────────────────────────
@@ -1685,7 +1688,10 @@ mod calendar_deep_tests {
             (1..=13).contains(&month),
             "Hebrew month {month} out of range 1-13"
         );
-        assert!((1..=30).contains(&day), "Hebrew day {day} out of range 1-30");
+        assert!(
+            (1..=30).contains(&day),
+            "Hebrew day {day} out of range 1-30"
+        );
     }
 
     #[cfg(feature = "calendar-traditions")]
@@ -2644,10 +2650,7 @@ mod accuracy_references {
         // JD at noon on 1 Jan, year -1 (Julian calendar) should be computable.
         let jd = julday(-1, 1, 1, 12.0, Calendar::Julian);
         // Must be a valid finite JD in the far past (≈ -720000 Julian days)
-        assert!(
-            jd.is_finite(),
-            "year -1 should yield a finite JD, got {jd}"
-        );
+        assert!(jd.is_finite(), "year -1 should yield a finite JD, got {jd}");
         assert!(
             jd < 1_721_058.0,
             "year -1 JD should be < year 1 CE JD, got {jd}"
@@ -2701,10 +2704,7 @@ mod accuracy_references {
 
         // ΔT should still compute (uses long-term parabola past 2150)
         let dt = deltat(jd);
-        assert!(
-            dt.is_finite(),
-            "ΔT at year 9999 should be finite, got {dt}"
-        );
+        assert!(dt.is_finite(), "ΔT at year 9999 should be finite, got {dt}");
     }
 
     /// Gregorian-reform boundary: 1582-10-04 (Julian) is immediately followed

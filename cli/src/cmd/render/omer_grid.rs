@@ -4,9 +4,7 @@
 //! Layout: 7 rows (weeks) × 7 columns (days within the week). Cell (week, day)
 //! holds day number `(week - 1) * 7 + day`. Lag Ba'Omer (day 33) is highlighted.
 
-use celestial_core::{
-    omer_days, omer_period, revjul, Calendar,
-};
+use celestial_core::{omer_days, omer_period, revjul, Calendar};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
@@ -234,7 +232,10 @@ pub fn render_omer_grid_svg(ctx: &Value) -> String {
     }
 
     // Footer note
-    let _ = writeln!(s, r#"  <g font-family="system-ui,sans-serif" font-size="10" fill="{txt}">"#);
+    let _ = writeln!(
+        s,
+        r#"  <g font-family="system-ui,sans-serif" font-size="10" fill="{txt}">"#
+    );
     let _ = writeln!(
         s,
         r#"    <rect x="{lx:.0}" y="{ly:.0}" width="14" height="10" fill="{lag}" fill-opacity=".18" stroke="{lag}" stroke-width=".6"/>"#,
@@ -349,7 +350,9 @@ mod tests {
         assert!(svg.ends_with("</svg>\n"), "should close </svg>");
         // Must show all 7 sefirot names at least 14 times (7 row + 7 col headers,
         // plus once in each of 49 cells = much more)
-        for sef in ["Chesed", "Gevurah", "Tiferet", "Netzach", "Hod", "Yesod", "Malkhut"] {
+        for sef in [
+            "Chesed", "Gevurah", "Tiferet", "Netzach", "Hod", "Yesod", "Malkhut",
+        ] {
             assert!(svg.contains(sef), "SVG missing sefirah `{sef}`");
         }
         // Lag Ba'Omer star should be present

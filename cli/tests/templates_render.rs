@@ -82,7 +82,11 @@ fn render_template(template_name: &str, out_name: &str, extra_args: &[&str]) -> 
         )
     });
 
-    let head: &[u8] = if bytes.len() >= 64 { &bytes[..64] } else { &bytes };
+    let head: &[u8] = if bytes.len() >= 64 {
+        &bytes[..64]
+    } else {
+        &bytes
+    };
     let head_str = String::from_utf8_lossy(head);
     assert!(
         head_str.contains("<?xml") || head_str.contains("<svg"),
@@ -117,8 +121,10 @@ fn renders_example_template() {
         "example.svg.tt",
         "test_example.svg",
         &[
-            "--chart-type", "natal",
-            "--date", "2024-01-01",
+            "--chart-type",
+            "natal",
+            "--date",
+            "2024-01-01",
             "--lat=40.71",
             "--lon=-74.0",
         ],
@@ -136,13 +142,20 @@ fn renders_natal_with_overlays() {
         "natal_with_overlays.svg.tt",
         "test_natal_overlays.svg",
         &[
-            "--chart-type", "natal",
-            "--date", "2024-05-15 12:00",
-            "--lat", "48.85",
-            "--lon", "2.35",
-            "--calendar", "omer",
-            "--calendar", "sabbats",
-            "--calendar", "moon",
+            "--chart-type",
+            "natal",
+            "--date",
+            "2024-05-15 12:00",
+            "--lat",
+            "48.85",
+            "--lon",
+            "2.35",
+            "--calendar",
+            "omer",
+            "--calendar",
+            "sabbats",
+            "--calendar",
+            "moon",
         ],
     );
     // The Omer-day banner appears only if the omer overlay is non-null.
@@ -156,15 +169,24 @@ fn renders_year_calendar() {
         "year_calendar.svg.tt",
         "test_year.svg",
         &[
-            "--chart-type", "natal",
-            "--date", "2024-04-15",
-            "--lat", "0",
-            "--lon", "0",
-            "--calendar", "gregorian-year",
-            "--calendar", "omer",
-            "--calendar", "moon",
-            "--calendar", "sabbats",
-            "--calendar", "hebrew",
+            "--chart-type",
+            "natal",
+            "--date",
+            "2024-04-15",
+            "--lat",
+            "0",
+            "--lon",
+            "0",
+            "--calendar",
+            "gregorian-year",
+            "--calendar",
+            "omer",
+            "--calendar",
+            "moon",
+            "--calendar",
+            "sabbats",
+            "--calendar",
+            "hebrew",
         ],
     );
     // 12 month names should appear in the SVG.
@@ -182,8 +204,10 @@ fn renders_full_astral_map() {
         "full_astral_map.svg.tt",
         "test_astral.svg",
         &[
-            "--chart-type", "natal",
-            "--date", "1990-05-15 14:30",
+            "--chart-type",
+            "natal",
+            "--date",
+            "1990-05-15 14:30",
             "--lat=40.71",
             "--lon=-74.0",
         ],
@@ -201,8 +225,10 @@ fn renders_bazi_chart() {
         "bazi_chart.svg.tt",
         "test_bazi.svg",
         &[
-            "--chart-type", "bazi",
-            "--date", "1990-05-15 14:30",
+            "--chart-type",
+            "bazi",
+            "--date",
+            "1990-05-15 14:30",
             "--lat=40.71",
             "--lon=-74.0",
         ],
@@ -220,8 +246,10 @@ fn renders_vedic_rasi() {
         "vedic_rasi.svg.tt",
         "test_rasi.svg",
         &[
-            "--chart-type", "rasi",
-            "--date", "1990-05-15 14:30",
+            "--chart-type",
+            "rasi",
+            "--date",
+            "1990-05-15 14:30",
             "--lat=40.71",
             "--lon=-74.0",
         ],
@@ -240,8 +268,10 @@ fn renders_mesoamerican_calendars() {
         "mesoamerican_calendars.svg.tt",
         "test_meso.svg",
         &[
-            "--chart-type", "mesoamerican",
-            "--date", "1990-05-15 14:30",
+            "--chart-type",
+            "mesoamerican",
+            "--date",
+            "1990-05-15 14:30",
             "--lat=40.71",
             "--lon=-74.0",
         ],
@@ -261,8 +291,10 @@ fn renders_medicine_wheel() {
         "medicine_wheel.svg.tt",
         "test_wheel.svg",
         &[
-            "--chart-type", "medicine-wheel",
-            "--date", "1990-05-15 14:30",
+            "--chart-type",
+            "medicine-wheel",
+            "--date",
+            "1990-05-15 14:30",
             "--lat=40.71",
             "--lon=-74.0",
         ],
@@ -282,8 +314,10 @@ fn renders_hellenistic_dignities() {
         "hellenistic_dignities.svg.tt",
         "test_hell.svg",
         &[
-            "--chart-type", "hellenistic",
-            "--date", "1990-05-15 14:30",
+            "--chart-type",
+            "hellenistic",
+            "--date",
+            "1990-05-15 14:30",
             "--lat=40.71",
             "--lon=-74.0",
         ],
@@ -305,10 +339,14 @@ fn renders_dial_90() {
         "dial_90.svg.tt",
         "test_dial.svg",
         &[
-            "--chart-type", "dial",
-            "--date", "2000-01-01",
-            "--lat", "0",
-            "--lon", "0",
+            "--chart-type",
+            "dial",
+            "--date",
+            "2000-01-01",
+            "--lat",
+            "0",
+            "--lon",
+            "0",
         ],
     );
     assert_contains(&svg, "Midpoint Dial", "dial_90.svg.tt");
@@ -322,11 +360,14 @@ fn renders_biwheel_synastry() {
         "biwheel_synastry.svg.tt",
         "test_biwheel.svg",
         &[
-            "--chart-type", "biwheel",
-            "--date", "1990-05-15 14:30",
+            "--chart-type",
+            "biwheel",
+            "--date",
+            "1990-05-15 14:30",
             "--lat=40.71",
             "--lon=-74.0",
-            "--date2", "2025-03-20",
+            "--date2",
+            "2025-03-20",
         ],
     );
     assert_contains(&svg, "Bi-wheel", "biwheel_synastry.svg.tt");

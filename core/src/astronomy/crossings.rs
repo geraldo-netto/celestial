@@ -83,7 +83,11 @@ fn brent_should_bisect(
 ) -> bool {
     let lo = (3.0 * a + b) / 4.0;
     let cond1 = (s - lo) * (s - b) > 0.0;
-    let prev_step = if used_bisect { (b - c).abs() } else { (c - d).abs() };
+    let prev_step = if used_bisect {
+        (b - c).abs()
+    } else {
+        (c - d).abs()
+    };
     let cond_step = (s - b).abs() >= prev_step / 2.0;
     let cond_tiny = prev_step < tol_x;
     cond1 || cond_step || cond_tiny

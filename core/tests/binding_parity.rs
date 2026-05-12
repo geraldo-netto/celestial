@@ -19,10 +19,16 @@ fn workspace_root() -> PathBuf {
 /// Extract a `fn`/`pub fn` name from a single line, if present and well-formed.
 fn fn_name_from_line(line: &str) -> Option<String> {
     let l = line.trim();
-    let rest = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn "))?;
+    let rest = l
+        .strip_prefix("pub fn ")
+        .or_else(|| l.strip_prefix("fn "))?;
     let name: String = rest.split([' ', '(', '<']).next().unwrap_or("").to_string();
     let valid = !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_');
-    if valid { Some(name) } else { None }
+    if valid {
+        Some(name)
+    } else {
+        None
+    }
 }
 
 fn decorated_fns(src: &str, decorator: &str) -> BTreeSet<String> {
@@ -66,7 +72,12 @@ fn internal_fns() -> BTreeSet<String> {
         .collect()
 }
 
-fn load_fns(root: &std::path::Path, rel: &str, decorator: &str, include_wrap: bool) -> BTreeSet<String> {
+fn load_fns(
+    root: &std::path::Path,
+    rel: &str,
+    decorator: &str,
+    include_wrap: bool,
+) -> BTreeSet<String> {
     let src =
         std::fs::read_to_string(root.join(rel)).unwrap_or_else(|_| panic!("cannot read {rel}"));
     let skip = internal_fns();

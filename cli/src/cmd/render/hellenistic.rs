@@ -217,10 +217,10 @@ pub fn build_firdaria_context(
 
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#ffffff"),
-        ("ring_color", "#1a1a2e"),
-        ("text_color", "#0d0d1e"),
-        ("planet_color", "#0d0d1e"),
+            ("bg_color", "#ffffff"),
+            ("ring_color", "#1a1a2e"),
+            ("text_color", "#0d0d1e"),
+            ("planet_color", "#0d0d1e"),
         ],
         &vars,
     );

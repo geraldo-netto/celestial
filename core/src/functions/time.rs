@@ -423,9 +423,7 @@ pub fn jd_duration(jd_start: f64, jd_end: f64) -> [i32; 4] {
 /// Format a Julian day as an ISO-8601 string `"YYYY-MM-DD HH:MM:SS UTC"`.
 pub fn jd_to_iso_string(jd: f64, calendar: Calendar) -> String {
     let [y, mo, d, h, mi, s] = revjul_hms(jd, calendar);
-    format!(
-        "{y:04}-{mo:02}-{d:02} {h:02}:{mi:02}:{s:02} UTC"
-    )
+    format!("{y:04}-{mo:02}-{d:02} {h:02}:{mi:02}:{s:02} UTC")
 }
 
 // ─── Obliquity & nutation ─────────────────────────────────────────────────────

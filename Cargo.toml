@@ -10,7 +10,7 @@ license  = "AGPL-3.0-or-later"
 authors  = ["geraldo-netto"]
 
 [workspace.dependencies]
-pyo3         = { version = "0.21", features = ["extension-module"] }
+pyo3         = { version = "0.24.1", features = ["extension-module"] }
 napi         = { version = "2", features = ["napi4"] }
 napi-derive  = "2"
 

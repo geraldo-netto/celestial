@@ -69,9 +69,7 @@ pub fn run(args: JdArgs) -> Result<(), String> {
         d.year, d.month, d.day, h, m, dow_name
     );
     println!("  Delta T        {dt:.2} s");
-    println!(
-        "  Sidereal time  {st_h:02}h {st_m:02}m {st_s:02}s (GAST)"
-    );
+    println!("  Sidereal time  {st_h:02}h {st_m:02}m {st_s:02}s (GAST)");
     println!();
     Ok(())
 }

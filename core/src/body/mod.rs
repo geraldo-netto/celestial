@@ -136,10 +136,10 @@ impl Body {
     #[must_use]
     pub fn orb_weight(self) -> f64 {
         match self.0 {
-            0 | 1 => 2.0,  // Sun, Moon
-            2..=4 => 1.5,  // Mercury, Venus, Mars
-            5 | 6 => 1.0,  // Jupiter, Saturn
-            _ => 0.75,     // outer planets, nodes, asteroids
+            0 | 1 => 2.0, // Sun, Moon
+            2..=4 => 1.5, // Mercury, Venus, Mars
+            5 | 6 => 1.0, // Jupiter, Saturn
+            _ => 0.75,    // outer planets, nodes, asteroids
         }
     }
 

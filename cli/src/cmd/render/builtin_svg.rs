@@ -188,7 +188,11 @@ fn write_house(s: &mut String, pal: &Palette, h: &Value) {
     let ny = h["num_y"].as_f64().unwrap_or(0.0);
     let n = h["num"].as_u64().unwrap_or(0);
     let is_angle = h["is_angle"].as_bool().unwrap_or(false);
-    let (sw, op) = if is_angle { ("3.0", ".85") } else { ("1.5", ".55") };
+    let (sw, op) = if is_angle {
+        ("3.0", ".85")
+    } else {
+        ("1.5", ".55")
+    };
     let _ = writeln!(
         s,
         r##"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{ring}" stroke-width="{sw}" opacity="{op}"/>
@@ -367,7 +371,14 @@ fn write_planet_legend_row(s: &mut String, pal: &Palette, p: &Value, c1x: f64, r
     );
 }
 
-fn write_angles_legend(s: &mut String, pal: &Palette, ctx: &Value, ang: &Angles, c2x: f64, ly: f64) {
+fn write_angles_legend(
+    s: &mut String,
+    pal: &Palette,
+    ctx: &Value,
+    ang: &Angles,
+    c2x: f64,
+    ly: f64,
+) {
     let ring = pal.ring;
     let _ = writeln!(
         s,
@@ -389,7 +400,15 @@ fn write_angles_legend(s: &mut String, pal: &Palette, ctx: &Value, ang: &Angles,
     }
 }
 
-fn write_angle_legend_row(s: &mut String, pal: &Palette, name: &str, lon2: f64, dms: &str, c2x: f64, ry: f64) {
+fn write_angle_legend_row(
+    s: &mut String,
+    pal: &Palette,
+    name: &str,
+    lon2: f64,
+    dms: &str,
+    c2x: f64,
+    ry: f64,
+) {
     let (ring, txt) = (pal.ring, pal.txt);
     let _ = writeln!(
         s,

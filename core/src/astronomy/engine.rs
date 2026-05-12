@@ -71,8 +71,7 @@ pub fn calc_tt(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
         lon = topocentric_lon(jde, &geo, use_equatorial);
     }
 
-    let (speed_lon, speed_lat, speed_dist) =
-        compute_speed(jde, body_num, flags, use_equatorial)?;
+    let (speed_lon, speed_lat, speed_dist) = compute_speed(jde, body_num, flags, use_equatorial)?;
 
     Ok(PlanetPos {
         lon,
@@ -96,7 +95,11 @@ fn calc_node(jde: f64, body_num: i32, flags: i32) -> PlanetPos {
     } else {
         crate::astronomy::nodes::moon_true_node_speed(jde)
     };
-    let speed_lon = if flags as u32 & flag::FLG_SPEED != 0 { spd } else { 0.0 };
+    let speed_lon = if flags as u32 & flag::FLG_SPEED != 0 {
+        spd
+    } else {
+        0.0
+    };
     PlanetPos {
         lon,
         lat: 0.0,
@@ -194,9 +197,9 @@ fn topocentric_lon(
     let sin_pi = 6_378.137 / dist_km;
     let horiz_parallax_r = sin_pi.asin();
 
-    let gst_deg = crate::functions::time::sidtime(
-        jde - crate::astronomy::delta_t::delta_t(jde) / 86400.0,
-    ) * 15.0;
+    let gst_deg =
+        crate::functions::time::sidtime(jde - crate::astronomy::delta_t::delta_t(jde) / 86400.0)
+            * 15.0;
     let ha_deg = (gst_deg + obs_lon - geo.ra).rem_euclid(360.0);
     let ha_r = ha_deg.to_radians();
 
@@ -214,7 +217,8 @@ fn topocentric_lon(
     let rho_cos_hp = rho_cos * hp_sin;
     let denom = (-rho_cos_hp).mul_add(cos_ha, cos_dec);
     let delta_ra = (-rho_cos_hp * sin_ha) / denom;
-    let delta_dec = rho_cos_hp.mul_add(cos_ha * delta_ra.sin(), -rho_sin * hp_sin)
+    let delta_dec = rho_cos_hp
+        .mul_add(cos_ha * delta_ra.sin(), -rho_sin * hp_sin)
         .mul_add(sin_dec, -rho_cos_hp * cos_ha)
         / denom;
 
@@ -229,7 +233,9 @@ fn topocentric_lon(
     let dec_r2 = topo_dec.to_radians();
     let (sin_ra2, cos_ra2) = ra_r2.sin_cos();
     let (sin_eps2, cos_eps2) = eps_r.sin_cos();
-    dec_r2.tan().mul_add(sin_eps2, sin_ra2 * cos_eps2)
+    dec_r2
+        .tan()
+        .mul_add(sin_eps2, sin_ra2 * cos_eps2)
         .atan2(cos_ra2)
         .to_degrees()
         .rem_euclid(360.0)

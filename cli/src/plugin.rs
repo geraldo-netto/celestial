@@ -112,7 +112,9 @@ mod tests {
     /// Run a closure while holding `path_lock()`. Poison-safe: if a prior test
     /// panicked while holding the lock, we still recover and proceed.
     fn with_path_lock<F: FnOnce()>(f: F) {
-        let _guard = path_lock().lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let _guard = path_lock()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         f();
     }
 

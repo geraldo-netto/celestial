@@ -210,8 +210,7 @@ fn precession_correction(t: f64) -> f64 {
 
 /// Get ayanamsa name string for a mode integer.
 pub fn ayanamsa_name(mode_id: i32) -> &'static str {
-    SidMode::from_i32(mode_id)
-        .map_or("Unknown", SidMode::name)
+    SidMode::from_i32(mode_id).map_or("Unknown", SidMode::name)
 }
 
 #[cfg(test)]

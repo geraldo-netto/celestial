@@ -17,8 +17,8 @@ pub fn build_sabbat_wheel_context(
     let date = revjul(jd, Calendar::Gregorian);
     let year = date.year;
 
-    let sabbats = sabbats_for_year(year)
-        .map_err(|e| format!("sabbats_for_year({year}) failed: {e}"))?;
+    let sabbats =
+        sabbats_for_year(year).map_err(|e| format!("sabbats_for_year({year}) failed: {e}"))?;
 
     // SVG layout — same conventions as the natal wheel
     const CX: f64 = 450.0;
@@ -67,11 +67,16 @@ pub fn build_sabbat_wheel_context(
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| format!("Wheel of the Year — {year}"));
-    vars.entry("bg_color".to_string()).or_insert_with(|| "#ffffff".to_string());
-    vars.entry("text_color".to_string()).or_insert_with(|| "#222".to_string());
-    vars.entry("ring_color".to_string()).or_insert_with(|| "#888".to_string());
-    vars.entry("quarter_color".to_string()).or_insert_with(|| "#b8860b".to_string());
-    vars.entry("cross_color".to_string()).or_insert_with(|| "#3d6b35".to_string());
+    vars.entry("bg_color".to_string())
+        .or_insert_with(|| "#ffffff".to_string());
+    vars.entry("text_color".to_string())
+        .or_insert_with(|| "#222".to_string());
+    vars.entry("ring_color".to_string())
+        .or_insert_with(|| "#888".to_string());
+    vars.entry("quarter_color".to_string())
+        .or_insert_with(|| "#b8860b".to_string());
+    vars.entry("cross_color".to_string())
+        .or_insert_with(|| "#3d6b35".to_string());
 
     let mut vars_json = serde_json::Map::new();
     for (k, v) in vars {
@@ -104,28 +109,41 @@ pub fn render_sabbat_wheel_svg(ctx: &Value) -> String {
     let mut s = String::with_capacity(4096);
 
     // Header
-    let _ = write!(s, r#"<?xml version="1.0" encoding="UTF-8"?>
+    let _ = write!(
+        s,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 800" width="900" height="800">
   <rect width="900" height="800" fill="{bg}"/>
   <text x="450" y="36" text-anchor="middle" font-size="20" font-weight="600"
         font-family="Georgia,serif" fill="{txt}">{title}</text>
   <text x="450" y="58" text-anchor="middle" font-size="11"
         font-family="system-ui,sans-serif" fill="{ring}" opacity=".75">{year}</text>
-"#);
+"#
+    );
 
     // Concentric rings
-    let _ = writeln!(s,
-        r#"  <circle cx="450" cy="420" r="320" fill="none" stroke="{ring}" stroke-width="1.2"/>"#);
-    let _ = writeln!(s,
-        r#"  <circle cx="450" cy="420" r="240" fill="none" stroke="{ring}" stroke-width=".8" opacity=".6"/>"#);
-    let _ = writeln!(s,
-        r#"  <circle cx="450" cy="420" r="120" fill="none" stroke="{ring}" stroke-width=".5" opacity=".4"/>"#);
+    let _ = writeln!(
+        s,
+        r#"  <circle cx="450" cy="420" r="320" fill="none" stroke="{ring}" stroke-width="1.2"/>"#
+    );
+    let _ = writeln!(
+        s,
+        r#"  <circle cx="450" cy="420" r="240" fill="none" stroke="{ring}" stroke-width=".8" opacity=".6"/>"#
+    );
+    let _ = writeln!(
+        s,
+        r#"  <circle cx="450" cy="420" r="120" fill="none" stroke="{ring}" stroke-width=".5" opacity=".4"/>"#
+    );
 
     // Cardinal axes (solstice/equinox lines: through 0/180 and 90/270 solar lon)
-    let _ = writeln!(s,
-        r#"  <line x1="130" y1="420" x2="770" y2="420" stroke="{ring}" stroke-width=".6" opacity=".4" stroke-dasharray="4,4"/>"#);
-    let _ = writeln!(s,
-        r#"  <line x1="450" y1="100" x2="450" y2="740" stroke="{ring}" stroke-width=".6" opacity=".4" stroke-dasharray="4,4"/>"#);
+    let _ = writeln!(
+        s,
+        r#"  <line x1="130" y1="420" x2="770" y2="420" stroke="{ring}" stroke-width=".6" opacity=".4" stroke-dasharray="4,4"/>"#
+    );
+    let _ = writeln!(
+        s,
+        r#"  <line x1="450" y1="100" x2="450" y2="740" stroke="{ring}" stroke-width=".6" opacity=".4" stroke-dasharray="4,4"/>"#
+    );
 
     // Sabbat tick + glyph + name + date
     if let Some(sabbats) = ctx["sabbats"].as_array() {
@@ -140,30 +158,52 @@ pub fn render_sabbat_wheel_svg(ctx: &Value) -> String {
             let tx2 = sb["tick_x2"].as_f64().unwrap_or(0.0);
             let ty2 = sb["tick_y2"].as_f64().unwrap_or(0.0);
 
-            let _ = writeln!(s,
-                r#"  <line x1="{tx1:.1}" y1="{ty1:.1}" x2="{tx2:.1}" y2="{ty2:.1}" stroke="{colour}" stroke-width="2.2"/>"#);
+            let _ = writeln!(
+                s,
+                r#"  <line x1="{tx1:.1}" y1="{ty1:.1}" x2="{tx2:.1}" y2="{ty2:.1}" stroke="{colour}" stroke-width="2.2"/>"#
+            );
 
             let gx = sb["glyph_x"].as_f64().unwrap_or(0.0);
             let gy = sb["glyph_y"].as_f64().unwrap_or(0.0);
-            let _ = writeln!(s,
-                r#"  <text x="{gx:.1}" y="{gy:.1}" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="600" font-family="Georgia,serif" fill="{txt}">{name}</text>"#);
-            let _ = writeln!(s,
+            let _ = writeln!(
+                s,
+                r#"  <text x="{gx:.1}" y="{gy:.1}" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="600" font-family="Georgia,serif" fill="{txt}">{name}</text>"#
+            );
+            let _ = writeln!(
+                s,
                 r#"  <text x="{gx:.1}" y="{ny:.1}" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif" fill="{colour}" opacity=".85">{date}</text>"#,
-                ny = gy + 18.0);
+                ny = gy + 18.0
+            );
         }
     }
 
     // Centre legend
-    let _ = writeln!(s,
-        r#"  <text x="450" y="412" text-anchor="middle" font-size="11" font-family="Georgia,serif" fill="{ring}" opacity=".7">solstice / equinox</text>"#);
-    let _ = writeln!(s,
-        r#"  <text x="450" y="430" text-anchor="middle" font-size="11" font-family="Georgia,serif" fill="{cross}" opacity=".75">cross-quarter</text>"#);
+    let _ = writeln!(
+        s,
+        r#"  <text x="450" y="412" text-anchor="middle" font-size="11" font-family="Georgia,serif" fill="{ring}" opacity=".7">solstice / equinox</text>"#
+    );
+    let _ = writeln!(
+        s,
+        r#"  <text x="450" y="430" text-anchor="middle" font-size="11" font-family="Georgia,serif" fill="{cross}" opacity=".75">cross-quarter</text>"#
+    );
 
     // Footer legend
-    let _ = writeln!(s, r#"  <g font-family="system-ui,sans-serif" font-size="10" fill="{txt}">"#);
-    let _ = writeln!(s, r#"    <rect x="160" y="755" width="14" height="3" fill="{quarter}"/>"#);
-    let _ = writeln!(s, r#"    <text x="180" y="760">Quarter days (solstice / equinox)</text>"#);
-    let _ = writeln!(s, r#"    <rect x="500" y="755" width="14" height="3" fill="{cross}"/>"#);
+    let _ = writeln!(
+        s,
+        r#"  <g font-family="system-ui,sans-serif" font-size="10" fill="{txt}">"#
+    );
+    let _ = writeln!(
+        s,
+        r#"    <rect x="160" y="755" width="14" height="3" fill="{quarter}"/>"#
+    );
+    let _ = writeln!(
+        s,
+        r#"    <text x="180" y="760">Quarter days (solstice / equinox)</text>"#
+    );
+    let _ = writeln!(
+        s,
+        r#"    <rect x="500" y="755" width="14" height="3" fill="{cross}"/>"#
+    );
     let _ = writeln!(s, r#"    <text x="520" y="760">Cross-quarter days</text>"#);
     let _ = writeln!(s, r#"  </g>"#);
 

@@ -211,11 +211,10 @@ fn aberration(lon: f64, lat: f64, jde: f64) -> (f64, f64) {
     let sin_om = omega.sin();
     let aberr_const = to_rad(0.000_478 / 3600.0);
 
-    let delta_lon = (-kappa * cos_lon * sin_l0 + e * kappa * cos_lon * sin_pi
-        + aberr_const * sin_om)
-        / cos_lat;
-    let delta_lat = -kappa
-        * (cos_lon * sin_lat * sin_l0 - sin_lat * sin_pi + aberr_const * sin_om * cos_lat);
+    let delta_lon =
+        (-kappa * cos_lon * sin_l0 + e * kappa * cos_lon * sin_pi + aberr_const * sin_om) / cos_lat;
+    let delta_lat =
+        -kappa * (cos_lon * sin_lat * sin_l0 - sin_lat * sin_pi + aberr_const * sin_om * cos_lat);
 
     (lon + delta_lon, lat + delta_lat)
 }

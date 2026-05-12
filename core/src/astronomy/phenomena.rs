@@ -157,8 +157,11 @@ mod tests {
     #[test]
     fn moon_angular_diameter_at_mean_distance() {
         let p = compute_phenomena(1, 0.0, 0.0, 0.00257, 1.0, 0.0);
-        assert!(p.ang_diameter > 1500.0 && p.ang_diameter < 2200.0,
-            "moon diameter {}", p.ang_diameter);
+        assert!(
+            p.ang_diameter > 1500.0 && p.ang_diameter < 2200.0,
+            "moon diameter {}",
+            p.ang_diameter
+        );
     }
 
     /// Moon elongation tracks the geocentric Sun–Moon longitude separation.
@@ -167,7 +170,11 @@ mod tests {
         let new = compute_phenomena(1, 0.0, 0.0, 0.00257, 1.0, 0.0);
         let full = compute_phenomena(1, 180.0, 0.0, 0.00257, 1.0, 0.0);
         assert!(new.elongation < 1.0, "new moon elong = {}", new.elongation);
-        assert!((full.elongation - 180.0).abs() < 1.0, "full moon elong = {}", full.elongation);
+        assert!(
+            (full.elongation - 180.0).abs() < 1.0,
+            "full moon elong = {}",
+            full.elongation
+        );
     }
 
     /// Elongation wraps correctly across the 0°/360° seam.
@@ -183,8 +190,18 @@ mod tests {
     fn phase_angle_bounded() {
         for lon in [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0] {
             let p = compute_phenomena(4, lon, 0.0, 1.5, 1.5, 0.0);
-            assert!((0.0..=180.0).contains(&p.phase_angle), "phase {} for lon {}", p.phase_angle, lon);
-            assert!((0.0..=1.0).contains(&p.phase_frac), "frac {} for lon {}", p.phase_frac, lon);
+            assert!(
+                (0.0..=180.0).contains(&p.phase_angle),
+                "phase {} for lon {}",
+                p.phase_angle,
+                lon
+            );
+            assert!(
+                (0.0..=1.0).contains(&p.phase_frac),
+                "frac {} for lon {}",
+                p.phase_frac,
+                lon
+            );
         }
     }
 
@@ -194,7 +211,10 @@ mod tests {
     fn magnitudes_in_range_for_known_bodies() {
         for body in 2..=9i32 {
             let p = compute_phenomena(body, 90.0, 0.0, 1.5, 1.0, 0.0);
-            assert!(p.magnitude < 99.9, "body {body} returned sentinel magnitude");
+            assert!(
+                p.magnitude < 99.9,
+                "body {body} returned sentinel magnitude"
+            );
         }
         let unknown = compute_phenomena(42, 90.0, 0.0, 1.5, 1.0, 0.0);
         assert!((unknown.magnitude - 99.9).abs() < 1e-9);

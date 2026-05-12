@@ -69,35 +69,211 @@ struct HolidaySpec {
 
 const HOLIDAY_TABLE: &[HolidaySpec] = &[
     // Tishrei
-    HolidaySpec { name: "Rosh Hashanah", hebrew_name: "ראש השנה", month: 7, day: 1, days: 2, extra_end: 0.0, category: HolidayCategory::MajorFestival },
-    HolidaySpec { name: "Tzom Gedaliah", hebrew_name: "צום גדליה", month: 7, day: 3, days: 1, extra_end: -1.0, category: HolidayCategory::Fast },
-    HolidaySpec { name: "Yom Kippur", hebrew_name: "יום כיפור", month: 7, day: 10, days: 1, extra_end: 0.0, category: HolidayCategory::MajorFestival },
-    HolidaySpec { name: "Sukkot", hebrew_name: "סוכות", month: 7, day: 15, days: 7, extra_end: 0.0, category: HolidayCategory::MajorFestival },
-    HolidaySpec { name: "Shemini Atzeret", hebrew_name: "שמיני עצרת", month: 7, day: 22, days: 1, extra_end: 0.0, category: HolidayCategory::MajorFestival },
-    HolidaySpec { name: "Simchat Torah", hebrew_name: "שמחת תורה", month: 7, day: 23, days: 1, extra_end: 0.0, category: HolidayCategory::MajorFestival },
+    HolidaySpec {
+        name: "Rosh Hashanah",
+        hebrew_name: "ראש השנה",
+        month: 7,
+        day: 1,
+        days: 2,
+        extra_end: 0.0,
+        category: HolidayCategory::MajorFestival,
+    },
+    HolidaySpec {
+        name: "Tzom Gedaliah",
+        hebrew_name: "צום גדליה",
+        month: 7,
+        day: 3,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Fast,
+    },
+    HolidaySpec {
+        name: "Yom Kippur",
+        hebrew_name: "יום כיפור",
+        month: 7,
+        day: 10,
+        days: 1,
+        extra_end: 0.0,
+        category: HolidayCategory::MajorFestival,
+    },
+    HolidaySpec {
+        name: "Sukkot",
+        hebrew_name: "סוכות",
+        month: 7,
+        day: 15,
+        days: 7,
+        extra_end: 0.0,
+        category: HolidayCategory::MajorFestival,
+    },
+    HolidaySpec {
+        name: "Shemini Atzeret",
+        hebrew_name: "שמיני עצרת",
+        month: 7,
+        day: 22,
+        days: 1,
+        extra_end: 0.0,
+        category: HolidayCategory::MajorFestival,
+    },
+    HolidaySpec {
+        name: "Simchat Torah",
+        hebrew_name: "שמחת תורה",
+        month: 7,
+        day: 23,
+        days: 1,
+        extra_end: 0.0,
+        category: HolidayCategory::MajorFestival,
+    },
     // Kislev / Tevet / Shevat
-    HolidaySpec { name: "Hanukkah", hebrew_name: "חנוכה", month: 9, day: 25, days: 8, extra_end: 0.0, category: HolidayCategory::RabbinicFestival },
-    HolidaySpec { name: "Tzom Tevet (10 Tevet)", hebrew_name: "עשרה בטבת", month: 10, day: 10, days: 1, extra_end: -1.0, category: HolidayCategory::Fast },
-    HolidaySpec { name: "Tu BiShvat", hebrew_name: "ט\"ו בשבט", month: 11, day: 15, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+    HolidaySpec {
+        name: "Hanukkah",
+        hebrew_name: "חנוכה",
+        month: 9,
+        day: 25,
+        days: 8,
+        extra_end: 0.0,
+        category: HolidayCategory::RabbinicFestival,
+    },
+    HolidaySpec {
+        name: "Tzom Tevet (10 Tevet)",
+        hebrew_name: "עשרה בטבת",
+        month: 10,
+        day: 10,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Fast,
+    },
+    HolidaySpec {
+        name: "Tu BiShvat",
+        hebrew_name: "ט\"ו בשבט",
+        month: 11,
+        day: 15,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Minor,
+    },
     // Purim month (sentinel 0 → 12 or 13)
-    HolidaySpec { name: "Ta'anit Esther", hebrew_name: "תענית אסתר", month: 0, day: 13, days: 1, extra_end: -1.0, category: HolidayCategory::Fast },
-    HolidaySpec { name: "Purim", hebrew_name: "פורים", month: 0, day: 14, days: 2, extra_end: 0.0, category: HolidayCategory::RabbinicFestival },
+    HolidaySpec {
+        name: "Ta'anit Esther",
+        hebrew_name: "תענית אסתר",
+        month: 0,
+        day: 13,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Fast,
+    },
+    HolidaySpec {
+        name: "Purim",
+        hebrew_name: "פורים",
+        month: 0,
+        day: 14,
+        days: 2,
+        extra_end: 0.0,
+        category: HolidayCategory::RabbinicFestival,
+    },
     // Nisan
-    HolidaySpec { name: "Ta'anit Bechorot (Fast of the Firstborn)", hebrew_name: "תענית בכורות", month: 1, day: 14, days: 1, extra_end: -1.0, category: HolidayCategory::Fast },
-    HolidaySpec { name: "Passover (Pesach)", hebrew_name: "פסח", month: 1, day: 15, days: 8, extra_end: 0.0, category: HolidayCategory::MajorFestival },
-    HolidaySpec { name: "Yom HaShoah", hebrew_name: "יום השואה", month: 1, day: 27, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+    HolidaySpec {
+        name: "Ta'anit Bechorot (Fast of the Firstborn)",
+        hebrew_name: "תענית בכורות",
+        month: 1,
+        day: 14,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Fast,
+    },
+    HolidaySpec {
+        name: "Passover (Pesach)",
+        hebrew_name: "פסח",
+        month: 1,
+        day: 15,
+        days: 8,
+        extra_end: 0.0,
+        category: HolidayCategory::MajorFestival,
+    },
+    HolidaySpec {
+        name: "Yom HaShoah",
+        hebrew_name: "יום השואה",
+        month: 1,
+        day: 27,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Minor,
+    },
     // Iyyar
-    HolidaySpec { name: "Yom HaZikaron", hebrew_name: "יום הזיכרון", month: 2, day: 4, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
-    HolidaySpec { name: "Yom HaAtzmaut", hebrew_name: "יום העצמאות", month: 2, day: 5, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
-    HolidaySpec { name: "Lag Ba'Omer", hebrew_name: "ל\"ג בעומר", month: 2, day: 18, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
-    HolidaySpec { name: "Yom Yerushalayim", hebrew_name: "יום ירושלים", month: 2, day: 28, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+    HolidaySpec {
+        name: "Yom HaZikaron",
+        hebrew_name: "יום הזיכרון",
+        month: 2,
+        day: 4,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Minor,
+    },
+    HolidaySpec {
+        name: "Yom HaAtzmaut",
+        hebrew_name: "יום העצמאות",
+        month: 2,
+        day: 5,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Minor,
+    },
+    HolidaySpec {
+        name: "Lag Ba'Omer",
+        hebrew_name: "ל\"ג בעומר",
+        month: 2,
+        day: 18,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Minor,
+    },
+    HolidaySpec {
+        name: "Yom Yerushalayim",
+        hebrew_name: "יום ירושלים",
+        month: 2,
+        day: 28,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Minor,
+    },
     // Sivan
-    HolidaySpec { name: "Shavuot", hebrew_name: "שבועות", month: 3, day: 6, days: 2, extra_end: 0.0, category: HolidayCategory::MajorFestival },
+    HolidaySpec {
+        name: "Shavuot",
+        hebrew_name: "שבועות",
+        month: 3,
+        day: 6,
+        days: 2,
+        extra_end: 0.0,
+        category: HolidayCategory::MajorFestival,
+    },
     // Tammuz
-    HolidaySpec { name: "Shiva Asar B'Tammuz", hebrew_name: "שבעה עשר בתמוז", month: 4, day: 17, days: 1, extra_end: -1.0, category: HolidayCategory::Fast },
+    HolidaySpec {
+        name: "Shiva Asar B'Tammuz",
+        hebrew_name: "שבעה עשר בתמוז",
+        month: 4,
+        day: 17,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Fast,
+    },
     // Av
-    HolidaySpec { name: "Tisha B'Av", hebrew_name: "תשעה באב", month: 5, day: 9, days: 1, extra_end: 0.0, category: HolidayCategory::Fast },
-    HolidaySpec { name: "Tu B'Av", hebrew_name: "ט\"ו באב", month: 5, day: 15, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+    HolidaySpec {
+        name: "Tisha B'Av",
+        hebrew_name: "תשעה באב",
+        month: 5,
+        day: 9,
+        days: 1,
+        extra_end: 0.0,
+        category: HolidayCategory::Fast,
+    },
+    HolidaySpec {
+        name: "Tu B'Av",
+        hebrew_name: "ט\"ו באב",
+        month: 5,
+        day: 15,
+        days: 1,
+        extra_end: -1.0,
+        category: HolidayCategory::Minor,
+    },
 ];
 
 #[inline]
@@ -106,7 +282,11 @@ fn nightfall_jd(hebrew_year: i32, month: u8, day: u8) -> f64 {
 }
 
 fn materialize_holiday(spec: &HolidaySpec, hebrew_year: i32, purim_month: u8) -> JewishHoliday {
-    let month = if spec.month == 0 { purim_month } else { spec.month };
+    let month = if spec.month == 0 {
+        purim_month
+    } else {
+        spec.month
+    };
     let start = nightfall_jd(hebrew_year, month, spec.day);
     let end = start + spec.days as f64 + spec.extra_end;
     JewishHoliday {
@@ -125,7 +305,11 @@ fn materialize_holiday(spec: &HolidaySpec, hebrew_year: i32, purim_month: u8) ->
 ///
 /// Returns holidays sorted by Julian day (chronological).
 pub fn jewish_holidays(hebrew_year: i32) -> Vec<JewishHoliday> {
-    let purim_month = if is_hebrew_leap_year(hebrew_year) { 13u8 } else { 12u8 };
+    let purim_month = if is_hebrew_leap_year(hebrew_year) {
+        13u8
+    } else {
+        12u8
+    };
     let mut out: Vec<JewishHoliday> = HOLIDAY_TABLE
         .iter()
         .map(|spec| materialize_holiday(spec, hebrew_year, purim_month))

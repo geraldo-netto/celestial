@@ -50,13 +50,25 @@ fn hdr(g: &str) {
 fn bench_time(all: &mut Vec<R>) {
     hdr("time");
     all.push(bench("time::julday_gregorian", 1000, || {
-        black_box(celestial_core::julday(2025, 3, 20, 12.0, Calendar::Gregorian));
+        black_box(celestial_core::julday(
+            2025,
+            3,
+            20,
+            12.0,
+            Calendar::Gregorian,
+        ));
     }));
     all.push(bench("time::revjul_gregorian", 1000, || {
-        black_box(celestial_core::revjul(black_box(J2000), Calendar::Gregorian));
+        black_box(celestial_core::revjul(
+            black_box(J2000),
+            Calendar::Gregorian,
+        ));
     }));
     all.push(bench("time::jd_et_to_utc", 1000, || {
-        black_box(celestial_core::jd_et_to_utc(black_box(J2000), Calendar::Gregorian));
+        black_box(celestial_core::jd_et_to_utc(
+            black_box(J2000),
+            Calendar::Gregorian,
+        ));
     }));
     all.push(bench("time::deltat", 1000, || {
         black_box(celestial_core::deltat(black_box(J2000)));
@@ -65,7 +77,10 @@ fn bench_time(all: &mut Vec<R>) {
         black_box(celestial_core::sidtime(black_box(J2000)));
     }));
     all.push(bench("time::jd_to_iso_string", 1000, || {
-        black_box(celestial_core::jd_to_iso_string(black_box(J2000), Calendar::Gregorian));
+        black_box(celestial_core::jd_to_iso_string(
+            black_box(J2000),
+            Calendar::Gregorian,
+        ));
     }));
 }
 
@@ -75,16 +90,25 @@ fn bench_math(all: &mut Vec<R>) {
         black_box(celestial_core::norm_deg(black_box(725.5)));
     }));
     all.push(bench("math::diff_deg_signed", 5000, || {
-        black_box(celestial_core::diff_deg_signed(black_box(350.0), black_box(10.0)));
+        black_box(celestial_core::diff_deg_signed(
+            black_box(350.0),
+            black_box(10.0),
+        ));
     }));
     all.push(bench("math::midpoint_deg", 5000, || {
-        black_box(celestial_core::midpoint_deg(black_box(350.0), black_box(10.0)));
+        black_box(celestial_core::midpoint_deg(
+            black_box(350.0),
+            black_box(10.0),
+        ));
     }));
     all.push(bench("math::split_deg", 5000, || {
         black_box(celestial_core::split_deg(black_box(123.456), black_box(0)));
     }));
     all.push(bench("math::coord_transform", 5000, || {
-        black_box(celestial_core::coord_transform(black_box([123.456, 43.5, 1.0]), black_box(23.4)));
+        black_box(celestial_core::coord_transform(
+            black_box([123.456, 43.5, 1.0]),
+            black_box(23.4),
+        ));
     }));
     all.push(bench("math::lon_to_sign", 5000, || {
         black_box(celestial_core::lon_to_sign(black_box(123.456)));
@@ -94,21 +118,44 @@ fn bench_math(all: &mut Vec<R>) {
 fn bench_calc(all: &mut Vec<R>, f: CalcFlags) {
     hdr("calc");
     for (name, body) in [
-        ("sun", Body::SUN), ("moon", Body::MOON), ("mercury", Body::MERCURY),
-        ("venus", Body::VENUS), ("mars", Body::MARS), ("jupiter", Body::JUPITER),
-        ("saturn", Body::SATURN), ("uranus", Body::URANUS), ("neptune", Body::NEPTUNE),
-        ("pluto", Body::PLUTO), ("chiron", Body::CHIRON),
+        ("sun", Body::SUN),
+        ("moon", Body::MOON),
+        ("mercury", Body::MERCURY),
+        ("venus", Body::VENUS),
+        ("mars", Body::MARS),
+        ("jupiter", Body::JUPITER),
+        ("saturn", Body::SATURN),
+        ("uranus", Body::URANUS),
+        ("neptune", Body::NEPTUNE),
+        ("pluto", Body::PLUTO),
+        ("chiron", Body::CHIRON),
     ] {
         all.push(bench(&format!("calc::calc_ut_{name}"), 500, || {
-            black_box(celestial_core::calc_ut(black_box(J2000), black_box(body), black_box(f)));
+            black_box(celestial_core::calc_ut(
+                black_box(J2000),
+                black_box(body),
+                black_box(f),
+            ));
         }));
     }
     all.push(bench("calc::calc_all_10_planets", 200, || {
         for body in [
-            Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS, Body::MARS,
-            Body::JUPITER, Body::SATURN, Body::URANUS, Body::NEPTUNE, Body::PLUTO,
+            Body::SUN,
+            Body::MOON,
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS,
+            Body::JUPITER,
+            Body::SATURN,
+            Body::URANUS,
+            Body::NEPTUNE,
+            Body::PLUTO,
         ] {
-            black_box(celestial_core::calc_ut(black_box(J2000), body, black_box(f)));
+            black_box(celestial_core::calc_ut(
+                black_box(J2000),
+                body,
+                black_box(f),
+            ));
         }
     }));
 }
@@ -117,12 +164,19 @@ fn bench_houses(all: &mut Vec<R>, fb: CalcFlags) {
     hdr("houses");
     let (lat, lon) = (48.85_f64, 2.35_f64);
     for (name, code) in [
-        ("placidus", b'P'), ("koch", b'K'), ("equal", b'E'),
-        ("whole_sign", b'W'), ("regiomontanus", b'R'), ("campanus", b'C'),
+        ("placidus", b'P'),
+        ("koch", b'K'),
+        ("equal", b'E'),
+        ("whole_sign", b'W'),
+        ("regiomontanus", b'R'),
+        ("campanus", b'C'),
     ] {
         all.push(bench(&format!("houses::houses_ex_{name}"), 500, || {
             black_box(celestial_core::houses_ex(
-                black_box(J2000), black_box(fb), black_box(lat), black_box(lon),
+                black_box(J2000),
+                black_box(fb),
+                black_box(lat),
+                black_box(lon),
                 black_box(HouseSystem(code)),
             ));
         }));
@@ -155,29 +209,60 @@ fn bench_calendar_vedic(all: &mut Vec<R>) {
         black_box(celestial_core::panchanga(black_box(J2000)));
     }));
     all.push(bench("vedic::vimshottari_dasha", 500, || {
-        black_box(celestial_core::vimshottari_dasha(black_box(J2000), black_box(210.0), black_box(120.0)));
+        black_box(celestial_core::vimshottari_dasha(
+            black_box(J2000),
+            black_box(210.0),
+            black_box(120.0),
+        ));
     }));
 }
 
 fn bench_searches(all: &mut Vec<R>, fb: CalcFlags) {
     hdr("searches (10 iters each)");
     all.push(bench("searches::solcross_ut_0deg", 10, || {
-        black_box(celestial_core::solcross_ut(black_box(0.0), black_box(JD_RECENT), black_box(fb)));
+        black_box(celestial_core::solcross_ut(
+            black_box(0.0),
+            black_box(JD_RECENT),
+            black_box(fb),
+        ));
     }));
     all.push(bench("searches::mooncross_ut_0deg", 10, || {
-        black_box(celestial_core::mooncross_ut(black_box(0.0), black_box(JD_RECENT), black_box(fb)));
+        black_box(celestial_core::mooncross_ut(
+            black_box(0.0),
+            black_box(JD_RECENT),
+            black_box(fb),
+        ));
     }));
     all.push(bench("searches::sol_eclipse_when_glob", 10, || {
-        black_box(celestial_core::sol_eclipse_when_glob(black_box(JD_RECENT), black_box(fb), 0, false));
+        black_box(celestial_core::sol_eclipse_when_glob(
+            black_box(JD_RECENT),
+            black_box(fb),
+            0,
+            false,
+        ));
     }));
     all.push(bench("searches::lun_eclipse_when", 10, || {
-        black_box(celestial_core::lun_eclipse_when(black_box(JD_RECENT), black_box(fb), 0, false));
+        black_box(celestial_core::lun_eclipse_when(
+            black_box(JD_RECENT),
+            black_box(fb),
+            0,
+            false,
+        ));
     }));
     all.push(bench("searches::sign_ingress_saturn", 10, || {
-        black_box(celestial_core::sign_ingress_ut(black_box(Body::SATURN), black_box(JD_RECENT), black_box(fb), false));
+        black_box(celestial_core::sign_ingress_ut(
+            black_box(Body::SATURN),
+            black_box(JD_RECENT),
+            black_box(fb),
+            false,
+        ));
     }));
     all.push(bench("searches::solar_return_2025", 10, || {
-        black_box(celestial_core::solar_return_jd(black_box(J2000), 2025, black_box(fb)));
+        black_box(celestial_core::solar_return_jd(
+            black_box(J2000),
+            2025,
+            black_box(fb),
+        ));
     }));
 }
 
@@ -193,7 +278,11 @@ fn bench_hellenistic(all: &mut Vec<R>) {
         black_box(celestial_core::triplicity_rulers(black_box(123.456)));
     }));
     all.push(bench("hellenistic::full_dignity_sun", 5000, || {
-        black_box(celestial_core::full_dignity(black_box(Body::SUN), black_box(123.456), true));
+        black_box(celestial_core::full_dignity(
+            black_box(Body::SUN),
+            black_box(123.456),
+            true,
+        ));
     }));
     all.push(bench("hellenistic::almuten", 5000, || {
         black_box(celestial_core::almuten(black_box(123.456), true));
@@ -202,7 +291,9 @@ fn bench_hellenistic(all: &mut Vec<R>) {
         black_box(celestial_core::firdaria(black_box(J2000), true, 75.0));
     }));
     all.push(bench("hellenistic::annual_profection", 10000, || {
-        let cusps = [0f64, 0., 30., 60., 90., 120., 150., 180., 210., 240., 270., 300., 330.];
+        let cusps = [
+            0f64, 0., 30., 60., 90., 120., 150., 180., 210., 240., 270., 300., 330.,
+        ];
         black_box(celestial_core::annual_profection(&cusps, black_box(35)));
     }));
 }
@@ -210,7 +301,11 @@ fn bench_hellenistic(all: &mut Vec<R>) {
 fn bench_traditions(all: &mut Vec<R>) {
     hdr("chinese astrology (phase 6)");
     all.push(bench("chinese::four_pillars", 1000, || {
-        black_box(celestial_core::four_pillars(black_box(J2000), black_box(12.0), black_box(280.0)));
+        black_box(celestial_core::four_pillars(
+            black_box(J2000),
+            black_box(12.0),
+            black_box(280.0),
+        ));
     }));
     all.push(bench("chinese::solar_term_position", 10000, || {
         black_box(celestial_core::solar_term_position(black_box(123.456)));
@@ -253,12 +348,23 @@ fn print_summary(all: &[R]) {
         pr(r);
     }
 
-    let fastest = all.iter().min_by(|a, b| a.ns.partial_cmp(&b.ns).unwrap()).unwrap();
-    let slowest = all.iter().max_by(|a, b| a.ns.partial_cmp(&b.ns).unwrap()).unwrap();
+    let fastest = all
+        .iter()
+        .min_by(|a, b| a.ns.partial_cmp(&b.ns).unwrap())
+        .unwrap();
+    let slowest = all
+        .iter()
+        .max_by(|a, b| a.ns.partial_cmp(&b.ns).unwrap())
+        .unwrap();
     let total: f64 = all.iter().map(|r| r.ns).sum();
     println!("\n── Summary");
     println!("  Fastest : {} ({:.0} ns)", fastest.name, fastest.ns);
-    println!("  Slowest : {} ({:.0} ns / {:.2} ms)", slowest.name, slowest.ns, slowest.ns / 1e6);
+    println!(
+        "  Slowest : {} ({:.0} ns / {:.2} ms)",
+        slowest.name,
+        slowest.ns,
+        slowest.ns / 1e6
+    );
     println!("  Total   : {:.1} µs per full sweep", total / 1000.0);
 }
 

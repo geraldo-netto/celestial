@@ -370,10 +370,7 @@ fn test_house_pos_asc_cusp1() {
     let asc = r_h.ascmc[0];
     let armc = r_h.ascmc[2];
     let h = house_pos(armc, 48.0, 23.4393, HouseSystem::PLACIDUS, [asc, 0.0]).unwrap();
-    assert!(
-        (h - 1.0).abs() < 0.5,
-        "ASC should be near house 1, got {h}"
-    );
+    assert!((h - 1.0).abs() < 0.5, "ASC should be near house 1, got {h}");
 }
 
 // ─── House cusp speeds ────────────────────────────────────────────────────────

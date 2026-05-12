@@ -1,6 +1,5 @@
 //! Mesoamerican chart builders — split from render.rs.
 
-
 use celestial_core::{calendar_round, haab, tonalpohualli, tzolkin, xiuhpohualli};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -24,10 +23,10 @@ pub fn build_mesoamerican_context(
 
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#1a0a00"),
-        ("border_color", "#d4a800"),
-        ("text_color", "#f0e0c0"),
-        ("planet_color", "#ffd070"),
+            ("bg_color", "#1a0a00"),
+            ("border_color", "#d4a800"),
+            ("text_color", "#f0e0c0"),
+            ("planet_color", "#ffd070"),
         ],
         &vars,
     );

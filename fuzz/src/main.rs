@@ -7,25 +7,24 @@ use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode}
 use celestial_core::{
     almuten, annual_profection, arabic_parts_seven, ayanamsa, azalt, bahai_holy_days, calc,
     calc_many, calc_ut, christian_feasts, christian_fixed_feasts, coord_transform,
-    coord_transform_with_speed, day_of_week, days_in_hebrew_year, decan_ruler, deg_to_cs,
-    degsplit, deltat, diff_deg_signed, distance_to_mc, easter_gregorian, easter_jd,
-    easter_orthodox, egyptian_decan, egyptian_terms_ruler, firdaria, format_coord, four_pillars,
-    full_dignity, gregorian_to_solar_hijri, haab, hebrew_month_days, hebrew_new_year_jd,
-    hijri_from_jd, hijri_month_days, hijri_month_start_jd, hijri_new_year_jd, houses,
-    islamic_observances, jewish_holidays, julday, lon_to_sign, long_to_navamsa,
-    lun_occult_when_glob, lunar_return_jd, mean_sidtime, medicine_wheel_totem, midpoint_table,
-    monthly_profection, moon_phase_angle, moon_phase_info, moon_phases_for_month,
-    mooncross_back_ut, mooncross_node, mooncross_node_ut, mooncross_ut, months_in_hebrew_year,
-    naw_ruz_jd, next_aspect, next_aspect_with, next_full_moon_after, next_new_moon, next_retro,
-    norm_cs, norm_deg, norm_rad, nowruz_jd, nutation, ochchabala, omer_days, omer_period,
-    omer_start_jd, panchanga, planet_conjunct_mc, refrac, residential_strength,
-    retrograde_station_ut, revjul, rise_trans, secondary_progressions, set_sid_mode, set_topo,
-    sidtime, sign_exaltation, sign_ingress_ut, sign_ruler, sol_eclipse_when_glob,
-    solar_arc_directions, solar_hijri_to_gregorian, solar_return_jd, solar_term_position,
-    solcross_back_ut, solcross_ut, split_deg, time_equ, tonalpohualli, transit_to_degree,
-    triplicity_rulers, true_obliquity, tzolkin, uposatha_days, utc_time_zone, vesak_jd,
-    vimshottari_dasha, xiuhpohualli, AspectOrbs, CalcOptions, EsbatName, SabbatKind, UtcDate,
-    CALC_MTRANSIT, CALC_RISE, CALC_SET, ECL_OCCULTATION, SIDM_LAHIRI,
+    coord_transform_with_speed, day_of_week, days_in_hebrew_year, decan_ruler, deg_to_cs, degsplit,
+    deltat, diff_deg_signed, distance_to_mc, easter_gregorian, easter_jd, easter_orthodox,
+    egyptian_decan, egyptian_terms_ruler, firdaria, format_coord, four_pillars, full_dignity,
+    gregorian_to_solar_hijri, haab, hebrew_month_days, hebrew_new_year_jd, hijri_from_jd,
+    hijri_month_days, hijri_month_start_jd, hijri_new_year_jd, houses, islamic_observances,
+    jewish_holidays, julday, lon_to_sign, long_to_navamsa, lun_occult_when_glob, lunar_return_jd,
+    mean_sidtime, medicine_wheel_totem, midpoint_table, monthly_profection, months_in_hebrew_year,
+    moon_phase_angle, moon_phase_info, moon_phases_for_month, mooncross_back_ut, mooncross_node,
+    mooncross_node_ut, mooncross_ut, naw_ruz_jd, next_aspect, next_aspect_with,
+    next_full_moon_after, next_new_moon, next_retro, norm_cs, norm_deg, norm_rad, nowruz_jd,
+    nutation, ochchabala, omer_days, omer_period, omer_start_jd, panchanga, planet_conjunct_mc,
+    refrac, residential_strength, retrograde_station_ut, revjul, rise_trans,
+    secondary_progressions, set_sid_mode, set_topo, sidtime, sign_exaltation, sign_ingress_ut,
+    sign_ruler, sol_eclipse_when_glob, solar_arc_directions, solar_hijri_to_gregorian,
+    solar_return_jd, solar_term_position, solcross_back_ut, solcross_ut, split_deg, time_equ,
+    tonalpohualli, transit_to_degree, triplicity_rulers, true_obliquity, tzolkin, uposatha_days,
+    utc_time_zone, vesak_jd, vimshottari_dasha, xiuhpohualli, AspectOrbs, CalcOptions, EsbatName,
+    SabbatKind, UtcDate, CALC_MTRANSIT, CALC_RISE, CALC_SET, ECL_OCCULTATION, SIDM_LAHIRI,
 };
 use std::f64::consts::TAU;
 
@@ -587,10 +586,28 @@ fn test_crossings(n: u32) -> Suite {
         let jd_start = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         let target = rng.range_f64(0.0, 360.0);
         if let Ok(jd) = solcross(target, jd_start, CalcFlags::BUILTIN) {
-            check_body_crossing(&mut s, "solcross", Body::SUN, target, jd_start, jd, 370.0, 0.5);
+            check_body_crossing(
+                &mut s,
+                "solcross",
+                Body::SUN,
+                target,
+                jd_start,
+                jd,
+                370.0,
+                0.5,
+            );
         }
         if let Ok(jd) = mooncross(target, jd_start, CalcFlags::BUILTIN) {
-            check_body_crossing(&mut s, "mooncross", Body::MOON, target, jd_start, jd, 30.0, 1.0);
+            check_body_crossing(
+                &mut s,
+                "mooncross",
+                Body::MOON,
+                target,
+                jd_start,
+                jd,
+                30.0,
+                1.0,
+            );
         }
     }
     s
@@ -1991,11 +2008,16 @@ fn check_calc_options_single(s: &mut Suite, jd: f64, flags: CalcFlags) {
     match (via_builder, direct) {
         (Ok(b), Ok(d)) => {
             s.check((b.lon - d.lon).abs() < 1e-9, || {
-                format!("CalcOptions JD {jd:.2}: lon mismatch {} vs {}", b.lon, d.lon)
+                format!(
+                    "CalcOptions JD {jd:.2}: lon mismatch {} vs {}",
+                    b.lon, d.lon
+                )
             });
         }
         (Err(_), Err(_)) => s.passed += 1,
-        _ => s.check(false, || format!("CalcOptions/calc_ut disagree at JD {jd:.2}")),
+        _ => s.check(false, || {
+            format!("CalcOptions/calc_ut disagree at JD {jd:.2}")
+        }),
     }
 }
 
@@ -2930,7 +2952,10 @@ fn run_calendar_suites(n: u32) -> Vec<(&'static str, bool)> {
         ("calendar_jewish", test_calendar_jewish(n).report()),
         ("calendar_islamic", test_calendar_islamic(n / 5).report()),
         ("calendar_christian", test_calendar_christian(n).report()),
-        ("calendar_nowruz_bahai", test_calendar_nowruz_bahai(n).report()),
+        (
+            "calendar_nowruz_bahai",
+            test_calendar_nowruz_bahai(n).report(),
+        ),
         ("calendar_omer_vesak", test_calendar_omer_vesak(n).report()),
         ("hebrew_calendar", test_hebrew_calendar(n).report()),
         ("hindu_festivals", test_hindu_festivals(n / 50).report()),
@@ -2943,15 +2968,30 @@ fn run_advanced_suites(n: u32) -> Vec<(&'static str, bool)> {
         ("polar_houses", test_polar_houses(n).report()),
         ("ancient_future", test_ancient_future_dates(n).report()),
         ("equatorial_mode", test_equatorial_mode(n).report()),
-        ("sidereal_all_modes", test_sidereal_all_modes(n / 2).report()),
+        (
+            "sidereal_all_modes",
+            test_sidereal_all_modes(n / 2).report(),
+        ),
         ("backward_searches", test_backward_searches(n / 5).report()),
-        ("coordinate_transforms", test_coordinate_transforms(n).report()),
-        ("occultation_search", test_occultation_search(n / 5).report()),
+        (
+            "coordinate_transforms",
+            test_coordinate_transforms(n).report(),
+        ),
+        (
+            "occultation_search",
+            test_occultation_search(n / 5).report(),
+        ),
         ("house_invariants", test_house_invariants(n / 3).report()),
-        ("topocentric_parallax", test_topocentric_parallax(n / 5).report()),
+        (
+            "topocentric_parallax",
+            test_topocentric_parallax(n / 5).report(),
+        ),
         ("time_equ", test_time_equ(n).report()),
         ("solcross_back", test_solcross_back(n / 5).report()),
-        ("calc_many_parallel", test_calc_many_parallel(n / 4).report()),
+        (
+            "calc_many_parallel",
+            test_calc_many_parallel(n / 4).report(),
+        ),
         ("iau2000b_nutation", test_iau2000b_nutation(n).report()),
         ("mean_sidtime", test_mean_sidtime(n).report()),
     ]
@@ -2970,17 +3010,26 @@ fn run_chart_suites(n: u32) -> Vec<(&'static str, bool)> {
         ("ashtakavarga", test_ashtakavarga(n).report()),
         ("shadbala", test_shadbala(n).report()),
         ("north_indian", test_north_indian(n).report()),
-        ("hellenistic_dignities", test_hellenistic_dignities(n).report()),
+        (
+            "hellenistic_dignities",
+            test_hellenistic_dignities(n).report(),
+        ),
         ("firdaria", test_firdaria(n).report()),
         ("full_dignity", test_full_dignity(n).report()),
         ("bazi", test_bazi(n).report()),
         ("mesoamerican", test_mesoamerican(n).report()),
         ("indigenous", test_indigenous(n).report()),
         ("builder_api", test_builder_api(n).report()),
-        ("secondary_progressions_midpoints", test_secondary_progressions_midpoints(n / 5).report()),
+        (
+            "secondary_progressions_midpoints",
+            test_secondary_progressions_midpoints(n / 5).report(),
+        ),
         ("profections", test_profections(n).report()),
         ("arabic_parts_range", test_arabic_part_range(n).report()),
-        ("chart_aspects_builder", test_chart_aspects_builder(n / 5).report()),
+        (
+            "chart_aspects_builder",
+            test_chart_aspects_builder(n / 5).report(),
+        ),
     ]
 }
 
@@ -2988,12 +3037,21 @@ fn run_searches_suites(n: u32) -> Vec<(&'static str, bool)> {
     vec![
         ("searches_aspects", test_searches_aspects(n / 5).report()),
         ("searches_stations", test_searches_stations(n / 5).report()),
-        ("searches_moon_crossings", test_searches_moon_crossings(n / 5).report()),
+        (
+            "searches_moon_crossings",
+            test_searches_moon_crossings(n / 5).report(),
+        ),
         ("moon_phases", test_moon_phases(n / 5).report()),
-        ("vedic_dasha_panchanga", test_vedic_dasha_panchanga(n / 5).report()),
+        (
+            "vedic_dasha_panchanga",
+            test_vedic_dasha_panchanga(n / 5).report(),
+        ),
         ("geo_utilities", test_geo_utilities(n).report()),
         ("format_helpers", test_format_helpers(n).report()),
-        ("calc_ut_many", test_calc_ut_many_consistency(n / 10).report()),
+        (
+            "calc_ut_many",
+            test_calc_ut_many_consistency(n / 10).report(),
+        ),
         ("calc_pctr", test_calc_pctr_no_panic(n / 5).report()),
         ("ayanamsa_name", test_get_ayanamsa_name(n).report()),
     ]
@@ -3027,8 +3085,6 @@ fn main() {
     }
 }
 
-
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Coverage-expansion suites — fuzz previously-uncovered fns
 //
@@ -3059,20 +3115,31 @@ fn test_format_helpers(n: u32) -> Suite {
 fn test_calc_ut_many_consistency(n: u32) -> Suite {
     let mut s = Suite::new("calc_ut_many");
     let mut rng = Xorshift64::new(0xBADC_0FFE_E0DD_F00D);
-    let bodies = [Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS,
-                  Body::MARS, Body::JUPITER, Body::SATURN];
+    let bodies = [
+        Body::SUN,
+        Body::MOON,
+        Body::MERCURY,
+        Body::VENUS,
+        Body::MARS,
+        Body::JUPITER,
+        Body::SATURN,
+    ];
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
         let many = celestial_core::calc_ut_many(jd, &bodies, CalcFlags::BUILTIN);
-        s.check(many.len() == bodies.len(),
-                || format!("calc_ut_many length: {}", many.len()));
+        s.check(many.len() == bodies.len(), || {
+            format!("calc_ut_many length: {}", many.len())
+        });
         // First (Sun) should match a separate calc_ut call
         if let (Some(Ok(via_many)), Ok(via_one)) =
             (many.first(), calc_ut(jd, Body::SUN, CalcFlags::BUILTIN))
         {
-            s.check((via_many.lon - via_one.lon).abs() < 1e-9,
-                    || format!("Sun lon mismatch jd={jd}: many={} one={}",
-                               via_many.lon, via_one.lon));
+            s.check((via_many.lon - via_one.lon).abs() < 1e-9, || {
+                format!(
+                    "Sun lon mismatch jd={jd}: many={} one={}",
+                    via_many.lon, via_one.lon
+                )
+            });
         }
     }
     s
@@ -3083,12 +3150,13 @@ fn test_arabic_part_range(n: u32) -> Suite {
     let mut s = Suite::new("arabic_parts_range");
     let mut rng = Xorshift64::new(0x0FAD_EDFE_EDC0_DE00);
     for _ in 0..n {
-        let asc  = rng.range_f64(0.0, 360.0);
-        let sun  = rng.range_f64(0.0, 360.0);
+        let asc = rng.range_f64(0.0, 360.0);
+        let sun = rng.range_f64(0.0, 360.0);
         let moon = rng.range_f64(0.0, 360.0);
         let pof = celestial_core::arabic_part(asc, moon, sun);
-        s.check(pof.is_finite() && (0.0..360.0).contains(&pof),
-                || format!("Part of Fortune: {pof} (asc={asc}, sun={sun}, moon={moon})"));
+        s.check(pof.is_finite() && (0.0..360.0).contains(&pof), || {
+            format!("Part of Fortune: {pof} (asc={asc}, sun={sun}, moon={moon})")
+        });
     }
     s
 }
@@ -3103,15 +3171,20 @@ fn test_chart_aspects_builder(n: u32) -> Suite {
     for _ in 0..n {
         // Build a random "chart" of 5 bodies at random positions
         let positions: Vec<(Body, f64, f64)> = [
-            Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS, Body::MARS,
+            Body::SUN,
+            Body::MOON,
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS,
         ]
         .iter()
         .map(|&b| (b, rng.range_f64(0.0, 360.0), rng.range_f64(-2.0, 15.0)))
         .collect();
         let aspects = celestial_core::calc_chart_aspects_auto(&positions, &aspect_angles);
         for a in &aspects {
-            s.check(a.orb.is_finite() && a.orb >= 0.0,
-                    || format!("aspect orb: {}", a.orb));
+            s.check(a.orb.is_finite() && a.orb >= 0.0, || {
+                format!("aspect orb: {}", a.orb)
+            });
         }
         s.passed += 1;
     }
@@ -3142,13 +3215,12 @@ fn test_calc_pctr_no_panic(n: u32) -> Suite {
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
         let body = bodies[(rng.next_u64() as usize) % bodies.len()];
-        let ctr  = centers[(rng.next_u64() as usize) % centers.len()];
+        let ctr = centers[(rng.next_u64() as usize) % centers.len()];
         let _ = celestial_core::calc_pctr(jd, body, ctr, CalcFlags::BUILTIN);
         s.passed += 1;
     }
     s
 }
-
 
 /// `hindu_festivals(year)` should never panic and produce 0–10 well-formed
 /// festival entries for any reasonable year.
@@ -3159,14 +3231,19 @@ fn test_hindu_festivals(n: u32) -> Suite {
         let year = rng.range_i32(1900, 2200);
         let festivals = celestial_core::hindu_festivals(year);
         // Up to 7 unique festivals are documented; allow a bit of slack
-        s.check(festivals.len() <= 10,
-                || format!("hindu_festivals({year}) returned {} entries (>10)",
-                           festivals.len()));
+        s.check(festivals.len() <= 10, || {
+            format!(
+                "hindu_festivals({year}) returned {} entries (>10)",
+                festivals.len()
+            )
+        });
         for f in &festivals {
-            s.check(!f.name.is_empty(),
-                    || format!("hindu_festival name is empty for year {year}"));
-            s.check(f.jd.is_finite() && f.jd > 2_000_000.0,
-                    || format!("hindu_festival jd not finite/sane: {}", f.jd));
+            s.check(!f.name.is_empty(), || {
+                format!("hindu_festival name is empty for year {year}")
+            });
+            s.check(f.jd.is_finite() && f.jd > 2_000_000.0, || {
+                format!("hindu_festival jd not finite/sane: {}", f.jd)
+            });
         }
     }
     s
@@ -3181,8 +3258,9 @@ fn test_losar_jd(n: u32) -> Suite {
     for _ in 0..n {
         let year = rng.range_i32(1900, 2150);
         if let Some(jd) = celestial_core::losar_jd(year) {
-            s.check(jd.is_finite() && jd > 2_000_000.0,
-                    || format!("losar_jd({year}) returned non-finite/insane JD: {jd}"));
+            s.check(jd.is_finite() && jd > 2_000_000.0, || {
+                format!("losar_jd({year}) returned non-finite/insane JD: {jd}")
+            });
         }
         // Record a no-panic pass even when None
         s.passed += 1;
@@ -3199,10 +3277,9 @@ fn test_get_ayanamsa_name(_n: u32) -> Suite {
     // 0..=35 are the documented modes; sample beyond that range too
     for code in -10..=50i32 {
         let name = celestial_core::ayanamsa_name(code);
-        s.check(
-            !name.is_empty(),
-            || format!("ayanamsa_name({code}) was empty"),
-        );
+        s.check(!name.is_empty(), || {
+            format!("ayanamsa_name({code}) was empty")
+        });
     }
     s
 }
@@ -3368,9 +3445,7 @@ fn test_backward_searches(n: u32) -> Suite {
                     format!("mooncross_back_ut {prev:.2} not before start {jd:.2}")
                 });
                 s.check(jd - prev < 30.0, || {
-                    format!(
-                        "mooncross_back_ut result {prev:.2} more than 30d before {jd:.2}"
-                    )
+                    format!("mooncross_back_ut result {prev:.2} more than 30d before {jd:.2}")
                 });
             }
             Err(_) => {

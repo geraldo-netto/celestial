@@ -37,8 +37,18 @@ const CELL_H: f64 = 90.0;
 /// Build a Gregorian month-grid overlay for the month of `(year, month)`.
 pub fn gregorian_overlay(year: i32, month: u32) -> Value {
     let month_names = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
     ];
     let month_idx = (month.saturating_sub(1) as usize).min(11);
 
@@ -122,7 +132,11 @@ fn days_in_gregorian_month(year: i32, month: u32) -> u32 {
         4 | 6 | 9 | 11 => 30,
         2 => {
             let leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-            if leap { 29 } else { 28 }
+            if leap {
+                29
+            } else {
+                28
+            }
         }
         _ => 30,
     }
@@ -210,16 +224,22 @@ pub fn omer_overlay(jd: f64) -> Value {
 
 /// Annotate Gregorian days that fall inside the Omer period.
 pub fn annotate_gregorian_with_omer(gregorian: &mut Value, omer: &Value) {
-    let Some(omer_days) = omer["days"].as_array() else { return };
+    let Some(omer_days) = omer["days"].as_array() else {
+        return;
+    };
     let mut by_iso: HashMap<String, &Value> = HashMap::new();
     for od in omer_days {
         if let Some(iso) = od["iso_date"].as_str() {
             by_iso.insert(iso.to_string(), od);
         }
     }
-    let Some(days) = gregorian["days"].as_array_mut() else { return };
+    let Some(days) = gregorian["days"].as_array_mut() else {
+        return;
+    };
     for day in days {
-        let Some(iso) = day["iso_date"].as_str().map(str::to_string) else { continue };
+        let Some(iso) = day["iso_date"].as_str().map(str::to_string) else {
+            continue;
+        };
         if let Some(omer_day) = by_iso.get(&iso) {
             day["omer_day"] = omer_day["day"].clone();
             day["omer_week_sefirah"] = omer_day["week_sefirah"].clone();
@@ -265,16 +285,22 @@ pub fn sabbats_overlay(year: i32) -> Value {
 
 /// Annotate Gregorian days that match a sabbat date.
 pub fn annotate_gregorian_with_sabbats(gregorian: &mut Value, sabbats: &Value) {
-    let Some(sabbats_list) = sabbats["sabbats"].as_array() else { return };
+    let Some(sabbats_list) = sabbats["sabbats"].as_array() else {
+        return;
+    };
     let mut by_iso: HashMap<String, &Value> = HashMap::new();
     for s in sabbats_list {
         if let Some(iso) = s["iso_date"].as_str() {
             by_iso.insert(iso.to_string(), s);
         }
     }
-    let Some(days) = gregorian["days"].as_array_mut() else { return };
+    let Some(days) = gregorian["days"].as_array_mut() else {
+        return;
+    };
     for day in days {
-        let Some(iso) = day["iso_date"].as_str().map(str::to_string) else { continue };
+        let Some(iso) = day["iso_date"].as_str().map(str::to_string) else {
+            continue;
+        };
         if let Some(s) = by_iso.get(&iso) {
             day["sabbat_name"] = s["name"].clone();
             day["is_sabbat"] = json!(true);
@@ -317,22 +343,30 @@ pub fn moon_overlay(year: i32, month: u32) -> Value {
 
 /// Annotate Gregorian days with phase events + daily illumination.
 pub fn annotate_gregorian_with_moon(gregorian: &mut Value, moon: &Value) {
-    let Some(events) = moon["phase_events"].as_array() else { return };
+    let Some(events) = moon["phase_events"].as_array() else {
+        return;
+    };
     let mut by_iso: HashMap<String, &Value> = HashMap::new();
     for e in events {
         if let Some(iso) = e["iso_date"].as_str() {
             by_iso.insert(iso.to_string(), e);
         }
     }
-    let Some(days) = gregorian["days"].as_array_mut() else { return };
+    let Some(days) = gregorian["days"].as_array_mut() else {
+        return;
+    };
     for day in days {
-        let Some(iso) = day["iso_date"].as_str().map(str::to_string) else { continue };
+        let Some(iso) = day["iso_date"].as_str().map(str::to_string) else {
+            continue;
+        };
         if let Some(e) = by_iso.get(&iso) {
             day["moon_phase"] = e["phase"].clone();
             day["moon_phase_short"] = e["phase_short"].clone();
             day["moon_glyph"] = e["glyph"].clone();
         }
-        let Some(jd) = day["jd"].as_f64() else { continue };
+        let Some(jd) = day["jd"].as_f64() else {
+            continue;
+        };
         if let Ok(illum) = moon_illumination(jd) {
             day["moon_illumination"] = json!(illum);
             day["moon_illumination_pct"] = json!((illum * 100.0).round() as i32);
@@ -370,8 +404,8 @@ fn phase_glyph(p: PrincipalPhase) -> &'static str {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const HEBREW_MONTH_NAMES: [&str; 13] = [
-    "Tishrei", "Cheshvan", "Kislev", "Tevet", "Shvat", "Adar", "Adar II",
-    "Nisan", "Iyar", "Sivan", "Tammuz", "Av", "Elul",
+    "Tishrei", "Cheshvan", "Kislev", "Tevet", "Shvat", "Adar", "Adar II", "Nisan", "Iyar", "Sivan",
+    "Tammuz", "Av", "Elul",
 ];
 
 /// Hebrew calendar overlay covering Gregorian JDs in `[jd_start, jd_end]`.
@@ -439,7 +473,9 @@ pub fn hebrew_overlay(jd_start: f64, jd_end: f64) -> Value {
 
 /// Annotate Gregorian days with Hebrew-calendar tags.
 pub fn annotate_gregorian_with_hebrew(gregorian: &mut Value, hebrew: &Value) {
-    let Some(h_days) = hebrew["days"].as_array() else { return };
+    let Some(h_days) = hebrew["days"].as_array() else {
+        return;
+    };
     let mut by_jd: HashMap<i64, &Value> = HashMap::new();
     for hd in h_days {
         if let Some(jd) = hd["jd"].as_f64() {
@@ -447,9 +483,13 @@ pub fn annotate_gregorian_with_hebrew(gregorian: &mut Value, hebrew: &Value) {
         }
     }
 
-    let Some(days) = gregorian["days"].as_array_mut() else { return };
+    let Some(days) = gregorian["days"].as_array_mut() else {
+        return;
+    };
     for day in days {
-        let Some(jd) = day["jd"].as_f64() else { continue };
+        let Some(jd) = day["jd"].as_f64() else {
+            continue;
+        };
         let key = jd.floor() as i64;
         if let Some(hd) = by_jd.get(&key) {
             day["hebrew_year"] = hd["hebrew_year"].clone();
@@ -470,11 +510,7 @@ pub fn annotate_gregorian_with_hebrew(gregorian: &mut Value, hebrew: &Value) {
 /// authors can study.
 /// Helper for [`render_default_calendar_svg`]: render one day cell.
 /// Pulled out to keep the parent function's nesting depth manageable.
-fn render_day_cell(
-    s: &mut String,
-    d: &Value,
-    palette: &CalendarPalette<'_>,
-) {
+fn render_day_cell(s: &mut String, d: &Value, palette: &CalendarPalette<'_>) {
     use std::fmt::Write;
 
     let x = d["cell_x"].as_f64().unwrap_or(0.0);
@@ -573,13 +609,7 @@ fn render_day_cell(
 }
 
 /// Helper for [`render_default_calendar_svg`]: render the bottom legend.
-fn render_legend(
-    s: &mut String,
-    ctx: &Value,
-    palette: &CalendarPalette<'_>,
-    gx: f64,
-    vh: f64,
-) {
+fn render_legend(s: &mut String, ctx: &Value, palette: &CalendarPalette<'_>, gx: f64, vh: f64) {
     use std::fmt::Write;
     let mut legend_parts = Vec::new();
     if !ctx["omer"].is_null() {
@@ -597,9 +627,8 @@ fn render_legend(
         ));
     }
     if !ctx["moon"].is_null() {
-        legend_parts.push(
-            r#"<text x="0" y="9">🌑 🌓 🌕 🌗 principal moon phases</text>"#.to_string(),
-        );
+        legend_parts
+            .push(r#"<text x="0" y="9">🌑 🌓 🌕 🌗 principal moon phases</text>"#.to_string());
     }
     let _ = writeln!(
         s,
@@ -738,13 +767,23 @@ mod tests {
         let g_2024 = gregorian_overlay(2024, 2);
         assert_eq!(g_2024["days_in_month"].as_u64(), Some(29), "2024 is leap");
         let g_2023 = gregorian_overlay(2023, 2);
-        assert_eq!(g_2023["days_in_month"].as_u64(), Some(28), "2023 is non-leap");
+        assert_eq!(
+            g_2023["days_in_month"].as_u64(),
+            Some(28),
+            "2023 is non-leap"
+        );
         let g_1900 = gregorian_overlay(1900, 2);
-        assert_eq!(g_1900["days_in_month"].as_u64(), Some(28),
-            "1900 not leap (divisible by 100 but not 400)");
+        assert_eq!(
+            g_1900["days_in_month"].as_u64(),
+            Some(28),
+            "1900 not leap (divisible by 100 but not 400)"
+        );
         let g_2000 = gregorian_overlay(2000, 2);
-        assert_eq!(g_2000["days_in_month"].as_u64(), Some(29),
-            "2000 is leap (divisible by 400)");
+        assert_eq!(
+            g_2000["days_in_month"].as_u64(),
+            Some(29),
+            "2000 is leap (divisible by 400)"
+        );
     }
 
     #[test]
@@ -775,7 +814,9 @@ mod tests {
         annotate_gregorian_with_moon(&mut g, &moon);
 
         for d in g["days"].as_array().unwrap() {
-            let illum = d["moon_illumination"].as_f64().expect("illumination missing");
+            let illum = d["moon_illumination"]
+                .as_f64()
+                .expect("illumination missing");
             assert!((0.0..=1.0).contains(&illum));
         }
         let tagged_count = g["days"]
@@ -784,7 +825,10 @@ mod tests {
             .iter()
             .filter(|d| !d["moon_phase"].is_null())
             .count();
-        assert!(tagged_count >= 1, "expected at least one phase event in May 2024");
+        assert!(
+            tagged_count >= 1,
+            "expected at least one phase event in May 2024"
+        );
     }
 
     #[test]

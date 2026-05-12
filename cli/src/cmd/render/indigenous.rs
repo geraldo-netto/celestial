@@ -1,6 +1,5 @@
 //! Indigenous chart builders — split from render.rs.
 
-
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::calc_ut;
 use celestial_core::{egyptian_decan, medicine_wheel_totem};
@@ -25,10 +24,10 @@ pub fn build_medicine_wheel_context(
 
     let palette = super::palette_with_defaults(
         &[
-        ("bg_color", "#0a1a0a"),
-        ("border_color", "#a0c040"),
-        ("text_color", "#d0e8a0"),
-        ("planet_color", "#80c060"),
+            ("bg_color", "#0a1a0a"),
+            ("border_color", "#a0c040"),
+            ("text_color", "#d0e8a0"),
+            ("planet_color", "#80c060"),
         ],
         &vars,
     );
@@ -145,7 +144,15 @@ fn write_mw_sun(s: &mut String, sun_lon: f64) {
     );
 }
 
-fn write_mw_centre(s: &mut String, green: &str, txt: &str, totem: &str, element: &str, clan: &str, season: &str) {
+fn write_mw_centre(
+    s: &mut String,
+    green: &str,
+    txt: &str,
+    totem: &str,
+    element: &str,
+    clan: &str,
+    season: &str,
+) {
     use std::fmt::Write;
     let _ = writeln!(
         s,

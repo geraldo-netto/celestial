@@ -38,15 +38,15 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use celestial_core::body::{Body, CalcFlags};
+use celestial_core::lon_to_sign;
 use celestial_core::MoonPhase;
+use celestial_core::{long_to_nakshatra, nakshatra_name};
 use celestial_core::{
     lunar_return_jd, moon_phase, revjul, sign_exaltation, sign_ruler, solar_return_jd, Calendar,
 };
-use celestial_core::lon_to_sign;
-use celestial_core::{long_to_nakshatra, nakshatra_name};
 use clap::Args;
-use serde_json::{json, Value};
 use minijinja::{Environment, Value as MjValue};
+use serde_json::{json, Value};
 
 // ── Builder submodules — each tradition's build_*/render_* fns ───────────────
 pub(crate) mod builtin_svg;
@@ -654,14 +654,20 @@ fn calendar_default_vars(
 ) -> serde_json::Value {
     let mut vars = user_vars.clone();
     vars.entry("title".to_string()).or_insert(title_default);
-    vars.entry("bg_color".to_string()).or_insert_with(|| "#ffffff".to_string());
-    vars.entry("text_color".to_string()).or_insert_with(|| "#222".to_string());
-    vars.entry("ring_color".to_string()).or_insert_with(|| "#888".to_string());
+    vars.entry("bg_color".to_string())
+        .or_insert_with(|| "#ffffff".to_string());
+    vars.entry("text_color".to_string())
+        .or_insert_with(|| "#222".to_string());
+    vars.entry("ring_color".to_string())
+        .or_insert_with(|| "#888".to_string());
     vars.entry("accent_color".to_string())
         .or_insert_with(|| "#5c4a8a".to_string());
-    vars.entry("lag_color".to_string()).or_insert_with(|| "#c87f32".to_string());
-    vars.entry("sabbat_color".to_string()).or_insert_with(|| "#3d6b35".to_string());
-    vars.entry("moon_color".to_string()).or_insert_with(|| "#3a4a6a".to_string());
+    vars.entry("lag_color".to_string())
+        .or_insert_with(|| "#c87f32".to_string());
+    vars.entry("sabbat_color".to_string())
+        .or_insert_with(|| "#3d6b35".to_string());
+    vars.entry("moon_color".to_string())
+        .or_insert_with(|| "#3a4a6a".to_string());
     let mut vars_json = serde_json::Map::new();
     for (k, v) in vars {
         vars_json.insert(k, serde_json::json!(v));
@@ -698,10 +704,7 @@ fn build_calendar_context(
     };
 
     let gregorian = calendar_overlays::gregorian_overlay(year, month);
-    let title_default = format!(
-        "{} {year}",
-        gregorian["month_name"].as_str().unwrap_or("")
-    );
+    let title_default = format!("{} {year}", gregorian["month_name"].as_str().unwrap_or(""));
 
     Ok(serde_json::json!({
         "jd":        jd,
@@ -786,11 +789,7 @@ fn annotate_month(
 /// `gregorian` and `gregorian_year` overlays additionally have their `days[]`
 /// arrays annotated with cross-overlay tags so a single template loop can
 /// tag a day from any tradition.
-fn apply_universal_overlays(
-    ctx: &mut serde_json::Value,
-    jd: f64,
-    calendars: &[String],
-) {
+fn apply_universal_overlays(ctx: &mut serde_json::Value, jd: f64, calendars: &[String]) {
     if calendars.is_empty() {
         return;
     }
@@ -902,18 +901,36 @@ fn vars_with_title(
 
 type ChartRenderer = fn(&serde_json::Value) -> String;
 
-fn dispatch_natal(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+fn dispatch_natal(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
     let v = vars_with_title(user_vars, "Natal Chart");
-    Ok((build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, render_builtin_svg))
+    Ok((
+        build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+        render_builtin_svg,
+    ))
 }
 
-fn dispatch_cosmogram(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+fn dispatch_cosmogram(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
     let mut v = vars_with_title(user_vars, "Cosmogram");
     v.insert("no_houses".to_string(), "1".to_string());
-    Ok((build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, render_cosmogram_svg))
+    Ok((
+        build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+        render_cosmogram_svg,
+    ))
 }
 
-fn dispatch_solar_return(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+fn dispatch_solar_return(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
     let year = args.return_year.unwrap_or_else(|| {
         let today_jd = crate::parse::parse_date("now").unwrap_or(2_451_545.0);
         let d = celestial_core::revjul(today_jd, celestial_core::body::Calendar::Gregorian);
@@ -923,12 +940,24 @@ fn dispatch_solar_return(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String
     let sr_date = jd_to_date_str(sr_jd);
     let mut v = user_vars.clone();
     v.insert("title".to_string(), format!("Solar Return {year}"));
-    v.insert("chart_type_label".to_string(), format!("Solar Return {year}"));
-    Ok((build_context(sr_jd, args.lat, args.lon, &sr_date, args.hsys, v)?, render_builtin_svg))
+    v.insert(
+        "chart_type_label".to_string(),
+        format!("Solar Return {year}"),
+    );
+    Ok((
+        build_context(sr_jd, args.lat, args.lon, &sr_date, args.hsys, v)?,
+        render_builtin_svg,
+    ))
 }
 
-fn dispatch_lunar_return(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
-    let start = args.date2.as_deref()
+fn dispatch_lunar_return(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let start = args
+        .date2
+        .as_deref()
         .map(crate::parse::parse_date)
         .transpose()?
         .unwrap_or(jd);
@@ -936,63 +965,148 @@ fn dispatch_lunar_return(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String
     let lr_date = jd_to_date_str(lr_jd);
     let mut v = user_vars.clone();
     v.insert("title".to_string(), "Lunar Return".to_string());
-    Ok((build_context(lr_jd, args.lat, args.lon, &lr_date, args.hsys, v)?, render_builtin_svg))
+    Ok((
+        build_context(lr_jd, args.lat, args.lon, &lr_date, args.hsys, v)?,
+        render_builtin_svg,
+    ))
 }
 
-fn dispatch_progressed(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
-    let years = args.years.ok_or("--years DECIMAL required for progressed chart")?;
+fn dispatch_progressed(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let years = args
+        .years
+        .ok_or("--years DECIMAL required for progressed chart")?;
     let mut v = user_vars.clone();
-    v.insert("title".to_string(), format!("Secondary Progressions ({years:.1}y)"));
-    Ok((build_progressed_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?, render_progressed_svg))
+    v.insert(
+        "title".to_string(),
+        format!("Secondary Progressions ({years:.1}y)"),
+    );
+    Ok((
+        build_progressed_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?,
+        render_progressed_svg,
+    ))
 }
 
-fn dispatch_solar_arc(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
-    let years = args.years.ok_or("--years DECIMAL required for solar-arc chart")?;
+fn dispatch_solar_arc(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let years = args
+        .years
+        .ok_or("--years DECIMAL required for solar-arc chart")?;
     let mut v = user_vars.clone();
-    v.insert("title".to_string(), format!("Solar Arc Directions ({years:.1}y)"));
-    Ok((build_solar_arc_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?, render_progressed_svg))
+    v.insert(
+        "title".to_string(),
+        format!("Solar Arc Directions ({years:.1}y)"),
+    );
+    Ok((
+        build_solar_arc_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?,
+        render_progressed_svg,
+    ))
 }
 
-fn dispatch_biwheel(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
-    let date2 = args.date2.as_deref().ok_or("--date2 DATE required for biwheel chart")?;
+fn dispatch_biwheel(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let date2 = args
+        .date2
+        .as_deref()
+        .ok_or("--date2 DATE required for biwheel chart")?;
     let jd2 = crate::parse::parse_date(date2)?;
     let lat2 = args.lat2.unwrap_or(args.lat);
     let lon2 = args.lon2.unwrap_or(args.lon);
     let v = vars_with_title(user_vars, "Bi-wheel");
-    Ok((build_biwheel_context(jd, jd2, args.lat, args.lon, lat2, lon2, &args.date, date2, args.hsys, v)?, render_biwheel_svg))
+    Ok((
+        build_biwheel_context(
+            jd, jd2, args.lat, args.lon, lat2, lon2, &args.date, date2, args.hsys, v,
+        )?,
+        render_biwheel_svg,
+    ))
 }
 
-fn dispatch_composite(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
-    let date2 = args.date2.as_deref().ok_or("--date2 DATE required for composite chart")?;
+fn dispatch_composite(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let date2 = args
+        .date2
+        .as_deref()
+        .ok_or("--date2 DATE required for composite chart")?;
     let jd2 = crate::parse::parse_date(date2)?;
     let v = vars_with_title(user_vars, "Composite Chart");
-    Ok((specialist::build_composite_context(jd, jd2, args.lat, args.lon, &args.date, date2, args.hsys, v)?, render_builtin_svg))
+    Ok((
+        specialist::build_composite_context(
+            jd, jd2, args.lat, args.lon, &args.date, date2, args.hsys, v,
+        )?,
+        render_builtin_svg,
+    ))
 }
 
-fn dispatch_triwheel(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
-    let date2 = args.date2.as_deref().ok_or("--date2 required (ring 2) for tri-wheel")?;
-    let date3 = args.date3.as_deref().ok_or("--date3 required (ring 3) for tri-wheel")?;
+fn dispatch_triwheel(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let date2 = args
+        .date2
+        .as_deref()
+        .ok_or("--date2 required (ring 2) for tri-wheel")?;
+    let date3 = args
+        .date3
+        .as_deref()
+        .ok_or("--date3 required (ring 3) for tri-wheel")?;
     let jd2 = crate::parse::parse_date(date2)?;
     let jd3 = crate::parse::parse_date(date3)?;
     let v = vars_with_title(user_vars, "Tri-wheel");
-    Ok((specialist::build_triwheel_context(jd, jd2, jd3, args.lat, args.lon, &args.date, date2, date3, args.hsys, v)?, specialist::render_triwheel_svg))
+    Ok((
+        specialist::build_triwheel_context(
+            jd, jd2, jd3, args.lat, args.lon, &args.date, date2, date3, args.hsys, v,
+        )?,
+        specialist::render_triwheel_svg,
+    ))
 }
 
-fn dispatch_ephemeris(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
+fn dispatch_ephemeris(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
     let date2 = args.date2.as_deref().unwrap_or("now");
     let jd2 = crate::parse::parse_date(date2)?;
     let (jd_s, jd_e) = if jd < jd2 { (jd, jd2) } else { (jd2, jd) };
     let v = vars_with_title(user_vars, "Graphic Ephemeris");
-    Ok((specialist::build_graphic_ephemeris_context(jd_s, jd_e, v)?, specialist::render_graphic_ephemeris_svg))
+    Ok((
+        specialist::build_graphic_ephemeris_context(jd_s, jd_e, v)?,
+        specialist::render_graphic_ephemeris_svg,
+    ))
 }
 
-fn dispatch_profection(jd: f64, args: &RenderArgs, user_vars: &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String> {
-    let age = args.years.map(|y| y as u32)
+fn dispatch_profection(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let age = args
+        .years
+        .map(|y| y as u32)
         .or(args.return_year.map(|r| r as u32))
         .unwrap_or(0);
     let mut v = user_vars.clone();
-    v.entry("title".to_string()).or_insert_with(|| format!("Profection — Age {age}"));
-    Ok((hellenistic::build_profection_context(jd, args.lat, args.lon, &args.date, args.hsys, age, v)?, hellenistic::render_profection_svg))
+    v.entry("title".to_string())
+        .or_insert_with(|| format!("Profection — Age {age}"));
+    Ok((
+        hellenistic::build_profection_context(
+            jd, args.lat, args.lon, &args.date, args.hsys, age, v,
+        )?,
+        hellenistic::render_profection_svg,
+    ))
 }
 
 fn dispatch_chart_type(
@@ -1193,11 +1307,8 @@ mod tests {
     #[test]
     fn sabbat_wheel_context_has_8_sabbats() {
         let jd = 2_460_482.5; // 2024-06-21
-        let ctx = calendar_wheel::build_sabbat_wheel_context(
-            jd,
-            std::collections::BTreeMap::new(),
-        )
-        .unwrap();
+        let ctx = calendar_wheel::build_sabbat_wheel_context(jd, std::collections::BTreeMap::new())
+            .unwrap();
         let sabbats = ctx["sabbats"].as_array().expect("sabbats array");
         assert_eq!(sabbats.len(), 8, "Wheel of the Year always has 8 sabbats");
         // Each sabbat must have rendering geometry
@@ -1214,19 +1325,22 @@ mod tests {
     #[test]
     fn sabbat_wheel_renders_valid_svg() {
         let jd = 2_460_482.5;
-        let ctx = calendar_wheel::build_sabbat_wheel_context(
-            jd,
-            std::collections::BTreeMap::new(),
-        )
-        .unwrap();
+        let ctx = calendar_wheel::build_sabbat_wheel_context(jd, std::collections::BTreeMap::new())
+            .unwrap();
         let svg = calendar_wheel::render_sabbat_wheel_svg(&ctx);
         assert!(svg.starts_with("<?xml"), "SVG should start with <?xml");
         assert!(svg.contains("<svg "), "should contain <svg> tag");
         assert!(svg.ends_with("</svg>\n"), "should close </svg>");
         // Must contain all 8 sabbat names
         for name in [
-            "Yule", "Imbolc", "Ostara", "Beltane",
-            "Litha", "Lughnasadh", "Mabon", "Samhain",
+            "Yule",
+            "Imbolc",
+            "Ostara",
+            "Beltane",
+            "Litha",
+            "Lughnasadh",
+            "Mabon",
+            "Samhain",
         ] {
             assert!(svg.contains(name), "SVG missing sabbat `{name}`");
         }
@@ -1243,7 +1357,10 @@ mod tests {
     fn assert_omer_overlay_for_may_15_2024(ctx: &Value) {
         assert!(ctx["omer"].is_object(), "omer overlay missing");
         let today = &ctx["omer"]["today"];
-        assert!(!today.is_null(), "May 15 2024 is in Omer 5784 — today should be set");
+        assert!(
+            !today.is_null(),
+            "May 15 2024 is in Omer 5784 — today should be set"
+        );
         assert_eq!(today["day"].as_u64(), Some(23), "day 23 of Omer 5784");
         assert_eq!(today["day_sefirah"].as_str(), Some("Gevurah"));
         assert_eq!(today["week_sefirah"].as_str(), Some("Netzach"));
@@ -2240,7 +2357,16 @@ fn group_planets_by_rasi(planets: &[Value]) -> Vec<Vec<String>> {
     rasi_planets
 }
 
-fn write_si_header(s: &mut String, bg: &str, txt: &str, border: &str, title: &str, date: &str, total_w: f64, total_h: f64) {
+fn write_si_header(
+    s: &mut String,
+    bg: &str,
+    txt: &str,
+    border: &str,
+    title: &str,
+    date: &str,
+    total_w: f64,
+    total_h: f64,
+) {
     use std::fmt::Write;
     let half = total_w / 2.0;
     let _ = writeln!(
@@ -2281,7 +2407,15 @@ fn write_si_centre(s: &mut String, ctx: &Value, bg: &str, txt: &str, border: &st
     );
 }
 
-fn write_si_cells(s: &mut String, rasi_planets: &[Vec<String>], bg: &str, txt: &str, border: &str, pcol: &str, retro: &str) {
+fn write_si_cells(
+    s: &mut String,
+    rasi_planets: &[Vec<String>],
+    bg: &str,
+    txt: &str,
+    border: &str,
+    pcol: &str,
+    retro: &str,
+) {
     use std::fmt::Write;
     for &(row, col, sign_idx) in SI_CELLS {
         let x = (col as f64).mul_add(SI_CW, SI_OX);
