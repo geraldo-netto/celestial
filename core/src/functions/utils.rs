@@ -22,6 +22,7 @@ pub struct AzAlt {
 /// - `pressure_mb` = atmospheric pressure (mbar); `temp_c` = temperature (°C)
 ///
 /// Returns azimuth (0° N, clockwise) and true / apparent altitude above horizon.
+#[must_use]
 pub fn azalt(
     jd_ut: f64,
     direction: i32,
@@ -105,6 +106,7 @@ pub fn azalt(
 /// - `calc_flag = 1` (`SE_HOR2EQU`): returns equatorial `[RA°, Dec°, 1.0]`
 /// - `xin` = `[azimuth°, true_altitude°]`  (South-based azimuth, S=0° clockwise)
 /// - `geopos` = observer `[lon°, lat°, alt_m]`
+#[must_use]
 pub fn azalt_rev(jd_ut: f64, direction: i32, geopos: [f64; 3], xin: [f64; 2]) -> [f64; 3] {
     let geolon = geopos[0];
     let geolat = geopos[1];
@@ -162,6 +164,7 @@ pub fn azalt_rev(jd_ut: f64, direction: i32, geopos: [f64; 3], xin: [f64; 2]) ->
 // ─── Refraction ───────────────────────────────────────────────────────────────
 
 /// Compute atmospheric refraction.
+#[must_use]
 pub fn refrac(altitude: f64, pressure_mb: f64, temp_c: f64, direction: i32) -> f64 {
     {
         // Simple Bennett formula
@@ -177,6 +180,7 @@ pub fn refrac(altitude: f64, pressure_mb: f64, temp_c: f64, direction: i32) -> f
 }
 
 /// Extended refraction calculation.
+#[must_use]
 pub fn refrac_extended(
     altitude: f64,
     _geoalt: f64,
@@ -195,6 +199,7 @@ pub fn refrac_extended(
 ///
 /// `coords` = `[lon, lat, dist]`, `eps` = obliquity in degrees.
 /// Positive `eps` converts ecliptic → equatorial; negative reverses.
+#[must_use]
 pub fn coord_transform(coords: [f64; 3], eps: f64) -> [f64; 3] {
     let (lon, lat, dist) = (coords[0], coords[1], coords[2]);
     let eps_r = eps.to_radians();
@@ -214,6 +219,7 @@ pub fn coord_transform(coords: [f64; 3], eps: f64) -> [f64; 3] {
 }
 
 /// Transform with speeds (coord_transform_with_speed).
+#[must_use]
 pub fn coord_transform_with_speed(coords: [f64; 6], eps: f64) -> [f64; 6] {
     let pos = [coords[0], coords[1], coords[2]];
     let out = coord_transform(pos, eps);
@@ -224,57 +230,61 @@ pub fn coord_transform_with_speed(coords: [f64; 6], eps: f64) -> [f64; 6] {
 
 /// Normalise degrees to [0, 360).
 #[inline]
+#[must_use]
 pub fn norm_deg(x: f64) -> f64 {
     x.rem_euclid(360.0)
 }
 
 /// Normalise radians to [0, 2π).
 #[inline]
+#[must_use]
 pub fn norm_rad(x: f64) -> f64 {
     x.rem_euclid(std::f64::consts::TAU)
 }
 
 /// Midpoint of two ecliptic degrees (accounts for 360° wrap).
+#[must_use]
 pub fn midpoint_deg(x1: f64, x0: f64) -> f64 {
     let d = diff_deg_signed(x1, x0);
     norm_deg(x0 + d / 2.0)
 }
 
 /// Midpoint of two radian values.
+#[must_use]
 pub fn midpoint_rad(x1: f64, x0: f64) -> f64 {
     let d = diff_rad_signed(x1, x0);
     norm_rad(x0 + d / 2.0)
 }
 
-/// Wrap an angle delta into (−180, +180].
-///
-/// Used by callers that already have a difference of two angles and just want
-/// it bracketed across the 360°/0° seam. Equivalent to `diff_deg_signed(a, b)`
-/// when `a` and `b` are already in [0, 360).
+/// Wrap an angle delta into (−180, +180]. Handles arbitrary input magnitude
+/// via `rem_euclid` then shifts the [0, 360) result into (−180, 180].
 #[inline]
+#[must_use]
 pub fn wrap_signed_180(d: f64) -> f64 {
-    if d <= -180.0 {
-        d + 360.0
-    } else if d > 180.0 {
-        d - 360.0
+    let r = d.rem_euclid(360.0);
+    if r > 180.0 {
+        r - 360.0
     } else {
-        d
+        r
     }
 }
 
 /// Signed difference of degrees, result in (−180, +180].
 #[inline]
+#[must_use]
 pub fn diff_deg_signed(p1: f64, p2: f64) -> f64 {
     wrap_signed_180(norm_deg(p1) - norm_deg(p2))
 }
 
 /// Unsigned difference of degrees, result in [0, 360).
 #[inline]
+#[must_use]
 pub fn diff_deg(p1: f64, p2: f64) -> f64 {
     norm_deg(p1 - p2)
 }
 
 /// Signed difference of radians, result in (−π, +π].
+#[must_use]
 pub fn diff_rad_signed(p1: f64, p2: f64) -> f64 {
     let pi = std::f64::consts::PI;
     let d = norm_rad(p1) - norm_rad(p2);
@@ -288,6 +298,7 @@ pub fn diff_rad_signed(p1: f64, p2: f64) -> f64 {
 }
 
 /// Signed difference of centiseconds (long), result in (−648000000, +648000000].
+#[must_use]
 pub fn diff_cs_signed(p1: i32, p2: i32) -> i64 {
     let full = 360 * 360_000i64;
     let d = norm_cs(p1) - norm_cs(p2);
@@ -301,16 +312,19 @@ pub fn diff_cs_signed(p1: i32, p2: i32) -> i64 {
 }
 
 /// Unsigned difference of centiseconds.
+#[must_use]
 pub fn diff_cs(p1: i32, p2: i32) -> i64 {
     norm_cs(p1 - p2)
 }
 
 /// Normalise centiseconds to [0, 360°).
+#[must_use]
 pub fn norm_cs(p: i32) -> i64 {
     p.rem_euclid(360 * 360_000) as i64
 }
 
 /// Round centiseconds to the nearest second.
+#[must_use]
 pub fn cs_round_sec(x: i32) -> i64 {
     let r = x % 100;
     if r >= 50 {
@@ -321,6 +335,7 @@ pub fn cs_round_sec(x: i32) -> i64 {
 }
 
 /// Convert a float to a long integer (floor).
+#[must_use]
 pub fn deg_to_cs(x: f64) -> i64 {
     x.floor() as i64
 }
@@ -331,6 +346,7 @@ pub fn deg_to_cs(x: f64) -> i64 {
 ///
 /// Returns `(deg, min, sec, sec_fraction, sign)` where `sign` is +1 or −1,
 /// or a zodiac sign number (1–12) when `SPLIT_DEG_ZODIACAL` is set in `round_flag`.
+#[must_use]
 pub fn split_deg(deg: f64, round_flag: i32) -> (i32, i32, i32, f64, i32) {
     use crate::constants::SPLIT_DEG_ZODIACAL;
     let sign = if deg < 0.0 { -1i32 } else { 1i32 };
@@ -358,5 +374,79 @@ pub fn split_deg(deg: f64, round_flag: i32) -> (i32, i32, i32, f64, i32) {
         (d_in_sign, m, s, frac, sign_num)
     } else {
         (d, m, s, frac, sign)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Deterministic xorshift PRNG for property fuzz inside unit tests.
+    struct Rng(u64);
+    impl Rng {
+        fn new(seed: u64) -> Self { Self(seed | 1) }
+        fn next_u64(&mut self) -> u64 {
+            self.0 ^= self.0 << 13;
+            self.0 ^= self.0 >> 7;
+            self.0 ^= self.0 << 17;
+            self.0
+        }
+        fn range(&mut self, lo: f64, hi: f64) -> f64 {
+            let u = (self.next_u64() >> 11) as f64 / (1u64 << 53) as f64;
+            lo + u * (hi - lo)
+        }
+    }
+
+    /// `wrap_signed_180` is idempotent: applying twice equals applying once
+    /// (output already in (-180, 180]).
+    #[test]
+    fn wrap_signed_180_idempotent_property() {
+        let mut rng = Rng::new(0xCAFEBABE);
+        for _ in 0..2048 {
+            let x = rng.range(-3600.0, 3600.0);
+            let once = wrap_signed_180(x);
+            let twice = wrap_signed_180(once);
+            assert!((twice - once).abs() < 1e-12, "x={x} once={once} twice={twice}");
+        }
+    }
+
+    /// `wrap_signed_180` output is in (-180, 180].
+    #[test]
+    fn wrap_signed_180_range_property() {
+        let mut rng = Rng::new(0xDEADBEEF);
+        for _ in 0..4096 {
+            let x = rng.range(-1e6, 1e6);
+            let w = wrap_signed_180(x);
+            assert!(w > -180.0 && w <= 180.0, "x={x} w={w}");
+        }
+    }
+
+    /// `wrap_signed_180(x + 360k)` == `wrap_signed_180(x)` for all integer k.
+    /// Mod-360 invariance.
+    #[test]
+    fn wrap_signed_180_mod_360_invariant() {
+        let mut rng = Rng::new(0xF00DCAFE);
+        for _ in 0..1024 {
+            let x = rng.range(-180.0, 180.0);
+            for k in [-5_i32, -3, -1, 1, 2, 4, 10] {
+                let shifted = (k as f64).mul_add(360.0, x);
+                let w = wrap_signed_180(shifted);
+                let direct = wrap_signed_180(x);
+                assert!((w - direct).abs() < 1e-9, "x={x} k={k} w={w} direct={direct}");
+            }
+        }
+    }
+
+    /// `diff_deg_signed` reproduces `wrap_signed_180` on already-normalised inputs.
+    #[test]
+    fn diff_deg_signed_consistency() {
+        let mut rng = Rng::new(0xBADC0DE);
+        for _ in 0..1024 {
+            let p1 = rng.range(0.0, 360.0);
+            let p2 = rng.range(0.0, 360.0);
+            let direct = diff_deg_signed(p1, p2);
+            let expect = wrap_signed_180(p1 - p2);
+            assert!((direct - expect).abs() < 1e-9, "p1={p1} p2={p2}");
+        }
     }
 }

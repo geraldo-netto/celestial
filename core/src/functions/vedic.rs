@@ -10,6 +10,7 @@ fn norm360(d: f64) -> f64 {
 
 /// Positions of the four stars used in Vedic Saturn-related calculations
 /// (`Pushya`, `Revati`, `Hasta`, `Chitra`) at a given Julian day.
+#[must_use]
 pub fn saturn_4_stars(jd: f64, flags: CalcFlags) -> crate::Result<[f64; 6]> {
     let sat = crate::calc_ut(jd, Body::SATURN, flags)?.lon;
     let ald = crate::functions::calc::fixstar("Aldebaran", jd, flags)?.xx[0];
@@ -52,6 +53,7 @@ pub fn saturn_4_stars(jd: f64, flags: CalcFlags) -> crate::Result<[f64; 6]> {
 /// `asc` = Udaya Lagna (Ascendant), `mc` = Madhya Lagna (MC).
 /// `sandhi = false` → bhavamadhya (house midpoints), `true` → arambhasandhi (house beginnings).
 /// Returns 12 house cusp longitudes.
+#[must_use]
 pub fn raman_houses(asc: f64, mc: f64, sandhi: bool) -> [f64; 12] {
     let mut ret = [0.0f64; 12];
     if !sandhi {
@@ -95,6 +97,7 @@ pub fn sign_lord(sign: i32) -> Option<i32> {
 /// Rasi (sign number 0–11) from ecliptic longitude.
 #[inline]
 /// Convert ecliptic longitude (degrees) to a Vedic rasi number (0 = Aries, …, 11 = Pisces).
+#[must_use]
 pub fn long_to_rasi(lon: f64) -> i32 {
     (norm360(lon) / 30.0) as i32
 }
@@ -102,11 +105,13 @@ pub fn long_to_rasi(lon: f64) -> i32 {
 /// Navamsa (0–11) from ecliptic longitude.
 #[inline]
 /// Convert ecliptic longitude (degrees) to a navamsa division number (0–35).
+#[must_use]
 pub fn long_to_navamsa(lon: f64) -> i32 {
     ((norm360(lon) / (10.0 / 3.0)) as i32) % 12
 }
 
 /// Nakshatra (0–26) and Pada (0–3) from ecliptic longitude.
+#[must_use]
 pub fn long_to_nakshatra(lon: f64) -> (i32, i32) {
     let lon = norm360(lon);
     let nak = (lon / (40.0 / 3.0)) as i32;
@@ -151,11 +156,13 @@ pub fn nakshatra_name(nak: i32) -> Option<&'static str> {
 /// Normalise a rasi number to `[0, 11]`.
 #[inline]
 /// Normalise a rasi index to 0–11 (wrapping modulo 12).
+#[must_use]
 pub fn rasi_norm(r: i32) -> i32 {
     r.rem_euclid(12)
 }
 
 /// Forward distance in rasi from `r1` to `r2` (0–11).
+#[must_use]
 pub fn rasi_diff(r1: i32, r2: i32) -> i32 {
     let r1 = rasi_norm(r1);
     let r2 = rasi_norm(r2);
@@ -169,6 +176,7 @@ pub fn rasi_diff(r1: i32, r2: i32) -> i32 {
 }
 
 /// Signed rasi difference from `r1` to `r2` (−5 to +6).
+#[must_use]
 pub fn rasi_diff2(r1: i32, r2: i32) -> i32 {
     let d = rasi_diff(r1, r2);
     if d > 6 {
@@ -183,6 +191,7 @@ pub fn rasi_diff2(r1: i32, r2: i32) -> i32 {
 /// Tatkalika (temporary) graha relation between two rashis.
 ///
 /// Returns `1` (friend), `0` (neutral), or `-1` (enemy).
+#[must_use]
 pub fn tatkalika_relation(r1: i32, r2: i32) -> i32 {
     if rasi_diff2(r1, r2).abs() <= 3 {
         1

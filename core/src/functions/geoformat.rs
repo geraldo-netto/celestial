@@ -20,6 +20,7 @@ fn diff_deg(p1: f64, p2: f64) -> f64 {
 }
 
 /// Split a decimal degree value into `[degrees, minutes, seconds, centiseconds]`.
+#[must_use]
 pub fn degsplit(pos: f64) -> [i32; 4] {
     let mut p = norm360(pos);
     let sign = (p / 30.0) as i32;
@@ -181,6 +182,7 @@ pub fn parse_coord(s: &str) -> Option<f64> {
 }
 
 /// Decompose a geographic coordinate into `[degrees, minutes, seconds]` (all positive).
+#[must_use]
 pub fn geo_to_dms(coord: f64) -> [i32; 3] {
     let c = coord.abs();
     let deg = c as i32;
@@ -221,6 +223,7 @@ pub fn format_coord(coord: f64, is_latitude: bool) -> Option<String> {
 // ─── Centisecond-based string formatters (C API compat) ─────────────────────────
 
 /// Format centiseconds as a degree string.
+#[must_use]
 pub fn centisec_to_deg_str(t: i32) -> String {
     let d = t / 360_000;
     let rest = t.abs() % 360_000;
@@ -230,6 +233,7 @@ pub fn centisec_to_deg_str(t: i32) -> String {
 }
 
 /// Format centiseconds as a longitude/latitude string.
+#[must_use]
 pub fn centisec_to_lonlat_str(t: i32, pos_char: char, neg_char: char) -> String {
     let sign = if t >= 0 { pos_char } else { neg_char };
     let abs = t.unsigned_abs();
@@ -240,6 +244,7 @@ pub fn centisec_to_lonlat_str(t: i32, pos_char: char, neg_char: char) -> String 
 }
 
 /// Format centiseconds as a time string.
+#[must_use]
 pub fn centisec_to_time_str(t: i32, sep: char, suppress_zero: bool) -> String {
     let abs = t.unsigned_abs();
     let h = abs / 360_000;

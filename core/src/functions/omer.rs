@@ -128,11 +128,13 @@ pub struct OmerPeriod {
 // ─── Hebrew calendar internals ────────────────────────────────────────────────
 
 /// Is the given Hebrew year a leap year (13 months)?
+#[must_use]
 pub fn is_hebrew_leap_year(year: i32) -> bool {
     (7 * year + 1) % 19 < 7
 }
 
 /// Number of months in the Hebrew year.
+#[must_use]
 pub fn months_in_hebrew_year(year: i32) -> i32 {
     if is_hebrew_leap_year(year) {
         13
@@ -142,6 +144,7 @@ pub fn months_in_hebrew_year(year: i32) -> i32 {
 }
 
 /// Elapsed days from Hebrew epoch to 1 Tishrei of the given year.
+#[must_use]
 pub fn elapsed_days(year: i32) -> i64 {
     let months = 235 * ((year - 1) / 19) as i64
         + 12 * ((year - 1) % 19) as i64
@@ -168,16 +171,19 @@ pub fn elapsed_days(year: i32) -> i64 {
 }
 
 /// Julian day of 1 Tishrei for the given Hebrew year.
+#[must_use]
 pub fn hebrew_new_year_jd(year: i32) -> i64 {
     347_996 + elapsed_days(year)
 }
 
 /// Days in the Hebrew year.
+#[must_use]
 pub fn days_in_hebrew_year(year: i32) -> i64 {
     hebrew_new_year_jd(year + 1) - hebrew_new_year_jd(year)
 }
 
 /// Days in the given Hebrew month.
+#[must_use]
 pub fn hebrew_month_days(year: i32, month: i32) -> i64 {
     match month {
         1 | 3 | 5 | 7 | 11 => 30,
@@ -198,6 +204,7 @@ pub fn hebrew_month_days(year: i32, month: i32) -> i64 {
 }
 
 /// Julian day of the first day of the given Hebrew month.
+#[must_use]
 pub fn hebrew_month_start_jd(year: i32, month: i32) -> i64 {
     // Walk from Tishrei (7) forward, then Nisan (1) forward
     let months_order: Vec<i32> = (7..=months_in_hebrew_year(year)).chain(1..7).collect();
@@ -212,6 +219,7 @@ pub fn hebrew_month_start_jd(year: i32, month: i32) -> i64 {
 }
 
 /// Approximate Hebrew year from a Julian day number.
+#[must_use]
 pub fn approx_hebrew_year(jd: f64) -> i32 {
     // Average Hebrew year ≈ 365.25 days; epoch = 347997
     ((jd - 347_997.0) * 98_496.0 / 35_975_351.0) as i32 + 1
@@ -223,6 +231,7 @@ pub fn approx_hebrew_year(jd: f64) -> i32 {
 ///
 /// The Omer begins at nightfall on 15 Nisan (the end of the first Passover
 /// seder). We return the JD at approximately 18:00 local mean time.
+#[must_use]
 pub fn omer_start_jd(hebrew_year: i32) -> f64 {
     // 16 Nisan = first day of Omer count
     let nisan_1 = hebrew_month_start_jd(hebrew_year, 1);
@@ -300,6 +309,7 @@ fn omer_from_day(day: u8, jd: f64) -> Option<OmerDay> {
 ///
 /// If `jd` is not within any Omer period, returns the Omer period of the
 /// nearest upcoming Hebrew year.
+#[must_use]
 pub fn omer_period(jd: f64) -> OmerPeriod {
     let mut year = approx_hebrew_year(jd).max(1);
     // Find the year whose Omer period contains or follows jd
@@ -315,6 +325,7 @@ pub fn omer_period(jd: f64) -> OmerPeriod {
 }
 
 /// Return all 49 [`OmerDay`]s for the given Hebrew year.
+#[must_use]
 pub fn omer_days(hebrew_year: i32) -> Vec<OmerDay> {
     let start = omer_start_jd(hebrew_year);
     (1u8..=49)
@@ -331,6 +342,7 @@ pub fn omer_days(hebrew_year: i32) -> Vec<OmerDay> {
 /// assert!(s.contains("Lag Ba'Omer"));
 /// assert!(s.contains("Hod"));
 /// ```
+#[must_use]
 pub fn omer_declaration(day: u8) -> String {
     let jd = 0.0; // placeholder — declaration is day-only
     if let Some(d) = omer_from_day(day, jd) {

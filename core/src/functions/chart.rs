@@ -71,6 +71,7 @@ pub const ALL_ASPECTS: &[f64] = &[
 ///     println!("{} /{:.0}° / {} orb={:.2}°", a.body1, a.aspect, a.body2, a.orb);
 /// }
 /// ```
+#[must_use]
 pub fn calc_chart_aspects(
     positions: &[(Body, f64, f64)],
     aspects: &[f64],
@@ -308,6 +309,7 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
 /// let lot_of_fortune = arabic_part(chart.ascmc[0], moon.lon, sun.lon);
 /// ```
 #[inline]
+#[must_use]
 pub fn arabic_part(asc: f64, body2: f64, body1: f64) -> f64 {
     (asc + body2 - body1).rem_euclid(360.0)
 }
@@ -348,6 +350,7 @@ pub struct ArabicPart {
 /// for p in &parts { println!("{}: {:.2}°", p.name, p.degree); }
 /// ```
 #[allow(clippy::too_many_arguments)]
+#[must_use]
 pub fn arabic_parts_seven(
     asc: f64,
     sun: f64,
@@ -432,6 +435,7 @@ pub fn arabic_parts_seven(
 ///
 /// Returns `(progressed_bodies, progressed_chart)` where `progressed_bodies`
 /// is a `Vec<(body_num, PlanetPos)>` and the chart has the progressed angles.
+#[must_use]
 pub fn secondary_progressions(
     jd_natal: f64,
     years: f64,
@@ -584,6 +588,7 @@ pub fn lunar_return_jd(jd_natal: f64, jd_start: f64, flags: CalcFlags) -> Result
 /// let mid = midpoint(sun_lon, moon_lon); // 10.0° (shorter arc)
 /// ```
 #[inline]
+#[must_use]
 pub fn midpoint(lon1: f64, lon2: f64) -> f64 {
     crate::midpoint_deg(lon1, lon2)
 }
@@ -609,6 +614,7 @@ pub fn planet_on_midpoint(planet_lon: f64, mid_lon: f64, orb: f64) -> Option<f64
 ///
 /// `positions` — `(body_num, ecliptic_lon)` for each planet.
 /// `orb`       — maximum orb for a planet to be "on" a midpoint.
+#[must_use]
 pub fn midpoint_table(positions: &[(Body, f64)], orb: f64) -> Vec<MidpointEntry> {
     // Returns: (body1, body2, midpoint_lon, [(planet_on_midpoint, orb)])
     let n = positions.len();
@@ -640,6 +646,7 @@ pub fn midpoint_table(positions: &[(Body, f64)], orb: f64) -> Vec<MidpointEntry>
 /// `ha_deg`  — hour angle of the body (degrees)
 /// `dec_deg` — declination of the body (degrees)
 /// `lat_deg` — observer latitude (degrees)
+#[must_use]
 pub fn parallactic_angle(ha_deg: f64, dec_deg: f64, lat_deg: f64) -> f64 {
     let ha = ha_deg.to_radians();
     let dec = dec_deg.to_radians();
@@ -669,6 +676,7 @@ pub fn parallactic_angle(ha_deg: f64, dec_deg: f64, lat_deg: f64) -> f64 {
 /// let (house, degree) = annual_profection(&chart.cusps, 35); // age 35
 /// println!("Age 35 profection: house {house}, degree {degree:.2}°");
 /// ```
+#[must_use]
 pub fn annual_profection(cusps: &[f64; 13], age: u32) -> (u8, f64) {
     let house = ((age % 12) + 1) as u8;
     let degree = cusps[house as usize];
@@ -679,6 +687,7 @@ pub fn annual_profection(cusps: &[f64; 13], age: u32) -> (u8, f64) {
 ///
 /// Returns `(profected_house, profected_degree, lord)` where `lord`
 /// is a string naming the traditional planetary ruler of that sign.
+#[must_use]
 pub fn monthly_profection(cusps: &[f64; 13], age_years: u32, age_months: u32) -> (u8, f64) {
     // Total months from birth
     let total_months = age_years * 12 + age_months;
@@ -747,6 +756,7 @@ pub fn default_orb(body1: Body, body2: Body, aspect: f64) -> f64 {
 ///
 /// Each pair of bodies gets an orb appropriate to their significance
 /// (luminaries get wider orbs than outer planets).
+#[must_use]
 pub fn calc_chart_aspects_auto(
     positions: &[(Body, f64, f64)],
     aspects: &[f64],
@@ -799,6 +809,7 @@ pub fn calc_chart_aspects_auto(
 /// let last = local_apparent_solar_time(2_451_545.0, 2.35).unwrap();
 /// println!("LAST Paris: {:.2}h", last);
 /// ```
+#[must_use]
 pub fn local_apparent_solar_time(jd_ut: f64, geolon_deg: f64) -> crate::Result<f64> {
     // Extract UTC hour-of-day from JD:
     // JD epoch is noon (12:00 UT), so fractional part 0.0 = noon.
@@ -821,6 +832,7 @@ pub fn local_apparent_solar_time(jd_ut: f64, geolon_deg: f64) -> crate::Result<f
 /// Aries→Mars, Taurus→Venus, …, Pisces→Jupiter.
 ///
 /// Returns the body number or -1 for unknown.
+#[must_use]
 pub fn sign_ruler(sign: u8) -> Body {
     // 0=Aries, 1=Taurus, 2=Gemini, 3=Cancer, 4=Leo, 5=Virgo,
     // 6=Libra, 7=Scorpio, 8=Sagittarius, 9=Capricorn, 10=Aquarius, 11=Pisces
@@ -839,6 +851,7 @@ pub fn sign_ruler(sign: u8) -> Body {
 }
 
 /// Modern planetary ruler (assigns Uranus→Aquarius, Neptune→Pisces, Pluto→Scorpio).
+#[must_use]
 pub fn sign_ruler_modern(sign: u8) -> Body {
     match sign % 12 {
         7 => Body::PLUTO,    // Scorpio → Pluto
@@ -849,6 +862,7 @@ pub fn sign_ruler_modern(sign: u8) -> Body {
 }
 
 /// The sign (0–11) a planet is exalted in, or -1 if none.
+#[must_use]
 pub fn sign_exaltation(body: Body) -> i8 {
     match body.as_raw() {
         0 => 0,  // Sun exalted in Aries
@@ -865,6 +879,7 @@ pub fn sign_exaltation(body: Body) -> i8 {
 /// Name of a zodiac sign number (0=Aries … 11=Pisces).
 /// Always returns a valid name (wraps mod 12).
 /// See also [`sign_name`](crate::sign_name) in geoformat (takes i32, returns Option).
+#[must_use]
 pub fn zodiac_sign_name(sign: u8) -> &'static str {
     const NAMES: [&str; 12] = [
         "Aries",
@@ -888,6 +903,7 @@ pub fn zodiac_sign_name(sign: u8) -> &'static str {
 /// Returns `(sign_number, degrees_in_sign)` where sign is 0–11
 /// and degrees_in_sign is 0.0–29.99…
 #[inline]
+#[must_use]
 pub fn lon_to_sign(lon: f64) -> (u8, f64) {
     let lon = lon.rem_euclid(360.0);
     let sign = (lon / 30.0).floor() as u8;
@@ -943,6 +959,7 @@ pub const DASHA_SEQUENCE: &[(Body, f64)] = &[
 ///     println!("{}: {:.2} years", d.body.name(), d.years);
 /// }
 /// ```
+#[must_use]
 pub fn vimshottari_dasha(
     jd_birth: f64,
     moon_lon_sidereal: f64,

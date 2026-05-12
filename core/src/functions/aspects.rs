@@ -120,6 +120,7 @@ pub struct AspectMatch {
 
 /// Check whether two longitudes make a given aspect within the given orb.
 /// `aspect` must be in `[0, 360)`.
+#[must_use]
 pub fn match_aspect(
     pos0: f64,
     speed0: f64,
@@ -156,6 +157,7 @@ pub fn match_aspect(
 }
 
 /// Like `match_aspect` but `aspect` in `[0, 180]` — tests both ±aspect.
+#[must_use]
 pub fn match_aspect2(
     pos0: f64,
     speed0: f64,
@@ -184,6 +186,7 @@ pub fn match_aspect2(
 
 /// Like `match_aspect` with separate applying / separating / stationary orbs.
 #[allow(clippy::too_many_arguments)]
+#[must_use]
 pub fn match_aspect3(
     pos0: f64,
     speed0: f64,
@@ -229,6 +232,7 @@ pub fn match_aspect3(
 
 /// Like `match_aspect2` with separate applying / separating / stationary orbs.
 #[allow(clippy::too_many_arguments)]
+#[must_use]
 pub fn match_aspect4(
     pos0: f64,
     speed0: f64,
@@ -267,6 +271,7 @@ pub struct Antiscion {
 
 /// Compute antiscion and contrantiscion of a body around a given axis.
 /// `axis` is the degree of the reflection axis (e.g. 90.0 for 0°Cancer/Capricorn).
+#[must_use]
 pub fn antiscion(pos: [f64; 6], axis: f64) -> Antiscion {
     // Reflect pos around axis: antiscion = 2*axis - pos (mod 360)
     let anti_lon = norm360(2.0 * axis - pos[0]);

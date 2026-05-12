@@ -457,6 +457,7 @@ pub fn next_aspect_cusp2(
 
 /// Number of astrological years between two Julian days.
 /// An "astrological year" = one solar revolution.
+#[must_use]
 pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
     use crate::functions::calc::calc_ut;
     let sun1 = calc_ut(jd1, Body::SUN, flags)?.lon;
@@ -527,6 +528,7 @@ pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
 ///     println!("Saturn conjunct natal MC: JD {jd:.2}");
 /// }
 /// ```
+#[must_use]
 pub fn transit_to_degree(
     body: Body,
     target_lon: f64,
@@ -581,6 +583,7 @@ pub fn transit_to_degree(
 /// }
 /// ```
 #[allow(clippy::too_many_arguments)]
+#[must_use]
 pub fn mc_transit_ut(
     body: Body,
     jd_natal: f64,
@@ -601,6 +604,7 @@ pub fn mc_transit_ut(
 ///
 /// IC = natal MC + 180°. A planet at the IC is at the nadir of the chart.
 #[allow(clippy::too_many_arguments)]
+#[must_use]
 pub fn ic_transit_ut(
     body: Body,
     jd_natal: f64,
@@ -619,6 +623,7 @@ pub fn ic_transit_ut(
 
 /// Next time a planet transits the Ascendant (ASC) of a natal chart.
 #[allow(clippy::too_many_arguments)]
+#[must_use]
 pub fn asc_transit_ut(
     body: Body,
     jd_natal: f64,
@@ -639,6 +644,7 @@ pub fn asc_transit_ut(
 ///
 /// DSC = natal ASC + 180°.
 #[allow(clippy::too_many_arguments)]
+#[must_use]
 pub fn dsc_transit_ut(
     body: Body,
     jd_natal: f64,
@@ -670,6 +676,7 @@ pub fn dsc_transit_ut(
 /// let house = planet_house_number(sun.lon, &chart.cusps);
 /// println!("Sun is in house {house}");
 /// ```
+#[must_use]
 pub fn planet_house_number(planet_lon: f64, cusps: &[f64; 13]) -> u8 {
     // Cusps are in [0,360) in ascending order for most systems.
     // Walk from cusp 1; the planet is in house h when it is between cusps[h] and cusps[h+1].
@@ -701,6 +708,7 @@ pub fn planet_house_number(planet_lon: f64, cusps: &[f64; 13]) -> u8 {
 /// * Negative → planet has passed the MC
 ///
 /// Useful for gauging how far a planet is from culmination.
+#[must_use]
 pub fn distance_to_mc(planet_lon: f64, mc_lon: f64) -> f64 {
     // Positive = MC is ahead of planet (planet approaching MC)
     // Negative = planet has already passed MC
@@ -710,6 +718,7 @@ pub fn distance_to_mc(planet_lon: f64, mc_lon: f64) -> f64 {
 /// Is a planet within `orb` degrees of the Midheaven?
 ///
 /// A shorthand for `distance_to_mc(planet_lon, mc_lon).abs() <= orb`.
+#[must_use]
 pub fn planet_conjunct_mc(planet_lon: f64, mc_lon: f64, orb: f64) -> bool {
     distance_to_mc(planet_lon, mc_lon).abs() <= orb
 }
@@ -735,6 +744,7 @@ pub fn planet_conjunct_mc(planet_lon: f64, mc_lon: f64, orb: f64) -> bool {
 /// let noon = meridian_transit_ut(Body::SUN, 2_451_545.0, [2.35, 48.85, 35.0], CalcFlags::BUILTIN);
 /// println!("Solar noon: JD {:.4}", noon.unwrap().tret);
 /// ```
+#[must_use]
 pub fn meridian_transit_ut(
     body: Body,
     jd_start: f64,
@@ -758,6 +768,7 @@ pub fn meridian_transit_ut(
 /// The lower meridian transit is ~12 hours before or after the upper transit.
 /// Computed by finding the upper transit then searching for the transit
 /// approximately 12 hours later.
+#[must_use]
 pub fn lower_meridian_transit_ut(
     body: Body,
     jd_start: f64,
