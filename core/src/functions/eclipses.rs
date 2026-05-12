@@ -240,15 +240,20 @@ pub fn lun_occult_when_glob(
         fn ecl_to_eq(lon_deg: f64, lat_deg: f64, eps: f64) -> (f64, f64) {
             let lon = lon_deg.to_radians();
             let lat = lat_deg.to_radians();
-            let ra = (lon.sin() * eps.cos() - lat.tan() * eps.sin()).atan2(lon.cos());
-            let dec = (lat.sin() * eps.cos() + lat.cos() * eps.sin() * lon.sin()).asin();
+            let (sin_lon, cos_lon) = lon.sin_cos();
+            let (sin_lat, cos_lat) = lat.sin_cos();
+            let (sin_eps, cos_eps) = eps.sin_cos();
+            let ra = (-lat.tan()).mul_add(sin_eps, sin_lon * cos_eps).atan2(cos_lon);
+            let dec = sin_lat.mul_add(cos_eps, cos_lat * sin_eps * sin_lon).asin();
             (ra, dec)
         }
 
         let (ra_m, dec_m) = ecl_to_eq(moon.lon, moon.lat, eps);
         let (ra_p, dec_p) = ecl_to_eq(planet.lon, planet.lat, eps);
         let d_ra = ra_m - ra_p;
-        let cos_d = dec_m.sin() * dec_p.sin() + dec_m.cos() * dec_p.cos() * d_ra.cos();
+        let (sin_dm, cos_dm) = dec_m.sin_cos();
+        let (sin_dp, cos_dp) = dec_p.sin_cos();
+        let cos_d = sin_dm.mul_add(sin_dp, cos_dm * cos_dp * d_ra.cos());
         Some(cos_d.clamp(-1.0, 1.0).acos().to_degrees())
     }
 
@@ -271,7 +276,7 @@ pub fn lun_occult_when_glob(
     }
 
     let mut jd = tjd_start;
-    let limit = tjd_start + step * 4000.0;
+    let limit = step.mul_add(4000.0, tjd_start);
     let mut prev = sep(jd, body).unwrap_or(180.0);
 
     for _ in 0..5000 {
@@ -333,7 +338,9 @@ pub fn lun_occult_when_loc(
         let lat_r = geopos[1].to_radians();
         let dec_r = moon.lat.to_radians();
         // Altitude formula
-        let sin_alt = lat_r.sin() * dec_r.sin() + lat_r.cos() * dec_r.cos() * ha_r.cos();
+        let (sin_lat, cos_lat) = lat_r.sin_cos();
+        let (sin_dec, cos_dec) = dec_r.sin_cos();
+        let sin_alt = sin_lat.mul_add(sin_dec, cos_lat * cos_dec * ha_r.cos());
         sin_alt.clamp(-1.0, 1.0).asin().to_degrees()
     };
 

@@ -110,7 +110,7 @@ pub fn long_to_navamsa(lon: f64) -> i32 {
 pub fn long_to_nakshatra(lon: f64) -> (i32, i32) {
     let lon = norm360(lon);
     let nak = (lon / (40.0 / 3.0)) as i32;
-    let pada = ((lon - nak as f64 * (40.0 / 3.0)) / (10.0 / 3.0)) as i32;
+    let pada = ((-(nak as f64)).mul_add(40.0 / 3.0, lon) / (10.0 / 3.0)) as i32;
     (nak, pada)
 }
 

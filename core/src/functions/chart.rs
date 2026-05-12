@@ -645,8 +645,10 @@ pub fn parallactic_angle(ha_deg: f64, dec_deg: f64, lat_deg: f64) -> f64 {
     let dec = dec_deg.to_radians();
     let lat = lat_deg.to_radians();
     // q = atan2(sin(ha), tan(lat)*cos(dec) - sin(dec)*cos(ha))
-    ha.sin()
-        .atan2(lat.tan() * dec.cos() - dec.sin() * ha.cos())
+    let (sin_ha, cos_ha) = ha.sin_cos();
+    let (sin_dec, cos_dec) = dec.sin_cos();
+    sin_ha
+        .atan2((-sin_dec).mul_add(cos_ha, lat.tan() * cos_dec))
         .to_degrees()
 }
 

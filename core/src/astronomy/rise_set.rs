@@ -99,7 +99,9 @@ fn rise_set_inner(
     let theta0 = approx_gmst(jd0);
 
     // Hour angle at rise/set
-    let cos_h0 = (h0.sin() - lat_r.sin() * to_rad(dec1).sin()) / (lat_r.cos() * to_rad(dec1).cos());
+    let (sin_lat, cos_lat) = lat_r.sin_cos();
+    let (sin_dec1, cos_dec1) = to_rad(dec1).sin_cos();
+    let cos_h0 = (-sin_lat).mul_add(sin_dec1, h0.sin()) / (cos_lat * cos_dec1);
 
     if cos_h0 < -1.0 {
         // Circumpolar — never sets
@@ -145,10 +147,13 @@ fn rise_set_inner(
 
         let ha = norm_deg(theta + geolon - ra_interp);
         let ha_r = to_rad(ha);
+        let (sin_ha, cos_ha) = ha_r.sin_cos();
+        let (sin_geolat, cos_geolat) = to_rad(geolat).sin_cos();
+        let (sin_dec_i, cos_dec_i) = to_rad(dec_interp).sin_cos();
         let alt = to_deg(
-            (to_rad(geolat).sin() * to_rad(dec_interp).sin()
-                + to_rad(geolat).cos() * to_rad(dec_interp).cos() * ha_r.cos())
-            .asin(),
+            sin_geolat
+                .mul_add(sin_dec_i, cos_geolat * cos_dec_i * cos_ha)
+                .asin(),
         );
 
         let dm = match event {
@@ -158,8 +163,7 @@ fn rise_set_inner(
             }
             RiseSetEvent::Rise | RiseSetEvent::Set => {
                 // Correction based on altitude error
-                (alt - to_deg(h0))
-                    / (360.0 * to_rad(dec_interp).cos() * to_rad(geolat).cos() * ha_r.sin())
+                (alt - to_deg(h0)) / (360.0 * cos_dec_i * cos_geolat * sin_ha)
             }
         };
 

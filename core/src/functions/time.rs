@@ -251,10 +251,8 @@ pub fn sidtime(jd_ut: f64) -> f64 {
 
 /// Compute apparent sidereal time with obliquity and nutation.
 pub fn sidtime0(jd_ut: f64, eps: f64, nut: f64) -> f64 {
-    {
-        let gmst = crate::astronomy::houses::sidereal_time_deg(jd_ut);
-        (gmst + nut * eps.to_radians().cos()) / 15.0
-    }
+    let gmst = crate::astronomy::houses::sidereal_time_deg(jd_ut);
+    nut.mul_add(eps.to_radians().cos(), gmst) / 15.0
 }
 
 /// Compute the day of week (0 = Monday, …, 6 = Sunday).
@@ -277,13 +275,15 @@ pub fn time_equ(jd_ut: f64) -> Result<f64> {
     let t = (jde - 2_451_545.0) / 36525.0;
 
     // Geometric mean longitude of Sun (degrees)
-    let l0 = (280.460_6_f64 + 36_000.770_1 * t).rem_euclid(360.0);
+    let l0 = 36_000.770_1_f64.mul_add(t, 280.460_6).rem_euclid(360.0);
     // Mean anomaly of Sun (degrees)
-    let m = (357.528_3_f64 + 35_999.050_3 * t).rem_euclid(360.0);
+    let m = 35_999.050_3_f64.mul_add(t, 357.528_3).rem_euclid(360.0);
     let m_r = m.to_radians();
 
     // Equation of centre (degrees)
-    let c = 1.9146 * m_r.sin() + 0.020 * (2.0 * m_r).sin() + 0.0003 * (3.0 * m_r).sin();
+    let c = 1.9146_f64
+        .mul_add(m_r.sin(), 0.020 * (2.0 * m_r).sin())
+        + 0.0003 * (3.0 * m_r).sin();
 
     // Sun's true longitude (degrees)
     let sun_lon = (l0 + c).rem_euclid(360.0);
@@ -293,7 +293,8 @@ pub fn time_equ(jd_ut: f64) -> Result<f64> {
     let eps = 23.439_2_f64 - 0.013_0 * t;
     let eps_r = eps.to_radians();
     let sun_r = sun_lon.to_radians();
-    let ra = (eps_r.cos() * sun_r.sin()).atan2(sun_r.cos()).to_degrees();
+    let (sin_sun, cos_sun) = sun_r.sin_cos();
+    let ra = (eps_r.cos() * sin_sun).atan2(cos_sun).to_degrees();
     let ra = ra.rem_euclid(360.0);
 
     // RA of mean Sun = mean longitude L0 (to good approximation)

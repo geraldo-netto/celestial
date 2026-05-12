@@ -256,14 +256,14 @@ fn placidus(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
 
     // Upper diurnal arc Q1: armc → armc+90° (between MC and ASC)
     for (i, &frac) in fracs.iter().enumerate() {
-        let h = placidus_cusp(armc + 90.0 * frac, lat_r, eps_r, 1.0);
+        let h = placidus_cusp(90.0_f64.mul_add(frac, armc), lat_r, eps_r, 1.0);
         cusps[11 + i] = norm_deg(h); // houses 11, 12
         cusps[5 + i] = norm_deg(h + 180.0); // houses  5,  6 (opposite)
     }
 
     // Lower diurnal arc Q4: armc+270° → armc+360° (between DSC and MC)
     for (i, &frac) in fracs.iter().enumerate() {
-        let h = placidus_cusp(armc + 270.0 + 90.0 * frac, lat_r, eps_r, -1.0);
+        let h = placidus_cusp(90.0_f64.mul_add(frac, armc + 270.0), lat_r, eps_r, -1.0);
         cusps[9 - i] = norm_deg(h); // houses 9, 8
         cusps[3 - i] = norm_deg(h + 180.0); // houses 3, 2 (opposite)
     }
@@ -373,9 +373,10 @@ fn ecl_lon_from_ra_dec(ra: f64, dec: f64, eps: f64) -> f64 {
     let ra_r = to_rad(ra);
     let dec_r = to_rad(dec);
     let eps_r = to_rad(eps);
-    let y = ra_r.sin() * eps_r.cos() + dec_r.tan() * eps_r.sin();
-    let x = ra_r.cos();
-    norm_deg(to_deg(y.atan2(x)))
+    let (sin_ra, cos_ra) = ra_r.sin_cos();
+    let (sin_eps, cos_eps) = eps_r.sin_cos();
+    let y = dec_r.tan().mul_add(sin_eps, sin_ra * cos_eps);
+    norm_deg(to_deg(y.atan2(cos_ra)))
 }
 
 // ─── Porphyry ─────────────────────────────────────────────────────────────────

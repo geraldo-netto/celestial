@@ -1151,12 +1151,16 @@ pub fn star_ecliptic_pos(star: &StarEntry, jd_ut: f64) -> (f64, f64, f64) {
     let dec_r = dec.to_radians();
 
     // Meeus eq 13.1: ecliptic latitude
-    let lat_r = (dec_r.sin() * eps.cos() - dec_r.cos() * eps.sin() * ra_r.sin())
+    let (sin_ra, cos_ra) = ra_r.sin_cos();
+    let (sin_dec, cos_dec) = dec_r.sin_cos();
+    let (sin_eps, cos_eps) = eps.sin_cos();
+    let lat_r = (-cos_dec * sin_eps)
+        .mul_add(sin_ra, sin_dec * cos_eps)
         .clamp(-1.0, 1.0)
         .asin();
     // Ecliptic longitude: atan2(y, x) where y and x give quadrant
-    let y_lon = ra_r.sin() * eps.cos() * dec_r.cos() + eps.sin() * dec_r.sin();
-    let x_lon = ra_r.cos() * dec_r.cos();
+    let y_lon = (sin_eps * sin_dec).mul_add(1.0, sin_ra * cos_eps * cos_dec);
+    let x_lon = cos_ra * cos_dec;
     let lon_r = y_lon.atan2(x_lon);
 
     // Apply precession: ~50.29 arcsec/yr ≈ 0.01396°/yr.

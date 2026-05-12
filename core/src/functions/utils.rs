@@ -40,12 +40,14 @@ pub fn azalt(
         let lon = xin[0].to_radians();
         let lat = xin[1].to_radians();
 
-        let sin_dec = lat.sin() * eps.cos() + lat.cos() * eps.sin() * lon.sin();
+        let (sin_lon, cos_lon) = lon.sin_cos();
+        let (sin_lat, cos_lat) = lat.sin_cos();
+        let (sin_eps, cos_eps) = eps.sin_cos();
+        let sin_dec = sin_lat.mul_add(cos_eps, cos_lat * sin_eps * sin_lon);
         let dec_rad = sin_dec.clamp(-1.0, 1.0).asin();
 
-        let y = lon.sin() * eps.cos() - lat.tan() * eps.sin();
-        let x = lon.cos();
-        let ra_rad = y.atan2(x);
+        let y = (-lat.tan()).mul_add(sin_eps, sin_lon * cos_eps);
+        let ra_rad = y.atan2(cos_lon);
 
         (ra_rad.to_degrees().rem_euclid(360.0), dec_rad.to_degrees())
     } else {
@@ -62,19 +64,17 @@ pub fn azalt(
     let dec_r = dec.to_radians();
     let lat_r = geolat.to_radians();
 
-    let sin_alt = lat_r.sin() * dec_r.sin() + lat_r.cos() * dec_r.cos() * ha_r.cos();
+    let (sin_ha, cos_ha) = ha_r.sin_cos();
+    let (sin_dec, cos_dec) = dec_r.sin_cos();
+    let (sin_lat, cos_lat) = lat_r.sin_cos();
+    let sin_alt = sin_lat.mul_add(sin_dec, cos_lat * cos_dec * cos_ha);
     let true_alt_rad = sin_alt.clamp(-1.0, 1.0).asin();
     let true_alt = true_alt_rad.to_degrees();
 
     // Azimuth: North-based clockwise (N=0°, E=90°, S=180°, W=270°)
-    let cos_az =
-        (dec_r.sin() - lat_r.sin() * sin_alt) / (lat_r.cos() * true_alt_rad.cos().max(1e-10));
+    let cos_az = (-sin_lat).mul_add(sin_alt, sin_dec) / (cos_lat * true_alt_rad.cos().max(1e-10));
     let az_base = cos_az.clamp(-1.0, 1.0).acos().to_degrees();
-    let az_north = if ha_r.sin() > 0.0 {
-        360.0 - az_base
-    } else {
-        az_base
-    };
+    let az_north = if sin_ha > 0.0 { 360.0 - az_base } else { az_base };
 
     // Swiss Ephemeris convention: azimuth measured from South, clockwise
     // (S=0°, W=90°, N=180°, E=270°).  South-based = (North-based + 180°) % 360°
@@ -118,20 +118,19 @@ pub fn azalt_rev(jd_ut: f64, direction: i32, geopos: [f64; 3], xin: [f64; 2]) ->
     let lat_r = geolat.to_radians();
 
     // Horizontal → equatorial
-    let sin_dec = lat_r.sin() * alt_r.sin() + lat_r.cos() * alt_r.cos() * az_r.cos();
+    let (sin_lat, cos_lat) = lat_r.sin_cos();
+    let (sin_alt, cos_alt) = alt_r.sin_cos();
+    let (sin_az, cos_az) = az_r.sin_cos();
+    let sin_dec = sin_lat.mul_add(sin_alt, cos_lat * cos_alt * cos_az);
     let dec_rad = sin_dec.clamp(-1.0, 1.0).asin();
     let dec = dec_rad.to_degrees();
 
-    let cos_ha = (alt_r.sin() - lat_r.sin() * sin_dec) / (lat_r.cos() * dec_rad.cos().max(1e-10));
+    let cos_ha = (-sin_lat).mul_add(sin_dec, sin_alt) / (cos_lat * dec_rad.cos().max(1e-10));
     // Quadrant rule (inverse of azalt's forward convention):
     //   az_north in (180°,360°) — sin < 0 — means ha was in (0°,180°)   → ha = ha_base
     //   az_north in (0°,180°)  — sin > 0 — means ha was in (180°,360°) → ha = 360°-ha_base
     let ha_base = cos_ha.clamp(-1.0, 1.0).acos().to_degrees();
-    let ha_deg = if az_r.sin() < 0.0 {
-        ha_base
-    } else {
-        360.0 - ha_base
-    };
+    let ha_deg = if sin_az < 0.0 { ha_base } else { 360.0 - ha_base };
 
     // Hour angle → right ascension via Local Sidereal Time
     let gmst_deg = crate::astronomy::houses::sidereal_time_deg(jd_ut);
@@ -148,12 +147,14 @@ pub fn azalt_rev(jd_ut: f64, direction: i32, geopos: [f64; 3], xin: [f64; 2]) ->
     let ra_r = ra.to_radians();
     let dec_r = dec_rad;
 
-    let sin_lat = dec_r.sin() * eps.cos() - dec_r.cos() * eps.sin() * ra_r.sin();
+    let (sin_ra, cos_ra) = ra_r.sin_cos();
+    let (sin_dec_e, cos_dec_e) = dec_r.sin_cos();
+    let (sin_eps, cos_eps) = eps.sin_cos();
+    let sin_lat = (-cos_dec_e).mul_add(sin_eps * sin_ra, sin_dec_e * cos_eps);
     let lat_ecl = sin_lat.clamp(-1.0, 1.0).asin().to_degrees();
 
-    let y = ra_r.sin() * eps.cos() + dec_r.tan() * eps.sin();
-    let x = ra_r.cos();
-    let lon_ecl = y.atan2(x).to_degrees().rem_euclid(360.0);
+    let y = dec_r.tan().mul_add(sin_eps, sin_ra * cos_eps);
+    let lon_ecl = y.atan2(cos_ra).to_degrees().rem_euclid(360.0);
 
     [lon_ecl, lat_ecl, 1.0]
 }

@@ -425,9 +425,11 @@ pub fn solar_eclipse_geopos(jde: f64, _gamma: f64) -> (f64, f64) {
     // Convert Moon ecliptic (lon, lat) → equatorial (RA, Dec) in radians
     let lon_r = moon.lon; // lunar_position already returns radians
     let lat_r = moon.lat;
-    let moon_ra =
-        (lat_r.sin() * eps.cos() - lat_r.cos() * eps.sin() * lon_r.sin()).atan2(lon_r.cos());
-    let moon_dec = (lat_r.sin() * eps.sin() + lat_r.cos() * eps.cos() * lon_r.sin()).asin();
+    let (sin_lon, cos_lon) = lon_r.sin_cos();
+    let (sin_lat, cos_lat) = lat_r.sin_cos();
+    let (sin_eps, cos_eps) = eps.sin_cos();
+    let moon_ra = (-cos_lat * sin_eps).mul_add(sin_lon, sin_lat * cos_eps).atan2(cos_lon);
+    let moon_dec = sin_lat.mul_add(sin_eps, cos_lat * cos_eps * sin_lon).asin();
 
     // Greenwich Apparent Sidereal Time → radians
     let dt = crate::astronomy::delta_t::delta_t(jde);
