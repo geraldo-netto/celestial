@@ -92,74 +92,85 @@ impl Suite {
 
 // ─── Test groups ──────────────────────────────────────────────────────────────
 
+fn check_norm_deg_and_rad(s: &mut Suite, x: f64) {
+    let d = norm_deg(x);
+    s.check((0.0..360.0).contains(&d), || format!("norm_deg({x}) = {d}"));
+    s.check((norm_deg(d) - d).abs() < 1e-10, || {
+        format!("norm_deg idempotent fail at {d}")
+    });
+    let r = norm_rad(x);
+    s.check((0.0..TAU).contains(&r), || format!("norm_rad({x}) = {r}"));
+}
+
+fn check_diff_deg_signed_range(s: &mut Suite, a: f64, b: f64) {
+    let diff = diff_deg_signed(a, b);
+    s.check(diff > -180.0 && diff <= 180.0, || {
+        format!("diff_deg_signed({a},{b}) = {diff}")
+    });
+}
+
+fn check_norm_cs(s: &mut Suite, cs: i32) {
+    let cn = norm_cs(cs);
+    s.check((0..360 * 360_000_i64).contains(&cn), || {
+        format!("norm_cs({cs}) = {cn}")
+    });
+    s.check(norm_cs(cn as i32) == cn, || {
+        format!("norm_cs not idempotent at {cn}")
+    });
+}
+
+fn check_coord_transform_round_trip(s: &mut Suite, lon: f64, lat: f64, dist: f64) {
+    let eps = 23.4_f64;
+    let fwd = coord_transform([lon, lat, dist], eps);
+    let back = coord_transform(fwd, -eps);
+    s.check(fwd[0].is_finite() && fwd[1].is_finite(), || {
+        "coord_transform NaN".to_string()
+    });
+    s.check(fwd[1] >= -90.0 && fwd[1] <= 90.0, || {
+        format!("coord_transform lat {} out of range", fwd[1])
+    });
+    let lon_err = ((back[0] - lon + 540.0) % 360.0 - 180.0).abs();
+    s.check(lon_err < 1e-6, || {
+        format!("coord_transform lon round-trip error {lon_err:.2e}")
+    });
+    s.check((back[1] - lat).abs() < 1e-6, || {
+        format!(
+            "coord_transform lat round-trip error {:.2e}",
+            (back[1] - lat).abs()
+        )
+    });
+}
+
+fn check_split_deg(s: &mut Suite, x: f64) {
+    let (d, m, sec, frac, _) = split_deg(x, 0);
+    s.check(
+        d >= 0 && (0..60).contains(&m) && (0..60).contains(&sec) && (0.0..1.0).contains(&frac),
+        || format!("split_deg({x}) → ({d},{m},{sec},{frac:.4})"),
+    );
+}
+
 fn test_math(n: u32) -> Suite {
     let mut s = Suite::new("math");
     let mut rng = Xorshift64::new(0x1234_5678_9ABC_DEF0);
 
     for _ in 0..n {
-        // --- norm_deg ---;
         let x = rng.range_f64(-1e9, 1e9);
-        let d = norm_deg(x);
-        s.check((0.0..360.0).contains(&d), || format!("norm_deg({x}) = {d}"));
-        s.check((norm_deg(d) - d).abs() < 1e-10, || {
-            format!("norm_deg idempotent fail at {d}")
-        });
+        check_norm_deg_and_rad(&mut s, x);
 
-        // --- norm_rad ---;
-        let r = norm_rad(x);
-        s.check((0.0..TAU).contains(&r), || format!("norm_rad({x}) = {r}"));
-
-        // --- diff_deg_signed ---;
         let a = rng.range_f64(-1e9, 1e9);
         let b = rng.range_f64(-1e9, 1e9);
-        let diff = diff_deg_signed(a, b);
-        s.check(diff > -180.0 && diff <= 180.0, || {
-            format!("diff_deg_signed({a},{b}) = {diff}")
-        });
+        check_diff_deg_signed_range(&mut s, a, b);
 
-        // --- norm_cs ---;
-        let cs = rng.next_u64() as i32;
-        let cn = norm_cs(cs);
-        s.check((0..360 * 360_000_i64).contains(&cn), || {
-            format!("norm_cs({cs}) = {cn}")
-        });
-        s.check(norm_cs(cn as i32) == cn, || {
-            format!("norm_cs not idempotent at {cn}")
-        });
+        check_norm_cs(&mut s, rng.next_u64() as i32);
 
-        // --- coord_transform round-trip ---;
         let lon = rng.range_f64(0.0, 360.0);
         let lat = rng.range_f64(-89.9, 89.9);
         let dist = rng.range_f64(0.001, 1000.0);
-        let eps = 23.4_f64;
-        let fwd = coord_transform([lon, lat, dist], eps);
-        let back = coord_transform(fwd, -eps);
-        s.check(fwd[0].is_finite() && fwd[1].is_finite(), || {
-            "coord_transform NaN".to_string()
-        });
-        s.check(fwd[1] >= -90.0 && fwd[1] <= 90.0, || {
-            format!("coord_transform lat {} out of range", fwd[1])
-        });
-        let lon_err = ((back[0] - lon + 540.0) % 360.0 - 180.0).abs();
-        s.check(lon_err < 1e-6, || {
-            format!("coord_transform lon round-trip error {lon_err:.2e}")
-        });
-        s.check((back[1] - lat).abs() < 1e-6, || {
-            format!(
-                "coord_transform lat round-trip error {:.2e}",
-                (back[1] - lat).abs()
-            )
-        });
+        check_coord_transform_round_trip(&mut s, lon, lat, dist);
 
-        // --- split_deg ---;
-        let x = rng.range_f64(-1e6, 1e6);
-        let (d, m, sec, frac, _) = split_deg(x, 0);
-        s.check(
-            d >= 0 && (0..60).contains(&m) && (0..60).contains(&sec) && (0.0..1.0).contains(&frac),
-            || format!("split_deg({x}) → ({d},{m},{sec},{frac:.4})"),
-        );
+        check_split_deg(&mut s, rng.range_f64(-1e6, 1e6));
 
-        // --- nan/inf inputs (must not panic) ---;
+        // nan/inf inputs (must not panic)
         let _ = norm_deg(f64::NAN);
         let _ = norm_deg(f64::INFINITY);
         let _ = coord_transform([f64::NAN, 0.0, 1.0], 23.4);
@@ -800,29 +811,38 @@ fn test_swephelp_vedic(n: u32) -> Suite {
     s
 }
 
+fn check_revjul_hms_ranges(s: &mut Suite, jd: f64) {
+    use celestial_core::revjul_hms;
+    let dt = revjul_hms(jd, Calendar::Gregorian);
+    s.check(dt[1] >= 1 && dt[1] <= 12, || format!("month={}", dt[1]));
+    s.check(dt[2] >= 1 && dt[2] <= 31, || format!("day={}", dt[2]));
+    s.check(dt[3] >= 0 && dt[3] <= 23, || format!("hour={}", dt[3]));
+    s.check(dt[4] >= 0 && dt[4] <= 59, || format!("min={}", dt[4]));
+    s.check(dt[5] >= 0 && dt[5] <= 59, || format!("sec={}", dt[5]));
+}
+
+fn check_jd_duration_ranges(s: &mut Suite, jd: f64, jd2: f64) {
+    use celestial_core::jd_duration;
+    let dur = jd_duration(jd, jd2);
+    s.check(dur[1] >= 0 && dur[1] < 24, || {
+        format!("dur_hours={}", dur[1])
+    });
+    s.check(dur[2] >= 0 && dur[2] < 60, || format!("dur_min={}", dur[2]));
+    s.check(dur[3] >= 0 && dur[3] < 60, || format!("dur_sec={}", dur[3]));
+}
+
 fn test_swephelp_datetime(n: u32) -> Suite {
-    use celestial_core::{jd_duration, jd_to_iso_string, revjul_hms};
+    use celestial_core::jd_to_iso_string;
     let mut s = Suite::new("datetime");
     let mut rng = Xorshift64::new(0xC1C2C3C4C5C6C7C8);
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
-        let dt = revjul_hms(jd, Calendar::Gregorian);
-        s.check(dt[1] >= 1 && dt[1] <= 12, || format!("month={}", dt[1]));
-        s.check(dt[2] >= 1 && dt[2] <= 31, || format!("day={}", dt[2]));
-        s.check(dt[3] >= 0 && dt[3] <= 23, || format!("hour={}", dt[3]));
-        s.check(dt[4] >= 0 && dt[4] <= 59, || format!("min={}", dt[4]));
-        s.check(dt[5] >= 0 && dt[5] <= 59, || format!("sec={}", dt[5]));
+        check_revjul_hms_ranges(&mut s, jd);
 
         let iso = jd_to_iso_string(jd, Calendar::Gregorian);
         s.check(iso.ends_with("UTC"), || format!("iso={iso}"));
 
-        let jd2 = jd + rng.range_f64(0.0, 365.0);
-        let dur = jd_duration(jd, jd2);
-        s.check(dur[1] >= 0 && dur[1] < 24, || {
-            format!("dur_hours={}", dur[1])
-        });
-        s.check(dur[2] >= 0 && dur[2] < 60, || format!("dur_min={}", dur[2]));
-        s.check(dur[3] >= 0 && dur[3] < 60, || format!("dur_sec={}", dur[3]));
+        check_jd_duration_ranges(&mut s, jd, jd + rng.range_f64(0.0, 365.0));
     }
     s
 }

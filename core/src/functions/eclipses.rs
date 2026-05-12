@@ -212,6 +212,76 @@ pub fn lun_eclipse_how(
 ///
 /// Returns the time of closest approach in `tret[0]` and the angular
 /// separation at that time (degrees) in `attr[0]` of the result.
+/// Ecliptic (lon°, lat°) → equatorial (RA rad, Dec rad) using true obliquity.
+fn ecl_to_eq(lon_deg: f64, lat_deg: f64, eps: f64) -> (f64, f64) {
+    let lon = lon_deg.to_radians();
+    let lat = lat_deg.to_radians();
+    let (sin_lon, cos_lon) = lon.sin_cos();
+    let (sin_lat, cos_lat) = lat.sin_cos();
+    let (sin_eps, cos_eps) = eps.sin_cos();
+    let ra = (-lat.tan())
+        .mul_add(sin_eps, sin_lon * cos_eps)
+        .atan2(cos_lon);
+    let dec = sin_lat
+        .mul_add(cos_eps, cos_lat * sin_eps * sin_lon)
+        .asin();
+    (ra, dec)
+}
+
+/// True angular separation (degrees) between Moon and `body` at given JD.
+fn moon_body_separation(jd: f64, body: Body) -> Option<f64> {
+    let moon = crate::calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).ok()?;
+    let planet = crate::calc_ut(jd, body, CalcFlags::BUILTIN).ok()?;
+    let eps = crate::true_obliquity(jd).to_radians();
+    let (ra_m, dec_m) = ecl_to_eq(moon.lon, moon.lat, eps);
+    let (ra_p, dec_p) = ecl_to_eq(planet.lon, planet.lat, eps);
+    let d_ra = ra_m - ra_p;
+    let (sin_dm, cos_dm) = dec_m.sin_cos();
+    let (sin_dp, cos_dp) = dec_p.sin_cos();
+    let cos_d = sin_dm.mul_add(sin_dp, cos_dm * cos_dp * d_ra.cos());
+    Some(cos_d.clamp(-1.0, 1.0).acos().to_degrees())
+}
+
+/// Golden-section refinement around an angular-separation minimum candidate.
+fn refine_separation_minimum(jd_mid: f64, step: f64, body: Body) -> (f64, f64) {
+    let bracket = 2.0 * step.abs();
+    let (mut lo, mut hi) = (jd_mid - bracket, jd_mid + bracket);
+    for _ in 0..30 {
+        let phi = (hi - lo) / 3.0;
+        let m1 = lo + phi;
+        let m2 = hi - phi;
+        if moon_body_separation(m1, body).unwrap_or(180.0)
+            < moon_body_separation(m2, body).unwrap_or(180.0)
+        {
+            hi = m2;
+        } else {
+            lo = m1;
+        }
+    }
+    let jd_occ = (lo + hi) / 2.0;
+    (jd_occ, moon_body_separation(jd_occ, body).unwrap_or(180.0))
+}
+
+/// One step of the occultation search. Returns `Some(EclipseResult)` if the
+/// scanned interval contains a refined occultation within the disc-diameter
+/// threshold; `None` if no occultation here.
+fn try_refine_occultation(jd: f64, step: f64, prev: f64, curr: f64, body: Body) -> Option<EclipseResult> {
+    const THRESHOLD: f64 = 1.5;
+    const OCC_DISC: f64 = 0.27;
+    let next = moon_body_separation(jd + step, body).unwrap_or(180.0);
+    let is_min = curr <= prev && curr <= next && curr < THRESHOLD;
+    if !is_min {
+        return None;
+    }
+    let (jd_occ, min_sep) = refine_separation_minimum(jd, step, body);
+    if min_sep >= OCC_DISC {
+        return None;
+    }
+    let mut tret = [0.0f64; 10];
+    tret[0] = jd_occ;
+    Some(EclipseResult { ret_flags: 64, tret })
+}
+
 pub fn lun_occult_when_glob(
     tjd_start: f64,
     body: Body,
@@ -221,85 +291,20 @@ pub fn lun_occult_when_glob(
     backwards: bool,
 ) -> Result<EclipseResult> {
     let step = if backwards { -0.1_f64 } else { 0.1_f64 };
-    // Trigger the refiner when separation is under 1.5° (ensures we don't miss
-    // fast conjunctions that could dip below the Moon's disc in between samples)
-    const THRESHOLD: f64 = 1.5; // degrees — triggers refinement
-
-    /// True angular separation (degrees) between Moon and planet at given JD.
-    ///
-    /// Converts both bodies from ecliptic (lon, lat) to equatorial (RA, Dec)
-    /// using the true obliquity, then applies the spherical law of cosines.
-    /// This is necessary because ecliptic lat differences can be misleading
-    /// near the ecliptic poles.
-    fn sep(jd: f64, body: Body) -> Option<f64> {
-        let moon = crate::calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).ok()?;
-        let planet = crate::calc_ut(jd, body, CalcFlags::BUILTIN).ok()?;
-        let eps = crate::true_obliquity(jd).to_radians();
-
-        /// Ecliptic (lon°, lat°) → equatorial (RA rad, Dec rad).
-        fn ecl_to_eq(lon_deg: f64, lat_deg: f64, eps: f64) -> (f64, f64) {
-            let lon = lon_deg.to_radians();
-            let lat = lat_deg.to_radians();
-            let (sin_lon, cos_lon) = lon.sin_cos();
-            let (sin_lat, cos_lat) = lat.sin_cos();
-            let (sin_eps, cos_eps) = eps.sin_cos();
-            let ra = (-lat.tan()).mul_add(sin_eps, sin_lon * cos_eps).atan2(cos_lon);
-            let dec = sin_lat.mul_add(cos_eps, cos_lat * sin_eps * sin_lon).asin();
-            (ra, dec)
-        }
-
-        let (ra_m, dec_m) = ecl_to_eq(moon.lon, moon.lat, eps);
-        let (ra_p, dec_p) = ecl_to_eq(planet.lon, planet.lat, eps);
-        let d_ra = ra_m - ra_p;
-        let (sin_dm, cos_dm) = dec_m.sin_cos();
-        let (sin_dp, cos_dp) = dec_p.sin_cos();
-        let cos_d = sin_dm.mul_add(sin_dp, cos_dm * cos_dp * d_ra.cos());
-        Some(cos_d.clamp(-1.0, 1.0).acos().to_degrees())
-    }
-
-    /// Golden-section refinement around an angular-separation minimum candidate.
-    fn refine_min(jd_mid: f64, step: f64, body: Body) -> (f64, f64) {
-        let bracket = 2.0 * step.abs();
-        let (mut lo, mut hi) = (jd_mid - bracket, jd_mid + bracket);
-        for _ in 0..30 {
-            let phi = (hi - lo) / 3.0;
-            let m1 = lo + phi;
-            let m2 = hi - phi;
-            if sep(m1, body).unwrap_or(180.0) < sep(m2, body).unwrap_or(180.0) {
-                hi = m2;
-            } else {
-                lo = m1;
-            }
-        }
-        let jd_occ = (lo + hi) / 2.0;
-        (jd_occ, sep(jd_occ, body).unwrap_or(180.0))
-    }
-
     let mut jd = tjd_start;
     let limit = step.mul_add(4000.0, tjd_start);
-    let mut prev = sep(jd, body).unwrap_or(180.0);
+    let mut prev = moon_body_separation(jd, body).unwrap_or(180.0);
 
     for _ in 0..5000 {
         if (jd - limit) * step.signum() >= 0.0 {
             break;
         }
         jd += step;
-        let curr = sep(jd, body).unwrap_or(180.0);
-        let next = sep(jd + step, body).unwrap_or(180.0);
-        let is_min = curr <= prev && curr <= next && curr < THRESHOLD;
+        let curr = moon_body_separation(jd, body).unwrap_or(180.0);
+        if let Some(result) = try_refine_occultation(jd, step, prev, curr, body) {
+            return Ok(result);
+        }
         prev = curr;
-        if !is_min {
-            continue;
-        }
-        let (jd_occ, min_sep) = refine_min(jd, step, body);
-        if min_sep < 0.27 {
-            let mut tret = [0.0f64; 10];
-            tret[0] = jd_occ;
-            return Ok(EclipseResult {
-                ret_flags: 64,
-                tret,
-            });
-        }
     }
 
     Err(Error::Eclipse(format!(
