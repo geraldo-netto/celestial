@@ -2891,6 +2891,114 @@ fn test_vietnamese(n: u32) -> Suite {
     s
 }
 
+fn run_core_suites(n: u32) -> Vec<(&'static str, bool)> {
+    vec![
+        ("calc_tt_precision", test_calc_tt_precision(n).report()),
+        ("math", test_math(n).report()),
+        ("time", test_time(n).report()),
+        ("houses", test_houses(n).report()),
+        ("vsop87", test_vsop87(n).report()),
+        ("moon", test_moon(n).report()),
+        ("ayanamsa", test_ayanamsa(n).report()),
+        ("rise_set", test_rise_set(n).report()),
+        ("nan_stability", test_nan_stability().report()),
+        ("fixstars", test_fixstars(n).report()),
+        ("nodes", test_nodes(n).report()),
+        ("nod_aps", test_nod_aps(n).report()),
+        ("crossings", test_crossings(n / 5).report()),
+        ("eclipses", test_eclipses(n / 10).report()),
+        ("phenomena", test_phenomena(n).report()),
+        ("house_speeds", test_house_speeds(n).report()),
+        ("aspects", test_swephelp_aspects(n).report()),
+        ("vedic", test_swephelp_vedic(n).report()),
+        ("datetime", test_swephelp_datetime(n).report()),
+        ("tz_table", test_tz_table(n).report()),
+    ]
+}
+
+fn run_calendar_suites(n: u32) -> Vec<(&'static str, bool)> {
+    vec![
+        ("sabbats", test_sabbats(n).report()),
+        ("esbats", test_esbats(n).report()),
+        ("iso_week", test_iso_week(n).report()),
+        ("maya_long_count", test_maya_long_count(n).report()),
+        ("yallop", test_yallop(n).report()),
+        ("coptic", test_coptic(n).report()),
+        ("fasli", test_fasli(n / 50).report()),
+        ("tibetan", test_tibetan(n).report()),
+        ("vietnamese", test_vietnamese(n).report()),
+        ("calendar_jewish", test_calendar_jewish(n).report()),
+        ("calendar_islamic", test_calendar_islamic(n / 5).report()),
+        ("calendar_christian", test_calendar_christian(n).report()),
+        ("calendar_nowruz_bahai", test_calendar_nowruz_bahai(n).report()),
+        ("calendar_omer_vesak", test_calendar_omer_vesak(n).report()),
+        ("hebrew_calendar", test_hebrew_calendar(n).report()),
+        ("hindu_festivals", test_hindu_festivals(n / 50).report()),
+        ("losar_jd", test_losar_jd(n / 10).report()),
+    ]
+}
+
+fn run_advanced_suites(n: u32) -> Vec<(&'static str, bool)> {
+    vec![
+        ("polar_houses", test_polar_houses(n).report()),
+        ("ancient_future", test_ancient_future_dates(n).report()),
+        ("equatorial_mode", test_equatorial_mode(n).report()),
+        ("sidereal_all_modes", test_sidereal_all_modes(n / 2).report()),
+        ("backward_searches", test_backward_searches(n / 5).report()),
+        ("coordinate_transforms", test_coordinate_transforms(n).report()),
+        ("occultation_search", test_occultation_search(n / 5).report()),
+        ("house_invariants", test_house_invariants(n / 3).report()),
+        ("topocentric_parallax", test_topocentric_parallax(n / 5).report()),
+        ("time_equ", test_time_equ(n).report()),
+        ("solcross_back", test_solcross_back(n / 5).report()),
+        ("calc_many_parallel", test_calc_many_parallel(n / 4).report()),
+        ("iau2000b_nutation", test_iau2000b_nutation(n).report()),
+        ("mean_sidtime", test_mean_sidtime(n).report()),
+    ]
+}
+
+fn run_chart_suites(n: u32) -> Vec<(&'static str, bool)> {
+    vec![
+        ("antiscia", test_antiscia(n).report()),
+        ("arabic_parts", test_arabic_parts(n).report()),
+        ("dignities", test_dignities(n).report()),
+        ("returns", test_returns(n / 5).report()),
+        ("progressions", test_progressions(n).report()),
+        ("midpoint_dial", test_midpoint_dial(n).report()),
+        ("local_space", test_local_space(n).report()),
+        ("composite", test_composite(n).report()),
+        ("ashtakavarga", test_ashtakavarga(n).report()),
+        ("shadbala", test_shadbala(n).report()),
+        ("north_indian", test_north_indian(n).report()),
+        ("hellenistic_dignities", test_hellenistic_dignities(n).report()),
+        ("firdaria", test_firdaria(n).report()),
+        ("full_dignity", test_full_dignity(n).report()),
+        ("bazi", test_bazi(n).report()),
+        ("mesoamerican", test_mesoamerican(n).report()),
+        ("indigenous", test_indigenous(n).report()),
+        ("builder_api", test_builder_api(n).report()),
+        ("secondary_progressions_midpoints", test_secondary_progressions_midpoints(n / 5).report()),
+        ("profections", test_profections(n).report()),
+        ("arabic_parts_range", test_arabic_part_range(n).report()),
+        ("chart_aspects_builder", test_chart_aspects_builder(n / 5).report()),
+    ]
+}
+
+fn run_searches_suites(n: u32) -> Vec<(&'static str, bool)> {
+    vec![
+        ("searches_aspects", test_searches_aspects(n / 5).report()),
+        ("searches_stations", test_searches_stations(n / 5).report()),
+        ("searches_moon_crossings", test_searches_moon_crossings(n / 5).report()),
+        ("moon_phases", test_moon_phases(n / 5).report()),
+        ("vedic_dasha_panchanga", test_vedic_dasha_panchanga(n / 5).report()),
+        ("geo_utilities", test_geo_utilities(n).report()),
+        ("format_helpers", test_format_helpers(n).report()),
+        ("calc_ut_many", test_calc_ut_many_consistency(n / 10).report()),
+        ("calc_pctr", test_calc_pctr_no_panic(n / 5).report()),
+        ("ayanamsa_name", test_get_ayanamsa_name(n).report()),
+    ]
+}
+
 fn main() {
     const N: u32 = 2_000; // iterations per group
 
@@ -2898,125 +3006,12 @@ fn main() {
     println!("║   celestial-core property tests  ({N} iters each)  ║");
     println!("╚═══════════════════════════════════════════════════╝\n");
 
-    let suites = vec![
-        ("calc_tt_precision", test_calc_tt_precision(N).report()),
-        ("math", test_math(N).report()),
-        ("time", test_time(N).report()),
-        ("houses", test_houses(N).report()),
-        ("vsop87", test_vsop87(N).report()),
-        ("moon", test_moon(N).report()),
-        ("ayanamsa", test_ayanamsa(N).report()),
-        ("rise_set", test_rise_set(N).report()),
-        ("nan_stability", test_nan_stability().report()),
-        ("fixstars", test_fixstars(N).report()),
-        ("nodes", test_nodes(N).report()),
-        ("nod_aps", test_nod_aps(N).report()),
-        ("crossings", test_crossings(N / 5).report()),
-        ("eclipses", test_eclipses(N / 10).report()),
-        ("phenomena", test_phenomena(N).report()),
-        ("house_speeds", test_house_speeds(N).report()),
-        ("aspects", test_swephelp_aspects(N).report()),
-        ("vedic", test_swephelp_vedic(N).report()),
-        ("datetime", test_swephelp_datetime(N).report()),
-        ("tz_table", test_tz_table(N).report()),
-        ("sabbats", test_sabbats(N).report()),
-        ("esbats", test_esbats(N).report()),
-        ("iso_week", test_iso_week(N).report()),
-        ("maya_long_count", test_maya_long_count(N).report()),
-        ("yallop", test_yallop(N).report()),
-        ("coptic", test_coptic(N).report()),
-        ("fasli", test_fasli(N / 50).report()),
-        ("tibetan", test_tibetan(N).report()),
-        ("vietnamese", test_vietnamese(N).report()),
-        ("polar_houses", test_polar_houses(N).report()),
-        ("ancient_future", test_ancient_future_dates(N).report()),
-        ("equatorial_mode", test_equatorial_mode(N).report()),
-        (
-            "sidereal_all_modes",
-            test_sidereal_all_modes(N / 2).report(),
-        ),
-        ("backward_searches", test_backward_searches(N / 5).report()),
-        (
-            "coordinate_transforms",
-            test_coordinate_transforms(N).report(),
-        ),
-        (
-            "occultation_search",
-            test_occultation_search(N / 5).report(),
-        ),
-        ("house_invariants", test_house_invariants(N / 3).report()),
-        (
-            "topocentric_parallax",
-            test_topocentric_parallax(N / 5).report(),
-        ),
-        ("time_equ", test_time_equ(N).report()),
-        ("solcross_back", test_solcross_back(N / 5).report()),
-        (
-            "calc_many_parallel",
-            test_calc_many_parallel(N / 4).report(),
-        ),
-        ("iau2000b_nutation", test_iau2000b_nutation(N).report()),
-        ("mean_sidtime", test_mean_sidtime(N).report()),
-        ("antiscia", test_antiscia(N).report()),
-        ("arabic_parts", test_arabic_parts(N).report()),
-        ("dignities", test_dignities(N).report()),
-        ("returns", test_returns(N / 5).report()),
-        ("progressions", test_progressions(N).report()),
-        ("midpoint_dial", test_midpoint_dial(N).report()),
-        ("local_space", test_local_space(N).report()),
-        ("composite", test_composite(N).report()),
-        ("ashtakavarga", test_ashtakavarga(N).report()),
-        ("shadbala", test_shadbala(N).report()),
-        ("north_indian", test_north_indian(N).report()),
-        (
-            "hellenistic_dignities",
-            test_hellenistic_dignities(N).report(),
-        ),
-        ("firdaria", test_firdaria(N).report()),
-        ("full_dignity", test_full_dignity(N).report()),
-        ("bazi", test_bazi(N).report()),
-        ("mesoamerican", test_mesoamerican(N).report()),
-        ("indigenous", test_indigenous(N).report()),
-        ("builder_api", test_builder_api(N).report()),
-        (
-            "secondary_progressions_midpoints",
-            test_secondary_progressions_midpoints(N / 5).report(),
-        ),
-        ("calendar_jewish", test_calendar_jewish(N).report()),
-        ("calendar_islamic", test_calendar_islamic(N / 5).report()),
-        ("calendar_christian", test_calendar_christian(N).report()),
-        (
-            "calendar_nowruz_bahai",
-            test_calendar_nowruz_bahai(N).report(),
-        ),
-        ("calendar_omer_vesak", test_calendar_omer_vesak(N).report()),
-        ("searches_aspects", test_searches_aspects(N / 5).report()),
-        ("searches_stations", test_searches_stations(N / 5).report()),
-        (
-            "searches_moon_crossings",
-            test_searches_moon_crossings(N / 5).report(),
-        ),
-        ("moon_phases", test_moon_phases(N / 5).report()),
-        (
-            "vedic_dasha_panchanga",
-            test_vedic_dasha_panchanga(N / 5).report(),
-        ),
-        ("geo_utilities", test_geo_utilities(N).report()),
-        ("profections", test_profections(N).report()),
-
-        // ── Coverage-expansion suites ───────────────────────────────────────
-        ("format_helpers",        test_format_helpers(N).report()),
-        ("calc_ut_many",          test_calc_ut_many_consistency(N / 10).report()),
-        ("arabic_parts_range",    test_arabic_part_range(N).report()),
-        ("chart_aspects_builder", test_chart_aspects_builder(N / 5).report()),
-        ("hebrew_calendar",       test_hebrew_calendar(N).report()),
-        ("calc_pctr",             test_calc_pctr_no_panic(N / 5).report()),
-
-        // ── Coverage gaps for previously-uncovered public fns ───────────────
-        ("hindu_festivals",       test_hindu_festivals(N / 50).report()),
-        ("losar_jd",              test_losar_jd(N / 10).report()),
-        ("ayanamsa_name",         test_get_ayanamsa_name(N).report()),
-    ];
+    let mut suites = Vec::new();
+    suites.extend(run_core_suites(N));
+    suites.extend(run_calendar_suites(N));
+    suites.extend(run_advanced_suites(N));
+    suites.extend(run_chart_suites(N));
+    suites.extend(run_searches_suites(N));
 
     println!();
     let total_ok = suites.iter().all(|(_, ok)| *ok);
