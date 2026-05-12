@@ -27,7 +27,6 @@ pub(crate) fn build_context(
     hsys: char,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, String> {
-    let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
         .map_err(|e| e.to_string())?;
     let asc = h.ascmc[0];
@@ -35,229 +34,16 @@ pub(crate) fn build_context(
     let ic = (mc + 180.0).rem_euclid(360.0);
     let dsc = (asc + 180.0).rem_euclid(360.0);
 
-    // ── planets ──────────────────────────────────────────────────────────────
-    let mut planets = Vec::with_capacity(BODIES.len());
-    for &(body, key, name, glyph) in BODIES {
-        if let Ok(pos) = calc_ut(jd, body, flags) {
-            let (sign_idx, deg_in_sign) = lon_to_sign(pos.lon);
-            let sign_full = zodiac_sign_name(sign_idx);
-            let sign_short = &sign_full[..sign_full
-                .char_indices()
-                .nth(3)
-                .map_or(sign_full.len(), |(i, _)| i)];
-            let deg_label = format!(
-                "{:.0}\u{00B0}{}{}",
-                deg_in_sign.floor(),
-                sign_short,
-                if pos.speed_lon < 0.0 { "\u{211E}" } else { "" }
-            );
-            planets.push(json!({
-                "name":       name,
-                "key":        key,
-                "glyph":      glyph,
-                "lon":        (pos.lon   * 1e4).round() / 1e4,
-                "lat":        (pos.lat   * 1e4).round() / 1e4,
-                "dist":       (pos.dist  * 1e4).round() / 1e4,
-                "speed":      (pos.speed_lon * 1e4).round() / 1e4,
-                "retro":      pos.speed_lon < 0.0,
-                // Station: speed very close to 0 → planet is stationary
-                "near_station": pos.speed_lon.abs() < 0.05,
-                "dignity":    planet_dignity(body, sign_idx),
-                // Antiscia: mirror over the Cancer-Capricorn solstice axis
-                "antiscia_lon":  (antiscion_lon(pos.lon) * 1e4).round() / 1e4,
-                "contra_lon":    (contra_antiscion_lon(pos.lon) * 1e4).round() / 1e4,
-                "antiscia_x": (wx(CX, RH - 4.0, antiscion_lon(pos.lon), asc) * 100.0).round() / 100.0,
-                "antiscia_y": (wy(CY, RH - 4.0, antiscion_lon(pos.lon), asc) * 100.0).round() / 100.0,
-                "sign":       sign_idx,
-                "sign_name":  zodiac_sign_name(sign_idx),
-                "dms":        fmt_lon_dms(pos.lon),
-                "deg_label":  deg_label,
-                "speed_str":  format!("{}{:.2}\u{00B0}/d",
-                                if pos.speed_lon < 0.0 { "\u{211E} " } else { "" },
-                                pos.speed_lon.abs()),
-                // wheel coordinates
-                "x":        (wx(CX, RP, pos.lon, asc) * 100.0).round() / 100.0,
-                "y":        (wy(CY, RP, pos.lon, asc) * 100.0).round() / 100.0,
-                "label_x":  (wx(CX, RP + 20.0, pos.lon, asc) * 100.0).round() / 100.0,
-                "label_y":  (wy(CY, RP + 20.0, pos.lon, asc) * 100.0).round() / 100.0,
-                "tick_x1":  (wx(CX, RH + 2.0,  pos.lon, asc) * 100.0).round() / 100.0,
-                "tick_y1":  (wy(CY, RH + 2.0,  pos.lon, asc) * 100.0).round() / 100.0,
-                "tick_x2":  (wx(CX, RP - 12.0, pos.lon, asc) * 100.0).round() / 100.0,
-                "tick_y2":  (wy(CY, RP - 12.0, pos.lon, asc) * 100.0).round() / 100.0,
-                "asp_x":    (wx(CX, RP - 18.0, pos.lon, asc) * 100.0).round() / 100.0,
-                "asp_y":    (wy(CY, RP - 18.0, pos.lon, asc) * 100.0).round() / 100.0}));
-        }
-    }
-
-    // ── signs ────────────────────────────────────────────────────────────────
-    let sign_glyphs = [
-        "\u{2648}", "\u{2649}", "\u{264A}", "\u{264B}", "\u{264C}", "\u{264D}", "\u{264E}",
-        "\u{264F}", "\u{2650}", "\u{2651}", "\u{2652}", "\u{2653}",
-    ];
-    let signs: Vec<Value> = (0..12)
-        .map(|i| {
-            let sl = i as f64 * 30.0;
-            let mid = sl + 15.0;
-            let sgr = (RM + RI) / 2.0;
-            json!({
-                "idx":       i,
-                "glyph":     sign_glyphs[i],
-                "spoke_x1":  (wx(CX, RI, sl,  asc) * 100.0).round() / 100.0,
-                "spoke_y1":  (wy(CY, RI, sl,  asc) * 100.0).round() / 100.0,
-                "spoke_x2":  (wx(CX, RO, sl,  asc) * 100.0).round() / 100.0,
-                "spoke_y2":  (wy(CY, RO, sl,  asc) * 100.0).round() / 100.0,
-                "glyph_x":   (wx(CX, sgr, mid, asc) * 100.0).round() / 100.0,
-                "glyph_y":   (wy(CY, sgr, mid, asc) * 100.0).round() / 100.0})
-        })
-        .collect();
-
-    // ── house cusps ──────────────────────────────────────────────────────────
-    let house_lons: Vec<f64> = h.cusps[1..=12].to_vec();
-    let houses: Vec<Value> = (0..12)
-        .map(|i| {
-            let lon2 = house_lons[i];
-            let next_lon = house_lons[(i + 1) % 12];
-            let mid_lon = midpoint_deg(lon2, next_lon);
-            let is_angle = i == 0 || i == 3 || i == 6 || i == 9;
-            json!({
-                "num":      i + 1,
-                "lon":      (lon2 * 1e4).round() / 1e4,
-                "dms":      fmt_lon_dms(lon2),
-                "is_angle": is_angle,
-                "x1":       (wx(CX, RH, lon2, asc) * 100.0).round() / 100.0,
-                "y1":       (wy(CY, RH, lon2, asc) * 100.0).round() / 100.0,
-                "x2":       (wx(CX, RI, lon2, asc) * 100.0).round() / 100.0,
-                "y2":       (wy(CY, RI, lon2, asc) * 100.0).round() / 100.0,
-                "num_x":    (wx(CX, RH - 14.0, mid_lon, asc) * 100.0).round() / 100.0,
-                "num_y":    (wy(CY, RH - 14.0, mid_lon, asc) * 100.0).round() / 100.0})
-        })
-        .collect();
-
-    // ── aspects ──────────────────────────────────────────────────────────────
+    let planets = build_planets(jd, asc);
+    let signs = build_signs(asc);
+    let houses = build_houses(&h, asc);
     let aspects = compute_aspects(&planets);
-
-    // ── arabic parts ─────────────────────────────────────────────────────────
-    let body_lons = collect_body_longitudes(&planets);
-    let sun_lon = body_lons.sun;
-    let moon_lon = body_lons.moon;
-    let sat_lon = body_lons.saturn;
-    let mar_lon = body_lons.mars;
-    let jup_lon = body_lons.jupiter;
-    let mer_lon = body_lons.mercury;
-    let ven_lon = body_lons.venus;
-
-    // Day chart: Sun is in houses 7–12 (above horizon at lat/lon/jd)
-    let sun_house = h.cusps[1..=12]
-        .windows(2)
-        .position(|w| {
-            let lo = w[0];
-            let hi = w[1];
-            if lo < hi {
-                lo <= sun_lon && sun_lon < hi
-            } else {
-                sun_lon >= lo || sun_lon < hi
-            }
-        })
-        .map_or(1, |i| i + 1);
-    let is_day = sun_house >= 7;
-
-    let arabic_parts_raw = arabic_parts_seven(
-        asc, sun_lon, moon_lon, sat_lon, mar_lon, jup_lon, mer_lon, ven_lon, is_day,
-    );
-    let arabic_parts: Vec<Value> = arabic_parts_raw
-        .iter()
-        .map(|p| {
-            let (sign_idx, deg_in_sign) = lon_to_sign(p.degree);
-            json!({
-                "name":     p.name,
-                "formula":  p.formula,
-                "lon":      (p.degree * 1e4).round() / 1e4,
-                "dms":      fmt_lon_dms(p.degree),
-                "sign":     zodiac_sign_name(sign_idx),
-                "deg_in_sign": (deg_in_sign * 100.0).round() / 100.0,
-                "x":        (wx(CX, RH + 2.0, p.degree, asc) * 100.0).round() / 100.0,
-                "y":        (wy(CY, RH + 2.0, p.degree, asc) * 100.0).round() / 100.0,
-                "is_day":   is_day})
-        })
-        .collect();
-
-    // ── fixed stars (top 15 brightest / most astrologically significant) ──────
-    const TOP_STARS: &[&str] = &[
-        "Algol",
-        "Pleiades",
-        "Aldebaran",
-        "Rigel",
-        "Capella",
-        "Sirius",
-        "Pollux",
-        "Regulus",
-        "Spica",
-        "Arcturus",
-        "Antares",
-        "Vega",
-        "Altair",
-        "Fomalhaut",
-        "Achernar",
-    ];
-    let fixed_stars: Vec<Value> = TOP_STARS
-        .iter()
-        .filter_map(|&name| {
-            let pos = fixstar_ut(name, jd, CalcFlags::BUILTIN).ok()?;
-            let lon_s = pos.xx[0];
-            let lat_s = pos.xx[1];
-            let mag = fixstar_mag(name).unwrap_or(3.0);
-            let (sign_idx, deg_in_sign) = lon_to_sign(lon_s);
-            Some(json!({
-                "name":        name,
-                "mag":         mag,
-                "lon":         (lon_s * 1e4).round() / 1e4,
-                "lat":         (lat_s * 1e4).round() / 1e4,
-                "sign":        zodiac_sign_name(sign_idx),
-                "deg_in_sign": (deg_in_sign * 100.0).round() / 100.0,
-                "x":  (wx(CX, RI + 8.0, lon_s, asc) * 100.0).round() / 100.0,
-                "y":  (wy(CY, RI + 8.0, lon_s, asc) * 100.0).round() / 100.0}))
-        })
-        .collect();
-
-    // ── angles with label positions ───────────────────────────────────────────
-    let angle_lons = [asc, mc, ic, dsc];
-    let angle_labels = ["ASC", "MC", "IC", "DSC"];
-    let angles: Vec<Value> = (0..4)
-        .map(|i| {
-            let lon2 = angle_lons[i];
-            json!({
-                "name":  angle_labels[i],
-                "lon":   (lon2 * 1e4).round() / 1e4,
-                "dms":   fmt_lon_dms(lon2),
-                "lx":    (wx(CX, RI + 18.0, lon2, asc) * 100.0).round() / 100.0,
-                "ly":    (wy(CY, RI + 18.0, lon2, asc) * 100.0).round() / 100.0})
-        })
-        .collect();
-
-    // ── moon ─────────────────────────────────────────────────────────────────
+    let arabic_parts = build_arabic_parts(&planets, &h, asc);
+    let fixed_stars = build_fixed_stars(jd, asc);
+    let angles = build_angles(asc, mc, ic, dsc);
     let illum_pct = (moon_illumination(jd).unwrap_or(0.0) * 1000.0).round() / 10.0;
+    let vars = build_vars(&user_vars);
 
-    // ── user vars (with palette defaults merged in) ───────────────────────────
-    let mut vars = serde_json::Map::new();
-    // defaults
-    for (k, v) in [
-        ("bg_color", "#ffffff"),
-        ("ring_color", "#1a1a2e"),
-        ("planet_color", "#0d0d1e"),
-        ("retro_color", "#b01020"),
-        ("hard_color", "#b01020"),
-        ("soft_color", "#1a50b0"),
-        ("text_color", "#0d0d1e"),
-        ("title", "Celestial Chart"),
-    ] {
-        vars.insert(k.to_string(), json!(v));
-    }
-    // user overrides
-    for (k, v) in &user_vars {
-        vars.insert(k.clone(), json!(v));
-    }
-
-    // ── assemble ──────────────────────────────────────────────────────────────
     Ok(json!({
         // Derive canonical date+time from JD; fall back to caller label
         // for composite/synastry/test strings that aren't plain dates.
@@ -287,6 +73,210 @@ pub(crate) fn build_context(
         "arabic_parts":        arabic_parts,
         "fixed_stars":         fixed_stars,
         "vars":                Value::Object(vars)}))
+}
+
+fn build_planets(jd: f64, asc: f64) -> Vec<Value> {
+    let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    let mut planets = Vec::with_capacity(BODIES.len());
+    for &(body, key, name, glyph) in BODIES {
+        if let Ok(pos) = calc_ut(jd, body, flags) {
+            let (sign_idx, deg_in_sign) = lon_to_sign(pos.lon);
+            let sign_full = zodiac_sign_name(sign_idx);
+            let sign_short = &sign_full[..sign_full
+                .char_indices()
+                .nth(3)
+                .map_or(sign_full.len(), |(i, _)| i)];
+            let deg_label = format!(
+                "{:.0}\u{00B0}{}{}",
+                deg_in_sign.floor(),
+                sign_short,
+                if pos.speed_lon < 0.0 { "\u{211E}" } else { "" }
+            );
+            planets.push(json!({
+                "name":       name,
+                "key":        key,
+                "glyph":      glyph,
+                "lon":        (pos.lon   * 1e4).round() / 1e4,
+                "lat":        (pos.lat   * 1e4).round() / 1e4,
+                "dist":       (pos.dist  * 1e4).round() / 1e4,
+                "speed":      (pos.speed_lon * 1e4).round() / 1e4,
+                "retro":      pos.speed_lon < 0.0,
+                "near_station": pos.speed_lon.abs() < 0.05,
+                "dignity":    planet_dignity(body, sign_idx),
+                "antiscia_lon":  (antiscion_lon(pos.lon) * 1e4).round() / 1e4,
+                "contra_lon":    (contra_antiscion_lon(pos.lon) * 1e4).round() / 1e4,
+                "antiscia_x": (wx(CX, RH - 4.0, antiscion_lon(pos.lon), asc) * 100.0).round() / 100.0,
+                "antiscia_y": (wy(CY, RH - 4.0, antiscion_lon(pos.lon), asc) * 100.0).round() / 100.0,
+                "sign":       sign_idx,
+                "sign_name":  zodiac_sign_name(sign_idx),
+                "dms":        fmt_lon_dms(pos.lon),
+                "deg_label":  deg_label,
+                "speed_str":  format!("{}{:.2}\u{00B0}/d",
+                                if pos.speed_lon < 0.0 { "\u{211E} " } else { "" },
+                                pos.speed_lon.abs()),
+                "x":        (wx(CX, RP, pos.lon, asc) * 100.0).round() / 100.0,
+                "y":        (wy(CY, RP, pos.lon, asc) * 100.0).round() / 100.0,
+                "label_x":  (wx(CX, RP + 20.0, pos.lon, asc) * 100.0).round() / 100.0,
+                "label_y":  (wy(CY, RP + 20.0, pos.lon, asc) * 100.0).round() / 100.0,
+                "tick_x1":  (wx(CX, RH + 2.0,  pos.lon, asc) * 100.0).round() / 100.0,
+                "tick_y1":  (wy(CY, RH + 2.0,  pos.lon, asc) * 100.0).round() / 100.0,
+                "tick_x2":  (wx(CX, RP - 12.0, pos.lon, asc) * 100.0).round() / 100.0,
+                "tick_y2":  (wy(CY, RP - 12.0, pos.lon, asc) * 100.0).round() / 100.0,
+                "asp_x":    (wx(CX, RP - 18.0, pos.lon, asc) * 100.0).round() / 100.0,
+                "asp_y":    (wy(CY, RP - 18.0, pos.lon, asc) * 100.0).round() / 100.0}));
+        }
+    }
+    planets
+}
+
+const SIGN_GLYPHS: [&str; 12] = [
+    "\u{2648}", "\u{2649}", "\u{264A}", "\u{264B}", "\u{264C}", "\u{264D}", "\u{264E}",
+    "\u{264F}", "\u{2650}", "\u{2651}", "\u{2652}", "\u{2653}",
+];
+
+fn build_signs(asc: f64) -> Vec<Value> {
+    (0..12)
+        .map(|i| {
+            let sl = i as f64 * 30.0;
+            let mid = sl + 15.0;
+            let sgr = (RM + RI) / 2.0;
+            json!({
+                "idx":       i,
+                "glyph":     SIGN_GLYPHS[i],
+                "spoke_x1":  (wx(CX, RI, sl,  asc) * 100.0).round() / 100.0,
+                "spoke_y1":  (wy(CY, RI, sl,  asc) * 100.0).round() / 100.0,
+                "spoke_x2":  (wx(CX, RO, sl,  asc) * 100.0).round() / 100.0,
+                "spoke_y2":  (wy(CY, RO, sl,  asc) * 100.0).round() / 100.0,
+                "glyph_x":   (wx(CX, sgr, mid, asc) * 100.0).round() / 100.0,
+                "glyph_y":   (wy(CY, sgr, mid, asc) * 100.0).round() / 100.0})
+        })
+        .collect()
+}
+
+fn build_houses(h: &celestial_core::HouseResult, asc: f64) -> Vec<Value> {
+    let house_lons: Vec<f64> = h.cusps[1..=12].to_vec();
+    (0..12)
+        .map(|i| {
+            let lon2 = house_lons[i];
+            let next_lon = house_lons[(i + 1) % 12];
+            let mid_lon = midpoint_deg(lon2, next_lon);
+            let is_angle = i == 0 || i == 3 || i == 6 || i == 9;
+            json!({
+                "num":      i + 1,
+                "lon":      (lon2 * 1e4).round() / 1e4,
+                "dms":      fmt_lon_dms(lon2),
+                "is_angle": is_angle,
+                "x1":       (wx(CX, RH, lon2, asc) * 100.0).round() / 100.0,
+                "y1":       (wy(CY, RH, lon2, asc) * 100.0).round() / 100.0,
+                "x2":       (wx(CX, RI, lon2, asc) * 100.0).round() / 100.0,
+                "y2":       (wy(CY, RI, lon2, asc) * 100.0).round() / 100.0,
+                "num_x":    (wx(CX, RH - 14.0, mid_lon, asc) * 100.0).round() / 100.0,
+                "num_y":    (wy(CY, RH - 14.0, mid_lon, asc) * 100.0).round() / 100.0})
+        })
+        .collect()
+}
+
+fn sun_house_index(cusps: &[f64], sun_lon: f64) -> usize {
+    cusps[1..=12]
+        .windows(2)
+        .position(|w| {
+            let lo = w[0];
+            let hi = w[1];
+            if lo < hi {
+                lo <= sun_lon && sun_lon < hi
+            } else {
+                sun_lon >= lo || sun_lon < hi
+            }
+        })
+        .map_or(1, |i| i + 1)
+}
+
+fn build_arabic_parts(planets: &[Value], h: &celestial_core::HouseResult, asc: f64) -> Vec<Value> {
+    let b = collect_body_longitudes(planets);
+    let is_day = sun_house_index(&h.cusps, b.sun) >= 7;
+    let raw = arabic_parts_seven(
+        asc, b.sun, b.moon, b.saturn, b.mars, b.jupiter, b.mercury, b.venus, is_day,
+    );
+    raw.iter()
+        .map(|p| {
+            let (sign_idx, deg_in_sign) = lon_to_sign(p.degree);
+            json!({
+                "name":     p.name,
+                "formula":  p.formula,
+                "lon":      (p.degree * 1e4).round() / 1e4,
+                "dms":      fmt_lon_dms(p.degree),
+                "sign":     zodiac_sign_name(sign_idx),
+                "deg_in_sign": (deg_in_sign * 100.0).round() / 100.0,
+                "x":        (wx(CX, RH + 2.0, p.degree, asc) * 100.0).round() / 100.0,
+                "y":        (wy(CY, RH + 2.0, p.degree, asc) * 100.0).round() / 100.0,
+                "is_day":   is_day})
+        })
+        .collect()
+}
+
+const TOP_STARS: &[&str] = &[
+    "Algol", "Pleiades", "Aldebaran", "Rigel", "Capella", "Sirius", "Pollux",
+    "Regulus", "Spica", "Arcturus", "Antares", "Vega", "Altair", "Fomalhaut", "Achernar",
+];
+
+fn build_fixed_stars(jd: f64, asc: f64) -> Vec<Value> {
+    TOP_STARS
+        .iter()
+        .filter_map(|&name| {
+            let pos = fixstar_ut(name, jd, CalcFlags::BUILTIN).ok()?;
+            let lon_s = pos.xx[0];
+            let lat_s = pos.xx[1];
+            let mag = fixstar_mag(name).unwrap_or(3.0);
+            let (sign_idx, deg_in_sign) = lon_to_sign(lon_s);
+            Some(json!({
+                "name":        name,
+                "mag":         mag,
+                "lon":         (lon_s * 1e4).round() / 1e4,
+                "lat":         (lat_s * 1e4).round() / 1e4,
+                "sign":        zodiac_sign_name(sign_idx),
+                "deg_in_sign": (deg_in_sign * 100.0).round() / 100.0,
+                "x":  (wx(CX, RI + 8.0, lon_s, asc) * 100.0).round() / 100.0,
+                "y":  (wy(CY, RI + 8.0, lon_s, asc) * 100.0).round() / 100.0}))
+        })
+        .collect()
+}
+
+fn build_angles(asc: f64, mc: f64, ic: f64, dsc: f64) -> Vec<Value> {
+    let angle_lons = [asc, mc, ic, dsc];
+    let angle_labels = ["ASC", "MC", "IC", "DSC"];
+    (0..4)
+        .map(|i| {
+            let lon2 = angle_lons[i];
+            json!({
+                "name":  angle_labels[i],
+                "lon":   (lon2 * 1e4).round() / 1e4,
+                "dms":   fmt_lon_dms(lon2),
+                "lx":    (wx(CX, RI + 18.0, lon2, asc) * 100.0).round() / 100.0,
+                "ly":    (wy(CY, RI + 18.0, lon2, asc) * 100.0).round() / 100.0})
+        })
+        .collect()
+}
+
+const VAR_DEFAULTS: &[(&str, &str)] = &[
+    ("bg_color", "#ffffff"),
+    ("ring_color", "#1a1a2e"),
+    ("planet_color", "#0d0d1e"),
+    ("retro_color", "#b01020"),
+    ("hard_color", "#b01020"),
+    ("soft_color", "#1a50b0"),
+    ("text_color", "#0d0d1e"),
+    ("title", "Celestial Chart"),
+];
+
+fn build_vars(user_vars: &BTreeMap<String, String>) -> serde_json::Map<String, Value> {
+    let mut vars = serde_json::Map::new();
+    for &(k, v) in VAR_DEFAULTS {
+        vars.insert(k.to_string(), json!(v));
+    }
+    for (k, v) in user_vars {
+        vars.insert(k.clone(), json!(v));
+    }
+    vars
 }
 
 /// The 7 body longitudes used by the Arabic-Parts calculation, plus a

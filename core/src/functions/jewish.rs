@@ -53,330 +53,83 @@ pub enum HolidayCategory {
     SpecialShabbat,
 }
 
+/// Static descriptor for a Jewish holiday entry. Month sentinel `0` = Purim
+/// month (12 in common year, 13 in leap year). `extra_end` adds extra days
+/// to `jd_end` beyond `start + days` (used for holidays whose ritual day
+/// ends at next nightfall but `days` counts only the calendar day).
+struct HolidaySpec {
+    name: &'static str,
+    hebrew_name: &'static str,
+    month: u8,
+    day: u8,
+    days: u8,
+    extra_end: f64,
+    category: HolidayCategory,
+}
+
+const HOLIDAY_TABLE: &[HolidaySpec] = &[
+    // Tishrei
+    HolidaySpec { name: "Rosh Hashanah", hebrew_name: "ראש השנה", month: 7, day: 1, days: 2, extra_end: 0.0, category: HolidayCategory::MajorFestival },
+    HolidaySpec { name: "Tzom Gedaliah", hebrew_name: "צום גדליה", month: 7, day: 3, days: 1, extra_end: -1.0, category: HolidayCategory::Fast },
+    HolidaySpec { name: "Yom Kippur", hebrew_name: "יום כיפור", month: 7, day: 10, days: 1, extra_end: 0.0, category: HolidayCategory::MajorFestival },
+    HolidaySpec { name: "Sukkot", hebrew_name: "סוכות", month: 7, day: 15, days: 7, extra_end: 0.0, category: HolidayCategory::MajorFestival },
+    HolidaySpec { name: "Shemini Atzeret", hebrew_name: "שמיני עצרת", month: 7, day: 22, days: 1, extra_end: 0.0, category: HolidayCategory::MajorFestival },
+    HolidaySpec { name: "Simchat Torah", hebrew_name: "שמחת תורה", month: 7, day: 23, days: 1, extra_end: 0.0, category: HolidayCategory::MajorFestival },
+    // Kislev / Tevet / Shevat
+    HolidaySpec { name: "Hanukkah", hebrew_name: "חנוכה", month: 9, day: 25, days: 8, extra_end: 0.0, category: HolidayCategory::RabbinicFestival },
+    HolidaySpec { name: "Tzom Tevet (10 Tevet)", hebrew_name: "עשרה בטבת", month: 10, day: 10, days: 1, extra_end: -1.0, category: HolidayCategory::Fast },
+    HolidaySpec { name: "Tu BiShvat", hebrew_name: "ט\"ו בשבט", month: 11, day: 15, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+    // Purim month (sentinel 0 → 12 or 13)
+    HolidaySpec { name: "Ta'anit Esther", hebrew_name: "תענית אסתר", month: 0, day: 13, days: 1, extra_end: -1.0, category: HolidayCategory::Fast },
+    HolidaySpec { name: "Purim", hebrew_name: "פורים", month: 0, day: 14, days: 2, extra_end: 0.0, category: HolidayCategory::RabbinicFestival },
+    // Nisan
+    HolidaySpec { name: "Ta'anit Bechorot (Fast of the Firstborn)", hebrew_name: "תענית בכורות", month: 1, day: 14, days: 1, extra_end: -1.0, category: HolidayCategory::Fast },
+    HolidaySpec { name: "Passover (Pesach)", hebrew_name: "פסח", month: 1, day: 15, days: 8, extra_end: 0.0, category: HolidayCategory::MajorFestival },
+    HolidaySpec { name: "Yom HaShoah", hebrew_name: "יום השואה", month: 1, day: 27, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+    // Iyyar
+    HolidaySpec { name: "Yom HaZikaron", hebrew_name: "יום הזיכרון", month: 2, day: 4, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+    HolidaySpec { name: "Yom HaAtzmaut", hebrew_name: "יום העצמאות", month: 2, day: 5, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+    HolidaySpec { name: "Lag Ba'Omer", hebrew_name: "ל\"ג בעומר", month: 2, day: 18, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+    HolidaySpec { name: "Yom Yerushalayim", hebrew_name: "יום ירושלים", month: 2, day: 28, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+    // Sivan
+    HolidaySpec { name: "Shavuot", hebrew_name: "שבועות", month: 3, day: 6, days: 2, extra_end: 0.0, category: HolidayCategory::MajorFestival },
+    // Tammuz
+    HolidaySpec { name: "Shiva Asar B'Tammuz", hebrew_name: "שבעה עשר בתמוז", month: 4, day: 17, days: 1, extra_end: -1.0, category: HolidayCategory::Fast },
+    // Av
+    HolidaySpec { name: "Tisha B'Av", hebrew_name: "תשעה באב", month: 5, day: 9, days: 1, extra_end: 0.0, category: HolidayCategory::Fast },
+    HolidaySpec { name: "Tu B'Av", hebrew_name: "ט\"ו באב", month: 5, day: 15, days: 1, extra_end: -1.0, category: HolidayCategory::Minor },
+];
+
+#[inline]
+fn nightfall_jd(hebrew_year: i32, month: u8, day: u8) -> f64 {
+    hebrew_month_start_jd(hebrew_year, month as i32) as f64 + (day as f64 - 1.0) + 0.25
+}
+
+fn materialize_holiday(spec: &HolidaySpec, hebrew_year: i32, purim_month: u8) -> JewishHoliday {
+    let month = if spec.month == 0 { purim_month } else { spec.month };
+    let start = nightfall_jd(hebrew_year, month, spec.day);
+    let end = start + spec.days as f64 + spec.extra_end;
+    JewishHoliday {
+        name: spec.name,
+        hebrew_name: spec.hebrew_name,
+        hebrew_month: month,
+        hebrew_day: spec.day,
+        jd: start,
+        jd_end: end,
+        days: spec.days,
+        category: spec.category.clone(),
+    }
+}
+
 /// Compute all major Jewish holidays for the given Hebrew year.
 ///
 /// Returns holidays sorted by Julian day (chronological).
 pub fn jewish_holidays(hebrew_year: i32) -> Vec<JewishHoliday> {
-    let leap = is_hebrew_leap_year(hebrew_year);
-    let mut out: Vec<JewishHoliday> = Vec::with_capacity(30);
-
-    // Helper: JD of a Hebrew month/day in this year, at nightfall
-    let jd = |month: u8, day: u8| -> f64 {
-        hebrew_month_start_jd(hebrew_year, month as i32) as f64 + (day as f64 - 1.0) + 0.25
-        // nightfall offset
-    };
-    let jd_day = |month: u8, day: u8, duration: u8| -> (f64, f64) {
-        let start = jd(month, day);
-        (start, start + duration as f64)
-    };
-
-    // ── Tishrei (month 7) ─────────────────────────────────────────────────
-    {
-        let (s, e) = jd_day(7, 1, 2);
-        out.push(JewishHoliday {
-            name: "Rosh Hashanah",
-            hebrew_name: "ראש השנה",
-            hebrew_month: 7,
-            hebrew_day: 1,
-            jd: s,
-            jd_end: e,
-            days: 2,
-            category: HolidayCategory::MajorFestival,
-        });
-    }
-    {
-        let s = jd(7, 3);
-        out.push(JewishHoliday {
-            name: "Tzom Gedaliah",
-            hebrew_name: "צום גדליה",
-            hebrew_month: 7,
-            hebrew_day: 3,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Fast,
-        });
-    }
-    {
-        let s = jd(7, 10);
-        out.push(JewishHoliday {
-            name: "Yom Kippur",
-            hebrew_name: "יום כיפור",
-            hebrew_month: 7,
-            hebrew_day: 10,
-            jd: s,
-            jd_end: s + 1.0,
-            days: 1,
-            category: HolidayCategory::MajorFestival,
-        });
-    }
-    {
-        let (s, e) = jd_day(7, 15, 7);
-        out.push(JewishHoliday {
-            name: "Sukkot",
-            hebrew_name: "סוכות",
-            hebrew_month: 7,
-            hebrew_day: 15,
-            jd: s,
-            jd_end: e,
-            days: 7,
-            category: HolidayCategory::MajorFestival,
-        });
-    }
-    {
-        let s = jd(7, 22);
-        out.push(JewishHoliday {
-            name: "Shemini Atzeret",
-            hebrew_name: "שמיני עצרת",
-            hebrew_month: 7,
-            hebrew_day: 22,
-            jd: s,
-            jd_end: s + 1.0,
-            days: 1,
-            category: HolidayCategory::MajorFestival,
-        });
-    }
-    {
-        let s = jd(7, 23);
-        out.push(JewishHoliday {
-            name: "Simchat Torah",
-            hebrew_name: "שמחת תורה",
-            hebrew_month: 7,
-            hebrew_day: 23,
-            jd: s,
-            jd_end: s + 1.0,
-            days: 1,
-            category: HolidayCategory::MajorFestival,
-        });
-    }
-
-    // ── Kislev (month 9) — Hanukkah ───────────────────────────────────────
-    {
-        let (s, e) = jd_day(9, 25, 8);
-        out.push(JewishHoliday {
-            name: "Hanukkah",
-            hebrew_name: "חנוכה",
-            hebrew_month: 9,
-            hebrew_day: 25,
-            jd: s,
-            jd_end: e,
-            days: 8,
-            category: HolidayCategory::RabbinicFestival,
-        });
-    }
-
-    // ── Tevet (month 10) ──────────────────────────────────────────────────
-    {
-        let s = jd(10, 10);
-        out.push(JewishHoliday {
-            name: "Tzom Tevet (10 Tevet)",
-            hebrew_name: "עשרה בטבת",
-            hebrew_month: 10,
-            hebrew_day: 10,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Fast,
-        });
-    }
-
-    // ── Shevat (month 11) ─────────────────────────────────────────────────
-    {
-        let s = jd(11, 15);
-        out.push(JewishHoliday {
-            name: "Tu BiShvat",
-            hebrew_name: "ט\"ו בשבט",
-            hebrew_month: 11,
-            hebrew_day: 15,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Minor,
-        });
-    }
-
-    // ── Adar / Adar II (month 12 or 13 in leap year) ─────────────────────
-    let purim_month = if leap { 13u8 } else { 12u8 };
-    {
-        let s = jd(purim_month, 13);
-        out.push(JewishHoliday {
-            name: "Ta'anit Esther",
-            hebrew_name: "תענית אסתר",
-            hebrew_month: purim_month,
-            hebrew_day: 13,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Fast,
-        });
-    }
-    {
-        let (s, e) = jd_day(purim_month, 14, 2);
-        out.push(JewishHoliday {
-            name: "Purim",
-            hebrew_name: "פורים",
-            hebrew_month: purim_month,
-            hebrew_day: 14,
-            jd: s,
-            jd_end: e,
-            days: 2,
-            category: HolidayCategory::RabbinicFestival,
-        });
-    }
-
-    // ── Nisan (month 1) ───────────────────────────────────────────────────
-    {
-        let s = jd(1, 14);
-        out.push(JewishHoliday {
-            name: "Ta'anit Bechorot (Fast of the Firstborn)",
-            hebrew_name: "תענית בכורות",
-            hebrew_month: 1,
-            hebrew_day: 14,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Fast,
-        });
-    }
-    {
-        let (s, e) = jd_day(1, 15, 8);
-        out.push(JewishHoliday {
-            name: "Passover (Pesach)",
-            hebrew_name: "פסח",
-            hebrew_month: 1,
-            hebrew_day: 15,
-            jd: s,
-            jd_end: e,
-            days: 8,
-            category: HolidayCategory::MajorFestival,
-        });
-    }
-    {
-        let s = jd(1, 27);
-        out.push(JewishHoliday {
-            name: "Yom HaShoah",
-            hebrew_name: "יום השואה",
-            hebrew_month: 1,
-            hebrew_day: 27,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Minor,
-        });
-    }
-
-    // ── Iyyar (month 2) ───────────────────────────────────────────────────
-    {
-        let s = jd(2, 4);
-        out.push(JewishHoliday {
-            name: "Yom HaZikaron",
-            hebrew_name: "יום הזיכרון",
-            hebrew_month: 2,
-            hebrew_day: 4,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Minor,
-        });
-    }
-    {
-        let s = jd(2, 5);
-        out.push(JewishHoliday {
-            name: "Yom HaAtzmaut",
-            hebrew_name: "יום העצמאות",
-            hebrew_month: 2,
-            hebrew_day: 5,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Minor,
-        });
-    }
-    {
-        let s = jd(2, 18);
-        out.push(JewishHoliday {
-            name: "Lag Ba'Omer",
-            hebrew_name: "ל\"ג בעומר",
-            hebrew_month: 2,
-            hebrew_day: 18,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Minor,
-        });
-    }
-    {
-        let s = jd(2, 28);
-        out.push(JewishHoliday {
-            name: "Yom Yerushalayim",
-            hebrew_name: "יום ירושלים",
-            hebrew_month: 2,
-            hebrew_day: 28,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Minor,
-        });
-    }
-
-    // ── Sivan (month 3) — Shavuot ─────────────────────────────────────────
-    {
-        let (s, e) = jd_day(3, 6, 2);
-        out.push(JewishHoliday {
-            name: "Shavuot",
-            hebrew_name: "שבועות",
-            hebrew_month: 3,
-            hebrew_day: 6,
-            jd: s,
-            jd_end: e,
-            days: 2,
-            category: HolidayCategory::MajorFestival,
-        });
-    }
-
-    // ── Tammuz (month 4) ──────────────────────────────────────────────────
-    {
-        let s = jd(4, 17);
-        out.push(JewishHoliday {
-            name: "Shiva Asar B'Tammuz",
-            hebrew_name: "שבעה עשר בתמוז",
-            hebrew_month: 4,
-            hebrew_day: 17,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Fast,
-        });
-    }
-
-    // ── Av (month 5) ──────────────────────────────────────────────────────
-    {
-        let s = jd(5, 9);
-        out.push(JewishHoliday {
-            name: "Tisha B'Av",
-            hebrew_name: "תשעה באב",
-            hebrew_month: 5,
-            hebrew_day: 9,
-            jd: s,
-            jd_end: s + 1.0,
-            days: 1,
-            category: HolidayCategory::Fast,
-        });
-    }
-    {
-        let s = jd(5, 15);
-        out.push(JewishHoliday {
-            name: "Tu B'Av",
-            hebrew_name: "ט\"ו באב",
-            hebrew_month: 5,
-            hebrew_day: 15,
-            jd: s,
-            jd_end: s,
-            days: 1,
-            category: HolidayCategory::Minor,
-        });
-    }
-
+    let purim_month = if is_hebrew_leap_year(hebrew_year) { 13u8 } else { 12u8 };
+    let mut out: Vec<JewishHoliday> = HOLIDAY_TABLE
+        .iter()
+        .map(|spec| materialize_holiday(spec, hebrew_year, purim_month))
+        .collect();
     out.sort_by(|a, b| a.jd.total_cmp(&b.jd));
     out
 }
@@ -453,6 +206,79 @@ mod tests {
         let h = jewish_holidays(5785);
         for i in 1..h.len() {
             assert!(h[i].jd >= h[i - 1].jd);
+        }
+    }
+
+    #[test]
+    fn holidays_count_stable_common_year() {
+        let h = jewish_holidays(5785);
+        assert_eq!(h.len(), HOLIDAY_TABLE.len());
+    }
+
+    #[test]
+    fn holidays_count_stable_leap_year() {
+        // 5787 is leap (13 months); count must equal table length.
+        let h = jewish_holidays(5787);
+        assert_eq!(h.len(), HOLIDAY_TABLE.len());
+    }
+
+    #[test]
+    fn purim_month_shifts_in_leap_year() {
+        // Purim in Adar II (13) for leap year, Adar (12) for common year.
+        let common = jewish_holidays(5785);
+        let leap = jewish_holidays(5787);
+        let purim_common = common.iter().find(|h| h.name == "Purim").unwrap();
+        let purim_leap = leap.iter().find(|h| h.name == "Purim").unwrap();
+        assert_eq!(purim_common.hebrew_month, 12);
+        assert_eq!(purim_leap.hebrew_month, 13);
+    }
+
+    #[test]
+    fn holidays_end_after_start() {
+        for spec_year in [5783, 5784, 5785, 5786, 5787, 5788] {
+            for h in jewish_holidays(spec_year) {
+                assert!(
+                    h.jd_end >= h.jd,
+                    "{}: jd_end {} < jd {}",
+                    h.name,
+                    h.jd_end,
+                    h.jd
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn yom_kippur_one_day_jd_end_offset() {
+        // Yom Kippur is days=1 but ends at next nightfall: jd_end = jd + 1.0
+        let h = jewish_holidays(5785);
+        let yk = h.iter().find(|h| h.name == "Yom Kippur").unwrap();
+        assert!((yk.jd_end - yk.jd - 1.0).abs() < 1e-9);
+        assert_eq!(yk.days, 1);
+    }
+
+    #[test]
+    fn one_day_minor_jd_end_equals_jd() {
+        // Tu BiShvat is a 1-day minor holiday → jd_end == jd
+        let h = jewish_holidays(5785);
+        let tb = h.iter().find(|h| h.name == "Tu BiShvat").unwrap();
+        assert!((tb.jd_end - tb.jd).abs() < 1e-9);
+    }
+
+    #[test]
+    fn fuzz_random_years_no_panic_and_sorted() {
+        // Deterministic xorshift-ish year sweep across plausible Hebrew years.
+        let mut s: u64 = 0xC0FFEE;
+        for _ in 0..256 {
+            s ^= s << 13;
+            s ^= s >> 7;
+            s ^= s << 17;
+            let year = (s % 9000) as i32 + 1; // 1..9000
+            let h = jewish_holidays(year);
+            assert_eq!(h.len(), HOLIDAY_TABLE.len(), "year {year}");
+            for w in h.windows(2) {
+                assert!(w[1].jd >= w[0].jd, "year {year} unsorted");
+            }
         }
     }
 

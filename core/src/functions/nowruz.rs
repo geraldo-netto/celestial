@@ -204,119 +204,54 @@ pub struct BahaiHolyDay {
     pub jd: f64,
 }
 
+struct BahaiHolyDaySpec {
+    name: &'static str,
+    description: &'static str,
+    month: u8,
+    day: u8,
+}
+
+const BAHAI_HOLY_DAYS: &[BahaiHolyDaySpec] = &[
+    BahaiHolyDaySpec { name: "Naw-Rúz (Bahá'í New Year)", description: "First day of the Bahá'í year, coincides with vernal equinox", month: 1, day: 1 },
+    BahaiHolyDaySpec { name: "First Day of Riḍván", description: "Declaration of Bahá'u'lláh, most holy Bahá'í festival (12 days)", month: 2, day: 13 },
+    BahaiHolyDaySpec { name: "Ninth Day of Riḍván", description: "Bahá'u'lláh's family joins in the Garden of Riḍván", month: 3, day: 2 },
+    BahaiHolyDaySpec { name: "Twelfth Day of Riḍván", description: "Conclusion of the Riḍván festival", month: 3, day: 5 },
+    BahaiHolyDaySpec { name: "Declaration of the Báb", description: "Anniversary of the Báb's declaration (May 23, 1844)", month: 4, day: 8 },
+    BahaiHolyDaySpec { name: "Ascension of Bahá'u'lláh", description: "Passing of Bahá'u'lláh (May 29, 1892)", month: 4, day: 14 },
+    BahaiHolyDaySpec { name: "Martyrdom of the Báb", description: "Execution of the Báb (July 9, 1850)", month: 6, day: 17 },
+    BahaiHolyDaySpec { name: "Birth of the Báb", description: "Anniversary of the Báb's birth (Oct 20, 1819)", month: 13, day: 1 },
+    BahaiHolyDaySpec { name: "Birth of Bahá'u'lláh", description: "Anniversary of Bahá'u'lláh's birth (Nov 12, 1817)", month: 13, day: 2 },
+    BahaiHolyDaySpec { name: "Ayyám-i-Há (Intercalary Days)", description: "Days of gift-giving and charitable deeds before the Fast", month: 0, day: 1 },
+    BahaiHolyDaySpec { name: "Fast of 'Alá' begins", description: "19-day period of fasting (sunrise to sunset)", month: 19, day: 1 },
+    BahaiHolyDaySpec { name: "Day of the Covenant", description: "Celebration of 'Abdu'l-Bahá as Centre of the Covenant", month: 14, day: 4 },
+    BahaiHolyDaySpec { name: "Ascension of 'Abdu'l-Bahá", description: "Passing of 'Abdu'l-Bahá (Nov 28, 1921)", month: 14, day: 6 },
+];
+
+#[inline]
+fn bahai_jd_of(year_start: f64, ayyam_days: u32, month: u8, day: u8) -> f64 {
+    if month == 0 {
+        year_start + 342.0 + (day as f64 - 1.0)
+    } else if month <= 18 {
+        year_start + (month as f64 - 1.0) * 19.0 + (day as f64 - 1.0)
+    } else {
+        year_start + 342.0 + ayyam_days as f64 + (day as f64 - 1.0)
+    }
+}
+
 /// Return all Bahá'í holy days for the given Bahá'í year.
 pub fn bahai_holy_days(bahai_year: i32) -> Vec<BahaiHolyDay> {
     let year_start = naw_ruz_jd(bahai_year);
-    let ayyam_days = if is_bahai_leap_year(bahai_year) {
-        5u32
-    } else {
-        4
-    };
-
-    // Compute JD of a Bahá'í month/day
-    let jd_of = |month: u8, day: u8| -> f64 {
-        if month == 0 {
-            year_start + 342.0 + (day as f64 - 1.0)
-        } else if month <= 18 {
-            year_start + (month as f64 - 1.0) * 19.0 + (day as f64 - 1.0)
-        } else {
-            year_start + 342.0 + ayyam_days as f64 + (day as f64 - 1.0)
-        }
-    };
-
-    vec![
-        BahaiHolyDay {
-            name: "Naw-Rúz (Bahá'í New Year)",
-            description: "First day of the Bahá'í year, coincides with vernal equinox",
-            bahai_month: 1,
-            bahai_day: 1,
-            jd: jd_of(1, 1),
-        },
-        BahaiHolyDay {
-            name: "First Day of Riḍván",
-            description: "Declaration of Bahá'u'lláh, most holy Bahá'í festival (12 days)",
-            bahai_month: 2,
-            bahai_day: 13,
-            jd: jd_of(2, 13),
-        },
-        BahaiHolyDay {
-            name: "Ninth Day of Riḍván",
-            description: "Bahá'u'lláh's family joins in the Garden of Riḍván",
-            bahai_month: 3,
-            bahai_day: 2,
-            jd: jd_of(3, 2),
-        },
-        BahaiHolyDay {
-            name: "Twelfth Day of Riḍván",
-            description: "Conclusion of the Riḍván festival",
-            bahai_month: 3,
-            bahai_day: 5,
-            jd: jd_of(3, 5),
-        },
-        BahaiHolyDay {
-            name: "Declaration of the Báb",
-            description: "Anniversary of the Báb's declaration (May 23, 1844)",
-            bahai_month: 4,
-            bahai_day: 8,
-            jd: jd_of(4, 8),
-        },
-        BahaiHolyDay {
-            name: "Ascension of Bahá'u'lláh",
-            description: "Passing of Bahá'u'lláh (May 29, 1892)",
-            bahai_month: 4,
-            bahai_day: 14,
-            jd: jd_of(4, 14),
-        },
-        BahaiHolyDay {
-            name: "Martyrdom of the Báb",
-            description: "Execution of the Báb (July 9, 1850)",
-            bahai_month: 6,
-            bahai_day: 17,
-            jd: jd_of(6, 17),
-        },
-        BahaiHolyDay {
-            name: "Birth of the Báb",
-            description: "Anniversary of the Báb's birth (Oct 20, 1819)",
-            bahai_month: 13,
-            bahai_day: 1,
-            jd: jd_of(13, 1),
-        },
-        BahaiHolyDay {
-            name: "Birth of Bahá'u'lláh",
-            description: "Anniversary of Bahá'u'lláh's birth (Nov 12, 1817)",
-            bahai_month: 13,
-            bahai_day: 2,
-            jd: jd_of(13, 2),
-        },
-        BahaiHolyDay {
-            name: "Ayyám-i-Há (Intercalary Days)",
-            description: "Days of gift-giving and charitable deeds before the Fast",
-            bahai_month: 0,
-            bahai_day: 1,
-            jd: jd_of(0, 1),
-        },
-        BahaiHolyDay {
-            name: "Fast of 'Alá' begins",
-            description: "19-day period of fasting (sunrise to sunset)",
-            bahai_month: 19,
-            bahai_day: 1,
-            jd: jd_of(19, 1),
-        },
-        BahaiHolyDay {
-            name: "Day of the Covenant",
-            description: "Celebration of 'Abdu'l-Bahá as Centre of the Covenant",
-            bahai_month: 14,
-            bahai_day: 4,
-            jd: jd_of(14, 4),
-        },
-        BahaiHolyDay {
-            name: "Ascension of 'Abdu'l-Bahá",
-            description: "Passing of 'Abdu'l-Bahá (Nov 28, 1921)",
-            bahai_month: 14,
-            bahai_day: 6,
-            jd: jd_of(14, 6),
-        },
-    ]
+    let ayyam_days = if is_bahai_leap_year(bahai_year) { 5u32 } else { 4 };
+    BAHAI_HOLY_DAYS
+        .iter()
+        .map(|spec| BahaiHolyDay {
+            name: spec.name,
+            description: spec.description,
+            bahai_month: spec.month,
+            bahai_day: spec.day,
+            jd: bahai_jd_of(year_start, ayyam_days, spec.month, spec.day),
+        })
+        .collect()
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -366,5 +301,58 @@ mod tests {
     #[test]
     fn bahai_months_count() {
         assert_eq!(BAHAI_MONTHS.len(), 19);
+    }
+
+    #[test]
+    fn bahai_holy_days_count_matches_table() {
+        let h = bahai_holy_days(182);
+        assert_eq!(h.len(), BAHAI_HOLY_DAYS.len());
+    }
+
+    #[test]
+    fn bahai_naw_ruz_in_table_equals_year_start() {
+        let year_start = naw_ruz_jd(182);
+        let h = bahai_holy_days(182);
+        let naw_ruz = h.iter().find(|d| d.name.contains("Naw-Rúz")).unwrap();
+        assert!((naw_ruz.jd - year_start).abs() < 1e-9);
+    }
+
+    #[test]
+    fn bahai_ayyam_i_ha_uses_offset_342() {
+        // month=0 path: jd = year_start + 342 + (day-1)
+        let year_start = naw_ruz_jd(182);
+        let h = bahai_holy_days(182);
+        let ah = h
+            .iter()
+            .find(|d| d.name.contains("Ayyám-i-Há"))
+            .unwrap();
+        assert!((ah.jd - (year_start + 342.0)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn bahai_fast_after_ayyam_leap_offset() {
+        // Common year: ayyam_days=4, Fast month=19 day=1 starts at year_start+342+4
+        let common_start = naw_ruz_jd(181);
+        let common = bahai_holy_days(181);
+        let fast_common = common.iter().find(|d| d.name.starts_with("Fast")).unwrap();
+        let common_offset = fast_common.jd - common_start;
+        assert!(common_offset == 346.0 || common_offset == 347.0,
+            "common offset {common_offset}");
+    }
+
+    #[test]
+    fn fuzz_bahai_years_no_panic() {
+        let mut s: u64 = 0xBA17AAu64;
+        for _ in 0..256 {
+            s ^= s << 13;
+            s ^= s >> 7;
+            s ^= s << 17;
+            let year = (s % 500) as i32 + 1;
+            let h = bahai_holy_days(year);
+            assert_eq!(h.len(), BAHAI_HOLY_DAYS.len(), "year {year}");
+            for d in &h {
+                assert!(d.jd.is_finite(), "year {year} non-finite jd");
+            }
+        }
     }
 }
