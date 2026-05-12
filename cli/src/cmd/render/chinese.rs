@@ -15,7 +15,7 @@ pub fn build_bazi_context(
     let flags = CalcFlags::BUILTIN;
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("Four Pillars of Destiny (八字)".to_string());
+        .or_insert_with(|| "Four Pillars of Destiny (八字)".to_string());
 
     // Compute Sun's ecliptic longitude for solar-term-based month pillar
     let sun_pos = calc_ut(jd, Body::SUN, flags).map_err(|e| e.to_string())?;

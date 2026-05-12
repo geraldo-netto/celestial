@@ -14,7 +14,7 @@ pub fn build_mesoamerican_context(
 ) -> Result<Value, String> {
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("Mesoamerican Calendars".to_string());
+        .or_insert_with(|| "Mesoamerican Calendars".to_string());
 
     let (trecena, sign_idx, tonal_name, tonal_en) = tonalpohualli(jd);
     let (xiu_month, xiu_day, xiu_month_name, xiu_month_en) = xiuhpohualli(jd);

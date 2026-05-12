@@ -396,7 +396,8 @@ pub fn firdaria(jd_birth: f64, is_day: bool, span: f64) -> Vec<FirdariaPeriod> {
     let seq = if is_day { DAY_SEQ } else { NIGHT_SEQ };
     const DAYS_PER_YEAR: f64 = 365.25;
 
-    let mut periods = Vec::new();
+    // 7 minor periods per major lord; ~12 major lords covered in a 75-year span.
+    let mut periods = Vec::with_capacity(7 * (span as usize / 10 + 1).max(8));
     let mut jd = jd_birth;
     let jd_end = jd_birth + span * DAYS_PER_YEAR;
 

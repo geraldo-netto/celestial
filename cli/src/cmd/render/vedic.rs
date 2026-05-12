@@ -147,7 +147,7 @@ pub fn build_ashtakavarga_context(
     let flags = CalcFlags::BUILTIN | CalcFlags(64); // sidereal
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("Ashtakavarga".to_string());
+        .or_insert_with(|| "Ashtakavarga".to_string());
 
     let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(b'P'))
         .map_err(|e| e.to_string())?;
@@ -361,7 +361,7 @@ pub fn build_shadbala_context(
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED | CalcFlags(64);
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("Shadbala — Planetary Strength".to_string());
+        .or_insert_with(|| "Shadbala — Planetary Strength".to_string());
 
     let trad_bodies = [
         (Body::SUN, 0i32, "Sun"),

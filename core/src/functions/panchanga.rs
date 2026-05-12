@@ -391,7 +391,8 @@ pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
     }
     month_jd[13] = julday(gregorian_year + 1, 1, 1, 0.0, Calendar::Gregorian);
 
-    let mut festivals = Vec::new();
+    // Typical Hindu calendar produces ~30-50 major festivals per year.
+    let mut festivals = Vec::with_capacity(64);
     let mut jd = start_jd;
     while jd <= end_jd {
         let p = panchanga(jd);

@@ -292,7 +292,8 @@ pub fn moon_phases_for_month(year: i32, month: u8) -> Result<Vec<PhaseEvent>> {
     let next_year = if month == 12 { year + 1 } else { year };
     let month_end = julday(next_year, next_month as i32, 1, 0.0, Calendar::Gregorian);
 
-    let mut events: Vec<PhaseEvent> = Vec::new();
+    // A calendar month has at most 5 events (4 phases + possible blue moon).
+    let mut events: Vec<PhaseEvent> = Vec::with_capacity(5);
     let phases = [
         PrincipalPhase::NewMoon,
         PrincipalPhase::FirstQuarter,

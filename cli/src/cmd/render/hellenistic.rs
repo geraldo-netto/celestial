@@ -23,7 +23,7 @@ pub fn build_hellenistic_context(
 ) -> Result<Value, String> {
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("Hellenistic Chart".to_string());
+        .or_insert_with(|| "Hellenistic Chart".to_string());
 
     // Start from the standard context
     let mut ctx = build_context(jd, lat, lon, date_str, hsys, vars)?;
@@ -188,7 +188,7 @@ pub fn build_firdaria_context(
     let flags = CalcFlags::BUILTIN;
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("Firdaria Timeline".to_string());
+        .or_insert_with(|| "Firdaria Timeline".to_string());
 
     let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8)).map_err(|e| e.to_string())?;
     let cusps_arr: [f64; 13] = {

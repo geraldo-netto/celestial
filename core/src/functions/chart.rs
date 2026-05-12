@@ -76,7 +76,9 @@ pub fn calc_chart_aspects(
     aspects: &[f64],
     orb: f64,
 ) -> Vec<ChartAspect> {
-    let mut result = Vec::new();
+    // Upper bound: C(n,2) pairs × aspect_kinds (usually < 30 hit per chart).
+    let n = positions.len();
+    let mut result = Vec::with_capacity(n * (n.saturating_sub(1)) / 4);
     for i in 0..positions.len() {
         for j in (i + 1)..positions.len() {
             let (b1, lon1, spd1) = positions[i];
@@ -627,7 +629,8 @@ pub fn planet_on_midpoint(planet_lon: f64, mid_lon: f64, orb: f64) -> Option<f64
 /// `orb`       — maximum orb for a planet to be "on" a midpoint.
 pub fn midpoint_table(positions: &[(Body, f64)], orb: f64) -> Vec<MidpointEntry> {
     // Returns: (body1, body2, midpoint_lon, [(planet_on_midpoint, orb)])
-    let mut result = Vec::new();
+    let n = positions.len();
+    let mut result = Vec::with_capacity(n * n.saturating_sub(1) / 2);
     for i in 0..positions.len() {
         for j in (i + 1)..positions.len() {
             let (b1, lon1) = positions[i];
@@ -779,7 +782,8 @@ pub fn calc_chart_aspects_auto(
     positions: &[(Body, f64, f64)],
     aspects: &[f64],
 ) -> Vec<ChartAspect> {
-    let mut result = Vec::new();
+    let n = positions.len();
+    let mut result = Vec::with_capacity(n * n.saturating_sub(1) / 4);
     for i in 0..positions.len() {
         for j in (i + 1)..positions.len() {
             let (b1, lon1, spd1) = positions[i];
@@ -987,7 +991,8 @@ pub fn vimshottari_dasha(
     let (_, start_years) = DASHA_SEQUENCE[start_dasha_idx];
     let elapsed = start_years * nak_fraction;
 
-    let mut dashas = Vec::new();
+    // Vimshottari spans 120 years; 9 dasha lords; at most ~10 periods active.
+    let mut dashas = Vec::with_capacity(9);
     let mut jd = jd_birth - elapsed * YEAR_DAYS;
     let jd_end = jd_birth + years_ahead * YEAR_DAYS;
 

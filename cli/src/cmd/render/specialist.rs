@@ -26,7 +26,7 @@ pub fn build_dial_context(
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("90° Midpoint Dial".to_string());
+        .or_insert_with(|| "90° Midpoint Dial".to_string());
 
     // Collect natal positions
     let bodies = BODIES;
@@ -100,7 +100,7 @@ pub fn build_composite_context(
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("Composite Chart".to_string());
+        .or_insert_with(|| "Composite Chart".to_string());
 
     let h1 = houses_ex(jd1, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
         .map_err(|e| e.to_string())?;
@@ -171,7 +171,7 @@ pub fn build_triwheel_context(
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("Tri-wheel".to_string());
+        .or_insert_with(|| "Tri-wheel".to_string());
 
     // Build natal (inner) context
     let inner_vars = vars.clone();
@@ -292,7 +292,7 @@ pub fn build_graphic_ephemeris_context(
     let flags = CalcFlags::BUILTIN;
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("Graphic Ephemeris".to_string());
+        .or_insert_with(|| "Graphic Ephemeris".to_string());
 
     let days = ((jd_end - jd_start) as usize).clamp(28, 366);
     let step = if days <= 31 { 1 } else { (days / 90).max(1) };
@@ -536,7 +536,7 @@ pub fn build_local_space_context(
     let geopos = [lon, lat, 0.0_f64];
     let mut vars = user_vars;
     vars.entry("title".to_string())
-        .or_insert("Local Space Chart".to_string());
+        .or_insert_with(|| "Local Space Chart".to_string());
 
     let mut planets = Vec::with_capacity(BODIES.len());
     for &(body, key, name, glyph) in BODIES {

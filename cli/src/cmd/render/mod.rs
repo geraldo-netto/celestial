@@ -663,14 +663,14 @@ fn calendar_default_vars(
 ) -> serde_json::Value {
     let mut vars = user_vars.clone();
     vars.entry("title".to_string()).or_insert(title_default);
-    vars.entry("bg_color".to_string()).or_insert("#ffffff".to_string());
-    vars.entry("text_color".to_string()).or_insert("#222".to_string());
-    vars.entry("ring_color".to_string()).or_insert("#888".to_string());
+    vars.entry("bg_color".to_string()).or_insert_with(|| "#ffffff".to_string());
+    vars.entry("text_color".to_string()).or_insert_with(|| "#222".to_string());
+    vars.entry("ring_color".to_string()).or_insert_with(|| "#888".to_string());
     vars.entry("accent_color".to_string())
-        .or_insert("#5c4a8a".to_string());
-    vars.entry("lag_color".to_string()).or_insert("#c87f32".to_string());
-    vars.entry("sabbat_color".to_string()).or_insert("#3d6b35".to_string());
-    vars.entry("moon_color".to_string()).or_insert("#3a4a6a".to_string());
+        .or_insert_with(|| "#5c4a8a".to_string());
+    vars.entry("lag_color".to_string()).or_insert_with(|| "#c87f32".to_string());
+    vars.entry("sabbat_color".to_string()).or_insert_with(|| "#3d6b35".to_string());
+    vars.entry("moon_color".to_string()).or_insert_with(|| "#3a4a6a".to_string());
     let mut vars_json = serde_json::Map::new();
     for (k, v) in vars {
         vars_json.insert(k, serde_json::json!(v));

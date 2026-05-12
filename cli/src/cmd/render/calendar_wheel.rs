@@ -67,11 +67,11 @@ pub fn build_sabbat_wheel_context(
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| format!("Wheel of the Year — {year}"));
-    vars.entry("bg_color".to_string()).or_insert("#ffffff".to_string());
-    vars.entry("text_color".to_string()).or_insert("#222".to_string());
-    vars.entry("ring_color".to_string()).or_insert("#888".to_string());
-    vars.entry("quarter_color".to_string()).or_insert("#b8860b".to_string());
-    vars.entry("cross_color".to_string()).or_insert("#3d6b35".to_string());
+    vars.entry("bg_color".to_string()).or_insert_with(|| "#ffffff".to_string());
+    vars.entry("text_color".to_string()).or_insert_with(|| "#222".to_string());
+    vars.entry("ring_color".to_string()).or_insert_with(|| "#888".to_string());
+    vars.entry("quarter_color".to_string()).or_insert_with(|| "#b8860b".to_string());
+    vars.entry("cross_color".to_string()).or_insert_with(|| "#3d6b35".to_string());
 
     let mut vars_json = serde_json::Map::new();
     for (k, v) in vars {

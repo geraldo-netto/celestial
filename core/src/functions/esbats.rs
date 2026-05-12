@@ -139,8 +139,9 @@ pub fn esbats_for_year(year: i32) -> Result<Vec<Esbat>> {
     let year_start = crate::julday(year, 1, 1, 0.0, Calendar::Gregorian);
     let year_end = crate::julday(year + 1, 1, 1, 0.0, Calendar::Gregorian);
 
-    // Collect all full moons that fall within the calendar year
-    let mut full_moons: Vec<f64> = Vec::new();
+    // Collect all full moons that fall within the calendar year.
+    // A calendar year has 12 or 13 full moons (Blue-Moon years).
+    let mut full_moons: Vec<f64> = Vec::with_capacity(13);
     let mut jd = find_full_moon_after(year_start)?;
     while jd < year_end {
         full_moons.push(jd);
