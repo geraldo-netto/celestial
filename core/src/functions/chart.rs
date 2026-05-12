@@ -852,19 +852,16 @@ pub fn sign_ruler(sign: u8) -> Body {
     // 0=Aries, 1=Taurus, 2=Gemini, 3=Cancer, 4=Leo, 5=Virgo,
     // 6=Libra, 7=Scorpio, 8=Sagittarius, 9=Capricorn, 10=Aquarius, 11=Pisces
     match sign % 12 {
-        0 => Body::MARS,     // Aries
-        1 => Body::VENUS,    // Taurus
-        2 => Body::MERCURY,  // Gemini
-        3 => Body::MOON,     // Cancer
-        4 => Body::SUN,      // Leo
-        5 => Body::MERCURY,  // Virgo
-        6 => Body::VENUS,    // Libra
-        7 => Body::MARS,     // Scorpio (traditional)
-        8 => Body::JUPITER,  // Sagittarius
-        9 => Body::SATURN,   // Capricorn
-        10 => Body::SATURN,  // Aquarius (traditional)
-        11 => Body::JUPITER, // Pisces
-        _ => unreachable!("sign % 12 is always 0–11"),
+        0 => Body::MARS,        // Aries
+        1 => Body::VENUS,       // Taurus
+        2 | 5 => Body::MERCURY, // Gemini, Virgo
+        3 => Body::MOON,        // Cancer
+        4 => Body::SUN,         // Leo
+        6 => Body::VENUS,       // Libra
+        7 => Body::MARS,        // Scorpio (traditional)
+        8 => Body::JUPITER,     // Sagittarius
+        9 | 10 => Body::SATURN, // Capricorn, Aquarius (traditional)
+        _ => Body::JUPITER,     // Pisces (sign % 12 == 11)
     }
 }
 

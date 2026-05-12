@@ -255,8 +255,7 @@ pub fn triplicity_rulers(lon: f64) -> (Body, Body, Body) {
         0 => (Body::SUN, Body::JUPITER, Body::SATURN), // fire
         1 => (Body::VENUS, Body::MOON, Body::MARS),    // earth
         2 => (Body::SATURN, Body::MERCURY, Body::JUPITER), // air
-        3 => (Body::VENUS, Body::MARS, Body::MOON),    // water
-        _ => unreachable!(),
+        _ => (Body::VENUS, Body::MARS, Body::MOON),    // water (sign % 4 == 3)
     }
 }
 

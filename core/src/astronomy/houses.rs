@@ -424,14 +424,16 @@ fn regiomontanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     cusps[10] = midheaven(armc, eps);
 
     for h in [11usize, 12, 2, 3, 8, 9] {
+        // Campanus uses constant 30°-spaced angles per house; the input set is
+        // closed so falling through to a default is dead code, but if a caller
+        // ever passes an unexpected `h` we fall back to 0° rather than panic.
         let angle = match h {
             11 => 60.0,
             12 => 120.0,
             2 => 210.0,
             3 => 240.0,
             8 => 300.0,
-            9 => 330.0,
-            _ => unreachable!(),
+            _ => 330.0, // h == 9
         };
         let campanus_r = to_rad(armc + angle);
         let num = campanus_r.sin() * eps_r.cos();
@@ -574,8 +576,7 @@ fn alcabitius(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
     for h in [11usize, 12, 2, 3] {
         let frac = match h {
             11 | 2 => 1.0 / 3.0,
-            12 | 3 => 2.0 / 3.0,
-            _ => unreachable!(),
+            _ => 2.0 / 3.0, // h ∈ {12, 3}
         };
         let sign = if h >= 11 { 1.0 } else { -1.0 };
         let oa = oblique_ascension(asc, 0.0, eps, lat) + sign * (90.0 + dsa) * frac;

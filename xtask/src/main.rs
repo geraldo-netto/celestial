@@ -729,7 +729,7 @@ fn parse_param_chunk(p: &str) -> Option<(String, String)> {
     let starts_with_digit = pname
         .chars()
         .next()
-        .map_or(true, |c| c.is_ascii_digit());
+        .is_none_or(|c| c.is_ascii_digit());
     let valid_chars = pname.chars().all(|c| c.is_alphanumeric() || c == '_');
     if pname.is_empty() || starts_with_digit || !valid_chars {
         return None;
