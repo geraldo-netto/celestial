@@ -140,3 +140,81 @@ fn visual_magnitude(body: i32, r: f64, delta: f64, i: f64) -> f64 {
         _ => 99.9,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Sun phenomena: at opposition geometry the apparent magnitude is fixed at
+    /// the canonical −26.74; phase fraction is 1.0 (fully illuminated by itself).
+    #[test]
+    fn sun_magnitude_constant() {
+        let p = compute_phenomena(0, 0.0, 0.0, 1.0, 0.0, 0.0);
+        assert!((p.magnitude - (-26.74)).abs() < 1e-9);
+    }
+
+    /// Moon angular diameter at mean Earth distance is ~31′ (1860″).
+    #[test]
+    fn moon_angular_diameter_at_mean_distance() {
+        let p = compute_phenomena(1, 0.0, 0.0, 0.00257, 1.0, 0.0);
+        assert!(p.ang_diameter > 1500.0 && p.ang_diameter < 2200.0,
+            "moon diameter {}", p.ang_diameter);
+    }
+
+    /// Moon elongation tracks the geocentric Sun–Moon longitude separation.
+    #[test]
+    fn moon_elongation_tracks_longitude_separation() {
+        let new = compute_phenomena(1, 0.0, 0.0, 0.00257, 1.0, 0.0);
+        let full = compute_phenomena(1, 180.0, 0.0, 0.00257, 1.0, 0.0);
+        assert!(new.elongation < 1.0, "new moon elong = {}", new.elongation);
+        assert!((full.elongation - 180.0).abs() < 1.0, "full moon elong = {}", full.elongation);
+    }
+
+    /// Elongation wraps correctly across the 0°/360° seam.
+    #[test]
+    fn elongation_wraps_correctly() {
+        // Body at 10°, Sun at 350° → elongation 20° (not 340°)
+        let p = compute_phenomena(2, 10.0, 0.0, 0.9, 0.4, 350.0);
+        assert!((p.elongation - 20.0).abs() < 1e-9);
+    }
+
+    /// Phase angle stays in [0°, 180°].
+    #[test]
+    fn phase_angle_bounded() {
+        for lon in [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0] {
+            let p = compute_phenomena(4, lon, 0.0, 1.5, 1.5, 0.0);
+            assert!((0.0..=180.0).contains(&p.phase_angle), "phase {} for lon {}", p.phase_angle, lon);
+            assert!((0.0..=1.0).contains(&p.phase_frac), "frac {} for lon {}", p.phase_frac, lon);
+        }
+    }
+
+    /// Each major body returns a magnitude in a plausible range at typical
+    /// distances. Sentinel `99.9` triggers only for unknown body codes.
+    #[test]
+    fn magnitudes_in_range_for_known_bodies() {
+        for body in 2..=9i32 {
+            let p = compute_phenomena(body, 90.0, 0.0, 1.5, 1.0, 0.0);
+            assert!(p.magnitude < 99.9, "body {body} returned sentinel magnitude");
+        }
+        let unknown = compute_phenomena(42, 90.0, 0.0, 1.5, 1.0, 0.0);
+        assert!((unknown.magnitude - 99.9).abs() < 1e-9);
+    }
+
+    /// Unknown body code returns zero angular diameter (no radius in table).
+    #[test]
+    fn unknown_body_zero_diameter() {
+        let p = compute_phenomena(42, 90.0, 0.0, 1.5, 1.0, 0.0);
+        assert_eq!(p.ang_diameter, 0.0);
+    }
+
+    /// Default Phenomena values are all zero.
+    #[test]
+    fn default_phenomena_zero() {
+        let p = Phenomena::default();
+        assert_eq!(p.phase_angle, 0.0);
+        assert_eq!(p.phase_frac, 0.0);
+        assert_eq!(p.elongation, 0.0);
+        assert_eq!(p.ang_diameter, 0.0);
+        assert_eq!(p.magnitude, 0.0);
+    }
+}

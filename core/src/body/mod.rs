@@ -561,6 +561,124 @@ mod tests {
         );
     }
 
+    /// `retrograde_search_window` returns body-tuned window sizes. Mars and
+    /// inner planets get short windows; outer planets need years.
+    #[test]
+    fn retrograde_search_window_per_body() {
+        assert_eq!(Body::MARS.retrograde_search_window(), 800.0);
+        assert_eq!(Body::JUPITER.retrograde_search_window(), 1500.0);
+        assert_eq!(Body::SATURN.retrograde_search_window(), 2000.0);
+        assert_eq!(Body::URANUS.retrograde_search_window(), 5000.0);
+        assert_eq!(Body::NEPTUNE.retrograde_search_window(), 10_000.0);
+        assert_eq!(Body::PLUTO.retrograde_search_window(), 30_000.0);
+        // Sun/Moon/Mercury/Venus get the default
+        assert_eq!(Body::SUN.retrograde_search_window(), 200.0);
+        assert_eq!(Body::MOON.retrograde_search_window(), 200.0);
+        assert_eq!(Body::CHIRON.retrograde_search_window(), 200.0);
+    }
+
+    /// `ingress_search_window` ramps up with orbital period. Pluto's 248-year
+    /// orbit means a 95 000-day window is required to bracket a sign hop.
+    #[test]
+    fn ingress_search_window_per_body() {
+        assert_eq!(Body::SUN.ingress_search_window(), 400.0);
+        assert_eq!(Body::MARS.ingress_search_window(), 750.0);
+        assert_eq!(Body::JUPITER.ingress_search_window(), 4_500.0);
+        assert_eq!(Body::SATURN.ingress_search_window(), 11_000.0);
+        assert_eq!(Body::URANUS.ingress_search_window(), 31_000.0);
+        assert_eq!(Body::NEPTUNE.ingress_search_window(), 61_000.0);
+        assert_eq!(Body::PLUTO.ingress_search_window(), 95_000.0);
+        assert_eq!(Body::CHIRON.ingress_search_window(), 800.0);
+    }
+
+    /// `orb_weight` follows the Ptolemaic tradition: luminaries widest,
+    /// outer planets tightest. Values used in aspect-orb calculation.
+    #[test]
+    fn orb_weight_tiers() {
+        assert_eq!(Body::SUN.orb_weight(), 2.0);
+        assert_eq!(Body::MOON.orb_weight(), 2.0);
+        assert_eq!(Body::MERCURY.orb_weight(), 1.5);
+        assert_eq!(Body::VENUS.orb_weight(), 1.5);
+        assert_eq!(Body::MARS.orb_weight(), 1.5);
+        assert_eq!(Body::JUPITER.orb_weight(), 1.0);
+        assert_eq!(Body::SATURN.orb_weight(), 1.0);
+        assert_eq!(Body::URANUS.orb_weight(), 0.75);
+        assert_eq!(Body::NEPTUNE.orb_weight(), 0.75);
+        assert_eq!(Body::PLUTO.orb_weight(), 0.75);
+        assert_eq!(Body::CHIRON.orb_weight(), 0.75);
+        assert_eq!(Body::MEAN_NODE.orb_weight(), 0.75);
+    }
+
+    #[test]
+    fn body_display_uses_name() {
+        // Display impl falls back to `name()`.
+        assert_eq!(format!("{}", Body::SUN), "Sun");
+        assert_eq!(format!("{}", Body::CHIRON), "Chiron");
+    }
+
+    #[test]
+    fn body_from_i32_via_into() {
+        let b: Body = 5i32.into();
+        assert_eq!(b, Body::JUPITER);
+        let n: i32 = Body::JUPITER.into();
+        assert_eq!(n, 5);
+    }
+
+    #[test]
+    fn calc_flags_bitand_and_not() {
+        let combined = CalcFlags::BUILTIN | CalcFlags::SPEED;
+        // AND with SPEED isolates just the SPEED bit
+        let isolated = combined & CalcFlags::SPEED;
+        assert!(isolated.is_speed());
+        // NOT clears the SPEED bit when AND-ed back
+        let cleared = combined & !CalcFlags::SPEED;
+        assert!(!cleared.is_speed());
+    }
+
+    #[test]
+    fn calc_flags_bitor_assign() {
+        let mut f = CalcFlags::BUILTIN;
+        f |= CalcFlags::SPEED;
+        assert!(f.is_speed());
+    }
+
+    #[test]
+    fn calc_flags_display() {
+        // Display impl produces a non-empty string for any flag combination.
+        let s = format!("{}", CalcFlags::BUILTIN | CalcFlags::SPEED);
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn house_system_from_u8_and_char() {
+        let p: HouseSystem = b'P'.into();
+        assert_eq!(p.name(), "Placidus");
+        let k: HouseSystem = 'K'.into();
+        assert_eq!(k.name(), "Koch");
+    }
+
+    #[test]
+    fn house_system_display_uses_name() {
+        assert_eq!(format!("{}", HouseSystem::PLACIDUS), "Placidus");
+    }
+
+    #[test]
+    fn sidereal_mode_from_i32_and_display() {
+        let m: SiderealMode = 1.into();
+        assert_eq!(m, SiderealMode::LAHIRI);
+        assert!(!format!("{m}").is_empty());
+    }
+
+    #[test]
+    fn calendar_from_i32_round_trip() {
+        let g: Calendar = 1.into();
+        assert_eq!(g, Calendar::Gregorian);
+        let j: Calendar = 0.into();
+        assert_eq!(j, Calendar::Julian);
+        // Display impl
+        assert!(!format!("{g}").is_empty());
+    }
+
     /// `CalcFlags::is_sidereal` checks the SIDEREAL bit. This flag tells the
     /// engine to apply the configured ayanamsa to all longitudes — used to
     /// switch a calculation from tropical to sidereal zodiac.

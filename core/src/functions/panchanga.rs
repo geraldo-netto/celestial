@@ -475,4 +475,63 @@ mod tests {
         let p = panchanga(jd);
         assert_eq!(p.vara, 6, "J2000 should be Saturday (6)");
     }
+
+    #[test]
+    fn karana_name_in_range() {
+        // First 7 karanas are mobile (chara), last 4 are fixed (sthira)
+        for k in 1..=60u8 {
+            let nm = karana_name(k);
+            assert!(!nm.is_empty(), "karana {k} has empty name");
+        }
+    }
+
+    #[test]
+    fn paksha_flips_across_new_moon() {
+        // Several days after new moon we must be Shukla (waxing).
+        let jd = julday(2025, 2, 3, 12.0, Calendar::Gregorian); // ~5 days post-new-moon
+        let p = panchanga(jd);
+        assert_eq!(p.paksha, Paksha::Shukla);
+        // And several days after full moon, Krishna (waning).
+        let jd2 = julday(2025, 2, 17, 12.0, Calendar::Gregorian);
+        let p2 = panchanga(jd2);
+        assert_eq!(p2.paksha, Paksha::Krishna);
+    }
+
+    #[test]
+    fn hindu_festivals_year_returns_some() {
+        // Festival list for 2025 should include common entries
+        let festivals = hindu_festivals(2025);
+        assert!(
+            !festivals.is_empty(),
+            "expected at least one festival in 2025"
+        );
+        // Each festival has a valid JD and non-empty name
+        for f in &festivals {
+            assert!(f.jd > 2_400_000.0 && f.jd < 2_600_000.0, "jd={}", f.jd);
+            assert!(!f.name.is_empty());
+        }
+    }
+
+    #[test]
+    fn vara_cycles_seven_days() {
+        // Vara (weekday) cycles 0..7 over consecutive days
+        let jd0 = julday(2025, 1, 1, 12.0, Calendar::Gregorian);
+        let mut seen = [false; 7];
+        for d in 0..7 {
+            let p = panchanga(jd0 + d as f64);
+            seen[p.vara as usize] = true;
+        }
+        assert!(seen.iter().all(|&b| b), "missed weekday: {seen:?}");
+    }
+
+    #[test]
+    fn tithi_advances_monotonically_intra_lunation() {
+        // Tithi 1..30 cycles every ~29.5 days; sample 1-day steps and confirm
+        // the difference is small/positive (allowing for end-of-cycle wrap).
+        let jd0 = julday(2025, 1, 1, 12.0, Calendar::Gregorian);
+        let prev = panchanga(jd0).tithi;
+        let next = panchanga(jd0 + 1.0).tithi;
+        let diff = (next as i32 - prev as i32).rem_euclid(30);
+        assert!((0..=2).contains(&diff), "tithi step too large: {diff}");
+    }
 }

@@ -388,3 +388,77 @@ pub fn vis_limit_mag(
     out[7] = temp_c;
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Airmass returns ~1 near zenith and grows fast near horizon.
+    #[test]
+    fn airmass_monotone_with_zenith_distance() {
+        let zenith = airmass(90.0);
+        let high = airmass(60.0);
+        let low = airmass(10.0);
+        assert!((zenith - 1.0).abs() < 0.05, "airmass at zenith = {zenith}");
+        assert!(high > zenith);
+        assert!(low > high);
+    }
+
+    /// Below-horizon returns a sentinel large value (avoids div-by-zero).
+    #[test]
+    fn airmass_below_horizon_sentinel() {
+        let am = airmass(-5.0);
+        assert!(am >= 40.0);
+    }
+
+    /// Extinction coefficient scales with pressure (Rayleigh component).
+    #[test]
+    fn extinction_coeff_pressure_scaling() {
+        let sea = extinction_coeff(1013.25, 15.0, 550.0);
+        let mountain = extinction_coeff(700.0, 15.0, 550.0);
+        // Higher altitude (lower pressure) → smaller Rayleigh → smaller k
+        assert!(mountain < sea);
+        assert!(sea > 0.10 && sea < 0.30, "sea-level k = {sea}");
+    }
+
+    /// Extinction magnitude grows with airmass.
+    #[test]
+    fn extinction_mag_grows_near_horizon() {
+        let high = extinction_mag(60.0, 1013.25, 15.0);
+        let low = extinction_mag(5.0, 1013.25, 15.0);
+        assert!(low > high, "low alt should have more extinction: {low} vs {high}");
+    }
+
+    /// Sky brightness ladder: astronomical twilight ≈ 22 mag/arcsec², daytime ≈ 15.
+    #[test]
+    fn sky_brightness_twilight_ladder() {
+        let dark = sky_brightness(45.0, -20.0, -5.0);
+        let astro = sky_brightness(45.0, -15.0, -5.0);
+        let civil = sky_brightness(45.0, -8.0, -5.0);
+        let day = sky_brightness(45.0, -3.0, -5.0);
+        assert!(dark > astro, "dark={dark} astro={astro}");
+        assert!(astro > civil, "astro={astro} civil={civil}");
+        assert!(civil > day, "civil={civil} day={day}");
+    }
+
+    /// Sky brightness reduces (brighter) when moon is above horizon.
+    #[test]
+    fn moonlight_brightens_sky() {
+        let no_moon = sky_brightness(45.0, -20.0, -5.0);
+        let moon_up = sky_brightness(45.0, -20.0, 45.0);
+        assert!(moon_up < no_moon, "no_moon={no_moon} moon_up={moon_up}");
+    }
+
+    /// Limiting magnitude is clamped to [3, 8.5]; varies monotonically with
+    /// sky brightness inside the active range.
+    #[test]
+    fn limiting_magnitude_clamped_and_monotone() {
+        let darkest = limiting_magnitude(22.0, 1013.25, 15.0, 45.0);
+        let bright = limiting_magnitude(8.0, 1013.25, 15.0, 45.0); // 8-1.5 = 6.5
+        let bortle9 = limiting_magnitude(4.5, 1013.25, 15.0, 45.0); // 4.5-1.5 = 3.0
+        assert!(darkest <= 8.5, "darkest exceeds clamp ceiling: {darkest}");
+        assert!(bortle9 >= 3.0, "bortle9 below floor: {bortle9}");
+        // Monotone in the active range
+        assert!(bright > bortle9, "bright={bright} bortle9={bortle9}");
+    }
+}

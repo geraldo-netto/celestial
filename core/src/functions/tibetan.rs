@@ -111,4 +111,68 @@ mod tests {
     fn losar_tz_constant() {
         assert!((LHASA_TZ_OFFSET_HOURS - 6.0).abs() < 1e-9);
     }
+
+    #[test]
+    fn losar_2025_in_q1() {
+        // Tibetan Losar is a Q1 event (Jan–Mar depending on lunar/solar config).
+        let jd = losar_jd(2025).expect("losar_jd should compute");
+        let d = crate::revjul(jd, crate::body::Calendar::Gregorian);
+        assert_eq!(d.year, 2025);
+        assert!((1..=3).contains(&d.month), "month={}", d.month);
+    }
+
+    #[test]
+    fn losar_advances_across_decades() {
+        // Losar JDs should strictly increase year-over-year.
+        let mut prev = losar_jd(2020).unwrap();
+        for y in 2021..2030 {
+            let cur = losar_jd(y).unwrap();
+            assert!(cur > prev, "losar_jd({}) <= losar_jd({})", y, y - 1);
+            // Gap should be ~354 or ~384 days (12 vs 13 lunar months)
+            let gap = cur - prev;
+            assert!(
+                (350.0..=390.0).contains(&gap),
+                "implausible Losar gap {gap} between {} and {}",
+                y - 1,
+                y
+            );
+            prev = cur;
+        }
+    }
+
+    #[test]
+    fn rabjung_pre_epoch_clamps_to_zero() {
+        // Year before 1027 yields cycle 0 (pre-Rabjung).
+        let (cycle, _, _, _, _) = tibetan_year_name(1026);
+        assert_eq!(cycle, 0);
+    }
+
+    #[test]
+    fn rabjung_animal_cycles_every_12_years() {
+        // Same animal repeats every 12 years.
+        let (_, _, _, _, a0) = tibetan_year_name(2000);
+        let (_, _, _, _, a12) = tibetan_year_name(2012);
+        let (_, _, _, _, a24) = tibetan_year_name(2024);
+        assert_eq!(a0, a12);
+        assert_eq!(a12, a24);
+    }
+
+    #[test]
+    fn rabjung_element_cycles_every_10_years() {
+        // Each element repeats every 10 years (5 elements × 2 genders).
+        let (_, _, e0, _, _) = tibetan_year_name(1984);
+        let (_, _, e10, _, _) = tibetan_year_name(1994);
+        let (_, _, e20, _, _) = tibetan_year_name(2004);
+        assert_eq!(e0, "Wood");
+        assert_eq!(e10, "Wood");
+        assert_eq!(e20, "Wood");
+    }
+
+    #[test]
+    fn rabjung_gender_alternates() {
+        // Gender alternates year-to-year.
+        let (_, _, _, g_a, _) = tibetan_year_name(2024);
+        let (_, _, _, g_b, _) = tibetan_year_name(2025);
+        assert_ne!(g_a, g_b);
+    }
 }
