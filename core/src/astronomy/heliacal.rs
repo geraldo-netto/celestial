@@ -5,15 +5,7 @@
 //! model from Schaefer (1990) and Mallama & Hilton (2018).
 #![allow(dead_code)]
 
-use std::f64::consts::PI;
-
-fn to_rad(d: f64) -> f64 {
-    d * PI / 180.0
-}
-#[allow(dead_code)]
-fn to_deg(r: f64) -> f64 {
-    r * 180.0 / PI
-}
+use crate::astronomy::constants::to_rad;
 
 // ─── Atmospheric extinction ───────────────────────────────────────────────────
 

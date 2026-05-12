@@ -51,29 +51,13 @@ pub fn houses_ex2(
         .iter_mut()
         .zip(r2.cusps.iter().zip(r0.cusps.iter()))
     {
-        let dl = c2 - c0;
-        let dl = if dl > 180.0 {
-            dl - 360.0
-        } else if dl < -180.0 {
-            dl + 360.0
-        } else {
-            dl
-        };
-        *speed = dl / (2.0 * h);
+        *speed = crate::functions::utils::wrap_signed_180(c2 - c0) / (2.0 * h);
     }
     for (speed, (&a2, &a0)) in ascmc_speeds
         .iter_mut()
         .zip(r2.ascmc.iter().zip(r0.ascmc.iter()))
     {
-        let dl = a2 - a0;
-        let dl = if dl > 180.0 {
-            dl - 360.0
-        } else if dl < -180.0 {
-            dl + 360.0
-        } else {
-            dl
-        };
-        *speed = dl / (2.0 * h);
+        *speed = crate::functions::utils::wrap_signed_180(a2 - a0) / (2.0 * h);
     }
     Ok(HouseResultEx2 {
         cusps: r1.cusps,

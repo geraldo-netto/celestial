@@ -245,10 +245,13 @@ pub fn midpoint_rad(x1: f64, x0: f64) -> f64 {
     norm_rad(x0 + d / 2.0)
 }
 
-/// Signed difference of degrees, result in (−180, +180].
+/// Wrap an angle delta into (−180, +180].
+///
+/// Used by callers that already have a difference of two angles and just want
+/// it bracketed across the 360°/0° seam. Equivalent to `diff_deg_signed(a, b)`
+/// when `a` and `b` are already in [0, 360).
 #[inline]
-pub fn diff_deg_signed(p1: f64, p2: f64) -> f64 {
-    let d = norm_deg(p1) - norm_deg(p2);
+pub fn wrap_signed_180(d: f64) -> f64 {
     if d <= -180.0 {
         d + 360.0
     } else if d > 180.0 {
@@ -256,6 +259,12 @@ pub fn diff_deg_signed(p1: f64, p2: f64) -> f64 {
     } else {
         d
     }
+}
+
+/// Signed difference of degrees, result in (−180, +180].
+#[inline]
+pub fn diff_deg_signed(p1: f64, p2: f64) -> f64 {
+    wrap_signed_180(norm_deg(p1) - norm_deg(p2))
 }
 
 /// Unsigned difference of degrees, result in [0, 360).

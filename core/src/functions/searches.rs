@@ -800,15 +800,7 @@ pub fn lower_meridian_transit_ut(
 
     // Signed distance from 180° in (-180, +180]
     let diff = |jd: f64| -> f64 {
-        let ha = ha_at(jd);
-        let d = ha - 180.0;
-        if d > 180.0 {
-            d - 360.0
-        } else if d <= -180.0 {
-            d + 360.0
-        } else {
-            d
-        }
+        crate::functions::utils::wrap_signed_180(ha_at(jd) - 180.0)
     };
 
     // Start from upper transit to find the NEXT lower transit (~12h later)

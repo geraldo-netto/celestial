@@ -464,18 +464,9 @@ pub(super) fn palette_with_defaults(
 /// Starts each label at its natural angular position (derived from the planet
 /// longitude) and iteratively separates overlapping pairs symmetrically along
 /// the arc, keeping each label within `MAX_DRIFT` degrees of its planet.
-/// Returns one adjusted angle per planet, in the original planet order.
-/// Wrap an angle to (−180, +180].
-#[inline]
-fn wrap_signed_180(mut a: f64) -> f64 {
-    while a > 180.0 {
-        a -= 360.0;
-    }
-    while a < -180.0 {
-        a += 360.0;
-    }
-    a
-}
+/// Wrap an angle to (−180, +180]. Re-exports the core helper so call sites
+/// in this module can keep the short name.
+use celestial_core::wrap_signed_180;
 
 /// Clamp a label so it does not drift more than `max_drift` degrees from its
 /// "natural" angle.  Uses signed wrap so e.g. natural = 350° and placed = 5°

@@ -1,15 +1,8 @@
 //! Moon nodes (mean and true) and planetary nodes/apsides.
 
-use std::f64::consts::PI;
+use crate::astronomy::constants::{norm_deg as norm360, to_rad};
 
 const J2000: f64 = 2451545.0;
-
-fn to_rad(d: f64) -> f64 {
-    d * PI / 180.0
-}
-fn norm360(d: f64) -> f64 {
-    d.rem_euclid(360.0)
-}
 
 // ─── Moon: mean node ──────────────────────────────────────────────────────────
 
@@ -215,19 +208,8 @@ pub fn planet_nodes_speeds(body: i32, jd_et: f64) -> Option<(f64, f64)> {
     let el_p = planet_mean_elements(body, jd_et + 0.5)?;
     let el_m = planet_mean_elements(body, jd_et - 0.5)?;
 
-    fn angle_diff(a: f64, b: f64) -> f64 {
-        let d = a - b;
-        if d > 180.0 {
-            d - 360.0
-        } else if d < -180.0 {
-            d + 360.0
-        } else {
-            d
-        }
-    }
-
-    let node_speed = angle_diff(el_p.node_lon, el_m.node_lon);
-    let peri_speed = angle_diff(el_p.peri_lon, el_m.peri_lon);
+    let node_speed = crate::functions::utils::wrap_signed_180(el_p.node_lon - el_m.node_lon);
+    let peri_speed = crate::functions::utils::wrap_signed_180(el_p.peri_lon - el_m.peri_lon);
     Some((node_speed, peri_speed))
 }
 

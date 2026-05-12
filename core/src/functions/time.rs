@@ -301,16 +301,7 @@ pub fn time_equ(jd_ut: f64) -> Result<f64> {
 
     // Equation of time = apparent solar time - mean solar time (positive = sundial ahead)
     // Convention: E = (RA_apparent - RA_mean) / 15
-    let e_deg = ra - ra_mean;
-    // Normalise to (−180, 180]
-    let e_deg = if e_deg > 180.0 {
-        e_deg - 360.0
-    } else if e_deg <= -180.0 {
-        e_deg + 360.0
-    } else {
-        e_deg
-    };
-
+    let e_deg = crate::functions::utils::wrap_signed_180(ra - ra_mean);
     Ok(e_deg / 15.0) // hours
 }
 

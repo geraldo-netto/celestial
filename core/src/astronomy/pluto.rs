@@ -4,10 +4,7 @@
 //! accurate to roughly 0.07° in longitude and 0.02° in latitude.
 //! Good enough for astrological use (orbs > 0.5°).
 
-use std::f64::consts::PI;
-fn to_rad(d: f64) -> f64 {
-    d * PI / 180.0
-}
+use crate::astronomy::constants::to_rad;
 
 /// Heliocentric ecliptic coordinates of Pluto (J2000.0 ecliptic).
 /// Returns `(lon_deg, lat_deg, radius_au)`.

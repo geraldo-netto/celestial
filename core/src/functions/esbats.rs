@@ -224,14 +224,7 @@ fn elongation(jd: f64) -> Result<f64> {
 /// at exact full moon).
 fn full_moon_signed(jd: f64) -> Result<f64> {
     let e = elongation(jd)?;
-    let d = e - 180.0;
-    Ok(if d > 180.0 {
-        d - 360.0
-    } else if d <= -180.0 {
-        d + 360.0
-    } else {
-        d
-    })
+    Ok(crate::functions::utils::wrap_signed_180(e - 180.0))
 }
 
 /// Newton's-method refinement of `jd` toward the full-moon root.
