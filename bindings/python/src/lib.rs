@@ -1317,6 +1317,44 @@ fn egyptian_decan(py: Python<'_>, lon: f64) -> PyObject {
     (i, n, s).into_py(py)
 }
 
+/// Schwabe solar-cycle info at the given Julian Day.
+/// Returns `None` for non-finite input or for dates outside cycles 1..=25
+/// (i.e. before ~1755 or after ~2030). Tuple layout:
+/// `(cycle_num, phase, phase_name, min_jd, max_jd, next_min_jd,
+///   years_since_min, nickname_or_empty, grand_epoch_or_empty)`.
+#[pyfunction]
+fn solar_cycle(py: Python<'_>, jd: f64) -> Option<PyObject> {
+    let info = celestial::solar_cycle(jd)?;
+    Some(
+        (
+            info.cycle_num,
+            info.phase,
+            info.phase_name.name(),
+            info.min_jd,
+            info.max_jd,
+            info.next_min_jd,
+            info.years_since_min,
+            info.nickname.unwrap_or(""),
+            info.grand_epoch.map_or("", |g| g.name()),
+        )
+            .into_py(py),
+    )
+}
+
+/// Grand solar epoch label for the given JD, or empty string outside any
+/// named long-term envelope (Spörer / Maunder / Dalton / Modern Maximum).
+#[pyfunction]
+fn grand_solar_epoch(jd: f64) -> &'static str {
+    celestial::grand_solar_epoch(jd).map_or("", |g| g.name())
+}
+
+/// Informal name for a Schwabe cycle (e.g. cycle 19 = "the Great Cycle").
+/// Returns an empty string for cycles without a nickname.
+#[pyfunction]
+fn cycle_nickname(n: u8) -> &'static str {
+    celestial::cycle_nickname(n).unwrap_or("")
+}
+
 // Helper trait for PyDict tap pattern
 trait Tap: Sized {
     fn tap(self, f: impl FnOnce(&Self)) -> Self {
@@ -2170,6 +2208,9 @@ fn register_calendar_fns(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(calendar_round, m)?)?;
     m.add_function(wrap_pyfunction!(medicine_wheel_totem, m)?)?;
     m.add_function(wrap_pyfunction!(egyptian_decan, m)?)?;
+    m.add_function(wrap_pyfunction!(solar_cycle, m)?)?;
+    m.add_function(wrap_pyfunction!(grand_solar_epoch, m)?)?;
+    m.add_function(wrap_pyfunction!(cycle_nickname, m)?)?;
     m.add_function(wrap_pyfunction!(sabbats_for_year, m)?)?;
     m.add_function(wrap_pyfunction!(next_sabbat, m)?)?;
     m.add_function(wrap_pyfunction!(sabbat_jd, m)?)?;

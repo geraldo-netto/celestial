@@ -69,4 +69,24 @@
   {% endfor %}
   {% endif %}
 
+  <!-- SOLAR CYCLE OVERLAY — auto-injected by build_context; always present
+       in the namespace. `cycle_num` is truthy only when the date falls
+       inside the numbered Schwabe cycles (1755 → ~2030); for older dates
+       inside a named grand epoch, only `grand_epoch` is set. -->
+  {% if solar_cycle.cycle_num %}
+  <text x="750" y="945" font-size="11" font-weight="600" font-family="system-ui,sans-serif" fill="{{ vars.ring_color }}">
+    Solar Cycle {{ solar_cycle.cycle_num }}{% if solar_cycle.nickname %} — {{ solar_cycle.nickname }}{% endif %}
+  </text>
+  <text x="750" y="963" font-size="9" font-family="system-ui,sans-serif" fill="{{ vars.text_color }}" opacity=".75">
+    {{ solar_cycle.phase_name }} phase · {{ solar_cycle.years_since_min | round(1) }} y since min
+  </text>
+  <text x="750" y="977" font-size="9" font-family="system-ui,sans-serif" fill="{{ vars.text_color }}" opacity=".55">
+    cycle fraction {{ solar_cycle.phase | round(2) }}{% if solar_cycle.grand_epoch %} · {{ solar_cycle.grand_epoch }}{% endif %}
+  </text>
+  {% elif solar_cycle.grand_epoch %}
+  <text x="750" y="945" font-size="11" font-weight="600" font-family="system-ui,sans-serif" fill="{{ vars.ring_color }}">
+    {{ solar_cycle.grand_epoch }}
+  </text>
+  {% endif %}
+
 </svg>

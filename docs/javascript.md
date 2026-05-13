@@ -258,6 +258,38 @@ const cr: [number, number, number, number] = celestial.calendar_round(jd);
 
 ---
 
+## Solar (Schwabe) cycle
+
+```typescript
+import { solarCycle, grandSolarEpoch, cycleNickname } from "celestial-js";
+
+// Inside the numbered Schwabe cycles (1755 → ~2030):
+const info = solarCycle(2_451_545.0);
+if (info === null) {
+  console.log("outside numbered cycles");
+} else {
+  console.log(`Cycle ${info.cycleNum} — ${info.phaseName} ` +
+              `(${info.yearsSinceMin.toFixed(1)}y in)`);
+  if (info.nickname) console.log(`  aka: ${info.nickname}`);
+  if (info.grandEpoch) console.log(`  grand epoch: ${info.grandEpoch}`);
+}
+
+// Centuries-scale label, callable for any JD (returns null when normal):
+const epoch = grandSolarEpoch(2_341_973.0); // 1700 → "Maunder Minimum"
+
+// Informal cycle nicknames (null for cycles without one):
+console.log(cycleNickname(19)); // "the Great Cycle"
+console.log(cycleNickname(20)); // null
+```
+
+**`SolarCycleInfo` fields:** `cycleNum`, `phase`, `phaseName`, `minJd`,
+`maxJd`, `nextMinJd`, `yearsSinceMin`, `nickname?`, `grandEpoch?`.
+
+Returns `null` for non-finite input or dates outside cycles 1..=25.
+Phase classification follows the Waldmeier effect (asymmetric rise / decline).
+
+---
+
 ## Indigenous / Egyptian
 
 ```typescript

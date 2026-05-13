@@ -1861,6 +1861,41 @@ pub fn egyptian_decan(lon: f64) -> Vec<String> {
     vec![i.to_string(), n.to_string(), s.to_string()]
 }
 
+/// Schwabe solar-cycle info for the given Julian Day.
+/// Returns `null` for non-finite input or for dates outside cycles 1..=25.
+/// Layout: [cycle_num, phase, phase_name, min_jd, max_jd, next_min_jd,
+///          years_since_min, nickname_or_empty, grand_epoch_or_empty].
+#[php_function]
+pub fn solar_cycle(jd: f64) -> Option<Vec<String>> {
+    let info = celestial::solar_cycle(jd)?;
+    Some(vec![
+        info.cycle_num.to_string(),
+        info.phase.to_string(),
+        info.phase_name.name().to_string(),
+        info.min_jd.to_string(),
+        info.max_jd.to_string(),
+        info.next_min_jd.to_string(),
+        info.years_since_min.to_string(),
+        info.nickname.unwrap_or("").to_string(),
+        info.grand_epoch.map_or(String::new(), |g| g.name().to_string()),
+    ])
+}
+
+/// Grand solar epoch label for the given JD, or `null` outside any named
+/// long-term envelope.
+#[php_function]
+pub fn grand_solar_epoch(jd: f64) -> Option<String> {
+    celestial::grand_solar_epoch(jd).map(|g| g.name().to_string())
+}
+
+/// Informal name for a Schwabe cycle (e.g. cycle 19 = "the Great Cycle"),
+/// or `null` for cycles without a nickname.
+#[php_function]
+pub fn cycle_nickname(n: i64) -> Option<String> {
+    let n8 = u8::try_from(n).ok()?;
+    celestial::cycle_nickname(n8).map(String::from)
+}
+
 /// Fixed star position (epoch ET). Returns [lon, lat, dist, speed_lon, speed_lat, speed_dist, ret_flags].
 #[php_function]
 pub fn fixstar2(star: String, tjdet: f64, flags: i64) -> PhpResult<Vec<f64>> {

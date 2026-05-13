@@ -312,7 +312,8 @@ fn build_solar_cycle(jd: f64) -> Value {
 fn solar_cycle_to_json(info: &SolarCycleInfo) -> Value {
     json!({
         "cycle_num":       info.cycle_num,
-        "phase":           (info.phase * 1e4).round() / 1e4,
+        // phase is a 0..1 display fraction — 3 decimals is plenty.
+        "phase":           (info.phase * 1e3).round() / 1e3,
         "phase_name":      info.phase_name.name(),
         "min_jd":          (info.min_jd * 1e2).round() / 1e2,
         "max_jd":          (info.max_jd * 1e2).round() / 1e2,

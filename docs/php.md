@@ -297,6 +297,35 @@ $cr = celestial_calendar_round($jd);
 
 ---
 
+## Solar (Schwabe) cycle
+
+```php
+// Inside the numbered Schwabe cycles (1755 → ~2030):
+$info = celestial_solar_cycle(2_451_545.0);
+if ($info === null) {
+    echo "outside numbered cycles\n";
+} else {
+    [$cycle_num, $phase, $phase_name, $min_jd, $max_jd, $next_min_jd,
+     $years_since_min, $nickname, $grand_epoch] = $info;
+    printf("Cycle %s — %s (%.1fy in)\n", $cycle_num, $phase_name, (float)$years_since_min);
+    if ($nickname !== '') echo "  aka: $nickname\n";
+}
+
+// Centuries-scale label, callable for any JD (null when normal):
+$epoch = celestial_grand_solar_epoch(2_341_973.0);   // "Maunder Minimum"
+
+// Informal cycle nicknames (null for cycles without one):
+echo celestial_cycle_nickname(19); // "the Great Cycle"
+echo celestial_cycle_nickname(20) ?? '(none)';
+```
+
+All numeric fields come back as strings (PHP binding convention for tuple-
+shaped returns); cast to float / int as needed.
+
+Returns `null` for non-finite input or for dates outside cycles 1..=25.
+
+---
+
 ## Indigenous / Egyptian
 
 ```php

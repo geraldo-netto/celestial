@@ -286,6 +286,36 @@ print(celestial.GMT_CORRELATION)  # 584283
 
 ---
 
+## Solar (Schwabe) cycle
+
+```python
+from celestial_py import solar_cycle, grand_solar_epoch, cycle_nickname
+
+# Inside the numbered Schwabe cycles (1755 → ~2030):
+info = solar_cycle(2_451_545.0)
+if info is None:
+    print("outside numbered cycles")
+else:
+    (cycle_num, phase, phase_name,
+     min_jd, max_jd, next_min_jd,
+     years_since_min, nickname, grand_epoch) = info
+    print(f"Cycle {cycle_num} — {phase_name} ({years_since_min:.1f}y in)")
+    if nickname:
+        print(f"  also known as: {nickname}")
+
+# Centuries-scale label, callable for any JD (1450..2000 → known epochs):
+epoch = grand_solar_epoch(2_341_973.0)   # 1700 → "Maunder Minimum"
+
+# Informal cycle nicknames (empty string for cycles without one):
+print(cycle_nickname(19))  # "the Great Cycle"
+print(cycle_nickname(20))  # ""
+```
+
+Returns `None` for non-finite input or for dates outside cycles 1..=25.
+Phase classification follows the Waldmeier effect (asymmetric rise / decline).
+
+---
+
 ## Indigenous / Egyptian
 
 ```python

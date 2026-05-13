@@ -2071,6 +2071,52 @@ pub fn egyptian_decan(lon: f64) -> Vec<String> {
     vec![i.to_string(), n.to_string(), s.to_string()]
 }
 
+/// Schwabe solar-cycle info object for the given Julian Day.
+/// Returns `null` for non-finite input or for dates outside cycles 1..=25.
+#[napi(object)]
+pub struct SolarCycleInfo {
+    pub cycle_num: u32,
+    pub phase: f64,
+    pub phase_name: String,
+    pub min_jd: f64,
+    pub max_jd: f64,
+    pub next_min_jd: f64,
+    pub years_since_min: f64,
+    pub nickname: Option<String>,
+    pub grand_epoch: Option<String>,
+}
+
+#[napi]
+pub fn solar_cycle(jd: f64) -> Option<SolarCycleInfo> {
+    let info = celestial::solar_cycle(jd)?;
+    Some(SolarCycleInfo {
+        cycle_num: u32::from(info.cycle_num),
+        phase: info.phase,
+        phase_name: info.phase_name.name().to_string(),
+        min_jd: info.min_jd,
+        max_jd: info.max_jd,
+        next_min_jd: info.next_min_jd,
+        years_since_min: info.years_since_min,
+        nickname: info.nickname.map(String::from),
+        grand_epoch: info.grand_epoch.map(|g| g.name().to_string()),
+    })
+}
+
+/// Grand solar epoch label for the given JD, or `null` outside any named
+/// long-term envelope (Spörer / Maunder / Dalton / Modern Maximum).
+#[napi]
+pub fn grand_solar_epoch(jd: f64) -> Option<String> {
+    celestial::grand_solar_epoch(jd).map(|g| g.name().to_string())
+}
+
+/// Informal name for a Schwabe cycle (e.g. cycle 19 = "the Great Cycle"),
+/// or `null` for cycles without a nickname.
+#[napi]
+pub fn cycle_nickname(n: u32) -> Option<String> {
+    let n8 = u8::try_from(n).ok()?;
+    celestial::cycle_nickname(n8).map(String::from)
+}
+
 /// Whether a chart is a day chart (Sun above horizon).
 #[napi]
 pub fn is_day_chart(sun_lon: f64, cusps: Vec<f64>) -> bool {

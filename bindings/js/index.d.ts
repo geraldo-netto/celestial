@@ -234,6 +234,18 @@ export interface MoonPhaseInfo {
   ageDays: number;
 }
 
+export interface SolarCycleInfo {
+  cycleNum: number;
+  phase: number;
+  phaseName: string;
+  minJd: number;
+  maxJd: number;
+  nextMinJd: number;
+  yearsSinceMin: number;
+  nickname?: string | null;
+  grandEpoch?: string | null;
+}
+
 export declare const GREG_CAL: number;
 export declare const JUL_CAL: number;
 export declare const SUN: number;
@@ -428,6 +440,9 @@ export declare function haab(jd: number): Array<string>;
 export declare function calendarRound(jd: number): Array<string>;
 export declare function medicineWheelTotem(sunLon: number): Array<string>;
 export declare function egyptianDecan(lon: number): Array<string>;
+export declare function solarCycle(jd: number): SolarCycleInfo | null;
+export declare function grandSolarEpoch(jd: number): string | null;
+export declare function cycleNickname(n: number): string | null;
 export declare function isDayChart(sunLon: number, cusps: Array<number>): boolean;
 export declare function meanSidtime(jd: number): number;
 export declare function triplicityRulers(lon: number): Array<number>;

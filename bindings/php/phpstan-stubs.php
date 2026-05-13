@@ -914,6 +914,24 @@ function egyptian_decan(float $lon): array {}
 /** @return string[] */
 function celestial_egyptian_decan(float $lon): array {}
 
+/** @return string[]|null */
+function solar_cycle(float $jd): ?array {}
+
+/** @return string[]|null */
+function celestial_solar_cycle(float $jd): ?array {}
+
+/** @return string|null */
+function grand_solar_epoch(float $jd): ?string {}
+
+/** @return string|null */
+function celestial_grand_solar_epoch(float $jd): ?string {}
+
+/** @return string|null */
+function cycle_nickname(int $n): ?string {}
+
+/** @return string|null */
+function celestial_cycle_nickname(int $n): ?string {}
+
 /** @return float[] */
 function fixstar2(string $star, float $tjdet, int $flags): array {}
 
