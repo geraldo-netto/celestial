@@ -243,6 +243,13 @@ fn oblique_ascension(lon: f64, lat: f64, eps: f64, geolat: f64) -> f64 {
 // ─── Placidus ─────────────────────────────────────────────────────────────────
 
 /// Placidus house cusps via iterative semi-arc method.
+///
+/// Classical Placidus: each intermediate cusp lies at a fixed fraction of
+/// the semi-diurnal (or semi-nocturnal) arc swept by a point with that
+/// cusp's declination. Because the declination depends on the ecliptic
+/// longitude we're solving for, the formula is iterative.
+///
+/// Reference: Pingré (1786); modern reformulation in Walter Koch (1960).
 fn placidus(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
     let lat_r = to_rad(lat);
     let eps_r = to_rad(eps);
@@ -253,50 +260,105 @@ fn placidus(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
     cusps[4] = norm_deg(mc + 180.0);
     cusps[7] = norm_deg(asc + 180.0);
 
-    // Divide the two diurnal semi-arcs into thirds to get the 6 intermediate cusps.
-    // Q1 (MC→ASC, upper hemisphere): cusps 11, 12
-    // Q3 (IC→DSC, lower hemisphere): cusps  5,  6  (opposites of 11, 12)
-    // Q4 (DSC→MC, upper hemisphere): cusps  9,  8
-    // Q2 (ASC→IC, lower hemisphere): cusps  2,  3  (opposites of  9,  8)
-    let fracs = [1.0 / 3.0, 2.0 / 3.0];
+    // House → (semi-arc fraction, hemisphere sign).
+    //   sign = +1  → upper hemisphere (semi-diurnal arc, above horizon)
+    //   sign = −1  → lower hemisphere (semi-nocturnal arc, below horizon)
+    //
+    // For each cusp the hour-angle from the meridian is `sign · F · SA`,
+    // where SA is the semi-diurnal arc when sign=+1 and the semi-nocturnal
+    // arc when sign=−1. Sign convention for the hour angle: positive west
+    // of meridian. Cusps east of the meridian get negative HA.
+    //
+    //   h11 = 1/3 of upper east semi-arc from MC, HA = -F·SDA   (east, upper)
+    //   h12 = 2/3 of upper east semi-arc from MC, HA = -F·SDA   (east, upper)
+    //   h2  = 1/3 of lower east semi-arc from ASC, HA = -π + F·SNA (east, lower)
+    //   h3  = 2/3 of lower east semi-arc from ASC, HA = -π + F·SNA (east, lower)
+    // and h5, h6, h8, h9 are 180°-opposites of h11, h12, h2, h3.
+    let upper = [(11_usize, 1.0 / 3.0), (12, 2.0 / 3.0)];
+    let lower = [(2_usize, 1.0 / 3.0), (3, 2.0 / 3.0)];
 
-    // Upper diurnal arc Q1: armc → armc+90° (between MC and ASC)
-    for (i, &frac) in fracs.iter().enumerate() {
-        let h = placidus_cusp(90.0_f64.mul_add(frac, armc), lat_r, eps_r, 1.0);
-        cusps[11 + i] = norm_deg(h); // houses 11, 12
-        cusps[5 + i] = norm_deg(h + 180.0); // houses  5,  6 (opposite)
+    for (cusp, f) in upper {
+        let lon = placidus_cusp_iter(armc, lat_r, eps_r, f, true);
+        cusps[cusp] = norm_deg(lon);
+        cusps[cusp - 6] = norm_deg(lon + 180.0); // h5 opp h11, h6 opp h12
     }
-
-    // Lower diurnal arc Q4: armc+270° → armc+360° (between DSC and MC)
-    for (i, &frac) in fracs.iter().enumerate() {
-        let h = placidus_cusp(90.0_f64.mul_add(frac, armc + 270.0), lat_r, eps_r, -1.0);
-        cusps[9 - i] = norm_deg(h); // houses 9, 8
-        cusps[3 - i] = norm_deg(h + 180.0); // houses 3, 2 (opposite)
+    for (cusp, f) in lower {
+        let lon = placidus_cusp_iter(armc, lat_r, eps_r, f, false);
+        cusps[cusp] = norm_deg(lon);
+        cusps[cusp + 6] = norm_deg(lon + 180.0); // h8 opp h2, h9 opp h3
     }
 
     cusps
 }
 
-/// Iteratively solve for one Placidus cusp.
-fn placidus_cusp(armc_offset: f64, lat_r: f64, eps_r: f64, sign: f64) -> f64 {
-    let armc_deg = armc_offset;
+/// Iteratively solve for one Placidus intermediate cusp.
+///
+/// `f` is the semi-arc fraction (1/3 or 2/3). `upper = true` for cusps
+/// 11, 12 (above horizon, east of meridian); `false` for cusps 2, 3
+/// (below horizon, east of meridian).
+///
+/// Cusp hour angles from the meridian (HA = ARMC − RA, negative = east):
+///   h11 (upper, f=1/3):  HA = −F · SDA
+///   h12 (upper, f=2/3):  HA = −F · SDA
+///   h2  (lower, f=1/3):  HA = −SDA − F · SNA
+///   h3  (lower, f=2/3):  HA = −SDA − F · SNA
+/// where SDA = acos(−tan φ · tan δ) and SNA = π − SDA depend on the
+/// cusp's own declination. Iterate until both δ and λ converge.
+fn placidus_cusp_iter(armc: f64, lat_r: f64, eps_r: f64, f: f64, upper: bool) -> f64 {
     let sin_eps = eps_r.sin();
     let cos_eps = eps_r.cos();
     let tan_lat = lat_r.tan();
-    let mut lon = norm_deg(armc_deg) + 90.0;
-    for _ in 0..20 {
-        let lon_r = to_rad(lon);
-        let (sin_lon, cos_lon) = lon_r.sin_cos();
+    let armc_r = to_rad(armc);
+
+    // Initial guess: equator approximation (SDA = SNA = π/2).
+    let mut lon_r = if upper {
+        armc_r + f * std::f64::consts::FRAC_PI_2
+    } else {
+        armc_r + std::f64::consts::FRAC_PI_2 + f * std::f64::consts::FRAC_PI_2
+    };
+
+    for _ in 0..30 {
+        let sin_lon = lon_r.sin();
         let dec = (sin_eps * sin_lon).asin();
-        let ad = (tan_lat * dec.tan()).clamp(-1.0, 1.0).asin();
-        let oa = to_deg((sin_lon * cos_eps).atan2(cos_lon)) - to_deg(ad);
-        let lon_new = norm_deg(sign.mul_add(90.0, oa + armc_deg));
-        if (lon_new - lon).abs() < 1e-6 {
-            return lon_new;
+        let tan_dec = dec.tan();
+
+        // SDA, SNA for the current declination. |tan φ · tan δ| ≥ 1 means
+        // the cusp is circumpolar at this latitude (rare); clamp to keep
+        // the iteration finite — Placidus is conventionally undefined
+        // there but every astrology program returns *something*.
+        let cos_arg = (-tan_lat * tan_dec).clamp(-1.0, 1.0);
+        let sda = cos_arg.acos();
+        let sna = std::f64::consts::PI - sda;
+
+        // HA from meridian (negative east). Then RA of cusp = ARMC − HA.
+        // (Convention here: HA = ARMC − RA so RA = ARMC − HA, but since
+        // we want RA = ARMC + |east offset|, just add the positive
+        // east-offset directly.)
+        let east_offset = if upper {
+            f * sda
+        } else {
+            sda + f * sna
+        };
+        let ra = armc_r + east_offset;
+        let (sin_ra, cos_ra) = ra.sin_cos();
+
+        // Invert the equatorial→ecliptic transform for a point ON the
+        // ecliptic (β = 0). For such a point the forward transform gives
+        //     sin(α)·cos(δ) = sin(λ)·cos(ε)
+        //     cos(α)·cos(δ) = cos(λ)
+        // so tan(λ) = sin(α) / (cos(α)·cos(ε)). The tan(δ)·sin(ε) term
+        // that appears in the more general inversion vanishes when β = 0.
+        let _ = tan_dec; // unused: kept available for non-ecliptic cusps
+        let lon_new_r = sin_ra.atan2(cos_ra * cos_eps);
+
+        let delta = (lon_new_r - lon_r).rem_euclid(2.0 * std::f64::consts::PI);
+        let delta = delta.min(2.0 * std::f64::consts::PI - delta);
+        lon_r = lon_new_r;
+        if delta < 1e-9 {
+            break;
         }
-        lon = lon_new;
     }
-    lon
+    to_deg(lon_r)
 }
 
 // ─── Koch ─────────────────────────────────────────────────────────────────────
@@ -803,11 +865,11 @@ mod tests {
 
     /// Regression test against an independently verified Placidus chart
     /// (World of Wisdom astrology software, 1986-05-30 06:00 -03:00,
-    /// São Paulo 23°32'S 46°38'W). Asserts the chart angles match the
+    /// São Paulo 23°32'S 46°38'W). Asserts every cusp matches the
     /// reference within 5 arcminutes — the precision the published chart
     /// is quoted to.
     #[test]
-    fn placidus_angles_match_published_chart_1986_sp() {
+    fn placidus_full_cusp_match_published_chart_1986_sp() {
         // 06:00 local UTC-3 = 09:00 UT.
         let jd_ut = crate::functions::time::julday(
             1986,
@@ -817,26 +879,35 @@ mod tests {
             crate::body::Calendar::Gregorian,
         );
         let result = houses(jd_ut, -23.5333, -46.6333, b'P');
-        let asc = result.ascmc[0];
-        let mc = result.ascmc[1];
-
-        // Reference: ASC 29°04' Taurus (59.0667°)
-        let ref_asc = 59.0667;
-        let ref_mc = 334.05; // MC 4°03' Pisces
         let tol = 5.0 / 60.0; // 5 arcminutes
 
-        assert!(
-            (asc - ref_asc).abs() < tol,
-            "ASC {asc:.4}° ≠ reference {ref_asc:.4}° (diff {:.4}°)",
-            asc - ref_asc,
-        );
-        assert!(
-            (mc - ref_mc).abs() < tol,
-            "MC {mc:.4}° ≠ reference {ref_mc:.4}° (diff {:.4}°)",
-            mc - ref_mc,
-        );
+        // PDF cusps in decimal degrees (sign × 30 + degrees + minutes/60).
+        let pdf = [
+            ("h1 ASC", 1, 59.0667),  // 29°04' Taurus
+            ("h2", 2, 88.7833),      // 28°47' Gemini
+            ("h3", 3, 120.6833),     // 0°41' Leo
+            ("h4 IC", 4, 154.05),    // 4°03' Virgo
+            ("h5", 5, 186.0833),     // 6°05' Libra
+            ("h6", 6, 214.3667),     // 4°22' Scorpio
+            ("h7 DSC", 7, 239.0667), // 29°04' Scorpio
+            ("h8", 8, 268.7833),     // 28°47' Sagittarius
+            ("h9", 9, 300.6833),     // 0°41' Aquarius
+            ("h10 MC", 10, 334.05),  // 4°03' Pisces
+            ("h11", 11, 6.0833),     // 6°05' Aries
+            ("h12", 12, 34.3667),    // 4°22' Taurus
+        ];
 
-        // Sanity: every Placidus cusp is the exact opposite of its pair.
+        for (label, idx, ref_lon) in pdf {
+            let got = result.cusps[idx];
+            let diff = ((got - ref_lon + 540.0) % 360.0 - 180.0).abs();
+            assert!(
+                diff < tol,
+                "{label} = {got:.4}°, expected {ref_lon:.4}° (diff {diff:.4}° = {:.2}')",
+                diff * 60.0,
+            );
+        }
+
+        // Sanity: every Placidus cusp is the exact 180° opposite of its pair.
         for h in 1..=6 {
             let opp = (result.cusps[h] + 180.0) % 360.0;
             let diff = (result.cusps[h + 6] - opp).abs();
