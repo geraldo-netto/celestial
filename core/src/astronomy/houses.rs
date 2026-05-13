@@ -197,12 +197,13 @@ pub fn ascendant(armc: f64, lat: f64, eps: f64) -> f64 {
 pub fn midheaven(armc: f64, eps: f64) -> f64 {
     let armc_r = to_rad(armc);
     let eps_r = to_rad(eps);
-    // Standard formula (Meeus, Astronomical Algorithms):
-    //   MC = atan2(sin(ARMC) · cos(ε), cos(ARMC))
-    // atan2 already handles all four quadrants correctly — no manual
-    // quadrant adjustment needed (the old +180° was wrong and produced DSC).
+    // Meeus, "Astronomical Algorithms" 2nd ed. ch. 13/25, for a point on the
+    // ecliptic (latitude 0°):
+    //     tan(MC) = sin(ARMC) / (cos(ARMC) · cos(ε))
+    // i.e. cos(ε) divides cos(ARMC), it does NOT multiply sin(ARMC).
+    // atan2 handles all four quadrants — no manual ±180° adjustment.
     let (sin_armc, cos_armc) = armc_r.sin_cos();
-    norm_deg(to_deg((sin_armc * eps_r.cos()).atan2(cos_armc)))
+    norm_deg(to_deg(sin_armc.atan2(cos_armc * eps_r.cos())))
 }
 
 /// Vertex: the point on the ecliptic where the prime vertical intersects
@@ -798,5 +799,54 @@ mod tests {
         assert_eq!(HouseSystem::from_char(b'E').unwrap().name(), "Equal");
         assert_eq!(HouseSystem::from_char(b'W').unwrap().name(), "Whole Sign");
         assert!(HouseSystem::from_char(b'Z').is_none());
+    }
+
+    /// Regression test against an independently verified Placidus chart
+    /// (World of Wisdom astrology software, 1986-05-30 06:00 -03:00,
+    /// São Paulo 23°32'S 46°38'W). Asserts the chart angles match the
+    /// reference within 5 arcminutes — the precision the published chart
+    /// is quoted to.
+    #[test]
+    fn placidus_angles_match_published_chart_1986_sp() {
+        // 06:00 local UTC-3 = 09:00 UT.
+        let jd_ut = crate::functions::time::julday(
+            1986,
+            5,
+            30,
+            9.0,
+            crate::body::Calendar::Gregorian,
+        );
+        let result = houses(jd_ut, -23.5333, -46.6333, b'P');
+        let asc = result.ascmc[0];
+        let mc = result.ascmc[1];
+
+        // Reference: ASC 29°04' Taurus (59.0667°)
+        let ref_asc = 59.0667;
+        let ref_mc = 334.05; // MC 4°03' Pisces
+        let tol = 5.0 / 60.0; // 5 arcminutes
+
+        assert!(
+            (asc - ref_asc).abs() < tol,
+            "ASC {asc:.4}° ≠ reference {ref_asc:.4}° (diff {:.4}°)",
+            asc - ref_asc,
+        );
+        assert!(
+            (mc - ref_mc).abs() < tol,
+            "MC {mc:.4}° ≠ reference {ref_mc:.4}° (diff {:.4}°)",
+            mc - ref_mc,
+        );
+
+        // Sanity: every Placidus cusp is the exact opposite of its pair.
+        for h in 1..=6 {
+            let opp = (result.cusps[h] + 180.0) % 360.0;
+            let diff = (result.cusps[h + 6] - opp).abs();
+            assert!(
+                diff < 1e-6 || (diff - 360.0).abs() < 1e-6,
+                "Placidus h{}+180° = {opp}° but h{} = {} (diff {diff}°)",
+                h,
+                h + 6,
+                result.cusps[h + 6],
+            );
+        }
     }
 }
