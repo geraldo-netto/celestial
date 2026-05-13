@@ -3862,6 +3862,70 @@ fn check_vedic_longitude_boundaries(s: &mut Suite) {
     }
 }
 
+/// Probe the outer planets (Jupiter, Saturn, Uranus, Neptune, Pluto) at
+/// 50 well-separated JDs across ±200 years from J2000. Each call must:
+///   - return a finite, normalised longitude (`0 ≤ lon < 360`)
+///   - return a finite latitude in `±10°` band (outer-planet limit)
+///   - return a distance strictly inside the planet's physical orbit
+///   - return a daily-speed magnitude under the planet's max known rate
+///
+/// Catches coefficient-magnitude bugs (extra/missing zero in any term
+/// of any L/B/R series) that produce wild outputs at specific dates —
+/// the failure mode that hid the Jupiter L0[0]/L0[1] and
+/// Saturn L0[0]/L0[1]/L0[2] errors for years.
+fn check_outer_planet_physical_bounds(s: &mut Suite) {
+    use celestial_core::body::{Body, CalcFlags};
+    use celestial_core::calc_ut;
+
+    // (body, max |lat|°, dist range AU, max |speed|°/day)
+    // Bounds are generous: catch order-of-magnitude bugs, not micro
+    // precision (which is the job of `external_reference.rs`).
+    let bodies: &[(Body, f64, (f64, f64), f64)] = &[
+        (Body::JUPITER, 1.8, (3.9, 6.5), 0.30),
+        (Body::SATURN, 3.0, (7.5, 11.5), 0.20),
+        (Body::URANUS, 1.0, (17.0, 21.5), 0.10),
+        (Body::NEPTUNE, 2.0, (28.5, 31.5), 0.07),
+        (Body::PLUTO, 18.0, (28.0, 50.0), 0.05),
+    ];
+
+    let mut rng = Xorshift64::new(0xAA55_C00C_F00F_BEEF);
+    let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    for &(body, max_lat, (dmin, dmax), max_speed) in bodies {
+        for _ in 0..50 {
+            let jd = 2_451_545.0 + rng.range_f64(-73_000.0, 73_000.0); // ±200 y
+            let r = std::panic::catch_unwind(|| calc_ut(jd, body, flags));
+            match r {
+                Ok(Ok(pos)) => {
+                    s.check(
+                        (0.0..360.0).contains(&pos.lon),
+                        || format!("{body:?} lon {} out of [0,360) at jd {jd}", pos.lon),
+                    );
+                    s.check(
+                        pos.lat.abs() < max_lat,
+                        || format!("{body:?} lat {} exceeds ±{max_lat}° at jd {jd}", pos.lat),
+                    );
+                    s.check(
+                        (dmin..=dmax).contains(&pos.dist),
+                        || format!(
+                            "{body:?} dist {} outside [{dmin}, {dmax}] AU at jd {jd}",
+                            pos.dist
+                        ),
+                    );
+                    s.check(
+                        pos.speed_lon.abs() < max_speed,
+                        || format!(
+                            "{body:?} speed {} exceeds ±{max_speed}°/d at jd {jd}",
+                            pos.speed_lon
+                        ),
+                    );
+                }
+                Ok(Err(_)) => s.passed += 1, // Err is acceptable
+                Err(_) => s.check(false, || format!("{body:?} panicked at jd {jd}")),
+            }
+        }
+    }
+}
+
 fn check_solar_cycle_boundaries(s: &mut Suite) {
     use std::panic::catch_unwind;
     // Outside the numbered cycle window (1755..~2030) — must return None.
@@ -3942,6 +4006,7 @@ fn test_boundary_values() -> Suite {
     check_calendar_year_boundaries(&mut s);
     check_hijri_from_jd_boundaries(&mut s);
     check_vedic_longitude_boundaries(&mut s);
+    check_outer_planet_physical_bounds(&mut s);
     check_solar_cycle_boundaries(&mut s);
     s
 }

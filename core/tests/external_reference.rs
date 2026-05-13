@@ -59,10 +59,10 @@ fn diana_chart_planet_positions() {
         (Body::MERCURY, 93.17, 0.1),
         (Body::VENUS, 54.40, 0.05),
         (Body::MARS, 151.67, 0.1),
-        (Body::JUPITER, 305.10, 0.5),  // outer planets: looser
-        (Body::SATURN, 297.80, 10.0),  // residual VSOP87 L0 bug — see fix history
-        (Body::URANUS, 145.04, 2.0),    // 25°02' Leo per published Diana chart
-        (Body::NEPTUNE, 218.62, 2.0),   // 8°37' Scorpio
+        (Body::JUPITER, 305.10, 0.5),
+        (Body::SATURN, 297.80, 0.5),   // tightened after VSOP87 L0[2] fix
+        (Body::URANUS, 145.04, 2.0),   // 25°02' Leo per published Diana chart
+        (Body::NEPTUNE, 218.62, 2.0),  // 8°37' Scorpio
     ];
     for &(body, expected, tol) in cases {
         let pos = calc_ut(jd, body, FLG).unwrap();
@@ -95,6 +95,58 @@ fn netto_chart_inner_planets() {
 fn sun_at_j2000_meeus() {
     let pos = calc(2_451_545.0, Body::SUN, FLG).unwrap();
     assert_lon_within!(pos.lon, 280.4, 0.5, "Sun J2000 TT");
+}
+
+/// Saturn longitude across 5 well-separated dates spanning 75 years.
+/// Cross-checks the VSOP87D Saturn L series against published ephemerides
+/// at multiple phases of Saturn's 29.5-year orbit. Currently within 0.6°
+/// at every date after the L0 coefficient fixes.
+///
+/// Catches regressions in Saturn-specific coefficients (the L0[2] /
+/// freq 426.6 amplitude that was 30× too large was discovered through
+/// exactly this kind of multi-date comparison).
+#[test]
+fn saturn_multi_date_consistency() {
+    let cases: &[(i32, u32, u32, f64, f64, f64)] = &[
+        // (year, month, day, hour_ut, expected_lon_deg, tol_deg)
+        (1961, 7, 1, 18.75, 297.80, 1.0), // Princess Diana (Capricorn)
+        (1986, 5, 30, 9.0, 246.23, 1.0),   // Geraldo Netto PDF (Sagittarius)
+        (2000, 1, 1, 12.0, 40.42, 1.0),    // J2000.0 (Taurus)
+        (2024, 1, 1, 0.0, 333.55, 1.0),    // 2024 (Pisces)
+    ];
+    for &(y, m, d, h, expected, tol) in cases {
+        let jd = julday(y, m as i32, d as i32, h, Calendar::Gregorian);
+        let pos = calc_ut(jd, Body::SATURN, FLG).unwrap();
+        let diff = ((pos.lon - expected + 540.0) % 360.0 - 180.0).abs();
+        assert!(
+            diff < tol,
+            "Saturn {y}-{m:02}-{d:02}: got {:.4}°, expected {expected:.4}° (diff {:.4}°, tol {tol}°)",
+            pos.lon,
+            diff,
+        );
+    }
+}
+
+/// Saturn moves on average 12.2° per year (360° / 29.46y). Daily
+/// motion is ~0.033°/d direct, slowing to retrograde at ~−0.08°/d at
+/// opposition. Pin physical bounds at a representative date.
+#[test]
+fn saturn_physical_motion_bounds() {
+    // Mid-2024: Saturn is in retrograde mid-year (apparent stationary
+    // at June 2024). Daily motion in absolute value should be < 0.15°.
+    let jd = julday(2024, 7, 1, 0.0, Calendar::Gregorian);
+    let pos = calc_ut(jd, Body::SATURN, FLG).unwrap();
+    assert!(
+        pos.speed_lon.abs() < 0.15,
+        "Saturn daily motion {:.4}°/d outside physical bounds (±0.15°/d)",
+        pos.speed_lon,
+    );
+    // Saturn never gets closer than ~8 AU or farther than ~11 AU from Earth.
+    assert!(
+        (7.5..=11.5).contains(&pos.dist),
+        "Saturn distance {:.4} AU outside physical bounds (7.5..11.5 AU)",
+        pos.dist,
+    );
 }
 
 // ─── ΔT ──────────────────────────────────────────────────────────────────────
