@@ -1433,7 +1433,7 @@ fn dispatch_chart_type(
 ) -> Result<(serde_json::Value, ChartRenderer), String> {
     CHART_REGISTRY
         .iter()
-        .find(|e| e.aliases.iter().any(|a| *a == chart_type))
+        .find(|e| e.aliases.contains(&chart_type))
         .map(|e| (e.builder)(jd, args, user_vars))
         .unwrap_or_else(|| {
             Err(format!(
@@ -2734,7 +2734,7 @@ pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
     let date = ctx["date"].as_str().unwrap_or("");
 
     let planets = json_array(&ctx["planets"]);
-    let rasi_planets = group_planets_by_rasi(&planets);
+    let rasi_planets = group_planets_by_rasi(planets);
 
     let mut s = String::with_capacity(16 * 1024);
     let total_h = 4.0_f64.mul_add(SI_CH, SI_OY) + 40.0;

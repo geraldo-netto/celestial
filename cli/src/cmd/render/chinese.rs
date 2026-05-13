@@ -247,10 +247,10 @@ pub fn render_bazi_svg(ctx: &Value) -> String {
 
     let mut s = String::with_capacity(8 * 1024);
     write_bazi_header(&mut s, bg, txt, border, title, date, total_w, total_h);
-    write_bazi_pillars(&mut s, &pillars, border, txt);
+    write_bazi_pillars(&mut s, pillars, border, txt);
 
     let ey = BAZI_OY + BAZI_CH + 18.0;
-    write_bazi_elements(&mut s, &elements, ey, txt);
+    write_bazi_elements(&mut s, elements, ey, txt);
 
     let sy = ey + 50.0;
     let _ = writeln!(
