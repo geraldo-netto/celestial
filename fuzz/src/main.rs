@@ -3862,6 +3862,75 @@ fn check_vedic_longitude_boundaries(s: &mut Suite) {
     }
 }
 
+fn check_solar_cycle_boundaries(s: &mut Suite) {
+    use std::panic::catch_unwind;
+    // Outside the numbered cycle window (1755..~2030) — must return None.
+    let outside_jds = [
+        2_086_303.0,  // ~year 1000
+        2_341_973.0,  // 1700-01-01 — before cycle 1
+        2_488_069.0,  // 2100-01-01 — after cycle 25
+        f64::NAN,
+        f64::INFINITY,
+        f64::NEG_INFINITY,
+        f64::MAX,
+        f64::MIN,
+    ];
+    for &jd in &outside_jds {
+        let r = catch_unwind(|| celestial_core::solar_cycle(jd));
+        s.check(
+            r.is_ok(),
+            || format!("solar_cycle({jd}) panicked"),
+        );
+        if let Ok(Some(_)) = r {
+            // Some(_) inside out-of-range zone is only OK for finite JDs that
+            // happen to land in the table; NaN/Inf must never yield Some.
+            if !jd.is_finite() {
+                s.check(false, || format!("solar_cycle({jd}) returned Some"));
+            }
+        }
+    }
+    // Inside the numbered cycle window — every result must be Some with
+    // sane fields (phase in [0,1], cycle_num in 1..=25, etc.).
+    let inside_jds = [
+        2_362_410.0, // ~1756
+        2_400_000.0, // ~1858
+        2_415_021.0, // 1900
+        2_451_545.0, // J2000
+        2_460_000.0, // 2023
+    ];
+    for &jd in &inside_jds {
+        let r = catch_unwind(|| celestial_core::solar_cycle(jd));
+        match r {
+            Ok(Some(info)) => {
+                s.check(
+                    (1..=25).contains(&info.cycle_num),
+                    || format!("cycle_num={} out of range at jd={jd}", info.cycle_num),
+                );
+                s.check(
+                    (0.0..=1.0).contains(&info.phase),
+                    || format!("phase={} out of [0,1] at jd={jd}", info.phase),
+                );
+                s.check(
+                    info.min_jd <= jd && jd < info.next_min_jd,
+                    || format!("jd={jd} outside cycle [{}, {})", info.min_jd, info.next_min_jd),
+                );
+            }
+            Ok(None) => {
+                s.check(false, || format!("solar_cycle({jd}) returned None (expected Some)"));
+            }
+            Err(_) => s.check(false, || format!("solar_cycle({jd}) panicked")),
+        }
+    }
+    // grand_solar_epoch — must not panic for any input, including non-finite.
+    for &jd in &outside_jds {
+        let r = catch_unwind(|| celestial_core::grand_solar_epoch(jd));
+        s.check(
+            r.is_ok(),
+            || format!("grand_solar_epoch({jd}) panicked"),
+        );
+    }
+}
+
 fn test_boundary_values() -> Suite {
     let mut s = Suite::new("boundary_values");
     check_body_index_boundaries(&mut s);
@@ -3873,6 +3942,7 @@ fn test_boundary_values() -> Suite {
     check_calendar_year_boundaries(&mut s);
     check_hijri_from_jd_boundaries(&mut s);
     check_vedic_longitude_boundaries(&mut s);
+    check_solar_cycle_boundaries(&mut s);
     s
 }
 

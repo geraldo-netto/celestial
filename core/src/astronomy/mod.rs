@@ -350,3 +350,4 @@ pub mod fixstars;
 pub mod heliacal;
 pub mod nodes;
 pub mod phenomena;
+pub mod solar_cycle;

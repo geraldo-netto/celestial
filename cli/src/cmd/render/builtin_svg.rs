@@ -99,6 +99,12 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     let ap_y = dig_y + 26.0 + planets.len() as f64 * RH2 + 8.0;
     write_arabic_parts(&mut s, &pal, ctx, c2x, ap_y);
 
+    // Solar cycle box: sits in the right-hand column (c3x), below the
+    // aspects legend. Compact 2-column block with cycle number, phase,
+    // and years since the cycle's solar minimum.
+    let sc_y = ap_y;
+    write_solar_cycle(&mut s, &pal, ctx, c3x, sc_y);
+
     write_footer(&mut s, &pal, date);
     s
 }
@@ -590,6 +596,66 @@ fn write_arabic_part_row(s: &mut String, pal: &Palette, p: &Value, c2x: f64, ry:
         c2x + 125.0,
         c2x + 210.0,
     );
+}
+
+/// Draws a compact two-column key/value table summarising the Solar
+/// (Schwabe) cycle context for the chart's date. Renders nothing when
+/// `ctx["solar_cycle"]` is an empty object (i.e. date outside the
+/// numbered cycles AND outside any grand epoch).
+fn write_solar_cycle(s: &mut String, pal: &Palette, ctx: &Value, x: f64, y: f64) {
+    let sc = &ctx["solar_cycle"];
+    if !sc.is_object() || sc.as_object().is_some_and(serde_json::Map::is_empty) {
+        return;
+    }
+    let (ring, txt, soft_c) = (pal.ring, pal.txt, pal.soft_c);
+
+    let _ = writeln!(
+        s,
+        r##"  <text x="{x}" y="{y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Solar Cycle</text>
+  <line x1="{x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
+        y + 3.0,
+        x + 250.0,
+        y + 3.0
+    );
+
+    // Build the row list dynamically: numbered-cycle fields when known,
+    // grand-epoch fallback otherwise. Each row is (label, value).
+    let mut rows: Vec<(String, String)> = Vec::new();
+
+    if let Some(n) = sc.get("cycle_num").and_then(serde_json::Value::as_u64) {
+        let mut head = format!("Cycle {n}");
+        if let Some(nick) = sc.get("nickname").and_then(serde_json::Value::as_str) {
+            head.push_str(&format!(" — {nick}"));
+        }
+        rows.push(("Number".into(), head));
+    }
+    if let Some(phase) = sc.get("phase_name").and_then(serde_json::Value::as_str) {
+        rows.push(("Phase".into(), phase.into()));
+    }
+    if let Some(yrs) = sc.get("years_since_min").and_then(serde_json::Value::as_f64) {
+        rows.push(("Years since min".into(), format!("{yrs:.1}")));
+    }
+    if let Some(p) = sc.get("phase").and_then(serde_json::Value::as_f64) {
+        rows.push(("Cycle fraction".into(), format!("{:.2}", p)));
+    }
+    if let Some(g) = sc.get("grand_epoch").and_then(serde_json::Value::as_str) {
+        rows.push(("Grand epoch".into(), g.into()));
+    }
+
+    if rows.is_empty() {
+        return;
+    }
+
+    for (i, (label, value)) in rows.iter().enumerate() {
+        let ry = y + 14.0 + i as f64 * RH2;
+        let _ = writeln!(
+            s,
+            r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{soft_c}" opacity=".8">{label}</text>
+  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{value}</text>"##,
+            x + 2.0,
+            x + 125.0,
+        );
+    }
 }
 
 fn write_footer(s: &mut String, pal: &Palette, date: &str) {

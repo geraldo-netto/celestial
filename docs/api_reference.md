@@ -389,6 +389,42 @@ println!("Orb: {:.2}°  Applying: {}", m.diff.abs(), m.diff < 0.0);
 
 ---
 
+## Solar (Schwabe) cycle
+
+11-year sunspot cycle context. Useful for natal-chart annotation, long-term
+correlations, and any heliophysical work that needs "where is the Sun in its
+activity cycle right now." Data anchored to SIDC/SILSO observed minima and
+maxima for cycles 1..=25 (1755 → ~2030). Asymmetric phase classification
+follows the Waldmeier effect (rise ~4y, decline ~7y).
+
+| Function | Signature | Description |
+|---|---|---|
+| `solar_cycle` | `(jd) → Option<SolarCycleInfo>` | Full per-JD info or `None` outside cycles 1–25 |
+| `grand_solar_epoch` | `(jd) → Option<GrandSolarEpoch>` | Long-term envelope (Maunder, Dalton, …) for any JD |
+| `cycle_nickname` | `(u8) → Option<&'static str>` | Informal cycle names (e.g. cycle 19 = "the Great Cycle") |
+
+**`SolarCycleInfo` fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `cycle_num` | `u8` | Wolf/Schwabe cycle number (1..=25) |
+| `phase` | `f64` | Time-fractional position 0.0 → 1.0 |
+| `phase_name` | `SolarCyclePhase` | `Minimum` · `Rising` · `Maximum` · `Declining` |
+| `min_jd` / `max_jd` / `next_min_jd` | `f64` | Anchored cycle boundaries |
+| `years_since_min` | `f64` | Years elapsed since the cycle's solar minimum |
+| `nickname` | `Option<&'static str>` | e.g. `"the Great Cycle"` for cycle 19 |
+| `grand_epoch` | `Option<GrandSolarEpoch>` | Long-term envelope if applicable |
+
+**`GrandSolarEpoch` variants:** `SporerMinimum` (1450-1550) · `MaunderMinimum` (1645-1715) · `DaltonMinimum` (1790-1830) · `ModernMaximum` (1950-2000).
+
+In the chart renderer, `ctx["solar_cycle"]` always exists; the object contains
+the full breakdown for in-range dates, only `grand_epoch` for dates inside a
+named long-term envelope but outside the numbered cycles, and is empty
+otherwise. The built-in natal SVG renders a compact "Solar Cycle" table
+beside the Arabic Parts block.
+
+---
+
 ## Crossings, rise/set & eclipses
 
 | Function | Description |

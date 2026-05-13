@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 
 use celestial_core::body::{CalcFlags, HouseSystem};
+use celestial_core::solar::{solar_cycle, SolarCycleInfo};
 use celestial_core::{
     arabic_parts_seven, calc_ut, diff_deg_signed, fixstar_mag, fixstar_ut, houses_ex, lon_to_sign,
     midpoint_deg, moon_illumination, zodiac_sign_name,
@@ -42,6 +43,7 @@ pub(crate) fn build_context(
     let fixed_stars = build_fixed_stars(jd, asc);
     let angles = build_angles(asc, mc, ic, dsc);
     let illum_pct = (moon_illumination(jd).unwrap_or(0.0) * 1000.0).round() / 10.0;
+    let solar_cycle_json = build_solar_cycle(jd);
     let vars = build_vars(&user_vars);
 
     Ok(json!({
@@ -72,6 +74,7 @@ pub(crate) fn build_context(
         "aspects":             aspects,
         "arabic_parts":        arabic_parts,
         "fixed_stars":         fixed_stars,
+        "solar_cycle":         solar_cycle_json,
         "vars":                Value::Object(vars)}))
 }
 
@@ -290,6 +293,34 @@ fn build_vars(user_vars: &BTreeMap<String, String>) -> serde_json::Map<String, V
         vars.insert(k.clone(), json!(v));
     }
     vars
+}
+
+/// Solar (Schwabe) cycle context for the chart's date. Always present in the
+/// template namespace: when the date falls outside numbered cycles (1755 →
+/// ~2030) the object only contains a `grand_epoch` field (or is fully empty).
+fn build_solar_cycle(jd: f64) -> Value {
+    if let Some(info) = solar_cycle(jd) {
+        return solar_cycle_to_json(&info);
+    }
+    // No numbered cycle — emit just the grand-epoch label if one applies.
+    match celestial_core::solar::grand_solar_epoch(jd) {
+        Some(g) => json!({ "grand_epoch": g.name() }),
+        None => json!({}),
+    }
+}
+
+fn solar_cycle_to_json(info: &SolarCycleInfo) -> Value {
+    json!({
+        "cycle_num":       info.cycle_num,
+        "phase":           (info.phase * 1e4).round() / 1e4,
+        "phase_name":      info.phase_name.name(),
+        "min_jd":          (info.min_jd * 1e2).round() / 1e2,
+        "max_jd":          (info.max_jd * 1e2).round() / 1e2,
+        "next_min_jd":     (info.next_min_jd * 1e2).round() / 1e2,
+        "years_since_min": (info.years_since_min * 1e2).round() / 1e2,
+        "nickname":        info.nickname,
+        "grand_epoch":     info.grand_epoch.map(|g| g.name()),
+    })
 }
 
 /// The 7 body longitudes used by the Arabic-Parts calculation, plus a

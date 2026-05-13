@@ -53,6 +53,7 @@ pub mod houses;
 pub mod moon;
 pub mod motion;
 pub mod position;
+pub mod solar;
 pub mod time;
 pub mod vedic;
 
@@ -71,6 +72,7 @@ pub use houses::*;
 pub use moon::*;
 pub use motion::*;
 pub use position::*;
+pub use solar::*;
 pub use time::*;
 pub use vedic::*;
 

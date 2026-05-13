@@ -251,6 +251,7 @@ Run `celestial render --print-context` to see the full set of available variable
 | `{{ moon_illumination }}` | float | Illumination 0–100% |
 | `{{ vars.key }}` | string | Any `--var key=value` or `[vars] key = "value"` |
 | `{{ omer }}` / `{{ sabbats }}` / `{{ moon }}` / `{{ hebrew }}` | object | Calendar overlays added by `--calendar X` |
+| `{{ solar_cycle }}` | object | Schwabe cycle number, phase, years-since-min for the chart date (always present; see [docs/api_reference.md](docs/api_reference.md#solar-schwabe-cycle)) |
 
 ---
 
