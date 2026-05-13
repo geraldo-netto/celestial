@@ -170,9 +170,6 @@ pub fn mooncross_back_ut(x2cross: f64, jd_ut: f64, flags: CalcFlags) -> Result<f
 
 /// Builder for rise/transit/set calculations.
 ///
-/// Replaces the `rise_trans` and `rise_trans_true_hor` free functions with a
-/// discoverable, forward-compatible API.
-///
 /// # Example
 /// ```no_run
 /// # use celestial_core::*;

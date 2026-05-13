@@ -341,15 +341,9 @@ fn collect_body_longitudes(planets: &[Value]) -> BodyLongitudes {
 
 /// Compute pairwise aspects between every planet in `planets`.
 ///
-/// Hoists per-planet fields out of the O(n²) loop so each pair doesn't
-/// re-do hash-map lookups on the JSON Object. For 12 planets and 8 aspect
-/// types, this saves ~5,000 redundant `serde_json::Value` indexings per
-/// chart render.
-///
 /// Aspects are matched in order of `ASPECT_DEFS` (conjunction, opposition,
-/// trine, square, sextile, …) and the first match within orb wins —
-/// preventing duplicate entries for body pairs that satisfy multiple
-/// nearby aspects.
+/// trine, square, sextile, …); first match within orb wins so a body pair
+/// satisfying multiple nearby aspects gets a single entry.
 fn compute_aspects(planets: &[Value]) -> Vec<Value> {
     type PRef<'a> = (
         f64,       // lon

@@ -294,9 +294,6 @@ pub fn antiscion(pos: [f64; 6], axis: f64) -> Antiscion {
 
 /// Builder for fine-grained aspect matching with separate applying/separating orbs.
 ///
-/// Replaces `match_aspect3` (separate app/sep orbs) and `match_aspect4`
-/// (separate app/sep/def orbs) with a fluent API.
-///
 /// # Example
 /// ```
 /// # use celestial_core::AspectOrbs;

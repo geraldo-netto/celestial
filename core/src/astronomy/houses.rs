@@ -278,7 +278,6 @@ fn placidus(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
 
 /// Iteratively solve for one Placidus cusp.
 fn placidus_cusp(armc_offset: f64, lat_r: f64, eps_r: f64, sign: f64) -> f64 {
-    // Hoist loop-invariants: trig of fixed angles (eps, lat, armc) is computed once.
     let armc_deg = armc_offset;
     let sin_eps = eps_r.sin();
     let cos_eps = eps_r.cos();

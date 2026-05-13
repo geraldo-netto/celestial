@@ -203,10 +203,7 @@ pub(super) fn wy(cy: f64, r: f64, lon: f64, asc: f64) -> f64 {
     cy - r * (180.0 - (lon - asc)).rem_euclid(360.0).to_radians().sin()
 }
 
-/// Borrow the array at `v`, or an empty slice. Avoids the `to_vec()` clone
-/// previously used in render code — every chart re-rendered the planet/aspect
-/// arrays by deep-copying them out of the JSON context. Iterating by reference
-/// is equivalent for read-only callers and ~free.
+/// Borrow the array at `v`, or an empty slice for non-arrays.
 pub(super) fn json_array(v: &serde_json::Value) -> &[serde_json::Value] {
     v.as_array().map_or(&[], |a| a.as_slice())
 }
@@ -437,12 +434,8 @@ pub(super) const RP: f64 = 212.0; // planet ring
 pub(super) const RC: f64 = 88.0; // inner circle
 
 /// Build a palette `BTreeMap<String, Value>` from a slice of default
-/// `(key, color)` pairs, then merge user-provided `vars` over the top.
-///
-/// Pulled out of every chart-type submodule (bazi, hellenistic, indigenous,
-/// mesoamerican, vedic, specialist, omer_grid, …) where this 11-line idiom
-/// was repeated 11+ times. User vars take precedence over tradition-specific
-/// defaults, so callers can override any color via `--var key=value`.
+/// `(key, color)` pairs, merging user-provided `vars` over the top.
+/// User vars take precedence so callers can override any color via `--var key=value`.
 pub(super) fn palette_with_defaults(
     defaults: &[(&str, &str)],
     vars: &std::collections::BTreeMap<String, String>,
@@ -884,11 +877,8 @@ fn write_or_print(output: &str, path: Option<&PathBuf>) -> Result<(), String> {
 /// `--chart-type`. Pulled out of [`run`] so the 27-arm dispatch lives in
 /// its own named scope, keeping `run` readable and reducing its cognitive
 /// complexity.
-/// Clone `user_vars` and ensure a `title` field exists (using `default`
-/// only if the user didn't already supply one via `--var title=…`).
-///
-/// Pulled out of the chart-type dispatch where this 3-line pattern was
-/// repeated 22+ times — once per chart type that wants a default title.
+/// Clone `user_vars` and ensure a `title` field exists, using `default`
+/// only when the user didn't supply one via `--var title=…`.
 fn vars_with_title(
     user_vars: &BTreeMap<String, String>,
     default: &str,

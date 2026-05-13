@@ -504,12 +504,7 @@ pub fn annotate_gregorian_with_hebrew(gregorian: &mut Value, hebrew: &Value) {
 // Default built-in renderer for `--chart-type calendar`
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Built-in fallback renderer for the compositional calendar — used when the
-/// user doesn't supply their own `--template`. Demonstrates how to consume
-/// every overlay, so it doubles as a reference implementation that template
-/// authors can study.
-/// Helper for [`render_default_calendar_svg`]: render one day cell.
-/// Pulled out to keep the parent function's nesting depth manageable.
+/// Render one day cell into the calendar SVG buffer.
 fn render_day_cell(s: &mut String, d: &Value, palette: &CalendarPalette<'_>) {
     use std::fmt::Write;
 

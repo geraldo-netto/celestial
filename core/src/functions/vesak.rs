@@ -219,9 +219,6 @@ pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
         norm_deg(moon.lon - sun.lon)
     };
 
-    // Hoist JD boundaries outside the loop — these are loop-invariant.
-    // Previous version called julday(year,1,1,...) once per phase per iteration,
-    // ≈56 redundant julday() calls per year.
     let year_start = julday(year, 1, 1, 0.0, Calendar::Gregorian);
     let end = julday(year + 1, 1, 1, 0.0, Calendar::Gregorian);
 

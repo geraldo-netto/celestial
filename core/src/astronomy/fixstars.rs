@@ -1110,16 +1110,12 @@ const ARCSEC_TO_DEG: f64 = 1.0 / 3600.0;
 /// then prefix match on the common name.
 pub fn find_star(query: &str) -> Option<usize> {
     let q = query.trim();
-    // Hoist case-fold once instead of re-folding per catalog row.
     let q_lower = q.to_ascii_lowercase();
-    // Single pass: exact match first (avoids a second scan in the common case)
     let mut prefix_match: Option<usize> = None;
     for (i, s) in CATALOG.iter().enumerate() {
         if s.name.eq_ignore_ascii_case(q) || s.bayer.eq_ignore_ascii_case(q) {
-            return Some(i); // exact hit — return immediately
+            return Some(i);
         }
-        // Prefix check: case-insensitive, but allocation-free using bytewise
-        // compare of the already-lowercased query against the catalog name.
         if prefix_match.is_none()
             && s.name.len() >= q_lower.len()
             && s.name

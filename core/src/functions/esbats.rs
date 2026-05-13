@@ -276,13 +276,8 @@ fn bisect_fallback_full_moon(jd_lo: f64, jd_hi: f64) -> Result<f64> {
 }
 
 /// Find the exact full-moon JD inside the bracket `[jd_lo, jd_hi]`.
-///
-/// Hybrid approach:
-/// 1. Newton's method with numerical derivative — converges in ~5 iterations.
-/// 2. Bisection fallback if Newton diverges (sanity-checked against 0.05°).
-///
-/// Costs ~12 `calc_ut` calls in the common Newton-converges path vs. the
-/// ~120 of the previous pure-bisection version.
+/// Newton's method with numerical derivative, falling back to bisection
+/// if Newton diverges (sanity-checked against 0.05°).
 fn bisect_full_moon(jd_lo: f64, jd_hi: f64) -> Result<f64> {
     let initial = (jd_lo + jd_hi) / 2.0;
     let jd = newton_refine_full_moon(initial, jd_lo, jd_hi)?;

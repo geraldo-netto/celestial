@@ -28,10 +28,8 @@ pub fn render_north_indian_svg(ctx: &Value) -> String {
         .unwrap_or("North Indian Chart");
     let date = ctx["date"].as_str().unwrap_or("");
 
-    // North Indian: house 1 = ASC sign; house numbers rotate from ASC
-    // We need the ASC rasi — use the first planet as proxy; real impl
-    // requires sidereal house calc. For now use Moon's rasi as lagna hint,
-    // or store asc_rasi in context if present.
+    // North Indian: house 1 = ASC sign; house numbers rotate from ASC.
+    // Reads `asc_rasi` from context; falls back to 0 (Aries) when absent.
     let lagna_rasi = ctx
         .get("asc_rasi")
         .and_then(serde_json::Value::as_i64)

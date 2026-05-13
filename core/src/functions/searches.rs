@@ -18,11 +18,6 @@ fn norm360(d: f64) -> f64 {
 ///
 /// Returns `None` if `f` fails at any sampled point. Otherwise converges
 /// in ≤ `max_iter` halvings or when `|f(mid)| < tol`.
-///
-/// Pulled out of `next_aspect_with` and `next_aspect_cusp` which used the
-/// same pattern. Keeping the bisection in one place makes future changes
-/// (different convergence criteria, max-iter tuning) trivial to sweep
-/// across all callers.
 fn bisect_zero_fallible<F>(
     mut lo: f64,
     mut hi: f64,
@@ -237,10 +232,7 @@ pub fn next_aspect2(
 }
 
 /// Find next exact aspect between two moving planets.
-/// `aspect` in `[0, 360)`.
 /// Returns `true` when `jd` has stepped past `max_jd` in the given direction.
-/// Replaces the nested `if backward { if jd < max_jd { ... } } else { if jd > max_jd { ... } }`
-/// pattern that recurs throughout the search functions.
 #[inline]
 fn passed_limit(jd: f64, max_jd: f64, backward: bool) -> bool {
     if backward {
@@ -867,10 +859,6 @@ fn bisect_diff_zero<F: Fn(f64) -> f64>(lo_in: f64, hi_in: f64, dlo_in: f64, diff
 // ── SearchOptions builder ─────────────────────────────────────────────────────
 
 /// Builder for aspect and angle transit searches.
-///
-/// Replaces `next_aspect_cusp`, `next_aspect_cusp2`, `mc_transit_ut`,
-/// `ic_transit_ut`, `asc_transit_ut`, and `dsc_transit_ut` with a single
-/// discoverable, forward-compatible API.
 ///
 /// # Example — planet aspecting a house cusp
 /// ```no_run
