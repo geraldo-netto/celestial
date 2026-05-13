@@ -1004,7 +1004,15 @@ static JUPITER_R: &[&[Term]] = &[JUPITER_R0, JUPITER_R1, JUPITER_R2, JUPITER_R3,
 static SATURN_L0: &[Term] = &[
     Term(87_401_354e-9, 0.0, 0.0),
     Term(11_107_660e-9, 3.962_051, 213.299_095),
-    Term(10_139_079e-9, 4.144_12, 426.598_191),
+    // Was Term(10_139_079e-9, 4.144_12, 426.598_191) — ~30× the published
+    // Meeus VSOP87D Saturn L0 amplitude at this frequency. Restored to
+    // the Meeus value at frequency 7.11355 (the long-period
+    // Saturn-Uranus / Saturn-Jupiter perturbation that was missing
+    // entirely), plus the correct 426.6 amplitude. Validated against
+    // independently published Saturn positions: J2000, 1986 PDF chart,
+    // Princess Diana 1961, and 2024 all now match within 1°.
+    Term(1_414_151e-9, 4.585_82, 7.113_547),
+    Term(350_769e-9, 3.303_290, 426.598_191),
     // (Previous L0[3] entry (990_507e-9, π, 0.0) was removed for the
     // same reason as Jupiter L0[2]: a B=π, C=0 entry is not in any
     // published VSOP87D Saturn L truncation and contributed a

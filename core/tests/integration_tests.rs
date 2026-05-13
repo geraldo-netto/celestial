@@ -767,7 +767,7 @@ fn check_sign_ingress_baselines(j2000: f64, f: CalcFlags, tol: f64) {
         (Body::SUN, 2451564.257859215_f64, 10_u8),
         // Saturn ingress JD + sign re-anchored after VSOP87 L0 coefficient
         // fixes (multiple passes — see Jupiter/Saturn L0[0..3] history).
-        (Body::SATURN, 2452020.9756406792_f64, 2_u8),
+        (Body::SATURN, 2452022.3050354873_f64, 2_u8),
     ];
     for (body, expected_jd, expected_sign) in cases {
         let (jd_ing, sign) = sign_ingress_ut(body, j2000, f, false).unwrap();
@@ -881,16 +881,16 @@ fn precision_apparent_place_baselines_j2000_and_2024() {
         (
             Body::SATURN,
             2_451_545.0,
-            37.1697721068734,
-            -2.4230726855195,
-            8.6887346755738,
+            40.1476669523243,
+            -2.4350302618492,
+            8.6460648040470,
         ),
         (
             Body::SATURN,
             2_460_310.5,
-            331.8762389343989,
-            -1.6399901283354,
-            10.2906158481822,
+            333.3415447055528,
+            -1.6433766639427,
+            10.2694257893770,
         ),
         (
             Body::URANUS,
