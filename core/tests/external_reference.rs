@@ -18,10 +18,13 @@
 //! ORDER-OF-MAGNITUDE sanity checks, not micro-precision pins. Specific
 //! precision pins live in `integration_tests.rs`.
 
-use celestial_core::body::{Body, CalcFlags, Calendar};
+use celestial_core::body::{Body, CalcFlags, Calendar, SiderealMode};
 use celestial_core::{
-    calc, calc_ut, deltat, easter_gregorian, full_dignity, hijri_from_jd, iso_week, julday,
-    maya_long_count, panchanga, solcross_ut, tonalpohualli, yallop_q, Dignity,
+    annual_profection, ayanamsa_ut, calc, calc_ut, deltat, easter_gregorian, easter_jd,
+    esbats_for_year, four_pillars, full_dignity, hijri_from_jd, iso_week, julday,
+    long_to_nakshatra, long_to_navamsa, maya_long_count, next_new_moon, nowruz_jd, panchanga,
+    sabbats_for_year, set_sid_mode, solar_return_jd, solcross_ut, tonalpohualli, true_obliquity,
+    vimshottari_dasha, yallop_q, Dignity,
 };
 
 const FLG: CalcFlags = CalcFlags::BUILTIN;
@@ -357,5 +360,230 @@ fn panchanga_field_ranges() {
         assert!((1..=30).contains(&p.tithi), "tithi {} out of range at jd {jd}", p.tithi);
         assert!(p.vara <= 6, "vara {} out of range at jd {jd}", p.vara);
         assert!(p.nakshatra < 27, "nakshatra {} out of range at jd {jd}", p.nakshatra);
+    }
+}
+
+// ─── Obliquity ──────────────────────────────────────────────────────────────
+
+/// True obliquity of the ecliptic at J2000.0 ≈ 23°26'21.448" = 23.4393°.
+/// IAU 1976 / 2006 mean obliquity is 23.4392911° at J2000; with nutation
+/// the true value is within a few arcseconds.
+///
+/// Tolerance 0.01° (= 36"). Tightens once the celestial obliquity
+/// implementation is upgraded to IAU 2006 (currently uses an older
+/// truncation that gives 23.4377° = ~6" low at J2000).
+#[test]
+fn obliquity_at_j2000() {
+    let eps = true_obliquity(2_451_545.0);
+    assert!(
+        (eps - 23.4393).abs() < 0.01,
+        "True obliquity at J2000 = {eps:.6}°, expected ≈ 23.4393°",
+    );
+}
+
+// ─── Lahiri ayanamsa ────────────────────────────────────────────────────────
+
+/// Lahiri ayanamsa at J2000.0 = 23°51'11" = 23.853°.
+/// (Lahiri official Indian / Government of India convention.)
+#[test]
+fn lahiri_ayanamsa_at_j2000() {
+    set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
+    let ay = ayanamsa_ut(2_451_545.0);
+    assert!(
+        (ay - 23.853).abs() < 0.05,
+        "Lahiri ayanamsa at J2000 = {ay:.4}°, expected ≈ 23.853°",
+    );
+}
+
+// ─── Vedic / Jyotish ────────────────────────────────────────────────────────
+
+/// Nakshatra boundaries: each spans 13°20' = 13.333°. So:
+///   λ ∈ [0°,        13.333°)  → 0  (Ashwini)
+///   λ ∈ [13.333°,   26.667°)  → 1  (Bharani)
+///   λ ∈ [26.667°,   40.000°)  → 2  (Krittika)
+///   ...
+#[test]
+fn nakshatra_boundary_anchors() {
+    let cases: &[(f64, i32)] = &[
+        (0.0, 0),
+        (13.0, 0),
+        (13.34, 1),
+        (26.5, 1),
+        (26.67, 2),
+        (40.0, 3),
+        (359.0, 26),
+    ];
+    for &(lon, expected) in cases {
+        let (nak, _pada) = long_to_nakshatra(lon);
+        assert_eq!(
+            nak, expected,
+            "Nakshatra at {lon}° = {nak}, expected {expected}",
+        );
+    }
+}
+
+/// Navamsa is 1/9 of a sign (3°20' = 3.333°). Sign + navamsa-within-sign
+/// determines the navamsa rasi (0..=11). Sanity-pin the first three
+/// navamsa boundaries inside Aries:
+///   λ ∈ [0°,    3.333°) → Aries (0)
+///   λ ∈ [3.333°, 6.667°) → Taurus (1)
+///   λ ∈ [6.667°,10.000°) → Gemini (2)
+#[test]
+fn navamsa_within_aries() {
+    let cases: &[(f64, i32)] = &[
+        (0.0, 0),
+        (3.0, 0),
+        (3.5, 1),
+        (6.5, 1),
+        (7.0, 2),
+        (10.0, 3),
+    ];
+    for &(lon, expected) in cases {
+        let nav = long_to_navamsa(lon);
+        assert_eq!(nav, expected, "Navamsa at {lon}° = {nav}, expected {expected}");
+    }
+}
+
+/// Vimshottari dasha: nine planetary lords with total cycle of 120 years.
+///   Ketu 7 · Venus 20 · Sun 6 · Moon 10 · Mars 7 · Rahu 18 ·
+///   Jupiter 16 · Saturn 19 · Mercury 17  =  120
+#[test]
+fn vimshottari_total_period_is_120_years() {
+    // Use a Moon longitude near Ashwini start (Ketu's nakshatra) so we
+    // get a full 120-year cycle.
+    let dashas = vimshottari_dasha(2_451_545.0, 0.0, 120.0);
+    let total: f64 = dashas.iter().take(9).map(|d| d.years).sum();
+    assert!(
+        (total - 120.0).abs() < 0.01,
+        "Vimshottari first 9 mahadashas sum to {total:.4}y, expected 120.0y",
+    );
+}
+
+// ─── Solar return ───────────────────────────────────────────────────────────
+
+/// `solar_return_jd(natal, year, flags)` finds the next Sun-return JD
+/// at or after Jan 1 of `year`. Two consecutive SRs are separated by
+/// approximately one tropical year (365.24 days).
+#[test]
+fn consecutive_solar_returns_separated_by_one_year() {
+    let jd_natal = julday(1985, 7, 14, 12.0, Calendar::Gregorian);
+    let sr_2024 = solar_return_jd(jd_natal, 2024, CalcFlags::BUILTIN).unwrap();
+    let sr_2025 = solar_return_jd(jd_natal, 2025, CalcFlags::BUILTIN).unwrap();
+    let dt = sr_2025 - sr_2024;
+    assert!(
+        (dt - 365.24).abs() < 1.0,
+        "Consecutive SRs: dt = {dt:.4} days, expected ≈ 365.24",
+    );
+}
+
+// ─── Annual profection ──────────────────────────────────────────────────────
+
+/// Profected house = ((age - 1) mod 12) + 1 starting from ASC (h1).
+/// Age 0 → h1 (ASC). Age 12 → h1 again. Age 35 → h12.
+#[test]
+fn annual_profection_house_cycle() {
+    let cusps = [0.0; 13]; // placeholder; the fn only uses age to count houses
+    assert_eq!(annual_profection(&cusps, 0).0, 1);
+    assert_eq!(annual_profection(&cusps, 12).0, 1);
+    assert_eq!(annual_profection(&cusps, 1).0, 2);
+    assert_eq!(annual_profection(&cusps, 11).0, 12);
+    assert_eq!(annual_profection(&cusps, 35).0, 12);
+}
+
+// ─── Easter JD round-trip ───────────────────────────────────────────────────
+
+/// `easter_jd(year)` returns the Julian Day of Easter Sunday at 0h UT.
+/// For 2024 (March 31): JD = julday(2024, 3, 31, 0.0, Gregorian).
+#[test]
+fn easter_jd_round_trips_with_julday() {
+    let jd_easter = easter_jd(2024);
+    let expected = julday(2024, 3, 31, 0.0, Calendar::Gregorian);
+    assert!(
+        (jd_easter - expected).abs() < 0.5,
+        "easter_jd(2024) = {jd_easter}, expected ≈ {expected} (2024-03-31)",
+    );
+}
+
+// ─── Nowruz ─────────────────────────────────────────────────────────────────
+
+/// Nowruz (Persian / Bahá'í New Year) is the moment of the vernal equinox.
+/// 2024 vernal equinox = 2024-03-20 03:06 UT ≈ JD 2460389.63.
+#[test]
+fn nowruz_2024_at_vernal_equinox() {
+    let jd = nowruz_jd(2024);
+    let expected = julday(2024, 3, 20, 3.1, Calendar::Gregorian); // ≈ 03:06 UT
+    assert!(
+        (jd - expected).abs() < 1.0,
+        "nowruz_jd(2024) = {jd:.4}, expected ≈ {expected:.4} (2024-03-20 ~03:06 UT)",
+    );
+}
+
+// ─── Sabbats (Celtic Wheel of the Year) ─────────────────────────────────────
+
+/// Yule (winter solstice in the Northern hemisphere): 2024-12-21.
+/// Sabbat positions are at sun longitudes: Yule 270°, Imbolc 315°, Ostara 0°,
+/// Beltane 45°, Litha 90°, Lughnasadh 135°, Mabon 180°, Samhain 225°.
+#[test]
+fn sabbats_2024_solstices_and_equinoxes() {
+    let sabbats = sabbats_for_year(2024).unwrap();
+    assert_eq!(sabbats.len(), 8, "expected 8 sabbats per year, got {}", sabbats.len());
+
+    // All sabbats fall in 2024.
+    for s in &sabbats {
+        let d = celestial_core::revjul(s.jd, Calendar::Gregorian);
+        assert_eq!(d.year, 2024, "sabbat {:?} JD {:.4} not in 2024", s.kind, s.jd);
+    }
+}
+
+/// `esbats_for_year` returns ~12 named full moons per year (13 in some
+/// years). Each must fall inside the year.
+#[test]
+fn esbats_2024_count_and_year_bounds() {
+    let esbats = esbats_for_year(2024).unwrap();
+    assert!(
+        (12..=13).contains(&esbats.len()),
+        "expected 12-13 esbats in 2024, got {}",
+        esbats.len(),
+    );
+    for e in &esbats {
+        let d = celestial_core::revjul(e.jd, Calendar::Gregorian);
+        assert_eq!(d.year, 2024, "esbat {:?} JD {:.4} not in 2024", e.name, e.jd);
+    }
+}
+
+// ─── Moon phase root finder ─────────────────────────────────────────────────
+
+/// `next_new_moon(jd)` finds the next new moon strictly after `jd`.
+/// Consecutive new moons are separated by one synodic month (29.530588 d).
+#[test]
+fn consecutive_new_moons_match_synodic_month() {
+    let jd0 = 2_451_545.0;
+    let nm1 = next_new_moon(jd0).unwrap();
+    let nm2 = next_new_moon(nm1 + 0.5).unwrap();
+    let dt = nm2 - nm1;
+    assert!(
+        (dt - 29.530_588).abs() < 0.5,
+        "Consecutive new moons {} → {}: dt = {dt:.4}d, expected ≈ 29.530588d",
+        nm1,
+        nm2,
+    );
+}
+
+// ─── Chinese Ba Zi ──────────────────────────────────────────────────────────
+
+/// Four-pillars internal consistency: each pillar must return valid
+/// stem (0..=9) and branch (0..=11) indices, and the year/month/day
+/// pillars must be deterministic given a fixed (jd, hour, sun_lon).
+#[test]
+fn four_pillars_field_ranges_and_determinism() {
+    let jd = julday(1986, 5, 30, 9.0, Calendar::Gregorian);
+    let sun_lon = 68.667; // PDF reference
+    let pillars_a = four_pillars(jd, 9.0, sun_lon);
+    let pillars_b = four_pillars(jd, 9.0, sun_lon);
+    for (a, b) in pillars_a.iter().zip(pillars_b.iter()) {
+        assert!(a.stem < 10, "stem {} out of range", a.stem);
+        assert!(a.branch < 12, "branch {} out of range", a.branch);
+        assert_eq!(a.stem, b.stem, "non-deterministic stem");
+        assert_eq!(a.branch, b.branch, "non-deterministic branch");
     }
 }

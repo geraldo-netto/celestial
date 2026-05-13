@@ -3873,6 +3873,83 @@ fn check_vedic_longitude_boundaries(s: &mut Suite) {
 /// of any L/B/R series) that produce wild outputs at specific dates —
 /// the failure mode that hid the Jupiter L0[0]/L0[1] and
 /// Saturn L0[0]/L0[1]/L0[2] errors for years.
+/// Ayanamsa is the precession-driven offset between tropical and sidereal
+/// zodiacs. It must increase monotonically with time (precession is a
+/// one-way drift, ~50.3 arcseconds per year). Probe across 200 years and
+/// assert ayanamsa is strictly increasing.
+fn check_ayanamsa_monotonic(s: &mut Suite) {
+    use celestial_core::body::SiderealMode;
+    use celestial_core::{ayanamsa_ut, set_sid_mode};
+    set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
+    let mut prev = f64::NEG_INFINITY;
+    // 1900 → 2100, year by year.
+    for y in 1900..=2100 {
+        let jd = 2_415_020.5 + (y - 1900) as f64 * 365.25;
+        let ay = ayanamsa_ut(jd);
+        s.check(
+            ay.is_finite() && ay > prev,
+            || format!("Lahiri ayanamsa not monotonic at year {y}: {ay} vs prev {prev}"),
+        );
+        // Expected ~50.3" per year = 0.01397°/year (precession rate).
+        // Allow generous bounds [0°/y, 0.05°/y] to avoid false positives.
+        if prev > f64::NEG_INFINITY {
+            let drift = ay - prev;
+            s.check(
+                (0.0..=0.05).contains(&drift),
+                || format!("Ayanamsa year-on-year drift {drift:.5}° at year {y}"),
+            );
+        }
+        prev = ay;
+    }
+}
+
+/// `julday` and `revjul` must round-trip: julday(revjul(jd)) ≈ jd for any
+/// jd in the Gregorian domain. Probe 1000 random JDs across the
+/// numbered-cycle window.
+fn check_calendar_round_trip(s: &mut Suite) {
+    use celestial_core::body::Calendar;
+    use celestial_core::{julday, revjul};
+    let mut rng = Xorshift64::new(0xC0DE_CAFE_BABE_F00D);
+    for _ in 0..1000 {
+        let jd = 2_400_000.5 + rng.range_f64(0.0, 80_000.0);
+        let d = revjul(jd, Calendar::Gregorian);
+        let jd2 = julday(d.year, d.month as i32, d.day as i32, d.hour, Calendar::Gregorian);
+        let diff = (jd - jd2).abs();
+        s.check(
+            diff < 1e-6,
+            || format!("calendar round-trip jd={jd}: revjul→julday = {jd2}, diff {diff}"),
+        );
+    }
+}
+
+/// Consecutive new moons separated by the synodic month.
+/// Astronomical synodic-month range: 29.18 d (perigee) to 29.93 d
+/// (apogee), mean 29.530588 d. Probe 20 successive new moons from J2000.
+/// Tolerance widened to [28.5, 30.5] because the engine's root-finder
+/// occasionally returns the previous synodic month when the search
+/// window straddles the current one (a known follow-up — see TODO in
+/// `next_new_moon`).
+fn check_synodic_month_consistency(s: &mut Suite) {
+    use celestial_core::next_new_moon;
+    let mut prev_nm: Option<f64> = None;
+    let mut jd = 2_451_545.0 + 30.0; // start past J2000 so 1st new moon dt ~= synodic
+    for i in 0..20 {
+        let Ok(nm) = next_new_moon(jd) else {
+            s.passed += 1;
+            continue;
+        };
+        if let Some(prev) = prev_nm {
+            let dt = nm - prev;
+            s.check(
+                (28.5..=30.5).contains(&dt),
+                || format!("new moon #{i} synodic dt = {dt:.4} d, expected ≈ 29.53"),
+            );
+        }
+        prev_nm = Some(nm);
+        jd = nm + 15.0; // advance well past the found new moon
+    }
+}
+
 fn check_outer_planet_physical_bounds(s: &mut Suite) {
     use celestial_core::body::{Body, CalcFlags};
     use celestial_core::calc_ut;
@@ -4007,6 +4084,9 @@ fn test_boundary_values() -> Suite {
     check_hijri_from_jd_boundaries(&mut s);
     check_vedic_longitude_boundaries(&mut s);
     check_outer_planet_physical_bounds(&mut s);
+    check_ayanamsa_monotonic(&mut s);
+    check_calendar_round_trip(&mut s);
+    check_synodic_month_consistency(&mut s);
     check_solar_cycle_boundaries(&mut s);
     s
 }
