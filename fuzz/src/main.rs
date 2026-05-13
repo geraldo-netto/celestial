@@ -3692,11 +3692,28 @@ fn test_time_equ(n: u32) -> Suite {
 // panicking. Where the API returns Result/Option, an Err/None is acceptable;
 // the test only fails if the call panics, returns NaN where finite was
 // promised, or exceeds documented ranges.
-fn test_boundary_values() -> Suite {
-    use std::panic::catch_unwind;
-    let mut s = Suite::new("boundary_values");
+const BOUNDARY_EXTREME_FLOATS: [f64; 17] = [
+    0.0,
+    -0.0,
+    f64::NAN,
+    f64::INFINITY,
+    f64::NEG_INFINITY,
+    f64::MAX,
+    f64::MIN,
+    f64::MIN_POSITIVE,
+    -f64::MIN_POSITIVE,
+    360.0,
+    -360.0,
+    720.0,
+    -720.0,
+    1e300,
+    -1e300,
+    TAU,
+    -TAU,
+];
 
-    // Integer body indices: huge, negative, zero.
+fn check_body_index_boundaries(s: &mut Suite) {
+    use std::panic::catch_unwind;
     for n in [i32::MIN, -1, 0, i32::MAX, 999_999] {
         let r = catch_unwind(|| {
             let b: Body = n.into();
@@ -3706,8 +3723,10 @@ fn test_boundary_values() -> Suite {
         });
         s.check(r.is_ok(), || format!("Body::from({n}) panicked"));
     }
+}
 
-    // HouseSystem from arbitrary byte / char.
+fn check_house_system_boundaries(s: &mut Suite) {
+    use std::panic::catch_unwind;
     for b in [0u8, 1, 255, b'P', b'\n'] {
         let r = catch_unwind(|| {
             let h: HouseSystem = b.into();
@@ -3723,14 +3742,14 @@ fn test_boundary_values() -> Suite {
         });
         s.check(r.is_ok(), || format!("HouseSystem::from('{c}') panicked"));
     }
+}
 
-    // Calendar from i32: only 0 maps to Julian, all else Gregorian. Must not panic.
+fn check_calendar_and_sidereal_boundaries(s: &mut Suite) {
+    use std::panic::catch_unwind;
     for n in [i32::MIN, -1, 0, 1, 2, i32::MAX] {
         let _ = catch_unwind(|| Calendar::from(n));
         s.passed += 1;
     }
-
-    // SiderealMode from arbitrary i32.
     for n in [i32::MIN, -1, 0, 999, i32::MAX] {
         let _ = catch_unwind(|| {
             let sid: SiderealMode = n.into();
@@ -3739,28 +3758,10 @@ fn test_boundary_values() -> Suite {
         });
         s.passed += 1;
     }
+}
 
-    // norm_deg / norm_rad — must always return finite when input is finite.
-    let extreme_floats = [
-        0.0,
-        -0.0,
-        f64::NAN,
-        f64::INFINITY,
-        f64::NEG_INFINITY,
-        f64::MAX,
-        f64::MIN,
-        f64::MIN_POSITIVE,
-        -f64::MIN_POSITIVE,
-        360.0,
-        -360.0,
-        720.0,
-        -720.0,
-        1e300,
-        -1e300,
-        TAU,
-        -TAU,
-    ];
-    for &x in &extreme_floats {
+fn check_angle_math_boundaries(s: &mut Suite) {
+    for &x in &BOUNDARY_EXTREME_FLOATS {
         let d = norm_deg(x);
         s.check(
             !d.is_nan() || !x.is_finite(),
@@ -3776,14 +3777,14 @@ fn test_boundary_values() -> Suite {
         let _ = split_deg(x, 0);
         s.passed += 1;
     }
-
-    // norm_cs: extreme integers.
     for &cs in &[i32::MIN, -1, 0, 1, i32::MAX] {
         let _ = norm_cs(cs);
         s.passed += 1;
     }
+}
 
-    // julday: extreme dates. Must not panic, must return finite.
+fn check_julday_boundaries(s: &mut Suite) {
+    use std::panic::catch_unwind;
     let date_corners: &[(i32, i32, i32, f64)] = &[
         (i32::MIN, 1, 1, 0.0),
         (i32::MAX, 12, 31, 23.999),
@@ -3808,8 +3809,10 @@ fn test_boundary_values() -> Suite {
             );
         }
     }
+}
 
-    // day_of_week — extreme JDs.
+fn check_day_of_week_boundaries(s: &mut Suite) {
+    use std::panic::catch_unwind;
     for &jd in &[
         -1e9_f64,
         0.0,
@@ -3823,8 +3826,10 @@ fn test_boundary_values() -> Suite {
         let r = catch_unwind(|| day_of_week(jd));
         s.check(r.is_ok(), || format!("day_of_week({jd}) panicked"));
     }
+}
 
-    // Calendar conversions: Hijri, Hebrew, Easter, Coptic at year extremes.
+fn check_calendar_year_boundaries(s: &mut Suite) {
+    use std::panic::catch_unwind;
     for &y in &[-9999, -1, 0, 1, 100, 1900, 9999] {
         let _ = catch_unwind(|| hijri_new_year_jd(y));
         let _ = catch_unwind(|| hebrew_new_year_jd(y));
@@ -3838,20 +3843,36 @@ fn test_boundary_values() -> Suite {
         }
         s.passed += 1;
     }
+}
 
-    // hijri_from_jd at extreme JDs.
+fn check_hijri_from_jd_boundaries(s: &mut Suite) {
+    use std::panic::catch_unwind;
     for &jd in &[0.0_f64, 1_721_424.0, 1e8, f64::MAX, f64::INFINITY] {
         let r = catch_unwind(|| hijri_from_jd(jd));
         s.check(r.is_ok(), || format!("hijri_from_jd({jd}) panicked"));
     }
+}
 
-    // Vedic / sign helpers with extreme longitudes.
-    for &lon in &extreme_floats {
+fn check_vedic_longitude_boundaries(s: &mut Suite) {
+    use std::panic::catch_unwind;
+    for &lon in &BOUNDARY_EXTREME_FLOATS {
         let _ = catch_unwind(|| celestial_core::lon_to_sign(lon));
         let _ = catch_unwind(|| long_to_navamsa(lon));
         s.passed += 1;
     }
+}
 
+fn test_boundary_values() -> Suite {
+    let mut s = Suite::new("boundary_values");
+    check_body_index_boundaries(&mut s);
+    check_house_system_boundaries(&mut s);
+    check_calendar_and_sidereal_boundaries(&mut s);
+    check_angle_math_boundaries(&mut s);
+    check_julday_boundaries(&mut s);
+    check_day_of_week_boundaries(&mut s);
+    check_calendar_year_boundaries(&mut s);
+    check_hijri_from_jd_boundaries(&mut s);
+    check_vedic_longitude_boundaries(&mut s);
     s
 }
 
