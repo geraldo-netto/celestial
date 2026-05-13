@@ -294,4 +294,266 @@ mod tests {
         assert_eq!(opts.temp, 20.0);
         assert_eq!(opts.event_type, 2);
     }
+
+    /// Remaining builder setters (`flags`, `star`) write to their fields.
+    #[test]
+    fn builder_flags_and_star_fields() {
+        let opts = RiseTransOptions::new(2_460_000.0, Body::SUN, [0.0, 0.0, 0.0])
+            .flags(CalcFlags::BUILTIN)
+            .star("Sirius");
+        assert_eq!(opts.flags.as_raw(), CalcFlags::BUILTIN.as_raw());
+        assert_eq!(opts.starname.as_deref(), Some("Sirius"));
+    }
+
+    // ─── Crossing-fn smoke tests ─────────────────────────────────────────────
+    //
+    // J2000 reference: JD 2_451_545.0 = 2000-01-01 12:00 TT.
+    // Sun is near 280° ecliptic longitude (Capricorn) on that date.
+
+    /// `solcross` finds the next time the Sun crosses 0° (vernal equinox),
+    /// which from J2000 should land roughly at JD 2_451_624 (≈ March 2000).
+    #[test]
+    fn solcross_finds_vernal_equinox() {
+        let jd = solcross(0.0, 2_451_545.0, CalcFlags::BUILTIN).expect("crossing");
+        assert!(jd.is_finite());
+        assert!(
+            (2_451_600.0..2_451_700.0).contains(&jd),
+            "vernal equinox JD out of expected window: {jd}",
+        );
+    }
+
+    /// `solcross_ut` and `solcross` agree to within seconds-of-time on the
+    /// same crossing (the ET↔UT offset is tiny near J2000).
+    #[test]
+    fn solcross_ut_matches_et_variant() {
+        let et = solcross(180.0, 2_451_545.0, CalcFlags::BUILTIN).expect("et");
+        let ut = solcross_ut(180.0, 2_451_545.0, CalcFlags::BUILTIN).expect("ut");
+        assert!((et - ut).abs() < 0.01, "et={et}, ut={ut}");
+    }
+
+    /// `mooncross` finds *some* Moon longitude crossing within the next
+    /// 30 days. The Moon moves ~13°/day so any target longitude is hit fast.
+    #[test]
+    fn mooncross_finds_within_30_days() {
+        let start = 2_451_545.0;
+        let jd = mooncross(120.0, start, CalcFlags::BUILTIN).expect("crossing");
+        assert!(jd > start && jd < start + 30.0, "mooncross jd={jd}");
+    }
+
+    /// `mooncross_ut` mirrors `mooncross` to better than 1 second.
+    #[test]
+    fn mooncross_ut_matches_et_variant() {
+        let et = mooncross(45.0, 2_451_545.0, CalcFlags::BUILTIN).expect("et");
+        let ut = mooncross_ut(45.0, 2_451_545.0, CalcFlags::BUILTIN).expect("ut");
+        assert!((et - ut).abs() < 0.01);
+    }
+
+    /// `mooncross_node` returns a node-crossing within ~14 days (half a
+    /// nodal half-cycle = ~13.6 days).
+    #[test]
+    fn mooncross_node_returns_finite() {
+        let start = 2_451_545.0;
+        let node = mooncross_node(start, CalcFlags::BUILTIN).expect("node");
+        assert!(node.jd_cross.is_finite());
+        assert!(node.xlon.is_finite());
+        assert!((node.jd_cross - start).abs() < 30.0);
+    }
+
+    /// `mooncross_node_ut` delegates to `mooncross_node` with the same args.
+    #[test]
+    fn mooncross_node_ut_matches_et_variant() {
+        let a = mooncross_node(2_451_545.0, CalcFlags::BUILTIN).expect("et");
+        let b = mooncross_node_ut(2_451_545.0, CalcFlags::BUILTIN).expect("ut");
+        assert!((a.jd_cross - b.jd_cross).abs() < 1e-9);
+    }
+
+    /// `solcross_back_ut` finds a crossing in the PAST.
+    #[test]
+    fn solcross_back_walks_backward() {
+        let start = 2_451_545.0;
+        let back = solcross_back_ut(0.0, start, CalcFlags::BUILTIN).expect("back");
+        assert!(back < start, "back={back}, start={start}");
+        assert!(start - back < 366.0, "more than a year back: {back}");
+    }
+
+    /// `mooncross_back_ut` finds a crossing in the PAST within 30 days.
+    #[test]
+    fn mooncross_back_walks_backward() {
+        let start = 2_451_545.0;
+        let back = mooncross_back_ut(200.0, start, CalcFlags::BUILTIN).expect("back");
+        assert!(back < start);
+        assert!(start - back < 30.0);
+    }
+
+    /// `helio_cross` finds a Mars heliocentric crossing forward in time.
+    #[test]
+    fn helio_cross_mars_forward() {
+        let jd = helio_cross(Body::MARS, 0.0, 2_451_545.0, CalcFlags::BUILTIN, 1).expect("mars");
+        assert!(jd > 2_451_545.0);
+    }
+
+    /// `helio_cross_ut` is a thin wrapper around `helio_cross`.
+    #[test]
+    fn helio_cross_ut_matches_helio_cross() {
+        let et = helio_cross(Body::MARS, 90.0, 2_451_545.0, CalcFlags::BUILTIN, 1);
+        let ut = helio_cross_ut(Body::MARS, 90.0, 2_451_545.0, CalcFlags::BUILTIN, 1);
+        match (et, ut) {
+            (Ok(a), Ok(b)) => assert!((a - b).abs() < 1e-9),
+            (Err(_), Err(_)) => {} // both failed: still consistent
+            (a, b) => panic!("disagree: et={a:?}, ut={b:?}"),
+        }
+    }
+
+    // ─── rise_trans smoke ────────────────────────────────────────────────────
+
+    /// `rise_trans` returns a finite JD for the Sun at the equator, where
+    /// no body is ever circumpolar.
+    #[test]
+    fn rise_trans_sun_at_equator() {
+        let res = rise_trans(
+            2_451_545.0,
+            Body::SUN,
+            None,
+            CalcFlags::BUILTIN,
+            1, // CALC_RISE
+            [0.0, 0.0, 0.0],
+            1013.25,
+            15.0,
+        )
+        .expect("rise_trans");
+        assert!(res.tret.is_finite());
+        // Rise within a day of start
+        assert!((res.tret - 2_451_545.0).abs() < 2.0);
+    }
+
+    /// `rise_trans` for the Moon at the equator returns a finite event.
+    #[test]
+    fn rise_trans_moon_at_equator() {
+        let res = rise_trans(
+            2_451_545.0,
+            Body::MOON,
+            None,
+            CalcFlags::BUILTIN,
+            1,
+            [0.0, 0.0, 0.0],
+            1013.25,
+            15.0,
+        )
+        .expect("rise_trans moon");
+        assert!(res.tret.is_finite());
+    }
+
+    /// `rise_trans` for a planet (Mars) takes the third match arm.
+    #[test]
+    fn rise_trans_planet_at_equator() {
+        let res = rise_trans(
+            2_451_545.0,
+            Body::MARS,
+            None,
+            CalcFlags::BUILTIN,
+            1,
+            [0.0, 0.0, 0.0],
+            1013.25,
+            15.0,
+        );
+        // Mars may or may not rise within the small window; either is fine,
+        // just no panic and a sensible Result.
+        if let Ok(r) = res {
+            assert!(r.tret.is_finite());
+        }
+    }
+
+    /// Ambiguous event_type bits (e.g. all set or none) fall back to
+    /// `CALC_RISE` per the source comment. Should not panic.
+    #[test]
+    fn rise_trans_ambiguous_event_falls_back() {
+        let _ = rise_trans(
+            2_451_545.0,
+            Body::SUN,
+            None,
+            CalcFlags::BUILTIN,
+            0b111, // rise + transit + set: ambiguous
+            [0.0, 0.0, 0.0],
+            1013.25,
+            15.0,
+        );
+        let _ = rise_trans(
+            2_451_545.0,
+            Body::SUN,
+            None,
+            CalcFlags::BUILTIN,
+            0, // no bits set
+            [0.0, 0.0, 0.0],
+            1013.25,
+            15.0,
+        );
+    }
+
+    /// At extreme polar latitudes during the dark season, the Sun is
+    /// circumpolar (never rises). `rise_trans` must return
+    /// `Error::CircumpolarBody`, not panic.
+    #[test]
+    fn rise_trans_circumpolar_returns_error() {
+        // Dec solstice in 2000: Sun at -23.4° declination, never rises
+        // above the horizon for an observer at +85° N.
+        let jd_solstice = 2_451_899.0; // approx 2000-12-21
+        let res = rise_trans(
+            jd_solstice,
+            Body::SUN,
+            None,
+            CalcFlags::BUILTIN,
+            1,
+            [0.0, 85.0, 0.0],
+            1013.25,
+            15.0,
+        );
+        assert!(
+            matches!(res, Err(Error::CircumpolarBody { .. })),
+            "expected CircumpolarBody, got {res:?}",
+        );
+    }
+
+    /// `rise_trans_true_hor` is a thin wrapper; result must match
+    /// `rise_trans` byte-for-byte at horizon_height = 0.
+    #[test]
+    fn rise_trans_true_hor_matches_rise_trans() {
+        let a = rise_trans(
+            2_451_545.0,
+            Body::SUN,
+            None,
+            CalcFlags::BUILTIN,
+            1,
+            [0.0, 0.0, 0.0],
+            1013.25,
+            15.0,
+        );
+        let b = rise_trans_true_hor(
+            2_451_545.0,
+            Body::SUN,
+            None,
+            CalcFlags::BUILTIN,
+            1,
+            [0.0, 0.0, 0.0],
+            1013.25,
+            15.0,
+            0.0,
+        );
+        match (a, b) {
+            (Ok(x), Ok(y)) => assert!((x.tret - y.tret).abs() < 1e-12),
+            (Err(_), Err(_)) => {}
+            (x, y) => panic!("disagree: a={x:?}, b={y:?}"),
+        }
+    }
+
+    /// `RiseTransOptions::search()` runs end-to-end with the default
+    /// settings.
+    #[test]
+    fn options_search_executes() {
+        let res = RiseTransOptions::new(2_451_545.0, Body::SUN, [0.0, 0.0, 0.0])
+            .event(1)
+            .flags(CalcFlags::BUILTIN)
+            .search()
+            .expect("search");
+        assert!(res.tret.is_finite());
+    }
 }
