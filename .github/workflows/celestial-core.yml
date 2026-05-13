@@ -1,10 +1,13 @@
 # ─── celestial-core pipeline ──────────────────────────────────────────────────────
 #
 # Triggers: any change to core/, fuzz/, Cargo.toml, Cargo.lock, rustfmt.toml
-# Jobs (parallel):
-#   lint    → cargo clippy -D correctness -D suspicious -D perf
-#   test    → cargo test --package celestial-core (737 tests)
-#   fuzz    → cargo run --manifest-path fuzz/Cargo.toml (53 property suites)
+# Jobs:
+#   lint           → cargo clippy -D correctness -D suspicious -D perf
+#   test           → cargo test --package celestial-core
+#   fuzz           → cargo run --manifest-path fuzz/Cargo.toml (84 property suites)
+#   coverage       → cargo llvm-cov --workspace --lcov  (uploads lcov.info)
+#   sonarqube      → needs coverage; downloads lcov.info, runs Sonar scan
+#   feature-matrix → cargo check across feature flag combinations
 
 name: celestial-core
 
@@ -40,13 +43,57 @@ defaults:
 
 jobs:
 
+  coverage:
+    name: coverage (lcov)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-core-cov-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-core-cov-
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Generate workspace lcov report
+        # `--workspace` covers core + cli + bindings; SonarCloud excludes
+        # binding test dirs, fuzz/, and xtask/ via sonar-project.properties.
+        run: |
+          cargo llvm-cov --workspace --lcov --output-path lcov.info
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcov-coverage
+          path: lcov.info
+          retention-days: 7
+
   sonarqube:
     name: SonarQube
     runs-on: ubuntu-latest
+    needs: [coverage]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: lcov-coverage
+          # Sonar reads `lcov.info` from the project root — matches the path
+          # in sonar-project.properties (`sonar.rust.lcov.reportPaths`).
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
         env:

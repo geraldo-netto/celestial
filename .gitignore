@@ -71,6 +71,10 @@
 **/.hypothesis/
 **/.pytest_cache/
 **/cover/
+# Rust coverage (cargo llvm-cov / tarpaulin output)
+/lcov.info
+**/lcov.info
+**/llvm-cov-target/
 
 # Translations
 **/*.mo
