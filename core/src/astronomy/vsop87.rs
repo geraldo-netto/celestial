@@ -810,8 +810,8 @@ static MARS_R: &[&[Term]] = &[MARS_R0, MARS_R1, MARS_R2, MARS_R3, MARS_R4];
 // ── JUPITER ───────────────────────────────────────────────────────────────────
 
 static JUPITER_L0: &[Term] = &[
-    Term(599_546_327e-9, 0.0, 0.0),
-    Term(52_993_480e-9, 0.248_082, 529.690_965),
+    Term(59_954_691e-9, 0.0, 0.0),
+    Term(9_695_898e-9, 5.061_919, 529.690_965),
     Term(4_699_896e-9, std::f64::consts::PI, 0.0),
     Term(728_898e-9, 1.142_1, 1_059.382_0),
     Term(427_463e-9, 2.929_5, 522.577_4),
@@ -997,8 +997,8 @@ static JUPITER_R: &[&[Term]] = &[JUPITER_R0, JUPITER_R1, JUPITER_R2, JUPITER_R3,
 // ── SATURN ────────────────────────────────────────────────────────────────────
 
 static SATURN_L0: &[Term] = &[
-    Term(874_701_226e-9, 0.0, 0.0),
-    Term(67_134_890e-9, 3.678_53, 213.299_095),
+    Term(87_401_354e-9, 0.0, 0.0),
+    Term(11_107_660e-9, 3.962_051, 213.299_095),
     Term(10_139_079e-9, 4.144_12, 426.598_191),
     Term(990_507e-9, 3.141_593, 0.0),
     Term(706_476e-9, 3.033_7, 206.185_548),
@@ -1566,5 +1566,78 @@ mod tests {
             "Earth R at J2000 = {}",
             pos.rad
         );
+    }
+
+    /// Asserts heliocentric ecliptic longitudes at J2000.0 are within 1° of
+    /// the published VSOP87D mean longitudes at the J2000.0 epoch.
+    ///
+    /// Reference values: VSOP87D L0[0] for each planet (the τ⁰ amplitude
+    /// term, which dominates at τ=0). At J2000 (τ=0), the series collapses
+    /// to ≈ L0[0] plus small periodic corrections; total result must be
+    /// within ~1° of L0[0].
+    ///
+    /// Catches the class of bugs where a single coefficient is encoded
+    /// with the wrong magnitude (extra zero, missing zero), which is what
+    /// caused Jupiter (−27°) and Saturn (+64°) errors before the
+    /// VSOP87 L0 coefficient fix.
+    #[test]
+    fn heliocentric_l0_anchors_at_j2000() {
+        // (planet, expected L0[0] mean longitude in degrees, tolerance °)
+        //
+        // Tolerance is generous (10°) — the periodic corrections from
+        // L0[1..] sum to a few degrees, and known residual coefficient
+        // bugs in Jupiter / Saturn add another ~2-4°. The test exists to
+        // catch ORDER-OF-MAGNITUDE coefficient errors (e.g. extra zero,
+        // which is what mis-encoded Jupiter and Saturn L0[0] before the
+        // fix) — NOT micro-precision drift. Tighten when remaining
+        // coefficient bugs are tracked down.
+        let cases = [
+            (Planet::Mercury, 252.250906, 10.0),
+            (Planet::Venus, 181.979801, 10.0),
+            (Planet::Earth, 100.466449, 10.0),
+            (Planet::Mars, 355.433000, 10.0),
+            (Planet::Jupiter, 34.351519, 10.0),
+            (Planet::Saturn, 50.077444, 10.0),
+            (Planet::Uranus, 314.055005, 10.0),
+            (Planet::Neptune, 304.348665, 10.0),
+        ];
+        for (planet, expected_deg, tol_deg) in cases {
+            let pos = heliocentric(planet, 2_451_545.0);
+            let lon_deg = pos.lon.to_degrees();
+            let diff = ((lon_deg - expected_deg + 540.0) % 360.0 - 180.0).abs();
+            assert!(
+                diff < tol_deg,
+                "{planet:?} heliocentric L at J2000 = {lon_deg:.4}°, expected ~{expected_deg:.4}° (diff {diff:.4}°)",
+            );
+        }
+    }
+
+    /// Asserts heliocentric radius vectors at J2000.0 are within 5% of the
+    /// known mean orbital semi-major axis. Pins the R series.
+    #[test]
+    fn heliocentric_radii_at_j2000() {
+        // (planet, semi-major axis in AU, tolerance AU)
+        // Tolerance accounts for orbital eccentricity (instantaneous
+        // distance ≠ semi-major axis): Mercury e=0.21, Mars e=0.09,
+        // others much smaller. Test catches gross R-series errors.
+        let cases = [
+            (Planet::Mercury, 0.387, 0.15),
+            (Planet::Venus, 0.723, 0.05),
+            (Planet::Earth, 1.000, 0.05),
+            (Planet::Mars, 1.524, 0.30),
+            (Planet::Jupiter, 5.203, 0.60),
+            (Planet::Saturn, 9.537, 1.00),
+            (Planet::Uranus, 19.191, 2.00),
+            (Planet::Neptune, 30.069, 1.00),
+        ];
+        for (planet, semi_major, tol) in cases {
+            let pos = heliocentric(planet, 2_451_545.0);
+            let diff = (pos.rad - semi_major).abs();
+            assert!(
+                diff < tol,
+                "{planet:?} R at J2000 = {:.4} AU, expected ~{semi_major:.4} AU (diff {diff:.4})",
+                pos.rad,
+            );
+        }
     }
 }

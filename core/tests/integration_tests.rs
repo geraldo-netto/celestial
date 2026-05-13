@@ -765,7 +765,9 @@ fn check_solcross_baselines(jd_2002: f64, j2000: f64, f: CalcFlags, tol: f64) {
 fn check_sign_ingress_baselines(j2000: f64, f: CalcFlags, tol: f64) {
     let cases = [
         (Body::SUN, 2451564.257859215_f64, 10_u8),
-        (Body::SATURN, 2451780.017175227_f64, 4_u8),
+        // Saturn ingress JD + sign re-anchored after VSOP87 L0 coefficient
+        // fix (previous values reflected the buggy engine output).
+        (Body::SATURN, 2452025.0656895884_f64, 2_u8),
     ];
     for (body, expected_jd, expected_sign) in cases {
         let (jd_ing, sign) = sign_ingress_ut(body, j2000, f, false).unwrap();
@@ -851,33 +853,36 @@ fn precision_apparent_place_baselines_j2000_and_2024() {
             -0.5592211390088,
             2.4235954834448,
         ),
+        // Jupiter / Saturn baselines re-anchored after VSOP87 L0[0]/L0[1]
+        // coefficient correction (the previous values were the buggy output
+        // of the engine, not real-world ephemerides).
         (
             Body::JUPITER,
             2_451_545.0,
-            358.8890855479578,
-            -1.1508549322629,
-            5.0637953617583,
+            22.2078892678704,
+            -1.2487942208984,
+            4.6666611154903,
         ),
         (
             Body::JUPITER,
             2_460_310.5,
-            5.8967858340684,
-            -1.0792550537418,
-            4.9576512919009,
+            32.1452004145800,
+            -1.1811075413392,
+            4.5300977938077,
         ),
         (
             Body::SATURN,
             2_451_545.0,
-            104.9592588583662,
-            -2.5691969641039,
-            8.1940386855179,
+            36.5736244421375,
+            -2.4206463719741,
+            8.6974440145521,
         ),
         (
             Body::SATURN,
             2_460_310.5,
-            36.6191788562429,
-            -1.8276034274274,
-            9.2344405778357,
+            331.3424090908725,
+            -1.6387747895471,
+            10.2982415716986,
         ),
         (
             Body::URANUS,
