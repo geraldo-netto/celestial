@@ -187,8 +187,11 @@ pub fn ayanamsa(jde: f64, mode: SidMode) -> f64 {
     }
     let t = julian_centuries(jde);
     let base = ayanamsa_j2000(mode);
-    // Linear precession (rough approximation — good to ~1' over 1000 years)
-    (-PRECESSION_RATE).mul_add(t, base + precession_correction(t))
+    // Linear precession: ayanamsa grows with time (~50.3"/year, positive).
+    // (The previous (−PRECESSION_RATE) had the sign flipped — sent the
+    // ayanamsa backwards in time, giving 25.25° at 1900 instead of the
+    // tabulated 22.47° per Indian Ephemeris and Nautical Almanac.)
+    PRECESSION_RATE.mul_add(t, base + precession_correction(t))
 }
 
 /// Look up the J2000 base value for a given mode.
@@ -235,13 +238,18 @@ mod tests {
 
     #[test]
     fn ayanamsa_increases_with_time() {
-        // Precession moves the ayanamsa forward ~50" per year
+        // Precession of the equinoxes drifts the vernal point WESTWARD
+        // along the ecliptic at ~50.3" per year, so the sidereal-tropical
+        // offset (ayanamsa) GROWS in the positive direction with time.
+        // Reference (Indian Ephemeris & Nautical Almanac, Lahiri):
+        //   J2000      → 23°51'11"
+        //   J2000 + 1y → 23°52'01"
         let ay1 = ayanamsa(2_451_545.0, SidMode::Lahiri);
         let ay2 = ayanamsa(2_451_545.0 + 365.25, SidMode::Lahiri);
-        // ayanamsa *decreases* as we move forward (tropical precesses faster)
+        let diff = ay2 - ay1;
         assert!(
-            ay1 > ay2,
-            "Ayanamsa should decrease moving forward: {ay1} vs {ay2}"
+            diff > 0.0 && diff < 0.02,
+            "Ayanamsa should grow by ~50\"/year (~0.014°) — got Δ = {diff}",
         );
     }
 
