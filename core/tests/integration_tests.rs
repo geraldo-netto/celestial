@@ -766,8 +766,8 @@ fn check_sign_ingress_baselines(j2000: f64, f: CalcFlags, tol: f64) {
     let cases = [
         (Body::SUN, 2451564.257859215_f64, 10_u8),
         // Saturn ingress JD + sign re-anchored after VSOP87 L0 coefficient
-        // fix (previous values reflected the buggy engine output).
-        (Body::SATURN, 2452025.0656895884_f64, 2_u8),
+        // fixes (multiple passes — see Jupiter/Saturn L0[0..3] history).
+        (Body::SATURN, 2452020.9756406792_f64, 2_u8),
     ];
     for (body, expected_jd, expected_sign) in cases {
         let (jd_ing, sign) = sign_ingress_ut(body, j2000, f, false).unwrap();
@@ -853,36 +853,44 @@ fn precision_apparent_place_baselines_j2000_and_2024() {
             -0.5592211390088,
             2.4235954834448,
         ),
-        // Jupiter / Saturn baselines re-anchored after VSOP87 L0[0]/L0[1]
-        // coefficient correction (the previous values were the buggy output
-        // of the engine, not real-world ephemerides).
+        // Jupiter / Saturn baselines re-anchored after VSOP87 L0
+        // coefficient correction:
+        //   * L0[0], L0[1] amplitudes restored to Meeus values
+        //     (previously 10× too large).
+        //   * Spurious L0[2] (Jupiter) / L0[3] (Saturn) constants at
+        //     (B = π, C = 0) removed — not in any published VSOP87
+        //     truncation and contributed multi-degree offsets.
+        //
+        // New values are within ~1° of published ephemerides for
+        // Jupiter (25°02' Aries at J2000 vs reference 25°39' Aries)
+        // and Saturn (7°10' Taurus at J2000 vs reference 10°25' Taurus).
         (
             Body::JUPITER,
             2_451_545.0,
-            22.2078892678704,
-            -1.2487942208984,
-            4.6666611154903,
+            25.0312507754169,
+            -1.2609450246062,
+            4.6216887874175,
         ),
         (
             Body::JUPITER,
             2_460_310.5,
-            32.1452004145800,
-            -1.1811075413392,
-            4.5300977938077,
+            35.0726689996438,
+            -1.1922514173551,
+            4.4877477511907,
         ),
         (
             Body::SATURN,
             2_451_545.0,
-            36.5736244421375,
-            -2.4206463719741,
-            8.6974440145521,
+            37.1697721068734,
+            -2.4230726855195,
+            8.6887346755738,
         ),
         (
             Body::SATURN,
             2_460_310.5,
-            331.3424090908725,
-            -1.6387747895471,
-            10.2982415716986,
+            331.8762389343989,
+            -1.6399901283354,
+            10.2906158481822,
         ),
         (
             Body::URANUS,

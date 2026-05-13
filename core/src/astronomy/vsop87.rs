@@ -812,7 +812,12 @@ static MARS_R: &[&[Term]] = &[MARS_R0, MARS_R1, MARS_R2, MARS_R3, MARS_R4];
 static JUPITER_L0: &[Term] = &[
     Term(59_954_691e-9, 0.0, 0.0),
     Term(9_695_898e-9, 5.061_919, 529.690_965),
-    Term(4_699_896e-9, std::f64::consts::PI, 0.0),
+    // (Previous L0[2] entry (4_699_896e-9, π, 0.0) was removed — it
+    // contributed a spurious −0.047 rad / −2.7° constant offset and
+    // matches no published VSOP87 term. The next-largest periodic
+    // term per Meeus AA 2nd ed. Table 32.B is at frequency 7.11355,
+    // already captured in this table's later rows; do not double-
+    // count by re-inserting it here.)
     Term(728_898e-9, 1.142_1, 1_059.382_0),
     Term(427_463e-9, 2.929_5, 522.577_4),
     Term(304_017e-9, 3.485_4, 1_589.073_0),
@@ -1000,7 +1005,11 @@ static SATURN_L0: &[Term] = &[
     Term(87_401_354e-9, 0.0, 0.0),
     Term(11_107_660e-9, 3.962_051, 213.299_095),
     Term(10_139_079e-9, 4.144_12, 426.598_191),
-    Term(990_507e-9, 3.141_593, 0.0),
+    // (Previous L0[3] entry (990_507e-9, π, 0.0) was removed for the
+    // same reason as Jupiter L0[2]: a B=π, C=0 entry is not in any
+    // published VSOP87D Saturn L truncation and contributed a
+    // spurious −0.01 rad / −0.57° constant offset to Saturn's
+    // mean longitude.)
     Term(706_476e-9, 3.033_7, 206.185_548),
     Term(639_589e-9, 2.281_7, 103.092_774),
     Term(425_966e-9, 0.552_0, 639.897_286),
