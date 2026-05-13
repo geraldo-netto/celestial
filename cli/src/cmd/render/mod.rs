@@ -1092,6 +1092,337 @@ fn dispatch_profection(
     ))
 }
 
+// ── Remaining chart-type dispatchers ──────────────────────────────────────────
+// One thin wrapper per chart type so every entry in CHART_REGISTRY can be a
+// uniform `ChartBuilder` fn pointer. Each wrapper reads `args` for the params
+// its underlying builder needs.
+
+fn dispatch_dial(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "90° Midpoint Dial");
+    Ok((
+        specialist::build_dial_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+        specialist::render_dial_svg,
+    ))
+}
+
+fn dispatch_local_space(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Local Space");
+    Ok((
+        specialist::build_local_space_context(jd, args.lat, args.lon, &args.date, v)?,
+        specialist::render_local_space_svg,
+    ))
+}
+
+fn dispatch_rasi(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Rasi Chart (South Indian)");
+    Ok((
+        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
+        render_south_indian_svg,
+    ))
+}
+
+fn dispatch_navamsa(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Navamsa D9 Chart");
+    Ok((
+        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Navamsa")?,
+        vedic::render_navamsa_svg,
+    ))
+}
+
+fn dispatch_dasha(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Vimshottari Dasha Timeline");
+    Ok((
+        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Dasha")?,
+        vedic::render_dasha_svg,
+    ))
+}
+
+fn dispatch_north_indian(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "North Indian Chart");
+    Ok((
+        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
+        vedic::render_north_indian_svg,
+    ))
+}
+
+fn dispatch_ashtakavarga(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Ashtakavarga");
+    Ok((
+        vedic::build_ashtakavarga_context(jd, args.lat, args.lon, &args.date, v)?,
+        vedic::render_ashtakavarga_svg,
+    ))
+}
+
+fn dispatch_shadbala(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Shadbala");
+    Ok((
+        vedic::build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?,
+        vedic::render_shadbala_svg,
+    ))
+}
+
+fn dispatch_hellenistic(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Hellenistic Chart");
+    Ok((
+        hellenistic::build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+        hellenistic::render_hellenistic_svg,
+    ))
+}
+
+fn dispatch_firdaria(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Firdaria Timeline");
+    Ok((
+        hellenistic::build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+        hellenistic::render_firdaria_svg,
+    ))
+}
+
+fn dispatch_bazi(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Four Pillars (八字)");
+    Ok((
+        chinese::build_bazi_context(jd, args.lat, args.lon, &args.date, v)?,
+        chinese::render_bazi_svg,
+    ))
+}
+
+fn dispatch_mesoamerican(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Mesoamerican Calendars");
+    Ok((
+        mesoamerican::build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?,
+        mesoamerican::render_mesoamerican_svg,
+    ))
+}
+
+fn dispatch_medicine_wheel(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    let v = vars_with_title(user_vars, "Medicine Wheel / Egyptian Decans");
+    Ok((
+        indigenous::build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?,
+        indigenous::render_medicine_wheel_svg,
+    ))
+}
+
+fn dispatch_wheel_of_year(
+    jd: f64,
+    _args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    Ok((
+        calendar_wheel::build_sabbat_wheel_context(jd, user_vars.clone())?,
+        calendar_wheel::render_sabbat_wheel_svg,
+    ))
+}
+
+fn dispatch_omer_grid(
+    jd: f64,
+    _args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    Ok((
+        omer_grid::build_omer_grid_context(jd, user_vars.clone())?,
+        omer_grid::render_omer_grid_svg,
+    ))
+}
+
+fn dispatch_calendar(
+    jd: f64,
+    args: &RenderArgs,
+    user_vars: &BTreeMap<String, String>,
+) -> Result<(Value, ChartRenderer), String> {
+    Ok((
+        build_calendar_context(jd, args, user_vars)?,
+        calendar_overlays::render_default_calendar_svg,
+    ))
+}
+
+// ── Chart-type registry ──────────────────────────────────────────────────────
+//
+// Uniform `(aliases, builder)` table. To add a new chart type, append a
+// `ChartEntry` here and write its dispatch wrapper above. The `--type` parser
+// and the unknown-type error message both derive from this table, so there's
+// nothing else to keep in sync.
+
+type ChartBuilder =
+    fn(f64, &RenderArgs, &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String>;
+
+struct ChartEntry {
+    aliases: &'static [&'static str],
+    builder: ChartBuilder,
+}
+
+static CHART_REGISTRY: &[ChartEntry] = &[
+    ChartEntry {
+        aliases: &["natal", ""],
+        builder: dispatch_natal,
+    },
+    ChartEntry {
+        aliases: &["cosmogram"],
+        builder: dispatch_cosmogram,
+    },
+    ChartEntry {
+        aliases: &["solar-return", "solar_return"],
+        builder: dispatch_solar_return,
+    },
+    ChartEntry {
+        aliases: &["lunar-return", "lunar_return"],
+        builder: dispatch_lunar_return,
+    },
+    ChartEntry {
+        aliases: &["progressed", "secondary"],
+        builder: dispatch_progressed,
+    },
+    ChartEntry {
+        aliases: &["solar-arc", "solar_arc"],
+        builder: dispatch_solar_arc,
+    },
+    ChartEntry {
+        aliases: &["biwheel", "bi-wheel", "synastry", "transit"],
+        builder: dispatch_biwheel,
+    },
+    ChartEntry {
+        aliases: &["composite"],
+        builder: dispatch_composite,
+    },
+    ChartEntry {
+        aliases: &["triwheel", "tri-wheel"],
+        builder: dispatch_triwheel,
+    },
+    ChartEntry {
+        aliases: &["dial", "90dial", "midpoint-dial"],
+        builder: dispatch_dial,
+    },
+    ChartEntry {
+        aliases: &["ephemeris", "graphic-ephemeris"],
+        builder: dispatch_ephemeris,
+    },
+    ChartEntry {
+        aliases: &["local-space", "localspace"],
+        builder: dispatch_local_space,
+    },
+    ChartEntry {
+        aliases: &["rasi", "vedic", "south-indian"],
+        builder: dispatch_rasi,
+    },
+    ChartEntry {
+        aliases: &["navamsa", "d9"],
+        builder: dispatch_navamsa,
+    },
+    ChartEntry {
+        aliases: &["dasha", "vimshottari"],
+        builder: dispatch_dasha,
+    },
+    ChartEntry {
+        aliases: &["north-indian", "north_indian"],
+        builder: dispatch_north_indian,
+    },
+    ChartEntry {
+        aliases: &["ashtakavarga", "ashtak"],
+        builder: dispatch_ashtakavarga,
+    },
+    ChartEntry {
+        aliases: &["shadbala", "strength"],
+        builder: dispatch_shadbala,
+    },
+    ChartEntry {
+        aliases: &["hellenistic", "greek"],
+        builder: dispatch_hellenistic,
+    },
+    ChartEntry {
+        aliases: &["firdaria", "persian"],
+        builder: dispatch_firdaria,
+    },
+    ChartEntry {
+        aliases: &["profection"],
+        builder: dispatch_profection,
+    },
+    ChartEntry {
+        aliases: &["bazi", "four-pillars", "chinese"],
+        builder: dispatch_bazi,
+    },
+    ChartEntry {
+        aliases: &["mesoamerican", "aztec", "maya"],
+        builder: dispatch_mesoamerican,
+    },
+    ChartEntry {
+        aliases: &["medicine-wheel", "indigenous", "egyptian-decans"],
+        builder: dispatch_medicine_wheel,
+    },
+    ChartEntry {
+        aliases: &["wheel-of-year", "sabbats", "celtic"],
+        builder: dispatch_wheel_of_year,
+    },
+    ChartEntry {
+        aliases: &["omer-grid", "omer", "sefirat-haomer"],
+        builder: dispatch_omer_grid,
+    },
+    ChartEntry {
+        aliases: &["calendar"],
+        builder: dispatch_calendar,
+    },
+];
+
+/// Comma-separated list of every primary alias in `CHART_REGISTRY`,
+/// for use in error messages. Skips the empty-string alias (default).
+fn registered_chart_types() -> String {
+    CHART_REGISTRY
+        .iter()
+        .flat_map(|e| e.aliases.iter().copied())
+        .filter(|a| !a.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// Build the chart context and select the SVG renderer for the requested
 /// `--chart-type`.
 fn dispatch_chart_type(
@@ -1100,81 +1431,16 @@ fn dispatch_chart_type(
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
 ) -> Result<(serde_json::Value, ChartRenderer), String> {
-    Ok(match chart_type {
-            "natal" | "" => dispatch_natal(jd, args, user_vars)?,
-            "cosmogram" => dispatch_cosmogram(jd, args, user_vars)?,
-            "solar-return" | "solar_return" => dispatch_solar_return(jd, args, user_vars)?,
-            "lunar-return" | "lunar_return" => dispatch_lunar_return(jd, args, user_vars)?,
-            "progressed" | "secondary" => dispatch_progressed(jd, args, user_vars)?,
-            "solar-arc" | "solar_arc" => dispatch_solar_arc(jd, args, user_vars)?,
-            "biwheel" | "bi-wheel" | "synastry" | "transit" => dispatch_biwheel(jd, args, user_vars)?,
-            "composite" => dispatch_composite(jd, args, user_vars)?,
-            "triwheel" | "tri-wheel" => dispatch_triwheel(jd, args, user_vars)?,
-            "dial" | "90dial" | "midpoint-dial" => {
-                let v = vars_with_title(user_vars, "90° Midpoint Dial");
-                (specialist::build_dial_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, specialist::render_dial_svg)
-            }
-            "ephemeris" | "graphic-ephemeris" => dispatch_ephemeris(jd, args, user_vars)?,
-            "local-space" | "localspace" => {
-                let v = vars_with_title(user_vars, "Local Space");
-                (specialist::build_local_space_context(jd, args.lat, args.lon, &args.date, v)?, specialist::render_local_space_svg)
-            }
-            "rasi" | "vedic" | "south-indian" => {
-                let v = vars_with_title(user_vars, "Rasi Chart (South Indian)");
-                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?, render_south_indian_svg)
-            }
-            "navamsa" | "d9" => {
-                let v = vars_with_title(user_vars, "Navamsa D9 Chart");
-                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Navamsa")?, vedic::render_navamsa_svg)
-            }
-            "dasha" | "vimshottari" => {
-                let v = vars_with_title(user_vars, "Vimshottari Dasha Timeline");
-                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Dasha")?, vedic::render_dasha_svg)
-            }
-            "north-indian" | "north_indian" => {
-                let v = vars_with_title(user_vars, "North Indian Chart");
-                (vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?, vedic::render_north_indian_svg)
-            }
-            "ashtakavarga" | "ashtak" => {
-                let v = vars_with_title(user_vars, "Ashtakavarga");
-                (vedic::build_ashtakavarga_context(jd, args.lat, args.lon, &args.date, v)?, vedic::render_ashtakavarga_svg)
-            }
-            "shadbala" | "strength" => {
-                let v = vars_with_title(user_vars, "Shadbala");
-                (vedic::build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?, vedic::render_shadbala_svg)
-            }
-            "hellenistic" | "greek" => {
-                let v = vars_with_title(user_vars, "Hellenistic Chart");
-                (hellenistic::build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, hellenistic::render_hellenistic_svg)
-            }
-            "firdaria" | "persian" => {
-                let v = vars_with_title(user_vars, "Firdaria Timeline");
-                (hellenistic::build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?, hellenistic::render_firdaria_svg)
-            }
-            "profection" => dispatch_profection(jd, args, user_vars)?,
-            "bazi" | "four-pillars" | "chinese" => {
-                let v = vars_with_title(user_vars, "Four Pillars (八字)");
-                (chinese::build_bazi_context(jd, args.lat, args.lon, &args.date, v)?, chinese::render_bazi_svg)
-            }
-            "mesoamerican" | "aztec" | "maya" => {
-                let v = vars_with_title(user_vars, "Mesoamerican Calendars");
-                (mesoamerican::build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?, mesoamerican::render_mesoamerican_svg)
-            }
-            "medicine-wheel" | "indigenous" | "egyptian-decans" => {
-                let v = vars_with_title(user_vars, "Medicine Wheel / Egyptian Decans");
-                (indigenous::build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?, indigenous::render_medicine_wheel_svg)
-            }
-            "wheel-of-year" | "sabbats" | "celtic" => {
-                (calendar_wheel::build_sabbat_wheel_context(jd, user_vars.clone())?, calendar_wheel::render_sabbat_wheel_svg)
-            }
-            "omer-grid" | "omer" | "sefirat-haomer" => {
-                (omer_grid::build_omer_grid_context(jd, user_vars.clone())?, omer_grid::render_omer_grid_svg)
-            }
-            "calendar" => (
-                build_calendar_context(jd, args, user_vars)?,
-                calendar_overlays::render_default_calendar_svg,
-            ),
-            other => return Err(format!("unknown --type '{other}'; valid: natal cosmogram solar-return lunar-return progressed solar-arc biwheel composite triwheel dial ephemeris local-space rasi navamsa dasha north-indian ashtakavarga shadbala hellenistic firdaria profection bazi mesoamerican medicine-wheel wheel-of-year omer-grid calendar"))})
+    CHART_REGISTRY
+        .iter()
+        .find(|e| e.aliases.iter().any(|a| *a == chart_type))
+        .map(|e| (e.builder)(jd, args, user_vars))
+        .unwrap_or_else(|| {
+            Err(format!(
+                "unknown --type '{chart_type}'; valid: {}",
+                registered_chart_types()
+            ))
+        })
 }
 
 pub fn run(mut args: RenderArgs) -> Result<(), String> {
