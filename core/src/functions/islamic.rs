@@ -56,7 +56,8 @@ pub const HIJRI_MONTH_NAMES_AR: [&str; 12] = [
 /// Uses the "Kūfan" or "astronomical" variant of the tabular calendar.
 #[must_use]
 pub fn is_hijri_leap_year(year: i32) -> bool {
-    (11 * year + 14) % 30 < 11
+    // i64 multiplication avoids overflow at year ≈ i32::MAX/11.
+    (11_i64 * i64::from(year) + 14) % 30 < 11
 }
 
 /// Number of days in a Hijri month.
@@ -72,7 +73,9 @@ pub fn hijri_month_days(year: i32, month: u8) -> u8 {
 /// Julian day of 1 Muharram of the given Hijri year.
 #[must_use]
 pub fn hijri_new_year_jd(year: i32) -> f64 {
-    HIJRI_EPOCH + (year - 1) as f64 * 354.0 + (11 * year + 3) as f64 / 30.0
+    // Promote to f64 before arithmetic to avoid i32 overflow at extreme years.
+    let y = f64::from(year);
+    HIJRI_EPOCH + (y - 1.0) * 354.0 + (11.0 * y + 3.0) / 30.0
 }
 
 /// Julian day of the first day of a given Hijri month.
@@ -86,15 +89,21 @@ pub fn hijri_month_start_jd(year: i32, month: u8) -> f64 {
 }
 
 /// Convert a Julian day to a Hijri date (year, month, day).
+///
+/// Returns `(1, 1, 1)` for non-finite input.
 #[must_use]
 pub fn hijri_from_jd(jd: f64) -> (i32, u8, u8) {
-    // Approximate year
-    let year = ((jd - HIJRI_EPOCH) / 354.367 + 1.0) as i32;
-    let year = year.max(1);
+    if !jd.is_finite() {
+        return (1, 1, 1);
+    }
+    // Approximate year, clamped to a wide-but-safe range so the refinement
+    // loop below cannot wander into `i32::MAX + 1` overflow territory.
+    let approx = (jd - HIJRI_EPOCH) / 354.367 + 1.0;
+    let year = approx.clamp(1.0, 1_000_000.0) as i32;
 
     // Refine year
     let mut y = year;
-    while hijri_new_year_jd(y + 1) <= jd {
+    while y < i32::MAX && hijri_new_year_jd(y + 1) <= jd {
         y += 1;
     }
     while y > 1 && hijri_new_year_jd(y) > jd {

@@ -54,7 +54,7 @@ pub struct UtcDate {
 pub fn julday(year: i32, month: i32, day: i32, hour: f64, calendar: Calendar) -> f64 {
     // Pure-Rust Meeus algorithm (same regardless of feature flag)
     let (y, m) = if month <= 2 {
-        (year - 1, month + 12)
+        (year.saturating_sub(1), month.saturating_add(12))
     } else {
         (year, month)
     };
