@@ -579,34 +579,40 @@ fn main() -> Result<()> {
 
 ## Chart render types
 
-All types are passed via `celestial render --type <n>`:
+All types are passed via `celestial render --chart-type <n>`. The 27
+registered types and their aliases are derived from `CHART_REGISTRY` in
+[`cli/src/cmd/render/mod.rs`](../cli/src/cmd/render/mod.rs); unknown
+types print the full alias list at runtime.
 
-| Type | Tradition | Phase |
+| Type | Aliases | Tradition |
 |---|---|---|
-| `natal` | Western | 1 |
-| `cosmogram` | Western | 2 |
-| `solar-return` | Western | 2 |
-| `lunar-return` | Western | 2 |
-| `progressed` | Western | 2 |
-| `solar-arc` | Western | 2 |
-| `biwheel` | Western | 2 |
-| `composite` | Western | 3 |
-| `triwheel` | Western | 3 |
-| `dial` | Western | 3 |
-| `ephemeris` | Western | 3 |
-| `local-space` | Western | 3 |
-| `rasi` | Vedic | 4 |
-| `north-indian` | Vedic | 4 |
-| `navamsa` | Vedic | 4 |
-| `dasha` | Vedic | 4 |
-| `ashtakavarga` | Vedic | 4 |
-| `shadbala` | Vedic | 4 |
-| `hellenistic` | Hellenistic | 5 |
-| `firdaria` | Persian | 5 |
-| `profection` | Hellenistic | 5 |
-| `bazi` | Chinese | 6 |
-| `mesoamerican` | Mesoamerican | 7 |
-| `medicine-wheel` | Indigenous | 8 |
+| `natal` | (default — empty `--chart-type` also matches) | Western |
+| `cosmogram` | — | Western |
+| `solar-return` | `solar_return` | Western |
+| `lunar-return` | `lunar_return` | Western |
+| `progressed` | `secondary` | Western |
+| `solar-arc` | `solar_arc` | Western |
+| `biwheel` | `bi-wheel`, `synastry`, `transit` | Western |
+| `composite` | — | Western |
+| `triwheel` | `tri-wheel` | Western |
+| `dial` | `90dial`, `midpoint-dial` | Western (Uranian) |
+| `ephemeris` | `graphic-ephemeris` | Western |
+| `local-space` | `localspace` | Western |
+| `rasi` | `vedic`, `south-indian` | Vedic |
+| `navamsa` | `d9` | Vedic |
+| `dasha` | `vimshottari` | Vedic |
+| `north-indian` | `north_indian` | Vedic |
+| `ashtakavarga` | `ashtak` | Vedic |
+| `shadbala` | `strength` | Vedic |
+| `hellenistic` | `greek` | Hellenistic |
+| `firdaria` | `persian` | Persian |
+| `profection` | — | Hellenistic |
+| `bazi` | `four-pillars`, `chinese` | Chinese |
+| `mesoamerican` | `aztec`, `maya` | Mesoamerican |
+| `medicine-wheel` | `indigenous`, `egyptian-decans` | Indigenous |
+| `wheel-of-year` | `sabbats`, `celtic` | Celtic |
+| `omer-grid` | `omer`, `sefirat-haomer` | Jewish |
+| `calendar` | — | Multi-tradition |
 
 ---
 
@@ -719,7 +725,7 @@ Structurally similar to Chinese calendar but uses UTC+7 for month boundaries (si
 The workspace provides `cargo xtask` commands for binding maintenance:
 
 ```bash
-cargo xtask parity            # Check Python / JS / PHP export identical function sets (191/191/191)
+cargo xtask parity            # Check Python / JS / PHP export identical function sets (198/198/198)
 cargo xtask codegen           # Preview stubs for functions missing from bindings
 cargo xtask codegen --apply   # Write generated stubs into the binding sources
 cargo xtask stubs             # Regenerate bindings/php/phpstan-stubs.php (396 symbols)

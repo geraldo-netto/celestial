@@ -47,9 +47,8 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
 # Full workspace build
 cargo build
 
-# Tests — 689 unit/integration + 83 fuzz suites (~1M property checks)
-cargo test --package celestial-core -- --test-threads=1
-cargo test --package celestial-cli
+# Tests — 1100+ unit/integration + 84 fuzz suites (~22M property checks)
+cargo test --workspace
 cargo run  --manifest-path fuzz/Cargo.toml
 
 # Install CLI
@@ -422,7 +421,7 @@ The **graphic ephemeris** plots each planet's ecliptic longitude against time. R
 
 ### Vedic / Jyotish charts
 
-All Vedic charts use sidereal (Lahiri ayanamsa) positions via `--type`:
+All Vedic charts use sidereal (Lahiri ayanamsa) positions via `--chart-type`:
 
 ```bash
 # South Indian Rasi chart (fixed-sign 4×4 grid)

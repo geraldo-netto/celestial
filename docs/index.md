@@ -34,7 +34,7 @@ The engine now covers **19 additional functions** across 7 features — see
 | Tibetan Phugpa | Losar (New Year) + Rabjung cycle year names |
 | Vietnamese Âm Lịch | UTC+7 month boundaries — diverges from Chinese ~4% of days |
 
-All 19 functions are exported from **Python**, **JavaScript**, and **PHP** (191 per binding).
+All 19 functions are exported from **Python**, **JavaScript**, and **PHP** (198 per binding).
 
 ## Feature flags
 
@@ -129,9 +129,9 @@ celestial/
 │   │       ├── mesoamerican.rs Tonalpohualli, Tzolkin, Haab
 │   │       └── indigenous.rs   Medicine Wheel, Egyptian decans
 ├── cli/src/cmd/render/         27 chart-type SVG builders + 6 calendar overlays
-├── bindings/python/            PyO3 — 191 functions + celestial_py.pyi stubs (198 typed)
-├── bindings/js/                napi-rs — 191 functions + index.d.ts (272 typed — structs + consts)
-├── bindings/php/               ext-php-rs — 191 functions + phpstan-stubs.php (396 symbols)
+├── bindings/python/            PyO3 — 198 functions + celestial_py.pyi stubs (198 typed)
+├── bindings/js/                napi-rs — 198 functions + index.d.ts (272 typed — structs + consts)
+├── bindings/php/               ext-php-rs — 198 functions + phpstan-stubs.php (396 symbols)
 └── tests/fixtures/             reference_values.json — cross-language test fixture
 ```
 
@@ -157,10 +157,10 @@ Five independent pipelines, each triggered on changes to its crate or `core/`:
 
 | Pipeline | Jobs |
 |---|---|
-| **celestial-core** | `lint` (fmt + clippy) → `test` (532 tests) ‖ `fuzz` (83 suites, ~1M property checks) |
-| **celestial-cli** | `lint` (clippy) → `test` (133 tests) → `build` (3 OS) |
-| **celestial-python** | `lint-rs` ‖ `lint-py` (black + ruff) → `test` (245 pure-logic) → `build` (maturin wheel) |
-| **celestial-js** | `lint-rs` ‖ `lint-ts` (eslint + tsc) → `test` (162 pure-logic) → `build` (napi-rs addon) |
+| **celestial-core** | `lint` (fmt + clippy) → `test` (955 tests) ‖ `fuzz` (84 suites, ~22M property checks) |
+| **celestial-cli** | `lint` (clippy) → `test` (154 tests) → `build` (3 OS) |
+| **celestial-python** | `lint-rs` ‖ `lint-py` (black + ruff) → `test` (216 pure-logic) → `build` (maturin wheel) |
+| **celestial-js** | `lint-rs` ‖ `lint-ts` (eslint + tsc) → `test` (142 pure-logic) → `build` (napi-rs addon) |
 | **celestial-php** | `lint-rs` → `build` (ext-php-rs + pure-logic tests, PHP 8.1) |
 
 `lint-rs` and `lint-py`/`lint-ts` always run in parallel with strict scope.

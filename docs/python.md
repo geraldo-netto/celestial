@@ -386,7 +386,7 @@ house, degree = celestial.monthly_profection(cusps, age_years=35, age_months=6)
 A full `celestial_py.pyi` stub file ships with the binding at
 `bindings/python/python/celestial_py/celestial_py.pyi`.
 
-It covers all 130 exported functions and the following named types:
+It covers all 198 exported functions and the following named types:
 
 | Class | Fields |
 |---|---|

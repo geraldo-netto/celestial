@@ -9,7 +9,7 @@ with all test, lint, and formatting commands.
 
 | Tool | Version | Install |
 |---|---|---|
-| Rust + Cargo | stable ≥ 1.75 | `curl https://sh.rustup.rs -sSf \| sh` (Linux/macOS) · [rustup.rs](https://rustup.rs) (Windows) |
+| Rust + Cargo | stable ≥ 1.82 (workspace MSRV) | `curl https://sh.rustup.rs -sSf \| sh` (Linux/macOS) · [rustup.rs](https://rustup.rs) (Windows) |
 | Node.js | ≥ 18 | <https://nodejs.org> |
 | Python | ≥ 3.8 | <https://python.org> |
 | maturin | ≥ 1.4 | `pip install maturin` |
@@ -60,7 +60,7 @@ cargo test --package celestial-core --test chinese_test     -- --test-threads=1
 cargo test --package celestial-core --test mesoamerican_test -- --test-threads=1
 cargo test --package celestial-core --test indigenous_test  -- --test-threads=1
 
-# Property-based fuzz tests (all 74 suites, ~60 s)
+# Property-based fuzz tests (all 84 suites, ~22M property checks, ~60 s)
 cargo run --manifest-path fuzz/Cargo.toml
 
 # Benchmarks
@@ -82,7 +82,7 @@ cargo install --path cli
 cargo clippy --package celestial-cli \
   -- -D clippy::correctness -D clippy::suspicious -D clippy::perf
 
-# Tests (133 tests)
+# Tests (154 tests)
 cargo test --package celestial-cli
 
 # Release binary only
@@ -126,7 +126,7 @@ mypy python/celestial_py/celestial_py.pyi --ignore-missing-imports
 # Format — Python side
 black python/
 
-# Tests (245 passing, 21 skipped — skipped tests require a built wheel)
+# Tests (216 pure-logic passing; extension tests skipped without a built wheel)
 pip install pytest
 python3 -m pytest python/celestial_py/tests/pure_logic_test.py -v
 
@@ -161,7 +161,7 @@ npx tsc --noEmit           # or: npm run typecheck
 # Lint TypeScript
 npx eslint tests/          # or: npm run lint
 
-# Pure-logic tests (216+ tests across JS/PHP pure-logic suites)
+# Pure-logic tests (142 passing — no built addon required)
 node tests/pure_logic.test.mjs
 
 # Full test suite (requires built .node addon)
@@ -281,8 +281,8 @@ crate or `core/`:
 
 | Pipeline | Trigger path | Jobs |
 |---|---|---|
-| `celestial-core` | `core/**`, `fuzz/**` | lint → test (514) ‖ fuzz (74 suites, ~1M checks) |
-| `celestial-cli` | `cli/**`, `core/**` | lint → test (81) → release build |
+| `celestial-core` | `core/**`, `fuzz/**` | lint → test (955) ‖ fuzz (84 suites, ~22M checks) |
+| `celestial-cli` | `cli/**`, `core/**` | lint → test (154) → release build |
 | `celestial-python` | `bindings/python/**`, `core/**` | clippy → ruff/mypy → pytest |
 | `celestial-js` | `bindings/js/**`, `core/**` | clippy → tsc/eslint → node tests |
 | `celestial-php` | `bindings/php/**`, `core/**` | clippy → phpstan |
