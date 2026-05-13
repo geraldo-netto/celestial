@@ -556,13 +556,7 @@ fn toml_value_to_string(v: &toml::Value) -> String {
     }
 }
 
-/// Read a TOML config file and merge its defaults into `args` (only fields
-/// still at their sentinel defaults are overridden) and return its `[vars]`
-/// map. Returns an empty map if no config file is specified.
-/// Apply `Some(value)` to `*field` only if the predicate `should_override` is `true`.
-/// This reads as "fill in this defaultable field from the config when the
-/// caller hasn't already provided one", flattening the very common
-/// `if cond { if let Some(v) = opt { *field = v; } }` triple-nested idiom.
+/// Apply `Some(value)` to `*field` only if `should_override` is `true`.
 fn override_if<T>(field: &mut T, candidate: Option<T>, should_override: bool) {
     if should_override {
         if let Some(v) = candidate {
@@ -571,6 +565,9 @@ fn override_if<T>(field: &mut T, candidate: Option<T>, should_override: bool) {
     }
 }
 
+/// Read a TOML config file and merge its defaults into `args` (only fields
+/// still at their sentinel defaults are overridden), returning its `[vars]`
+/// map. Empty map if no config file is specified.
 fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, String>, String> {
     let mut file_vars = BTreeMap::new();
     let Some(cfg_path) = args.config.clone() else {
@@ -873,10 +870,6 @@ fn write_or_print(output: &str, path: Option<&PathBuf>) -> Result<(), String> {
     Ok(())
 }
 
-/// Build the chart context and select the SVG renderer for the requested
-/// `--chart-type`. Pulled out of [`run`] so the 27-arm dispatch lives in
-/// its own named scope, keeping `run` readable and reducing its cognitive
-/// complexity.
 /// Clone `user_vars` and ensure a `title` field exists, using `default`
 /// only when the user didn't supply one via `--var title=…`.
 fn vars_with_title(
@@ -1099,6 +1092,8 @@ fn dispatch_profection(
     ))
 }
 
+/// Build the chart context and select the SVG renderer for the requested
+/// `--chart-type`.
 fn dispatch_chart_type(
     chart_type: &str,
     jd: f64,

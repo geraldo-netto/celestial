@@ -1,9 +1,6 @@
 //! Hebrew calendar arithmetic — re-exports the canonical implementation
 //! from [`crate::functions::omer`] under shorter, calendar-tradition names.
-//!
-//! Historically this module duplicated the postponement-rule (dechiyot)
-//! algorithm. Both copies are mathematically identical, so the duplicate
-//! was removed in favour of these aliases. Tests live in `omer.rs`.
+//! Tests live in `omer.rs`.
 
 pub use crate::functions::omer::{
     approx_hebrew_year as approx_year, days_in_hebrew_year as days_in_year, elapsed_days,

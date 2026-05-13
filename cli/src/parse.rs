@@ -99,11 +99,7 @@ pub fn default_bodies() -> Vec<i32> {
     ]
 }
 
-/// Body number → display name.
 /// Human-readable body name.
-///
-/// Thin CLI wrapper around [`Body::name`] — kept for backwards-compatible
-/// import paths.
 pub fn body_name(body: Body) -> &'static str {
     body.name()
 }

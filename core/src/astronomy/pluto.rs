@@ -69,8 +69,6 @@ pub fn pluto_pos(jde: f64) -> (f64, f64, f64) {
 
     for &(jc, sc, pc, la, lb, ba, bb, ra, rb) in coeffs {
         let arg = jc * j + sc * s + pc * p;
-        // Each iteration originally called sin()+cos() three times each.
-        // Pair them once via sin_cos() and reuse.
         let (sa, ca) = arg.sin_cos();
         lon_sum += la * sa + lb * ca;
         lat_sum += ba * sa + bb * ca;

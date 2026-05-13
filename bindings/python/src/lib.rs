@@ -1526,9 +1526,6 @@ fn tibetan_year_name(py: Python<'_>, year: i32) -> PyObject {
     celestial::tibetan_year_name(year).into_py(py)
 }
 
-// ─── Extracted inline pyfunctions (originally defined inside the pymodule) ───
-// Moved out for clippy::too_many_lines; the pymodule body now only registers them.
-
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 fn ic_transit_ut(
