@@ -661,18 +661,23 @@ mod tests {
     /// outer planets tightest. Values used in aspect-orb calculation.
     #[test]
     fn orb_weight_tiers() {
-        assert_eq!(Body::SUN.orb_weight(), 2.0);
-        assert_eq!(Body::MOON.orb_weight(), 2.0);
-        assert_eq!(Body::MERCURY.orb_weight(), 1.5);
-        assert_eq!(Body::VENUS.orb_weight(), 1.5);
-        assert_eq!(Body::MARS.orb_weight(), 1.5);
-        assert_eq!(Body::JUPITER.orb_weight(), 1.0);
-        assert_eq!(Body::SATURN.orb_weight(), 1.0);
-        assert_eq!(Body::URANUS.orb_weight(), 0.75);
-        assert_eq!(Body::NEPTUNE.orb_weight(), 0.75);
-        assert_eq!(Body::PLUTO.orb_weight(), 0.75);
-        assert_eq!(Body::CHIRON.orb_weight(), 0.75);
-        assert_eq!(Body::MEAN_NODE.orb_weight(), 0.75);
+        const EXPECTED: &[(Body, f64)] = &[
+            (Body::SUN, 2.0),
+            (Body::MOON, 2.0),
+            (Body::MERCURY, 1.5),
+            (Body::VENUS, 1.5),
+            (Body::MARS, 1.5),
+            (Body::JUPITER, 1.0),
+            (Body::SATURN, 1.0),
+            (Body::URANUS, 0.75),
+            (Body::NEPTUNE, 0.75),
+            (Body::PLUTO, 0.75),
+            (Body::CHIRON, 0.75),
+            (Body::MEAN_NODE, 0.75),
+        ];
+        for &(body, expected) in EXPECTED {
+            assert_eq!(body.orb_weight(), expected, "{body:?}");
+        }
     }
 
     #[test]
