@@ -68,6 +68,42 @@ fn builtin_natal_has_three_wheels() {
 }
 
 #[test]
+fn builtin_natal_legend_signs_use_tspan_colour_and_symbol_font() {
+    // Table rows (planet legend, angles, houses, arabic parts) wrap the
+    // trailing zodiac glyph in a `<tspan>` carrying the symbol-font
+    // stack and the element colour, so glyphs in tables render with
+    // the same fidelity as those on the wheel.
+    let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_table_signs.svg");
+    let tspans: Vec<&str> = svg.lines().filter(|l| l.contains("<tspan")).collect();
+    assert!(
+        tspans.len() >= 12,
+        "expected ≥ 12 sign tspans across the legend tables, got {}",
+        tspans.len()
+    );
+    for needle in [
+        "fill=\"#c1272d\"",
+        "fill=\"#5a7a30\"",
+        "fill=\"#c4a017\"",
+        "fill=\"#1a5fb4\"",
+    ] {
+        assert!(
+            tspans.iter().any(|t| t.contains(needle)),
+            "no table sign tspan painted in element colour `{needle}`"
+        );
+    }
+    assert!(
+        tspans.iter().all(|t| t.contains("Segoe UI Symbol")),
+        "every legend tspan must use the symbol-font stack"
+    );
+    // And the chart must contain zero `font-family="serif"` declarations —
+    // every glyph (sign + planet) now routes through the symbol stack.
+    assert!(
+        !svg.contains("font-family=\"serif\""),
+        "no glyph should fall back to plain `serif`"
+    );
+}
+
+#[test]
 fn builtin_natal_signs_use_element_colors_and_symbol_font() {
     // Zodiac glyphs render in their classical element colour (fire=red
     // c1272d, earth=green 5a7a30, air=gold c4a017, water=blue 1a5fb4)

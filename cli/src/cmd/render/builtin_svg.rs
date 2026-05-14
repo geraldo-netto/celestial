@@ -185,16 +185,57 @@ fn write_signs(s: &mut String, pal: &Palette, signs: &[Value]) {
     }
 }
 
-/// Font stack for the zodiac glyphs. We prefer fonts that ship a
-/// high-quality dedicated outline for the U+2648..U+2653 block
-/// (Aries..Pisces): `Segoe UI Symbol` (Windows), `Apple Symbols` and
-/// `STIXTwoText` (macOS), `Noto Sans Symbols2` (Linux). Falling back to
-/// generic `serif` last produces the chunky bitmap-style glyph that the
-/// previous wheel suffered from. Use bigger size (22 vs 15) + medium
-/// weight (500 — 600 was too bold and caused vector-fill artefacts in
-/// some renderers).
-const SIGN_FONT_FAMILY: &str =
+/// Font stack for astrological glyphs — both zodiac signs
+/// (U+2648..U+2653) and planet symbols (U+2609, U+263D, U+263F,
+/// U+2640..U+2647, U+260A, U+26B7). We prefer fonts that ship
+/// high-quality dedicated outlines for these blocks: `Segoe UI
+/// Symbol` (Windows), `Apple Symbols` and `STIX Two Text` (macOS),
+/// `Noto Sans Symbols2` (Linux). Falling back to generic `serif`
+/// last produces the chunky bitmap-style glyph that earlier
+/// revisions of the wheel suffered from.
+const GLYPH_FONT_FAMILY: &str =
     "'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif";
+
+/// Resolve the element colour for a zodiac sign glyph (`♈`..`♓`,
+/// U+2648..U+2653). Returns `None` when `g` is not a sign glyph — the
+/// caller then keeps the surrounding text colour.
+fn sign_glyph_color(g: char) -> Option<&'static str> {
+    let idx = (g as u32).checked_sub(0x2648)?;
+    Some(match idx % 4 {
+        0 => "#c1272d", // Fire — Aries, Leo, Sagittarius
+        1 => "#5a7a30", // Earth — Taurus, Virgo, Capricorn
+        2 => "#c4a017", // Air — Gemini, Libra, Aquarius
+        _ => "#1a5fb4", // Water — Cancer, Scorpio, Pisces
+    })
+}
+
+/// Split a degree-minute-second string (e.g. `"09°51'58\"♑"`) into its
+/// numeric prefix and trailing sign glyph. Returns `None` when no zodiac
+/// sign glyph is present.
+fn split_dms_sign(dms: &str) -> Option<(&str, char, &'static str)> {
+    let last = dms.chars().last()?;
+    let col = sign_glyph_color(last)?;
+    let prefix = &dms[..dms.len() - last.len_utf8()];
+    Some((prefix, last, col))
+}
+
+/// Compose a `<text>` element that renders a DMS string with the
+/// numeric prefix in the row's text colour + base font, and the
+/// trailing sign glyph in its element colour + the symbol font stack.
+/// Falls back to a single-font emission when no sign glyph is present.
+fn write_dms_text(s: &mut String, x: f64, y: f64, dms: &str, txt: &str) {
+    if let Some((pfx, g, gc)) = split_dms_sign(dms) {
+        let _ = writeln!(
+            s,
+            r##"  <text x="{x:.2}" y="{y:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{pfx}<tspan font-family="{GLYPH_FONT_FAMILY}" font-size="13" fill="{gc}">{g}</tspan></text>"##
+        );
+    } else {
+        let _ = writeln!(
+            s,
+            r##"  <text x="{x:.2}" y="{y:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>"##
+        );
+    }
+}
 
 fn write_sign(s: &mut String, pal: &Palette, sign: &Value) {
     let ring = pal.ring;
@@ -209,7 +250,7 @@ fn write_sign(s: &mut String, pal: &Palette, sign: &Value) {
     let _ = writeln!(
         s,
         r##"  <line x1="{sx1:.2}" y1="{sy1:.2}" x2="{sx2:.2}" y2="{sy2:.2}" stroke="{ring}" stroke-width="1.5" opacity=".55"/>
-  <text x="{gx:.2}" y="{gy:.2}" font-size="22" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="{SIGN_FONT_FAMILY}" fill="{col}">{g}</text>"##
+  <text x="{gx:.2}" y="{gy:.2}" font-size="22" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{col}">{g}</text>"##
     );
 }
 
@@ -372,7 +413,7 @@ fn write_planet(s: &mut String, pal: &Palette, p: &Value, lon_i: f64, placed_ang
     let _ = writeln!(
         s,
         r##"  <line x1="{tx1:.2}" y1="{ty1:.2}" x2="{tx2:.2}" y2="{ty2:.2}" stroke="{col}" stroke-width="1.0" opacity=".55"/>
-  <text x="{px:.2}" y="{py:.2}" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g}</text>
+  <text x="{px:.2}" y="{py:.2}" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{col}">{g}</text>
   <text x="{lx:.2}" y="{ly:.2}" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{dl}</text>"##
     );
     if p["near_station"].as_bool().unwrap_or(false) {
@@ -412,13 +453,15 @@ fn write_planet_legend_row(s: &mut String, pal: &Palette, p: &Value, c1x: f64, r
     let sop = if ret { "1" } else { ".4" };
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="14" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".75">{name}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{scol}" opacity="{sop}">{spd}</text>"##,
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="14" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{col}">{g}</text>
+  <text x="{:.2}" y="{ry:.2}" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".75">{name}</text>"##,
         c1x + 2.0,
         c1x + 20.0,
-        c1x + 120.0,
+    );
+    write_dms_text(s, c1x + 120.0, ry, dms, txt);
+    let _ = writeln!(
+        s,
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{scol}" opacity="{sop}">{spd}</text>"##,
         c1x + 222.0
     );
 }
@@ -464,11 +507,13 @@ fn write_angle_legend_row(
     let (ring, txt) = (pal.ring, pal.txt);
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" font-weight="700" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{name}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{lon2:.4}&#176;</text>"##,
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" font-weight="700" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{name}</text>"##,
         c2x + 2.0,
-        c2x + 38.0,
+    );
+    write_dms_text(s, c2x + 38.0, ry, dms, txt);
+    let _ = writeln!(
+        s,
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{lon2:.4}&#176;</text>"##,
         c2x + 150.0
     );
 }
@@ -492,12 +537,14 @@ fn write_house_legend_row(s: &mut String, pal: &Palette, h: &Value, i: usize, c2
     let hlon = h["lon"].as_f64().unwrap_or(0.0);
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".55">H{}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{hlon:.4}&#176;</text>"##,
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".55">H{}</text>"##,
         c2x + 2.0,
         i + 1,
-        c2x + 28.0,
+    );
+    write_dms_text(s, c2x + 28.0, ry, dms, txt);
+    let _ = writeln!(
+        s,
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{hlon:.4}&#176;</text>"##,
         c2x + 138.0
     );
 }
@@ -543,8 +590,8 @@ fn write_aspect_legend_row(s: &mut String, pal: &Palette, asp: &Value, c3x: f64,
     let an4 = &aname[..aname.len().min(4)];
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g1}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g2}</text>
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{col}">{g1}</text>
+  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{col}">{g2}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{an4}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".7">{orb:.2}&#176;</text>
   <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".5">{aind}</text>
@@ -601,7 +648,7 @@ fn write_dignity_row(s: &mut String, pal: &Palette, p: &Value, c1x: f64, ry: f64
     let dcol = dignity_color(dig);
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{ring}">{g}</text>
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{ring}">{g}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{dcol}" font-weight="500">{dig}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{sign_nm}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".45">{name}</text>"##,
@@ -635,11 +682,13 @@ fn write_arabic_part_row(s: &mut String, pal: &Palette, p: &Value, c2x: f64, ry:
     let sign_nm = p["sign"].as_str().unwrap_or("");
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{soft_c}" opacity=".8">{name}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{dms}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".45">{sign_nm}</text>"##,
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{soft_c}" opacity=".8">{name}</text>"##,
         c2x + 2.0,
-        c2x + 125.0,
+    );
+    write_dms_text(s, c2x + 125.0, ry, dms, txt);
+    let _ = writeln!(
+        s,
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".45">{sign_nm}</text>"##,
         c2x + 210.0,
     );
 }
