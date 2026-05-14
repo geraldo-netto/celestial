@@ -111,7 +111,7 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     write_aspects_legend(&mut s, &pal, aspects, c3x, layout.ly);
 
     write_dignities(&mut s, &pal, planets, c1x, layout.dig_y);
-    write_glyph_legend(&mut s, &pal, c1x, c2x, c3x, layout.gl_y);
+    write_glyph_legend(&mut s, &pal, layout.gl_y);
 
     write_footer(&mut s, &pal, layout.footer_y);
     s
@@ -732,8 +732,8 @@ const PLANET_LEGEND: &[(&str, &str)] = &[
     ("\u{2645}\u{FE0E}", "Uranus"),
     ("\u{2646}\u{FE0E}", "Neptune"),
     ("\u{2647}\u{FE0E}", "Pluto"),
-    ("\u{260A}\u{FE0E}", "Mean Node (North)"),
-    ("\u{260B}\u{FE0E}", "South Node"),
+    ("\u{260A}\u{FE0E}", "Node (North)"),
+    ("\u{260B}\u{FE0E}", "Node (South)"),
     ("\u{26B7}\u{FE0E}", "Chiron"),
 ];
 
@@ -757,31 +757,58 @@ const SIGN_LEGEND: &[(&str, &str)] = &[
 /// always fall back to the text path in `emit_glyph` — which is the
 /// right thing here, since "ASC" et al. aren't single glyphs.
 const ANGLE_LEGEND: &[(&str, &str)] = &[
-    ("ASC", "Ascendant — eastern horizon, rising sign"),
+    ("ASC", "Ascendant — rising sign"),
     ("MC", "Midheaven — culminating point"),
-    ("DSC", "Descendant — western horizon"),
+    ("DSC", "Descendant — setting sign"),
     ("IC", "Imum Coeli — lowest culmination"),
     ("\u{211E}", "Retrograde motion"),
 ];
 
-/// Symbol-reference table. Three columns side by side: planets,
-/// zodiac signs, and chart angles. Each row pairs the on-wheel glyph
-/// (rendered identically to its wheel counterpart via `emit_glyph`,
-/// so it picks up the `glyph_paths` vector path or the text fallback)
-/// with a one-line description.
-fn write_glyph_legend(s: &mut String, pal: &Palette, c1x: f64, c2x: f64, c3x: f64, gl_y: f64) {
+/// `(abbreviation, full-name)` pairs for the aspect column of the
+/// symbol-reference table. The abbreviation column matches the 4-char
+/// truncation produced by `write_aspect_legend_row` (see ASPECT_DEFS
+/// in `mod.rs`); listing the full names side-by-side disambiguates
+/// the unavoidable collisions like "semi" (Semi-sextile / Semi-square)
+/// and "quin" (Quincunx / Quintile).
+const ASPECT_LEGEND: &[(&str, &str)] = &[
+    ("conj", "Conjunction (0°)"),
+    ("sext", "Sextile (60°)"),
+    ("squa", "Square (90°)"),
+    ("trin", "Trine (120°)"),
+    ("quin", "Quincunx (150°)"),
+    ("oppo", "Opposition (180°)"),
+    ("semi", "Semi-sextile (30°)"),
+    ("semi", "Semi-square (45°)"),
+    ("quin", "Quintile (72°)"),
+    ("sesq", "Sesquiquadrate (135°)"),
+    ("biqu", "Biquintile (144°)"),
+    ("sept", "Septile (51.43°)"),
+];
+
+const GL_X1: f64 = 24.0;
+const GL_X2: f64 = 240.0;
+const GL_X3: f64 = 456.0;
+const GL_X4: f64 = 672.0;
+const GL_COL_W: f64 = 210.0;
+
+/// Symbol-reference table. Four columns side by side: planets,
+/// zodiac signs, chart angles, and aspects. Each row pairs the
+/// on-wheel glyph or abbreviation (rendered identically to its
+/// wheel / aspects-table counterpart) with a one-line description.
+fn write_glyph_legend(s: &mut String, pal: &Palette, gl_y: f64) {
     let ring = pal.ring;
     let _ = writeln!(
         s,
-        r##"  <text x="{c1x}" y="{gl_y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Symbol reference</text>
-  <line x1="{c1x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
+        r##"  <text x="{GL_X1:.2}" y="{gl_y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Symbol reference</text>
+  <line x1="{GL_X1:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
         gl_y + 3.0,
-        c3x + 292.0,
+        GL_X4 + GL_COL_W,
         gl_y + 3.0
     );
-    write_legend_column(s, pal, "Planets", PLANET_LEGEND, c1x, gl_y);
-    write_legend_column(s, pal, "Signs", SIGN_LEGEND, c2x, gl_y);
-    write_legend_column(s, pal, "Angles", ANGLE_LEGEND, c3x, gl_y);
+    write_legend_column(s, pal, "Planets", PLANET_LEGEND, GL_X1, gl_y);
+    write_legend_column(s, pal, "Signs", SIGN_LEGEND, GL_X2, gl_y);
+    write_legend_column(s, pal, "Angles", ANGLE_LEGEND, GL_X3, gl_y);
+    write_legend_column(s, pal, "Aspects", ASPECT_LEGEND, GL_X4, gl_y);
 }
 
 fn write_legend_column(
@@ -802,13 +829,37 @@ fn write_legend_column(
     for (i, (glyph, desc)) in rows.iter().enumerate() {
         let ry = y0 + 36.0 + i as f64 * RH2;
         let col = legend_glyph_color(pal, glyph);
-        emit_glyph(s, glyph, x + 10.0, ry, 16.0, col);
+        // Multi-letter abbreviations (ASC/MC/IC/conj/semi/…) render as
+        // left-aligned plain text in the chart's accent ring colour so
+        // they don't get mistaken for symbol glyphs. Single-codepoint
+        // entries (planet/sign Unicode + retrograde ℞) still route
+        // through `emit_glyph` and get the embedded vector path.
+        if is_text_abbrev(glyph) {
+            let _ = writeln!(
+                s,
+                r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{glyph}</text>"##,
+                x + 2.0,
+            );
+        } else {
+            emit_glyph(s, glyph, x + 10.0, ry, 16.0, col);
+        }
         let _ = writeln!(
             s,
             r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{desc}</text>"##,
-            x + 24.0,
+            x + 38.0,
         );
     }
+}
+
+/// `true` when `s` is a multi-character ASCII abbreviation rather than
+/// a single-codepoint Unicode glyph. Used by `write_legend_column` to
+/// pick the left-aligned text-only row layout for ASC/MC/IC/conj/…
+/// entries vs the centred `<use>` glyph layout for planet / sign
+/// symbols.
+fn is_text_abbrev(s: &str) -> bool {
+    let mut chars = s.chars();
+    let first = chars.next();
+    first.is_some_and(|c| c.is_ascii_alphabetic()) && chars.next().is_some()
 }
 
 /// Look up the colour for a legend glyph. Planet code-points come

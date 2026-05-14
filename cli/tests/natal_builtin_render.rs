@@ -414,18 +414,22 @@ fn builtin_natal_renders_symbol_legend_table() {
         svg.contains("Symbol reference"),
         "header `Symbol reference` missing"
     );
-    for sub in ["Planets", "Signs", "Angles"] {
+    for sub in ["Planets", "Signs", "Angles", "Aspects"] {
         let needle = format!(">{sub}<");
         assert!(svg.contains(&needle), "sub-heading `{sub}` missing");
     }
     // A representative cross-section of the descriptions: one body, one
-    // sign, one angle, plus the retrograde marker.
+    // sign, one angle, plus the retrograde marker, plus a couple of
+    // aspect rows so the new Aspects column is pinned.
     for desc in [
         "Sun",
         "Aries",
-        "Ascendant — eastern horizon, rising sign",
+        "Ascendant — rising sign",
         "Midheaven — culminating point",
         "Retrograde motion",
+        "Conjunction (0°)",
+        "Square (90°)",
+        "Sesquiquadrate (135°)",
     ] {
         assert!(svg.contains(desc), "legend row `{desc}` missing");
     }

@@ -364,7 +364,7 @@ pub(super) const BODIES: &[(Body, &str, &str, &str)] = &[
     (Body::URANUS, "uranus", "Uranus", "\u{2645}\u{FE0E}"),
     (Body::NEPTUNE, "neptune", "Neptune", "\u{2646}\u{FE0E}"),
     (Body::PLUTO, "pluto", "Pluto", "\u{2647}\u{FE0E}"),
-    (Body::MEAN_NODE, "mean_node", "Mean Node", "\u{260A}\u{FE0E}"),
+    (Body::MEAN_NODE, "mean_node", "Node (North)", "\u{260A}\u{FE0E}"),
     (Body::CHIRON, "chiron", "Chiron", "\u{26B7}\u{FE0E}"),
 ];
 

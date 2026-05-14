@@ -164,7 +164,7 @@ fn synthesize_south_node(planets: &[Value], asc: f64) -> Option<Value> {
         if retro { "\u{211E}" } else { "" }
     );
     Some(json!({
-        "name":          "South Node",
+        "name":          "Node (South)",
         "key":           "south_node",
         "glyph":         "\u{260B}\u{FE0E}",
         "color":         body_color("south_node"),
