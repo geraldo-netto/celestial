@@ -403,6 +403,44 @@ fn builtin_natal_house_numbers_sit_inside_house_band() {
     );
 }
 
+#[test]
+fn builtin_natal_renders_symbol_legend_table() {
+    // The bottom of the chart now carries a "Symbol reference" table
+    // pairing every wheel glyph with a plain-English label, replacing
+    // the Arabic-Parts and Solar-Cycle blocks. The underlying values
+    // remain in the JSON context for custom templates, but the
+    // built-in renderer no longer surfaces them as tables.
+    let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_legend.svg");
+    assert!(
+        svg.contains("Symbol reference"),
+        "header `Symbol reference` missing"
+    );
+    for sub in ["Planets", "Signs", "Angles"] {
+        let needle = format!(">{sub}<");
+        assert!(svg.contains(&needle), "sub-heading `{sub}` missing");
+    }
+    // A representative cross-section of the descriptions: one body, one
+    // sign, one angle, plus the retrograde marker.
+    for desc in [
+        "Sun",
+        "Aries",
+        "Ascendant — eastern horizon, rising sign",
+        "Midheaven — culminating point",
+        "Retrograde motion",
+    ] {
+        assert!(svg.contains(desc), "legend row `{desc}` missing");
+    }
+    // The replaced tables must NOT appear in the built-in SVG.
+    assert!(
+        !svg.contains(">Arabic Parts<"),
+        "Arabic Parts table should be removed from the built-in chart"
+    );
+    assert!(
+        !svg.contains(">Solar Cycle<"),
+        "Solar Cycle table should be removed from the built-in chart"
+    );
+}
+
 fn extract_attr(line: &str, attr: &str) -> Option<f64> {
     let key = format!("{attr}=\"");
     let i = line.find(&key)? + key.len();

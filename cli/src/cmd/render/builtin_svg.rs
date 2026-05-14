@@ -114,18 +114,15 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     let dig_y = ly + 16.0 + planets.len() as f64 * RH2 + 12.0;
     write_dignities(&mut s, &pal, planets, c1x, dig_y);
 
-    let ap_y = dig_y + 26.0 + planets.len() as f64 * RH2 + 8.0;
-    write_arabic_parts(&mut s, &pal, ctx, c2x, ap_y);
-
-    // Solar cycle box: sits in the centre column (c2x) below the Arabic
-    // Parts block. The right column (c3x) holds the aspects legend which
-    // grows with chart busy-ness — keeping solar cycle out of c3x avoids
-    // overlap on charts with many active aspects. 7 Arabic Parts rows +
-    // a 14-px header + 16-px row spacing → arabic table ends at
-    // ap_y + 14 + 7·RH2 ≈ ap_y + 126; pad 20 px before solar block.
-    let arabic_rows = 7.0;
-    let sc_y = ap_y + 14.0 + arabic_rows * RH2 + 20.0;
-    write_solar_cycle(&mut s, &pal, ctx, c2x, sc_y);
+    // Symbol reference table replaces the Arabic-Parts and Solar-Cycle
+    // tables. The underlying values are still in the JSON context
+    // (`ctx["arabic_parts"]`, `ctx["solar_cycle"]`) for custom
+    // templates that want to surface them — the built-in chart just
+    // doesn't render them. The reference table runs full-width below
+    // the dignities block so every glyph used on the wheel is named
+    // explicitly for readers new to the symbology.
+    let gl_y = dig_y + 26.0 + planets.len() as f64 * RH2 + 8.0;
+    write_glyph_legend(&mut s, &pal, c1x, c2x, c3x, gl_y);
 
     write_footer(&mut s, &pal, date);
     s
@@ -688,98 +685,127 @@ fn write_dignity_row(s: &mut String, pal: &Palette, p: &Value, c1x: f64, ry: f64
     );
 }
 
-fn write_arabic_parts(s: &mut String, pal: &Palette, ctx: &Value, c2x: f64, ap_y: f64) {
+/// `(glyph, description)` pairs for the planets / nodes / Chiron
+/// column of the symbol-reference table. Glyphs come straight from
+/// `BODIES` (see `mod.rs`) — keep this list and that table in sync.
+const PLANET_LEGEND: &[(&str, &str)] = &[
+    ("\u{2609}\u{FE0E}", "Sun"),
+    ("\u{263D}\u{FE0E}", "Moon"),
+    ("\u{263F}\u{FE0E}", "Mercury"),
+    ("\u{2640}\u{FE0E}", "Venus"),
+    ("\u{2642}\u{FE0E}", "Mars"),
+    ("\u{2643}\u{FE0E}", "Jupiter"),
+    ("\u{2644}\u{FE0E}", "Saturn"),
+    ("\u{2645}\u{FE0E}", "Uranus"),
+    ("\u{2646}\u{FE0E}", "Neptune"),
+    ("\u{2647}\u{FE0E}", "Pluto"),
+    ("\u{260A}\u{FE0E}", "Mean Node"),
+    ("\u{26B7}\u{FE0E}", "Chiron"),
+];
+
+const SIGN_LEGEND: &[(&str, &str)] = &[
+    ("\u{2648}\u{FE0E}", "Aries"),
+    ("\u{2649}\u{FE0E}", "Taurus"),
+    ("\u{264A}\u{FE0E}", "Gemini"),
+    ("\u{264B}\u{FE0E}", "Cancer"),
+    ("\u{264C}\u{FE0E}", "Leo"),
+    ("\u{264D}\u{FE0E}", "Virgo"),
+    ("\u{264E}\u{FE0E}", "Libra"),
+    ("\u{264F}\u{FE0E}", "Scorpio"),
+    ("\u{2650}\u{FE0E}", "Sagittarius"),
+    ("\u{2651}\u{FE0E}", "Capricorn"),
+    ("\u{2652}\u{FE0E}", "Aquarius"),
+    ("\u{2653}\u{FE0E}", "Pisces"),
+];
+
+/// `(symbol, description)` for the angles + retrograde marker. These
+/// are letter abbreviations rather than Unicode code-points so they
+/// always fall back to the text path in `emit_glyph` — which is the
+/// right thing here, since "ASC" et al. aren't single glyphs.
+const ANGLE_LEGEND: &[(&str, &str)] = &[
+    ("ASC", "Ascendant — eastern horizon, rising sign"),
+    ("MC", "Midheaven — culminating point"),
+    ("DSC", "Descendant — western horizon"),
+    ("IC", "Imum Coeli — lowest culmination"),
+    ("\u{211E}", "Retrograde motion"),
+];
+
+/// Symbol-reference table. Three columns side by side: planets,
+/// zodiac signs, and chart angles. Each row pairs the on-wheel glyph
+/// (rendered identically to its wheel counterpart via `emit_glyph`,
+/// so it picks up the `glyph_paths` vector path or the text fallback)
+/// with a one-line description.
+fn write_glyph_legend(s: &mut String, pal: &Palette, c1x: f64, c2x: f64, c3x: f64, gl_y: f64) {
     let ring = pal.ring;
     let _ = writeln!(
         s,
-        r##"  <text x="{c2x}" y="{ap_y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Arabic Parts</text>
-  <line x1="{c2x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
-        ap_y + 3.0,
-        c2x + 250.0,
-        ap_y + 3.0
+        r##"  <text x="{c1x}" y="{gl_y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Symbol reference</text>
+  <line x1="{c1x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
+        gl_y + 3.0,
+        c3x + 292.0,
+        gl_y + 3.0
     );
-    let ap_vec = super::json_array(&ctx["arabic_parts"]);
-    for (i, p) in ap_vec.iter().enumerate() {
-        write_arabic_part_row(s, pal, p, c2x, ap_y + 14.0 + i as f64 * RH2);
-    }
+    write_legend_column(s, pal, "Planets", PLANET_LEGEND, c1x, gl_y);
+    write_legend_column(s, pal, "Signs", SIGN_LEGEND, c2x, gl_y);
+    write_legend_column(s, pal, "Angles", ANGLE_LEGEND, c3x, gl_y);
 }
 
-fn write_arabic_part_row(s: &mut String, pal: &Palette, p: &Value, c2x: f64, ry: f64) {
-    let (ring, txt, soft_c) = (pal.ring, pal.txt, pal.soft_c);
-    let name = p["name"].as_str().unwrap_or("");
-    let dms = p["dms"].as_str().unwrap_or("");
-    let sign_nm = p["sign"].as_str().unwrap_or("");
+fn write_legend_column(
+    s: &mut String,
+    pal: &Palette,
+    sub_title: &str,
+    rows: &[(&str, &str)],
+    x: f64,
+    y0: f64,
+) {
+    let (ring, txt) = (pal.ring, pal.txt);
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{soft_c}" opacity=".8">{name}</text>"##,
-        c2x + 2.0,
+        r##"  <text x="{:.2}" y="{:.2}" font-size="10" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".75">{sub_title}</text>"##,
+        x + 2.0,
+        y0 + 18.0
     );
-    write_dms_text(s, c2x + 125.0, ry, dms, txt);
-    let _ = writeln!(
-        s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".45">{sign_nm}</text>"##,
-        c2x + 210.0,
-    );
-}
-
-/// Draws a compact two-column key/value table summarising the Solar
-/// (Schwabe) cycle context for the chart's date. Renders nothing when
-/// `ctx["solar_cycle"]` is an empty object (i.e. date outside the
-/// numbered cycles AND outside any grand epoch).
-fn write_solar_cycle(s: &mut String, pal: &Palette, ctx: &Value, x: f64, y: f64) {
-    let sc = &ctx["solar_cycle"];
-    if !sc.is_object() || sc.as_object().is_some_and(serde_json::Map::is_empty) {
-        return;
-    }
-    let (ring, txt, soft_c) = (pal.ring, pal.txt, pal.soft_c);
-
-    let _ = writeln!(
-        s,
-        r##"  <text x="{x}" y="{y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Solar Cycle</text>
-  <line x1="{x}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
-        y + 3.0,
-        x + 250.0,
-        y + 3.0
-    );
-
-    // Build the row list dynamically: numbered-cycle fields when known,
-    // grand-epoch fallback otherwise. Each row is (label, value).
-    let mut rows: Vec<(String, String)> = Vec::new();
-
-    if let Some(n) = sc.get("cycle_num").and_then(serde_json::Value::as_u64) {
-        let mut head = format!("Cycle {n}");
-        if let Some(nick) = sc.get("nickname").and_then(serde_json::Value::as_str) {
-            head.push_str(&format!(" — {nick}"));
-        }
-        rows.push(("Number".into(), head));
-    }
-    if let Some(phase) = sc.get("phase_name").and_then(serde_json::Value::as_str) {
-        rows.push(("Phase".into(), phase.into()));
-    }
-    if let Some(yrs) = sc.get("years_since_min").and_then(serde_json::Value::as_f64) {
-        rows.push(("Years since min".into(), format!("{yrs:.1}")));
-    }
-    if let Some(p) = sc.get("phase").and_then(serde_json::Value::as_f64) {
-        rows.push(("Cycle fraction".into(), format!("{:.2}", p)));
-    }
-    if let Some(g) = sc.get("grand_epoch").and_then(serde_json::Value::as_str) {
-        rows.push(("Grand epoch".into(), g.into()));
-    }
-
-    if rows.is_empty() {
-        return;
-    }
-
-    for (i, (label, value)) in rows.iter().enumerate() {
-        let ry = y + 14.0 + i as f64 * RH2;
+    for (i, (glyph, desc)) in rows.iter().enumerate() {
+        let ry = y0 + 36.0 + i as f64 * RH2;
+        let col = legend_glyph_color(pal, glyph);
+        emit_glyph(s, glyph, x + 10.0, ry, 16.0, col);
         let _ = writeln!(
             s,
-            r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{soft_c}" opacity=".8">{label}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{value}</text>"##,
-            x + 2.0,
-            x + 125.0,
+            r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{desc}</text>"##,
+            x + 24.0,
         );
     }
+}
+
+/// Look up the colour for a legend glyph. Planet code-points come
+/// from `BODY_COLORS`; sign code-points fall back to the element-mode
+/// palette via `sign_glyph_color`; everything else (ASC, MC, ℞ etc.)
+/// uses the chart's generic ring colour.
+fn legend_glyph_color<'a>(pal: &'a Palette, glyph: &'a str) -> &'a str {
+    let trimmed = glyph.trim_end_matches('\u{FE0E}');
+    if let Some(c) = trimmed.chars().next() {
+        if let Some(col) = sign_glyph_color(c) {
+            return col;
+        }
+        let body_keys: &[(char, &str)] = &[
+            ('\u{2609}', "sun"),
+            ('\u{263D}', "moon"),
+            ('\u{263F}', "mercury"),
+            ('\u{2640}', "venus"),
+            ('\u{2642}', "mars"),
+            ('\u{2643}', "jupiter"),
+            ('\u{2644}', "saturn"),
+            ('\u{2645}', "uranus"),
+            ('\u{2646}', "neptune"),
+            ('\u{2647}', "pluto"),
+            ('\u{260A}', "mean_node"),
+            ('\u{26B7}', "chiron"),
+        ];
+        if let Some((_, key)) = body_keys.iter().find(|(c2, _)| *c2 == c) {
+            return super::body_color(key);
+        }
+    }
+    pal.ring
 }
 
 fn write_footer(s: &mut String, pal: &Palette, date: &str) {
