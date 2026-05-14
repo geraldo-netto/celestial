@@ -120,10 +120,9 @@ function normRad(x) {
  */
 function diffDegSigned(p1, p2) {
   const raw = normDeg(p1) - normDeg(p2);
-  let d = raw;
-  if (d > 180) d -= 360;
-  if (d <= -180) d += 360;
-  return d;
+  if (raw > 180) return raw - 360;
+  if (raw <= -180) return raw + 360;
+  return raw;
 }
 
 /**
