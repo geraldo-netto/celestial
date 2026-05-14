@@ -185,13 +185,17 @@ fn build_house_value(house_lons: &[f64], i: usize, asc: f64) -> Value {
     let is_angle = matches!(i, 0 | 3 | 6 | 9);
     let r_out = house_outer_radius(is_angle);
     let r_num = (RH + RI) / 2.0;
+    // All cusps spring from the wheel centre — no inner disc bounds
+    // them. Angular cusps continue to `RO` for the full-axis cross;
+    // intermediate cusps stop at `RI` so they don't intrude into the
+    // sign band.
     json!({
         "num":      i + 1,
         "lon":      (lon2 * 1e4).round() / 1e4,
         "dms":      fmt_lon_dms(lon2),
         "is_angle": is_angle,
-        "x1":       round2(wx(CX, RC, lon2, asc)),
-        "y1":       round2(wy(CY, RC, lon2, asc)),
+        "x1":       round2(CX),
+        "y1":       round2(CY),
         "x2":       round2(wx(CX, r_out, lon2, asc)),
         "y2":       round2(wy(CY, r_out, lon2, asc)),
         "num_x":    round2(wx(CX, r_num, mid_lon, asc)),

@@ -7,7 +7,7 @@ use std::fmt::Write as FmtWrite;
 
 use serde_json::Value;
 
-use super::{spread_labels, wx, wy, CX, CY, RC, RH, RI, RO, RP};
+use super::{spread_labels, wx, wy, CX, CY, RH, RI, RO, RP};
 
 const LABEL_R: f64 = RP + 26.0;
 const RH2: f64 = 16.0;
@@ -99,7 +99,6 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     write_houses(&mut s, &pal, houses);
     write_angle_labels(&mut s, &pal, &ang);
     write_aspects(&mut s, &pal, aspects);
-    write_inner_disc(&mut s, &pal);
     write_planets(&mut s, &pal, planets, ang.asc);
 
     let ly = CY + RO + 24.0;
@@ -149,12 +148,12 @@ fn write_header(s: &mut String, pal: &Palette, h: &ChartHeader) {
         s,
         r##"</text>
 
-  <!-- Three wheels separated by four concentric rings:
+  <!-- Three wheels separated by three concentric rings:
        · outer wheel  (signs band):  RO → RI
        · middle wheel (house band):  RI → RH
-       · inner wheel  (aspect area): RH → RC
-       The inner disc (RC) is drawn later, after aspects, so it
-       occludes aspect line crossings near the centre. -->
+       · inner wheel  (aspect area): RH → centre
+       Cusps converge at the wheel centre so no inner disc is
+       needed — aspect lines and angular axes meet at (CX, CY). -->
   <circle cx="{CX}" cy="{CY}" r="{RO}" fill="none" stroke="{ring}" stroke-width="2.5" opacity=".80"/>
   <circle cx="{CX}" cy="{CY}" r="{RI}" fill="none" stroke="{ring}" stroke-width="2.0" opacity=".70"/>
   <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width="1.6" opacity=".55"/>"##
@@ -280,18 +279,6 @@ fn aspect_style(orb: f64, minor: bool) -> (&'static str, &'static str, &'static 
         let o = if orb < 2.0 { ".55" } else { ".22" };
         ("1.8", o, "")
     }
-}
-
-/// Draw the centre disc (`RC` radius) on top of aspect lines so the
-/// chart's centre stays clean. The disc is filled with the chart's
-/// background colour to occlude aspect line crossings and circled
-/// with the ring colour for a crisp boundary.
-fn write_inner_disc(s: &mut String, pal: &Palette) {
-    let (bg, ring) = (pal.bg, pal.ring);
-    let _ = writeln!(
-        s,
-        r##"  <circle cx="{CX}" cy="{CY}" r="{RC}" fill="{bg}" stroke="{ring}" stroke-width="1.2" opacity=".8"/>"##
-    );
 }
 
 fn write_aspect(s: &mut String, pal: &Palette, asp: &Value) {

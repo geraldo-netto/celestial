@@ -49,18 +49,17 @@ fn count(haystack: &str, needle: &str) -> usize {
 #[test]
 fn builtin_natal_has_three_wheels() {
     // Three concentric wheels — signs (RO→RI), houses (RI→RH), aspect
-    // cavity (RH→RC) — drawn with four ring boundaries. The decorative
-    // RM (sign-band divider) and RP (planet anchor) circles were
-    // removed to reduce graphical clutter so the chart matches the
-    // World-of-Wisdom PDF reference more closely.
+    // area (inside RH) — drawn with three ring boundaries. The
+    // decorative RM (sign-band divider), RP (planet anchor) and RC
+    // (centre disc) circles were removed to reduce graphical clutter.
     let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_rings.svg");
-    for r in ["r=\"320\"", "r=\"262\"", "r=\"238\"", "r=\"88\""] {
+    for r in ["r=\"320\"", "r=\"262\"", "r=\"238\""] {
         assert!(
             svg.contains(r),
             "expected concentric ring `{r}` missing from built-in natal SVG"
         );
     }
-    for r in ["r=\"290\"", "r=\"212\""] {
+    for r in ["r=\"290\"", "r=\"212\"", "r=\"88\""] {
         assert!(
             !svg.contains(r),
             "removed decorative ring `{r}` should not be in built-in natal SVG"
@@ -172,26 +171,21 @@ fn builtin_natal_is_well_formed_svg() {
     assert!(svg.starts_with("<?xml"), "missing XML prolog");
     assert!(svg.contains("<svg"), "missing <svg> open tag");
     assert!(svg.contains("</svg>"), "missing </svg> close tag");
-    // Inner disc must be drawn AFTER aspect lines so it occludes them —
-    // the `<circle ... r=\"88\" fill=\"#ffffff\"` should appear after the
-    // first `stroke="#b01020"` (hard-aspect line) in source order.
-    let disc_pos = svg.find("r=\"88\" fill=\"#ffffff\"");
-    let aspect_pos = svg.find("stroke=\"#b01020\"");
-    if let (Some(d), Some(a)) = (disc_pos, aspect_pos) {
-        assert!(
-            d > a,
-            "inner disc must be drawn after aspect lines (disc@{d}, aspect@{a})"
-        );
-    }
+    // The inner disc (formerly drawn at r=88 with bg fill to occlude
+    // aspect-line crossings) is gone — confirm no stray bg-filled disc
+    // at the wheel centre remains in the output.
+    assert!(
+        !svg.contains("r=\"88\" fill=\"#ffffff\""),
+        "centre disc should not be drawn (it has been removed along with the moon-phase badge)"
+    );
 }
 
 #[test]
-fn builtin_natal_angular_cusps_extend_from_inner_disc_to_outer_ring() {
-    // Each angular spoke (ASC/DSC/MC/IC) runs from the inner-disc radius
-    // (RC=88) to the outer wheel radius (RO=320) → span ≈ 232 px. Combined
-    // with the opposite spoke, the pair visually forms a full axis across
-    // the wheel with a clean gap for the central disc — matches the
-    // World-of-Wisdom natal-chart layout.
+fn builtin_natal_angular_cusps_run_from_centre_to_outer_ring() {
+    // Each angular spoke (ASC/DSC/MC/IC) now runs from the wheel
+    // centre to the outer wheel radius (RO=320) → span = 320 px. The
+    // four spokes meet at (CX, CY) so the chart shows a full ASC-DSC
+    // and MC-IC axis cross without a disc occluding the centre.
     let svg = render_builtin("2000-01-01", "0", "0", "natal_angular_span.svg");
     let lines: Vec<&str> = svg
         .lines()
@@ -203,21 +197,21 @@ fn builtin_natal_angular_cusps_extend_from_inner_disc_to_outer_ring() {
         "expected 4 stroke-width=3.0 spokes; got {}",
         lines.len()
     );
-    let expected_span = 320.0 - 88.0; // RO - RC
+    let expected_span = 320.0; // RO
     for ln in &lines {
         let span = max_axis_span(ln);
         assert!(
             (span - expected_span).abs() < 5.0,
-            "angular cusp spoke spans {span:.1}px (expected ≈ {expected_span:.1}, RO − RC): {ln}"
+            "angular cusp spoke spans {span:.1}px (expected ≈ {expected_span:.1}, RO): {ln}"
         );
     }
 }
 
 #[test]
-fn builtin_natal_intermediate_cusps_stop_at_sign_band() {
-    // Non-angular cusps (houses 2/3/5/6/8/9/11/12) must NOT cross into the
-    // sign band: each spoke runs from RC (88) only as far as RI (262), so
-    // sign glyphs above remain unobstructed. Span ≈ RI - RC ≈ 174 px.
+fn builtin_natal_intermediate_cusps_run_from_centre_to_sign_band() {
+    // Non-angular cusps (houses 2/3/5/6/8/9/11/12) start at the wheel
+    // centre and end at the sign-band inner ring (RI=262), so they
+    // don't intrude on the sign glyphs. Span = 262 px.
     let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_intermediate.svg");
     let lines: Vec<&str> = svg
         .lines()
@@ -229,12 +223,12 @@ fn builtin_natal_intermediate_cusps_stop_at_sign_band() {
         "expected 8 intermediate cusp spokes; got {}",
         lines.len()
     );
-    let expected_span = 262.0 - 88.0; // RI - RC
+    let expected_span = 262.0; // RI
     for ln in &lines {
         let span = max_axis_span(ln);
         assert!(
             (span - expected_span).abs() < 10.0,
-            "intermediate cusp spoke spans {span:.1}px (expected ≈ {expected_span:.1}, RI − RC): {ln}"
+            "intermediate cusp spoke spans {span:.1}px (expected ≈ {expected_span:.1}, RI): {ln}"
         );
     }
 }
