@@ -15,6 +15,7 @@ on:
       - "xtask/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".github/workflows/binding-parity.yml"
   pull_request:
     paths:
       - "bindings/**"
@@ -22,6 +23,7 @@ on:
       - "xtask/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".github/workflows/binding-parity.yml"
 
 concurrency:
   group: binding-parity-${{ github.ref }}
@@ -54,7 +56,8 @@ jobs:
           restore-keys: ${{ runner.os }}-xtask-
 
       - name: Check binding parity
-        run: cargo xtask parity
+        run: |
+          cargo xtask parity
           cargo xtask test-stubs
           cargo xtask pyi --check
           cargo xtask dts --check

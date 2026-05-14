@@ -20,6 +20,8 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "rustfmt.toml"
+      - ".github/workflows/celestial-core.yml"
+      - "sonar-project.properties"
   pull_request:
     paths:
       - "core/**"
@@ -27,6 +29,8 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "rustfmt.toml"
+      - ".github/workflows/celestial-core.yml"
+      - "sonar-project.properties"
 
 concurrency:
   group: celestial-core-${{ github.ref }}

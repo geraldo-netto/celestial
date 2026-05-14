@@ -24,12 +24,16 @@ on:
       - "core/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".github/workflows/celestial-js.yml"
+      - "sonar-project.properties"
   pull_request:
     paths:
       - "bindings/js/**"
       - "core/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".github/workflows/celestial-js.yml"
+      - "sonar-project.properties"
 
 concurrency:
   group: celestial-js-${{ github.ref }}

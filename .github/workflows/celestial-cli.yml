@@ -16,12 +16,14 @@ on:
       - "core/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".github/workflows/celestial-cli.yml"
   pull_request:
     paths:
       - "cli/**"
       - "core/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".github/workflows/celestial-cli.yml"
 
 concurrency:
   group: celestial-cli-${{ github.ref }}

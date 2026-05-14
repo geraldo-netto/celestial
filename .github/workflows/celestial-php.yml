@@ -24,12 +24,14 @@ on:
       - "core/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".github/workflows/celestial-php.yml"
   pull_request:
     paths:
       - "bindings/php/**"
       - "core/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".github/workflows/celestial-php.yml"
 
 concurrency:
   group: celestial-php-${{ github.ref }}
