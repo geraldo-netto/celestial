@@ -47,16 +47,89 @@ fn count(haystack: &str, needle: &str) -> usize {
 }
 
 #[test]
-fn builtin_natal_has_six_concentric_rings() {
+fn builtin_natal_has_three_wheels() {
+    // Three concentric wheels — signs (RO→RI), houses (RI→RH), aspect
+    // cavity (RH→RC) — drawn with four ring boundaries. The decorative
+    // RM (sign-band divider) and RP (planet anchor) circles were
+    // removed to reduce graphical clutter so the chart matches the
+    // World-of-Wisdom PDF reference more closely.
     let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_rings.svg");
-    // Five outer rings drawn up-front (RO, RM, RI, RH, RP) plus the inner
-    // disc (RC) drawn after aspects so it occludes line crossings.
-    for r in ["r=\"320\"", "r=\"290\"", "r=\"262\"", "r=\"238\"", "r=\"212\"", "r=\"88\""] {
+    for r in ["r=\"320\"", "r=\"262\"", "r=\"238\"", "r=\"88\""] {
         assert!(
             svg.contains(r),
             "expected concentric ring `{r}` missing from built-in natal SVG"
         );
     }
+    for r in ["r=\"290\"", "r=\"212\""] {
+        assert!(
+            !svg.contains(r),
+            "removed decorative ring `{r}` should not be in built-in natal SVG"
+        );
+    }
+}
+
+#[test]
+fn builtin_natal_planets_use_named_colors() {
+    // Each named body must render in its traditional astrological hue
+    // (BODY_COLORS table) — not the generic ring/planet fill. This pins
+    // the colour palette against accidental regression to monochrome.
+    let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_colors.svg");
+    let expected = [
+        ("sun", "#d4a017"),
+        ("moon", "#6b7888"),
+        ("mercury", "#2c9c4f"),
+        ("venus", "#d65a9e"),
+        ("mars", "#c1272d"),
+        ("jupiter", "#5d3f8e"),
+        ("saturn", "#4a4036"),
+        ("uranus", "#0085c7"),
+        ("neptune", "#1ba89d"),
+        ("pluto", "#7c1a1a"),
+    ];
+    for (name, col) in expected {
+        let needle = format!("fill=\"{col}\"");
+        assert!(
+            svg.contains(&needle),
+            "planet `{name}` colour `{col}` missing from built-in natal SVG"
+        );
+    }
+}
+
+#[test]
+fn builtin_natal_no_glow_filter_on_planets() {
+    // The Gaussian-blur glow filter caused pixelation in some SVG
+    // renderers. The redesigned wheel drops the `<defs>` block and the
+    // `filter="url(#glow)"` attribute entirely; planet glyphs render
+    // crisp at any zoom level.
+    let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_no_glow.svg");
+    assert!(
+        !svg.contains("filter=\"url(#glow)\""),
+        "planet glyphs must not reference the glow filter"
+    );
+    assert!(
+        !svg.contains("<filter id=\"glow\""),
+        "the glow <defs> block should be removed"
+    );
+}
+
+#[test]
+fn builtin_natal_moon_phase_in_subtitle_not_centre() {
+    // The moon-phase disc used to sit at the wheel centre, occluding
+    // aspect-line crossings. It now lives in the subtitle row instead.
+    let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_moon_phase.svg");
+    // The moon-phase rect (formerly centred at CX-50, CY-22, w=100,
+    // h=36) is gone — the only top-level <rect> is the page background.
+    let rect_count = svg.matches("<rect").count();
+    assert_eq!(
+        rect_count, 1,
+        "expected exactly one <rect> (page background); found {rect_count}"
+    );
+    // The phase information now appears in the subtitle row alongside
+    // the date / location / JD.
+    assert!(
+        svg.contains("☽ "),
+        "moon phase glyph should appear in subtitle row"
+    );
 }
 
 #[test]

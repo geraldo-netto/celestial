@@ -7,7 +7,7 @@ use std::fmt::Write as FmtWrite;
 
 use serde_json::Value;
 
-use super::{spread_labels, wx, wy, CX, CY, RC, RH, RI, RM, RO, RP};
+use super::{spread_labels, wx, wy, CX, CY, RC, RH, RI, RO, RP};
 
 const LABEL_R: f64 = RP + 26.0;
 const RH2: f64 = 16.0;
@@ -53,6 +53,19 @@ struct Angles {
     dsc: f64,
 }
 
+/// Header metadata threaded through `write_header` / `write_loc_line`.
+/// Bundles the values that historically lived in the centre moon-phase
+/// disc so they can be folded into the chart subtitle row instead of
+/// obstructing the inner aspect cavity.
+struct ChartHeader<'a> {
+    date: &'a str,
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    phase: &'a str,
+    illum: f64,
+}
+
 pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     let pal = Palette::from(&ctx["vars"]);
     let date = ctx["date"].as_str().unwrap_or("");
@@ -65,8 +78,14 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
         ic: ctx["ic"].as_f64().unwrap_or(0.0),
         dsc: ctx["dsc"].as_f64().unwrap_or(0.0),
     };
-    let phase = ctx["moon_phase_name"].as_str().unwrap_or("");
-    let illum = ctx["moon_illumination"].as_f64().unwrap_or(0.0);
+    let header = ChartHeader {
+        date,
+        jd,
+        lat,
+        lon,
+        phase: ctx["moon_phase_name"].as_str().unwrap_or(""),
+        illum: ctx["moon_illumination"].as_f64().unwrap_or(0.0),
+    };
 
     let planets = super::json_array(&ctx["planets"]);
     let signs = super::json_array(&ctx["signs"]);
@@ -75,14 +94,13 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
 
     let mut s = String::with_capacity(64 * 1024);
 
-    write_header(&mut s, &pal, date, jd, lat, lon);
+    write_header(&mut s, &pal, &header);
     write_signs(&mut s, &pal, signs);
     write_houses(&mut s, &pal, houses);
     write_angle_labels(&mut s, &pal, &ang);
     write_aspects(&mut s, &pal, aspects);
     write_inner_disc(&mut s, &pal);
     write_planets(&mut s, &pal, planets, ang.asc);
-    write_moon_phase(&mut s, &pal, phase, illum);
 
     let ly = CY + RO + 24.0;
     let c1x = 24.0_f64;
@@ -114,55 +132,52 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     s
 }
 
-fn write_header(s: &mut String, pal: &Palette, date: &str, jd: f64, lat: f64, lon: f64) {
+fn write_header(s: &mut String, pal: &Palette, h: &ChartHeader) {
     let (bg, txt, ring, title) = (pal.bg, pal.txt, pal.ring, pal.title);
     let _ = writeln!(
         s,
         r##"<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1720" width="900" height="1720">
-  <defs>
-    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="2.5" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
   <rect width="900" height="1720" fill="{bg}"/>
   <text x="450" y="34" text-anchor="middle" font-size="18" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
   <text x="450" y="54" text-anchor="middle" font-size="10"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".7">"##
     );
-    write_loc_line(s, date, jd, lat, lon);
+    write_loc_line(s, h);
     let _ = writeln!(
         s,
         r##"</text>
 
-  <!-- rings: outer · sign-band-inner · sign-band-divider · house-ring-inner
-       · planet-ring.  Concentric circles delineate the sign band (RO→RM),
-       the house band (RI→RH) and the planet ring (RP).  The inner disc
-       (RC) is drawn later, after aspects, so it occludes aspect line
-       crossings near the centre. -->
-  <circle cx="{CX}" cy="{CY}" r="{RO}" fill="none" stroke="{ring}" stroke-width="2.5" opacity=".75"/>
-  <circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="{ring}" stroke-width="1.0" opacity=".30"/>
+  <!-- Three wheels separated by four concentric rings:
+       · outer wheel  (signs band):  RO → RI
+       · middle wheel (house band):  RI → RH
+       · inner wheel  (aspect area): RH → RC
+       The inner disc (RC) is drawn later, after aspects, so it
+       occludes aspect line crossings near the centre. -->
+  <circle cx="{CX}" cy="{CY}" r="{RO}" fill="none" stroke="{ring}" stroke-width="2.5" opacity=".80"/>
   <circle cx="{CX}" cy="{CY}" r="{RI}" fill="none" stroke="{ring}" stroke-width="2.0" opacity=".70"/>
-  <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width="1.6" opacity=".55"/>
-  <circle cx="{CX}" cy="{CY}" r="{RP}" fill="none" stroke="{ring}" stroke-width="0.8" opacity=".25"/>"##
+  <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width="1.6" opacity=".55"/>"##
     );
 }
 
-fn write_loc_line(s: &mut String, date: &str, jd: f64, lat: f64, lon: f64) {
+fn write_loc_line(s: &mut String, h: &ChartHeader) {
+    let (date, jd, lat, lon) = (h.date, h.jd, h.lat, h.lon);
     if lat == 0.0 && lon == 0.0 {
         let _ = write!(s, "{date} · JD {jd:.4}");
-        return;
+    } else {
+        let ns = if lat >= 0.0 { "N" } else { "S" };
+        let ew = if lon >= 0.0 { "E" } else { "W" };
+        let _ = write!(
+            s,
+            "{date} · {:.4}°{ns} {:.4}°{ew} · JD {jd:.4}",
+            lat.abs(),
+            lon.abs()
+        );
     }
-    let ns = if lat >= 0.0 { "N" } else { "S" };
-    let ew = if lon >= 0.0 { "E" } else { "W" };
-    let _ = write!(
-        s,
-        "{date} · {:.4}°{ns} {:.4}°{ew} · JD {jd:.4}",
-        lat.abs(),
-        lon.abs()
-    );
+    if !h.phase.is_empty() {
+        let _ = write!(s, " · ☽ {} {:.1}%", h.phase, h.illum);
+    }
 }
 
 fn write_signs(s: &mut String, pal: &Palette, signs: &[Value]) {
@@ -317,6 +332,16 @@ fn normalize_drift(mut drift: f64) -> f64 {
     drift
 }
 
+/// Pick the foreground colour for a planet glyph. Defaults to the
+/// per-body palette from `BODY_COLORS`; falls back to the chart's
+/// generic planet colour if the body has no entry. Retrograde state is
+/// signalled via the trailing ℞ in `deg_label`, not via colour
+/// substitution — so each planet keeps its traditional colour even when
+/// going retrograde (matches the PDF reference style).
+fn planet_color<'a>(p: &'a Value, fallback: &'a str) -> &'a str {
+    p["color"].as_str().unwrap_or(fallback)
+}
+
 fn write_planet(s: &mut String, pal: &Palette, p: &Value, lon_i: f64, placed_ang: f64, asc: f64) {
     let pfg = pal.pfg;
     let px = p["x"].as_f64().unwrap_or(0.0);
@@ -327,8 +352,7 @@ fn write_planet(s: &mut String, pal: &Palette, p: &Value, lon_i: f64, placed_ang
     let ty2 = p["tick_y2"].as_f64().unwrap_or(0.0);
     let g = p["glyph"].as_str().unwrap_or("?");
     let dl = p["deg_label"].as_str().unwrap_or("");
-    let ret = p["retro"].as_bool().unwrap_or(false);
-    let col = if ret { pal.retro_c } else { pal.pfg };
+    let col = planet_color(p, pfg);
 
     let lx = CX + LABEL_R * placed_ang.to_radians().cos();
     let ly = CY - LABEL_R * placed_ang.to_radians().sin();
@@ -342,14 +366,14 @@ fn write_planet(s: &mut String, pal: &Palette, p: &Value, lon_i: f64, placed_ang
     if drift.abs() > 3.5 {
         let _ = writeln!(
             s,
-            r##"  <line x1="{ax:.2}" y1="{ay:.2}" x2="{lx:.2}" y2="{ly:.2}" stroke="{pfg}" stroke-width="0.9" opacity=".45" stroke-dasharray="3,2"/>"##
+            r##"  <line x1="{ax:.2}" y1="{ay:.2}" x2="{lx:.2}" y2="{ly:.2}" stroke="{col}" stroke-width="0.9" opacity=".45" stroke-dasharray="3,2"/>"##
         );
     }
 
     let _ = writeln!(
         s,
-        r##"  <line x1="{tx1:.2}" y1="{ty1:.2}" x2="{tx2:.2}" y2="{ty2:.2}" stroke="{pfg}" stroke-width="1.0" opacity=".45"/>
-  <text x="{px:.2}" y="{py:.2}" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}" filter="url(#glow)">{g}</text>
+        r##"  <line x1="{tx1:.2}" y1="{ty1:.2}" x2="{tx2:.2}" y2="{ty2:.2}" stroke="{col}" stroke-width="1.0" opacity=".55"/>
+  <text x="{px:.2}" y="{py:.2}" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}">{g}</text>
   <text x="{lx:.2}" y="{ly:.2}" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{dl}</text>"##
     );
     if p["near_station"].as_bool().unwrap_or(false) {
@@ -360,21 +384,6 @@ fn write_planet(s: &mut String, pal: &Palette, p: &Value, lon_i: f64, placed_ang
             r##"  <text x="{sx:.2}" y="{sy:.2}" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}" opacity=".9">S</text>"##
         );
     }
-}
-
-fn write_moon_phase(s: &mut String, pal: &Palette, phase: &str, illum: f64) {
-    let (bg, ring, txt) = (pal.bg, pal.ring, pal.txt);
-    let _ = writeln!(
-        s,
-        r##"  <rect x="{:.2}" y="{:.2}" width="100" height="36" rx="6" fill="{bg}" opacity=".88"/>
-  <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="11" font-weight="500" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".9">{phase}</text>
-  <text x="{CX}" y="{:.2}" text-anchor="middle" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".65">{illum:.1}%</text>
-"##,
-        CX - 50.0,
-        CY - 22.0,
-        CY - 7.0,
-        CY + 9.0
-    );
 }
 
 fn write_planet_legend(s: &mut String, pal: &Palette, planets: &[Value], c1x: f64, ly: f64) {

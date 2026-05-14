@@ -336,6 +336,34 @@ pub(super) const BODIES: &[(Body, &str, &str, &str)] = &[
     (Body::CHIRON, "chiron", "Chiron", "\u{26B7}"),
 ];
 
+/// Per-body display colour (key → hex). Picked to approximate the
+/// traditional astrological palette used by the World-of-Wisdom PDF
+/// reference: warm metals for the luminaries, mode-coloured outer
+/// planets, mercury/venus in green/pink for their domiciles.
+pub(super) const BODY_COLORS: &[(&str, &str)] = &[
+    ("sun", "#d4a017"),
+    ("moon", "#6b7888"),
+    ("mercury", "#2c9c4f"),
+    ("venus", "#d65a9e"),
+    ("mars", "#c1272d"),
+    ("jupiter", "#5d3f8e"),
+    ("saturn", "#4a4036"),
+    ("uranus", "#0085c7"),
+    ("neptune", "#1ba89d"),
+    ("pluto", "#7c1a1a"),
+    ("mean_node", "#6a4f8a"),
+    ("true_node", "#6a4f8a"),
+    ("chiron", "#6c3a1a"),
+];
+
+#[must_use]
+pub(super) fn body_color(key: &str) -> &'static str {
+    BODY_COLORS
+        .iter()
+        .find(|(k, _)| *k == key)
+        .map_or("#0d0d1e", |(_, c)| *c)
+}
+
 /// (angle°, name, orb_limit, is_minor)
 pub(super) const ASPECT_DEFS: &[(f64, &str, f64, bool)] = &[
     // ── Major aspects ─────────────────────────────────────────────────────────

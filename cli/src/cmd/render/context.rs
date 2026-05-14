@@ -16,7 +16,7 @@ use celestial_core::{
 use serde_json::{json, Value};
 
 use super::{
-    antiscion_lon, contra_antiscion_lon, fmt_lon_dms, jd_to_date_str, moon_phase_str,
+    antiscion_lon, body_color, contra_antiscion_lon, fmt_lon_dms, jd_to_date_str, moon_phase_str,
     planet_dignity, wx, wy, ASPECT_DEFS, BODIES, CX, CY, RC, RH, RI, RM, RO, RP,
 };
 
@@ -99,6 +99,7 @@ fn build_planets(jd: f64, asc: f64) -> Vec<Value> {
                 "name":       name,
                 "key":        key,
                 "glyph":      glyph,
+                "color":      body_color(key),
                 "lon":        (pos.lon   * 1e4).round() / 1e4,
                 "lat":        (pos.lat   * 1e4).round() / 1e4,
                 "dist":       (pos.dist  * 1e4).round() / 1e4,
@@ -142,7 +143,10 @@ fn build_signs(asc: f64) -> Vec<Value> {
         .map(|i| {
             let sl = i as f64 * 30.0;
             let mid = sl + 15.0;
-            let sgr = (RM + RI) / 2.0;
+            // Sign-band midpoint: now that the wheel has only three
+            // visible rings the glyph sits halfway between the outer
+            // (RO) and inner (RI) edges of the sign band.
+            let sgr = (RO + RI) / 2.0;
             json!({
                 "idx":       i,
                 "glyph":     SIGN_GLYPHS[i],
