@@ -1644,6 +1644,46 @@ fn secondary_progression_30_years() {
     }
 }
 
+// ─── Polar latitudes ────────────────────────────────────────────────────────
+
+/// At extreme latitudes (≥ 66°), Placidus is mathematically undefined
+/// for some declinations. The engine must not panic and must return a
+/// HouseResult (possibly with degenerate intermediate cusps).
+#[test]
+fn placidus_at_arctic_circle_no_panic() {
+    use celestial_core::body::HouseSystem;
+    let jd = julday(2024, 6, 21, 12.0, Calendar::Gregorian); // summer solstice
+    for lat in [66.0_f64, 70.0, 80.0, 85.0] {
+        let result = celestial_core::houses(jd, lat, 0.0, HouseSystem::PLACIDUS);
+        if let Ok(h) = result {
+            for i in 1..=12 {
+                assert!(
+                    h.cusps[i].is_finite() && (0.0..360.0).contains(&h.cusps[i]),
+                    "Placidus h{i} at lat {lat}: {} not finite/in-range",
+                    h.cusps[i],
+                );
+            }
+        }
+        // Err is also acceptable — Placidus undefined at polar circles.
+    }
+}
+
+/// Whole Sign is well-defined at every latitude including poles.
+#[test]
+fn whole_sign_at_poles() {
+    use celestial_core::body::HouseSystem;
+    let jd = julday(2024, 6, 21, 12.0, Calendar::Gregorian);
+    for lat in [88.0_f64, -88.0] {
+        let h = celestial_core::houses(jd, lat, 0.0, HouseSystem(b'W')).unwrap();
+        for i in 1..=12 {
+            assert!(
+                h.cusps[i].is_finite() && (0.0..360.0).contains(&h.cusps[i]),
+                "Whole-Sign h{i} at lat {lat}: not finite/in-range",
+            );
+        }
+    }
+}
+
 // ─── Ancient dates / Gregorian-Julian boundary ──────────────────────────────
 
 /// 1 AD / 1 BC astronomical year handling: julday must accept year 0
