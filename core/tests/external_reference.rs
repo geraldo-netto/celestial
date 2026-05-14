@@ -1711,6 +1711,39 @@ fn moon_speed_always_in_band() {
     }
 }
 
+// ─── Omer days ──────────────────────────────────────────────────────────────
+
+/// Omer count: 49 consecutive days from 2nd day of Pesach (16 Nisan)
+/// to the day before Shavuot. Lag Ba'Omer = day 33 of count.
+#[test]
+fn omer_days_count_is_49() {
+    use celestial_core::omer_days;
+    let days = omer_days(5785);
+    assert_eq!(days.len(), 49, "Omer count must be 49 days, got {}", days.len());
+    // Day numbers must be 1..=49 in order.
+    for (i, d) in days.iter().enumerate() {
+        assert_eq!(
+            d.day as usize, i + 1,
+            "Omer day at index {i}: expected day {}, got {}",
+            i + 1, d.day,
+        );
+    }
+}
+
+/// `omer_start_jd(year)` must equal `omer_days(year)[0].jd` exactly.
+#[test]
+fn omer_start_matches_first_day() {
+    use celestial_core::{omer_days, omer_start_jd};
+    let year = 5785;
+    let start = omer_start_jd(year);
+    let days = omer_days(year);
+    assert!(
+        (start - days[0].jd).abs() < 0.01,
+        "omer_start_jd({year}) = {start}, days[0].jd = {}",
+        days[0].jd,
+    );
+}
+
 // ─── Polar latitudes ────────────────────────────────────────────────────────
 
 /// At extreme latitudes (≥ 66°), Placidus is mathematically undefined
