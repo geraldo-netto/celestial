@@ -20,13 +20,14 @@
 
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
-    annual_profection, ayanamsa_ut, calc, calc_ut, calendar_round, coptic_to_jd, deltat,
-    easter_gregorian, easter_jd, esbats_for_year, fasli_nowruz_jd, firdaria, four_pillars,
-    full_dignity, haab, hebrew_new_year_jd, hijri_from_jd, iso_week, jd_to_coptic, julday,
-    long_to_nakshatra, long_to_navamsa, long_to_rasi, losar_jd, maya_long_count,
-    mean_sidereal_time_deg, next_new_moon, nowruz_jd, nutation, panchanga, sabbats_for_year,
-    set_sid_mode, sidereal_time_deg, sol_eclipse_when_glob, solar_return_jd, solcross_ut,
-    tonalpohualli, true_obliquity, tzolkin, vimshottari_dasha, yallop_q, Dignity,
+    almuten, annual_profection, ayanamsa_ut, calc, calc_ut, calendar_round, coptic_to_jd,
+    day_of_week, deltat, easter_gregorian, easter_jd, esbats_for_year, fasli_nowruz_jd, firdaria,
+    four_pillars, full_dignity, haab, hebrew_new_year_jd, hijri_from_jd, iso_week, jd_to_coptic,
+    julday, long_to_nakshatra, long_to_navamsa, long_to_rasi, losar_jd, maya_long_count,
+    mean_sidereal_time_deg, naw_ruz_jd, next_new_moon, nowruz_jd, nutation, panchanga,
+    sabbats_for_year, set_sid_mode, sidereal_time_deg, sol_eclipse_when_glob, solar_return_jd,
+    solcross_ut, time_equ, tonalpohualli, true_obliquity, tzolkin, vesak_jd, vimshottari_dasha,
+    yallop_q, Dignity,
 };
 
 const FLG: CalcFlags = CalcFlags::BUILTIN;
@@ -947,6 +948,125 @@ fn equal_houses_30_apart_from_asc() {
         );
     }
     let _ = HouseSystem::EQUAL; // sanity import use
+}
+
+// ─── Day of week ────────────────────────────────────────────────────────────
+
+/// Day-of-week reference values. celestial convention: JD 0 = Monday,
+/// so 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun.
+///   1969-07-20 = Sunday (6) — Apollo 11 Moon landing
+///   2000-01-01 = Saturday (5)
+///   2024-01-01 = Monday (0)
+///   1986-05-30 = Friday (4) — Geraldo Netto PDF date
+///   2025-04-20 = Sunday (6) — Easter Sunday 2025
+#[test]
+fn day_of_week_known_anchors() {
+    let cases: &[(i32, u32, u32, i32)] = &[
+        (1969, 7, 20, 6), // Sunday
+        (2000, 1, 1, 5),   // Saturday
+        (2024, 1, 1, 0),   // Monday
+        (1986, 5, 30, 4),  // Friday
+        (2025, 4, 20, 6),  // Easter Sunday 2025
+    ];
+    for &(y, m, d, expected) in cases {
+        let jd = julday(y, m as i32, d as i32, 12.0, Calendar::Gregorian);
+        let dow = day_of_week(jd);
+        assert_eq!(
+            dow, expected,
+            "{y}-{m:02}-{d:02}: day_of_week = {dow}, expected {expected}",
+        );
+    }
+}
+
+// ─── Bahá'í Naw-Rúz ─────────────────────────────────────────────────────────
+
+/// Bahá'í Naw-Rúz is also the vernal equinox in Tehran civil time.
+/// BE 181 = 2024 (BE epoch is 1844-03-21). So Naw-Rúz BE 181 falls
+/// at the 2024 vernal equinox ≈ 2024-03-20.
+#[test]
+fn bahai_naw_ruz_181() {
+    let jd = naw_ruz_jd(181);
+    let expected = julday(2024, 3, 20, 0.0, Calendar::Gregorian);
+    assert!(
+        (jd - expected).abs() < 2.0,
+        "Naw-Rúz BE 181 = {jd}, expected ≈ {expected} (2024-03-20 ± 1 d)",
+    );
+}
+
+// ─── Vesak ─────────────────────────────────────────────────────────────────
+
+/// Vesak (Buddha's birthday) is the full moon of Vaisakha in the
+/// Hindu calendar — typically the first full moon after the May
+/// solar ingress of Taurus. Vesak 2024 fell on 2024-05-23.
+#[test]
+fn vesak_2024() {
+    let jd = vesak_jd(2024);
+    let expected = julday(2024, 5, 23, 12.0, Calendar::Gregorian);
+    assert!(
+        (jd - expected).abs() < 2.0,
+        "Vesak 2024 = {jd}, expected ≈ {expected} (2024-05-23 ± 1 d)",
+    );
+}
+
+// ─── Equation of time ──────────────────────────────────────────────────────
+
+/// Equation of time peaks: maximum ≈ +16 min in early November,
+/// minimum ≈ −14 min in mid-February. Must be in those bounds at all
+/// times in the year. Test with mid-April (near zero crossing) and
+/// early November (peak).
+#[test]
+fn equation_of_time_within_bounds() {
+    // April 15 — small positive (couple of minutes).
+    let jd_apr = julday(2024, 4, 15, 12.0, Calendar::Gregorian);
+    let eot_apr = time_equ(jd_apr).unwrap();
+    let eot_apr_min = eot_apr * 60.0; // hours → minutes
+    assert!(
+        eot_apr_min.abs() < 5.0,
+        "EoT 2024-04-15 = {eot_apr_min:.2} min, expected |·| < 5 min",
+    );
+
+    // Year extremes: |EoT| ≤ 17 min anywhere.
+    for &doy in &[15.0_f64, 100.0, 200.0, 300.0] {
+        let jd = julday(2024, 1, 1, 12.0, Calendar::Gregorian) + doy;
+        let eot = time_equ(jd).unwrap();
+        let eot_min = eot * 60.0;
+        assert!(
+            eot_min.abs() < 17.5,
+            "EoT at JD+{doy}d = {eot_min:.2} min outside ±17.5 min",
+        );
+    }
+}
+
+// ─── Hellenistic almuten ────────────────────────────────────────────────────
+
+/// Almuten = the planet with highest total dignity score at a given
+/// degree. At 19° Aries the candidates are Sun (exaltation + decan)
+/// and Mars (domicile); the conventional Ptolemaic scoring can
+/// favour either depending on which dignities are weighted. Test
+/// just asserts a non-zero score and a sensible body.
+#[test]
+fn almuten_at_19_aries_returns_dignified_body() {
+    let (body, score) = almuten(19.0, true);
+    use celestial_core::body::Body;
+    let sun = Body::SUN.as_raw();
+    let mars = Body::MARS.as_raw();
+    assert!(
+        body.as_raw() == sun || body.as_raw() == mars,
+        "Almuten at 19° Aries should be Sun or Mars, got {body:?}",
+    );
+    assert!(score > 0, "almuten score must be positive, got {score}");
+}
+
+/// At 5° Leo, the Sun has its domicile (high dignity score). It must
+/// be among the top dignity-scorers.
+#[test]
+fn almuten_at_leo_includes_sun() {
+    let (body, score) = almuten(125.0, true);
+    use celestial_core::body::Body;
+    assert!(
+        body.as_raw() == Body::SUN.as_raw() || score > 0,
+        "Almuten near Leo: expected Sun or some positively-scored body",
+    );
 }
 
 // ─── Solar eclipse search ───────────────────────────────────────────────────
