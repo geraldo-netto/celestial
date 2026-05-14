@@ -136,8 +136,12 @@ fn write_header(s: &mut String, pal: &Palette, h: &ChartHeader) {
     let _ = writeln!(
         s,
         r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1720" width="900" height="1720">
-  <rect width="900" height="1720" fill="{bg}"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1720" width="900" height="1720">"##
+    );
+    super::glyph_paths::emit_defs(s);
+    let _ = writeln!(
+        s,
+        r##"  <rect width="900" height="1720" fill="{bg}"/>
   <text x="450" y="34" text-anchor="middle" font-size="18" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
   <text x="450" y="54" text-anchor="middle" font-size="10"
@@ -254,8 +258,29 @@ fn write_sign(s: &mut String, pal: &Palette, sign: &Value) {
     let col = sign["color"].as_str().unwrap_or(ring);
     let _ = writeln!(
         s,
-        r##"  <line x1="{sx1:.2}" y1="{sy1:.2}" x2="{sx2:.2}" y2="{sy2:.2}" stroke="{ring}" stroke-width="1.5" opacity=".55"/>
-  <text x="{gx:.2}" y="{gy:.2}" font-size="22" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{col}">{g}</text>"##
+        r##"  <line x1="{sx1:.2}" y1="{sy1:.2}" x2="{sx2:.2}" y2="{sy2:.2}" stroke="{ring}" stroke-width="1.5" opacity=".55"/>"##
+    );
+    emit_glyph(s, g, gx, gy, 26.0, col);
+}
+
+/// Emit a glyph at (cx, cy). Prefers the embedded `<symbol>` from
+/// `glyph_paths::GLYPH_PATHS` (font-independent, identical across
+/// renderers); falls back to a centred `<text>` element when the
+/// code-point has no path table — keeps unusual glyphs (e.g. fixed
+/// stars) renderable via the host symbol-font stack. The text-fallback
+/// font-size is derived from `size` so callers don't have to pass it
+/// (and `emit_glyph` stays under the clippy 7-arg ceiling).
+fn emit_glyph(s: &mut String, glyph: &str, cx: f64, cy: f64, size: f64, fill: &str) {
+    let cp = super::glyph_paths::lead_cp(glyph);
+    if super::glyph_paths::write_use(s, cp, cx, cy, size, fill) {
+        return;
+    }
+    // Text fallback: empirically a text font-size ≈ 0.75·size produces
+    // a glyph whose ink box matches the <use> box at the same `size`.
+    let fs = (size * 0.75).round() as u32;
+    let _ = writeln!(
+        s,
+        r##"  <text x="{cx:.2}" y="{cy:.2}" font-size="{fs}" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{fill}">{glyph}</text>"##
     );
 }
 
@@ -417,9 +442,12 @@ fn write_planet(s: &mut String, pal: &Palette, p: &Value, lon_i: f64, placed_ang
 
     let _ = writeln!(
         s,
-        r##"  <line x1="{tx1:.2}" y1="{ty1:.2}" x2="{tx2:.2}" y2="{ty2:.2}" stroke="{col}" stroke-width="1.0" opacity=".55"/>
-  <text x="{px:.2}" y="{py:.2}" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{col}">{g}</text>
-  <text x="{lx:.2}" y="{ly:.2}" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{dl}</text>"##
+        r##"  <line x1="{tx1:.2}" y1="{ty1:.2}" x2="{tx2:.2}" y2="{ty2:.2}" stroke="{col}" stroke-width="1.0" opacity=".55"/>"##
+    );
+    emit_glyph(s, g, px, py, 24.0, col);
+    let _ = writeln!(
+        s,
+        r##"  <text x="{lx:.2}" y="{ly:.2}" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{dl}</text>"##
     );
     if p["near_station"].as_bool().unwrap_or(false) {
         let sx = px + 9.0;
@@ -456,11 +484,10 @@ fn write_planet_legend_row(s: &mut String, pal: &Palette, p: &Value, c1x: f64, r
     let col = if ret { retro_c } else { pfg };
     let scol = if ret { retro_c } else { ring };
     let sop = if ret { "1" } else { ".4" };
+    emit_glyph(s, g, c1x + 2.0, ry, 18.0, col);
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="14" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{col}">{g}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".75">{name}</text>"##,
-        c1x + 2.0,
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".75">{name}</text>"##,
         c1x + 20.0,
     );
     write_dms_text(s, c1x + 120.0, ry, dms, txt);
@@ -593,16 +620,14 @@ fn write_aspect_legend_row(s: &mut String, pal: &Palette, asp: &Value, c3x: f64,
     let b1s = &b1[..b1.len().min(3)];
     let b2s = &b2[..b2.len().min(3)];
     let an4 = &aname[..aname.len().min(4)];
+    emit_glyph(s, g1, c3x + 2.0, ry, 16.0, col);
+    emit_glyph(s, g2, c3x + 18.0, ry, 16.0, col);
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{col}">{g1}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{col}">{g2}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{an4}</text>
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{col}">{an4}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".7">{orb:.2}&#176;</text>
   <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".5">{aind}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".4">{b1s}&#8211;{b2s}</text>"##,
-        c3x + 2.0,
-        c3x + 18.0,
         c3x + 34.0,
         c3x + 92.0,
         c3x + 130.0,
@@ -651,13 +676,12 @@ fn write_dignity_row(s: &mut String, pal: &Palette, p: &Value, c1x: f64, ry: f64
     let dig = p["dignity"].as_str().unwrap_or("peregrine");
     let sign_nm = p["sign_name"].as_str().unwrap_or("");
     let dcol = dignity_color(dig);
+    emit_glyph(s, g, c1x + 2.0, ry, 16.0, ring);
     let _ = writeln!(
         s,
-        r##"  <text x="{:.2}" y="{ry:.2}" font-size="13" text-anchor="middle" dominant-baseline="central" font-family="{GLYPH_FONT_FAMILY}" fill="{ring}">{g}</text>
-  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{dcol}" font-weight="500">{dig}</text>
+        r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{dcol}" font-weight="500">{dig}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{sign_nm}</text>
   <text x="{:.2}" y="{ry:.2}" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".45">{name}</text>"##,
-        c1x + 2.0,
         c1x + 20.0,
         c1x + 140.0,
         c1x + 220.0,

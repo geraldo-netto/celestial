@@ -68,6 +68,49 @@ fn builtin_natal_has_three_wheels() {
 }
 
 #[test]
+fn builtin_natal_emits_glyph_symbol_defs_exactly_once() {
+    // The `<defs>` block carrying the embedded `<symbol id="g-XXXX">`
+    // entries must be emitted exactly once per chart so each glyph is
+    // defined a single time and referenced via `<use href="#g-XXXX">`
+    // from every wheel and legend position. Multiple defs blocks
+    // would bloat the SVG and cause `id` collisions in some renderers.
+    let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_defs.svg");
+    assert_eq!(
+        svg.matches("<defs>").count(),
+        1,
+        "<defs> block should appear exactly once"
+    );
+    // All 12 zodiac symbols + the 11 luminary/planet glyphs we render
+    // (Sun, Moon, Mercury, Venus, Earth-glyph stub, Mars, Jupiter,
+    // Saturn, Uranus, Neptune, Pluto) + Mean Node + Chiron → 25 unique
+    // `<symbol id="g-XXXX">` entries. The Earth code-point (U+2641) is
+    // pre-baked in the glyph table for future Heliocentric charts even
+    // though no natal chart references it.
+    let symbol_count = svg.matches("<symbol id=\"g-").count();
+    assert_eq!(
+        symbol_count, 25,
+        "expected 25 <symbol> definitions (12 zodiac + 11 planets + node + Chiron); got {symbol_count}"
+    );
+}
+
+#[test]
+fn builtin_natal_wheel_uses_vector_paths_for_zodiac_glyphs() {
+    // The twelve sign-band glyphs on the wheel are now `<use>` elements
+    // referencing the embedded `<symbol>` defs. Every zodiac code-point
+    // (U+2648..U+2653) must have at least one `<use href="#g-264X">`
+    // emission — otherwise the wheel is rendering text fallback.
+    let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_uses.svg");
+    for cp in 0x2648_u32..=0x2653 {
+        let needle = format!(r##"<use href="#g-{cp:04X}""##);
+        let count = svg.matches(&needle).count();
+        assert!(
+            count >= 1,
+            "expected at least one <use> reference for glyph U+{cp:04X}; got {count}"
+        );
+    }
+}
+
+#[test]
 fn builtin_natal_glyphs_use_text_presentation_selector() {
     // Every astrological glyph (zodiac signs + planet symbols) must
     // carry the trailing `U+FE0E` text-presentation variation selector,

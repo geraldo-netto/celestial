@@ -55,6 +55,7 @@ mod calendar_wheel;
 mod chinese;
 pub(crate) mod context;
 mod derived;
+mod glyph_paths;
 mod hellenistic;
 mod indigenous;
 mod mesoamerican;
@@ -2048,12 +2049,17 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         )
         .unwrap();
         let svg = render_builtin_svg(&ctx);
-        // All 12 planet glyphs must appear
-        for glyph in [
-            "\u{2609}", "\u{263D}", "\u{263F}", "\u{2640}", "\u{2642}", "\u{2643}", "\u{2644}",
-            "\u{2645}", "\u{2646}", "\u{2647}", "\u{260A}", "\u{26B7}",
+        // All 12 planet glyphs must appear — as `<symbol id="g-XXXX">`
+        // entries in the defs block plus `<use href="#g-XXXX">` references
+        // in the wheel and legend tables. The bare character is no longer
+        // emitted because the renderer now uses embedded vector paths so
+        // the chart looks identical on every viewer.
+        for cp in [
+            0x2609_u32, 0x263D, 0x263F, 0x2640, 0x2642, 0x2643, 0x2644, 0x2645, 0x2646, 0x2647,
+            0x260A, 0x26B7,
         ] {
-            assert!(svg.contains(glyph), "SVG missing planet glyph {glyph}");
+            let needle = format!("g-{cp:04X}");
+            assert!(svg.contains(&needle), "SVG missing planet glyph `{needle}`");
         }
     }
 
