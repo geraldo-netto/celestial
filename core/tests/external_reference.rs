@@ -1711,6 +1711,53 @@ fn moon_speed_always_in_band() {
     }
 }
 
+// ─── Outer-planet distance extremes ────────────────────────────────────────
+
+/// Pluto at 1989 perihelion ≈ 29.66 AU heliocentric (closest in
+/// ~248-year orbit). Geocentric distance should also be near 28.7
+/// AU at 1989-09-05 (Pluto's actual perihelion JD).
+#[test]
+fn pluto_at_1989_perihelion() {
+    let jd = julday(1989, 9, 5, 0.0, Calendar::Gregorian);
+    let pos = calc_ut(jd, celestial_core::body::Body::PLUTO, FLG).unwrap();
+    assert!(
+        (28.0..=31.0).contains(&pos.dist),
+        "Pluto distance at 1989 perihelion = {} AU, expected ≈ 29 AU",
+        pos.dist,
+    );
+}
+
+/// Neptune was discovered 1846-09-23 in Aquarius. Verify celestial
+/// places Neptune in Aquarius (270°-300°) at the discovery date.
+#[test]
+fn neptune_discovery_aquarius() {
+    let jd = julday(1846, 9, 23, 0.0, Calendar::Gregorian);
+    let pos = calc_ut(jd, celestial_core::body::Body::NEPTUNE, FLG).unwrap();
+    assert!(
+        (300.0..330.0).contains(&pos.lon),
+        "Neptune at 1846-09-23: lon = {}, expected Aquarius (300-330°)",
+        pos.lon,
+    );
+}
+
+// ─── Mercury daily speed extremes ──────────────────────────────────────────
+
+/// Mercury daily motion ranges from ~−1.4°/d (deep retrograde) to
+/// ~+2.2°/d (max direct, near superior conjunction).
+#[test]
+fn mercury_speed_within_extreme_range() {
+    let flg = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    for m in 1..=12 {
+        let jd = julday(2024, m, 15, 0.0, Calendar::Gregorian);
+        let pos = calc_ut(jd, celestial_core::body::Body::MERCURY, flg).unwrap();
+        assert!(
+            (-2.5..=2.5).contains(&pos.speed_lon),
+            "Mercury speed at 2024-{m:02}-15: {} °/d outside ±2.5",
+            pos.speed_lon,
+        );
+    }
+}
+
 // ─── Omer days ──────────────────────────────────────────────────────────────
 
 /// Omer count: 49 consecutive days from 2nd day of Pesach (16 Nisan)
