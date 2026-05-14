@@ -2439,3 +2439,42 @@ fn mercury_transit_2019_inferior_conjunction() {
         "Mercury–Sun separation at transit = {sep_wrap}°, expected < 0.1°",
     );
 }
+
+// ─── 2018 Total Lunar Eclipse (longest of 21st century) ──────────────────────
+
+/// Lunar eclipse 2018-07-27 20:22 UT (1h 43m totality, longest of 21st c.).
+/// Sun was at ~4°45' Leo (124.75°), Moon at ~4°46' Aquarius (304.77°) —
+/// a clean opposition. Pins Sun–Moon separation within 0.1° of 180°.
+#[test]
+fn longest_lunar_eclipse_2018_opposition() {
+    let jd = julday(2018, 7, 27, 20.0 + 22.0 / 60.0, Calendar::Gregorian);
+    let sun = calc_ut(jd, Body::SUN, FLG).unwrap();
+    let moon = calc_ut(jd, Body::MOON, FLG).unwrap();
+    assert_lon_within!(sun.lon, 124.75, 0.05, "Sun at 2018 lunar eclipse");
+    let sep = ((moon.lon - sun.lon - 180.0 + 540.0) % 360.0 - 180.0).abs();
+    assert!(
+        sep < 0.1,
+        "Sun–Moon offset from 180° at 2018 totality = {sep}°, expected < 0.1°",
+    );
+}
+
+// ─── 2020 Saturn–Pluto Conjunction ───────────────────────────────────────────
+
+/// Saturn–Pluto conjunction 2020-01-12 16:59 UT, both near 22°46' Capricorn
+/// (~292.77°). Generous 0.5° tolerance because outer-planet residuals are
+/// known. Catches gross regressions and verifies both are in Capricorn.
+#[test]
+fn saturn_pluto_conjunction_2020() {
+    let jd = julday(2020, 1, 12, 16.0 + 59.0 / 60.0, Calendar::Gregorian);
+    let sat = calc_ut(jd, Body::SATURN, FLG).unwrap();
+    let plu = calc_ut(jd, Body::PLUTO, FLG).unwrap();
+    assert_lon_within!(sat.lon, 292.77, 0.5, "Saturn at 2020 Saturn–Pluto conj");
+    assert_lon_within!(plu.lon, 292.77, 0.5, "Pluto at 2020 Saturn–Pluto conj");
+    // Both in Capricorn (270°–300°)
+    assert!(
+        (270.0..300.0).contains(&sat.lon) && (270.0..300.0).contains(&plu.lon),
+        "Saturn/Pluto must be in Capricorn, got {} / {}",
+        sat.lon,
+        plu.lon,
+    );
+}
