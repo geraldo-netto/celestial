@@ -103,6 +103,15 @@ const BAZI_CH: f64 = 280.0;
 const BAZI_OX: f64 = 60.0;
 const BAZI_OY: f64 = 70.0;
 
+/// Palette for the Ba Zi chart renderer. Bundles the three colour strings
+/// that `write_bazi_header` and `write_bazi_pillars` both consume so each
+/// helper signature stays under the clippy 7-arg ceiling.
+struct BaziPalette<'a> {
+    bg: &'a str,
+    txt: &'a str,
+    border: &'a str,
+}
+
 fn elem_color<'a>(el: &str, fallback: &'a str) -> &'a str {
     ELEM_COLORS
         .iter()
@@ -112,15 +121,14 @@ fn elem_color<'a>(el: &str, fallback: &'a str) -> &'a str {
 
 fn write_bazi_header(
     s: &mut String,
-    bg: &str,
-    txt: &str,
-    border: &str,
+    pal: &BaziPalette,
     title: &str,
     date: &str,
     total_w: f64,
     total_h: f64,
 ) {
     use std::fmt::Write;
+    let (bg, txt, border) = (pal.bg, pal.txt, pal.border);
     let half = total_w / 2.0;
     let _ = writeln!(
         s,
@@ -245,8 +253,9 @@ pub fn render_bazi_svg(ctx: &Value) -> String {
     let total_w = 4.0_f64.mul_add(BAZI_CW, BAZI_OX * 2.0);
     let total_h = BAZI_OY + BAZI_CH + 200.0;
 
+    let pal = BaziPalette { bg, txt, border };
     let mut s = String::with_capacity(8 * 1024);
-    write_bazi_header(&mut s, bg, txt, border, title, date, total_w, total_h);
+    write_bazi_header(&mut s, &pal, title, date, total_w, total_h);
     write_bazi_pillars(&mut s, pillars, border, txt);
 
     let ey = BAZI_OY + BAZI_CH + 18.0;

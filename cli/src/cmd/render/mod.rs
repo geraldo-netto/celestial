@@ -2595,6 +2595,17 @@ const SI_CH: f64 = 120.0;
 const SI_OX: f64 = 30.0;
 const SI_OY: f64 = 70.0;
 
+/// Palette for the South-Indian Rasi chart renderer. Bundles the five
+/// colour strings that every `write_si_*` helper needs so each helper's
+/// signature stays under the clippy 7-arg ceiling.
+struct SiPalette<'a> {
+    bg: &'a str,
+    txt: &'a str,
+    border: &'a str,
+    pcol: &'a str,
+    retro: &'a str,
+}
+
 fn group_planets_by_rasi(planets: &[Value]) -> Vec<Vec<String>> {
     let mut rasi_planets: Vec<Vec<String>> = vec![Vec::new(); 12];
     for p in planets {
@@ -2610,15 +2621,14 @@ fn group_planets_by_rasi(planets: &[Value]) -> Vec<Vec<String>> {
 
 fn write_si_header(
     s: &mut String,
-    bg: &str,
-    txt: &str,
-    border: &str,
+    pal: &SiPalette,
     title: &str,
     date: &str,
     total_w: f64,
     total_h: f64,
 ) {
     use std::fmt::Write;
+    let (bg, txt, border) = (pal.bg, pal.txt, pal.border);
     let half = total_w / 2.0;
     let _ = writeln!(
         s,
@@ -2635,8 +2645,9 @@ fn write_si_header(
     );
 }
 
-fn write_si_centre(s: &mut String, ctx: &Value, bg: &str, txt: &str, border: &str) {
+fn write_si_centre(s: &mut String, ctx: &Value, pal: &SiPalette) {
     use std::fmt::Write;
+    let (bg, txt, border) = (pal.bg, pal.txt, pal.border);
     let cx = SI_OX + SI_CW;
     let cy = SI_OY + SI_CH;
     let moon_sid = ctx["moon_sid_lon"].as_f64().unwrap_or(0.0);
@@ -2658,16 +2669,9 @@ fn write_si_centre(s: &mut String, ctx: &Value, bg: &str, txt: &str, border: &st
     );
 }
 
-fn write_si_cells(
-    s: &mut String,
-    rasi_planets: &[Vec<String>],
-    bg: &str,
-    txt: &str,
-    border: &str,
-    pcol: &str,
-    retro: &str,
-) {
+fn write_si_cells(s: &mut String, rasi_planets: &[Vec<String>], pal: &SiPalette) {
     use std::fmt::Write;
+    let (bg, txt, border, pcol, retro) = (pal.bg, pal.txt, pal.border, pal.pcol, pal.retro);
     for &(row, col, sign_idx) in SI_CELLS {
         let x = (col as f64).mul_add(SI_CW, SI_OX);
         let y = (row as f64).mul_add(SI_CH, SI_OY);
@@ -2722,11 +2726,13 @@ fn write_si_dashas(s: &mut String, ctx: &Value, dy: f64, total_w: f64, txt: &str
 
 pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
     use std::fmt::Write;
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
-    let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
-    let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
-    let retro = ctx["vars"]["retro_color"].as_str().unwrap_or("#a01030");
+    let pal = SiPalette {
+        bg: ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff"),
+        border: ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00"),
+        txt: ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00"),
+        pcol: ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a"),
+        retro: ctx["vars"]["retro_color"].as_str().unwrap_or("#a01030"),
+    };
     let title = ctx["vars"]
         .get("title")
         .and_then(|v| v.as_str())
@@ -2739,11 +2745,11 @@ pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
     let mut s = String::with_capacity(16 * 1024);
     let total_h = 4.0_f64.mul_add(SI_CH, SI_OY) + 40.0;
     let total_w = 4.0_f64.mul_add(SI_CW, SI_OX * 2.0);
-    write_si_header(&mut s, bg, txt, border, title, date, total_w, total_h);
-    write_si_centre(&mut s, ctx, bg, txt, border);
-    write_si_cells(&mut s, &rasi_planets, bg, txt, border, pcol, retro);
+    write_si_header(&mut s, &pal, title, date, total_w, total_h);
+    write_si_centre(&mut s, ctx, &pal);
+    write_si_cells(&mut s, &rasi_planets, &pal);
     let dy = 4.0_f64.mul_add(SI_CH, SI_OY) + 10.0;
-    write_si_dashas(&mut s, ctx, dy, total_w, txt, pcol);
+    write_si_dashas(&mut s, ctx, dy, total_w, pal.txt, pal.pcol);
     let _ = writeln!(s, "</svg>");
     s
 }
