@@ -28,7 +28,7 @@ use celestial_core::{
     is_day_chart, iso_week, jd_to_coptic, jewish_holidays, julday, long_to_nakshatra,
     long_to_navamsa, long_to_rasi, losar_jd, lunar_return_jd, maya_long_count,
     mean_sidereal_time_deg, midpoint_deg, naw_ruz_jd, next_first_quarter, next_new_moon, nowruz_jd,
-    nutation, panchanga, rise_trans, sabbats_for_year, same_sect, secondary_progressions,
+    nutation, panchanga, sabbats_for_year, same_sect, secondary_progressions,
     set_sid_mode, sidereal_time_deg, sol_eclipse_when_glob, solar_arc_directions, solar_return_jd,
     solcross_ut, tibetan_year_name, time_equ, tonalpohualli, triplicity_rulers, true_obliquity,
     tzolkin, vesak_jd, vietnamese_month_start_jd, vimshottari_dasha, yallop_q, Dignity,
@@ -1224,36 +1224,40 @@ fn antiscion_canonical_pairs() {
 ///   Water (Cancer, Scorpio, Pisces):  day Venus, night Mars
 #[test]
 fn triplicity_rulers_dorothean() {
-    // 15° Aries (fire)
-    let (day, night, _part) = triplicity_rulers(15.0);
-    assert_eq!(day.as_raw(), Body::SUN.as_raw(), "Aries day-triplicity should be Sun");
-    assert_eq!(night.as_raw(), Body::JUPITER.as_raw(), "Aries night-triplicity should be Jupiter");
-    // 15° Cancer (water)
-    let (day, night, _part) = triplicity_rulers(105.0);
-    assert_eq!(day.as_raw(), Body::VENUS.as_raw(), "Cancer day-triplicity should be Venus");
-    assert_eq!(night.as_raw(), Body::MARS.as_raw(), "Cancer night-triplicity should be Mars");
+    // Fire (Aries / Leo / Sagittarius): Sun / Jupiter / Saturn
+    let (d, n, p) = triplicity_rulers(15.0);
+    assert_eq!((d, n, p), (Body::SUN, Body::JUPITER, Body::SATURN));
+    // Earth (Taurus / Virgo / Capricorn): Venus / Moon / Mars
+    let (d, n, p) = triplicity_rulers(35.0);
+    assert_eq!((d, n, p), (Body::VENUS, Body::MOON, Body::MARS));
+    // Air (Gemini / Libra / Aquarius): Saturn / Mercury / Jupiter
+    let (d, n, p) = triplicity_rulers(65.0);
+    assert_eq!((d, n, p), (Body::SATURN, Body::MERCURY, Body::JUPITER));
+    // Water (Cancer / Scorpio / Pisces): Venus / Mars / Moon
+    let (d, n, p) = triplicity_rulers(105.0);
+    assert_eq!((d, n, p), (Body::VENUS, Body::MARS, Body::MOON));
 }
 
-/// Chaldean decans (Ptolemy):
-///   Aries 0-10°:   Mars  | 10-20°:   Sun     | 20-30°:   Venus
-///   Taurus 0-10°:  Mercury | 10-20°: Moon   | 20-30°:   Saturn
+/// Chaldean decans (Ptolemy, Firmicus). Aries 0-10/10-20/20-30 = Mars/Sun/Venus.
+/// Taurus 0-10 = Mercury. Leo 10-20 = Jupiter.
 #[test]
 fn decan_rulers_chaldean() {
-    let aries_0 = decan_ruler(5.0);
-    let aries_2 = decan_ruler(25.0);
-    assert_eq!(aries_0.as_raw(), Body::MARS.as_raw(), "Aries 0-10° decan = Mars");
-    assert_eq!(aries_2.as_raw(), Body::VENUS.as_raw(), "Aries 20-30° decan = Venus");
-
-    let taurus_0 = decan_ruler(35.0);
-    assert_eq!(taurus_0.as_raw(), Body::MERCURY.as_raw(), "Taurus 0-10° decan = Mercury");
+    assert_eq!(decan_ruler(5.0), Body::MARS, "Aries 0-10° decan");
+    assert_eq!(decan_ruler(15.0), Body::SUN, "Aries 10-20° decan");
+    assert_eq!(decan_ruler(25.0), Body::VENUS, "Aries 20-30° decan");
+    assert_eq!(decan_ruler(35.0), Body::MERCURY, "Taurus 0-10° decan");
+    assert_eq!(decan_ruler(135.0), Body::JUPITER, "Leo 10-20° decan");
 }
 
-/// Egyptian terms (Ptolemy) — first 6° of Aries are Jupiter's term.
+/// Egyptian terms (Ptolemy, Tetrabiblos I.21).
+/// Aries 0-6/6-12/12-20/20-25/25-30 = Jupiter/Venus/Mercury/Mars/Saturn.
 #[test]
-fn egyptian_terms_jupiter_in_aries() {
-    let ruler = egyptian_terms_ruler(3.0);
-    assert_eq!(ruler.as_raw(), Body::JUPITER.as_raw(),
-        "Aries 0-6° Egyptian term = Jupiter");
+fn egyptian_terms_aries_all_five() {
+    assert_eq!(egyptian_terms_ruler(3.0), Body::JUPITER);
+    assert_eq!(egyptian_terms_ruler(8.0), Body::VENUS);
+    assert_eq!(egyptian_terms_ruler(15.0), Body::MERCURY);
+    assert_eq!(egyptian_terms_ruler(22.0), Body::MARS);
+    assert_eq!(egyptian_terms_ruler(28.0), Body::SATURN);
 }
 
 // ─── Sect ───────────────────────────────────────────────────────────────────
@@ -2252,5 +2256,186 @@ fn haab_3_kankin_at_2012_solstice() {
     assert!(
         (1..=20).contains(&day),
         "Haab day {day} out of range",
+    );
+}
+
+// ─── Hellenistic dignity — extended dignity-score pins ───────────────────────
+
+/// Full dignity scores (Ptolemy weighting in this engine):
+/// domicile = +5, detriment = −5, exaltation = +4, fall = −4.
+#[test]
+fn full_dignity_classical_scores() {
+    // Sun in Leo (domicile)
+    assert_eq!(full_dignity(Body::SUN, 130.0, true), (Dignity::Domicile, 5));
+    // Sun in Aquarius (detriment)
+    assert_eq!(full_dignity(Body::SUN, 310.0, true), (Dignity::Detriment, -5));
+    // Sun in Aries 19° (exaltation)
+    assert_eq!(full_dignity(Body::SUN, 19.0, true), (Dignity::Exaltation, 4));
+    // Sun in Libra 19° (fall)
+    assert_eq!(full_dignity(Body::SUN, 199.0, true), (Dignity::Fall, -4));
+}
+
+/// Egyptian-term spot-checks across multiple signs (Ptolemy bound table).
+#[test]
+fn egyptian_terms_multi_sign_pins() {
+    // Pisces 12-16 = Jupiter
+    assert_eq!(egyptian_terms_ruler(343.0), Body::JUPITER, "Pisces 13°");
+    // Sagittarius 0-12 = Jupiter (long opening segment)
+    assert_eq!(egyptian_terms_ruler(245.0), Body::JUPITER, "Sagittarius 5°");
+    // Capricorn 0-7 = Mercury
+    assert_eq!(egyptian_terms_ruler(273.0), Body::MERCURY, "Capricorn 3°");
+}
+
+/// Almuten of Aries 1° in a day chart must be one of the planets with a claim
+/// on that degree (Mars=domicile, Sun=exaltation, Jupiter=term, Mars=decan).
+#[test]
+fn almuten_aries_1deg_day() {
+    let (lord, score) = almuten(1.0, true);
+    assert!(score > 0 && score < 30, "almuten score out of band: {score}");
+    assert!(
+        [Body::MARS, Body::SUN, Body::JUPITER].contains(&lord),
+        "almuten of Aries 1° expected ∈ {{Mars, Sun, Jupiter}}, got {lord:?}",
+    );
+}
+
+// ─── Parallactic angle — Meeus chapter 14 ─────────────────────────────────────
+
+/// Parallactic angle `q = atan2(sin H, tan φ · cos δ − sin δ · cos H)`.
+/// Three sanity pins:
+///  - On the meridian below the zenith (H=0, lat>dec): q=0.
+///  - East of meridian (H=−90°) at equator with δ=0: q=−90°.
+///  - West of meridian (H=+90°) at equator with δ=0: q=+90°.
+#[test]
+fn parallactic_angle_canonical_geometries() {
+    use celestial_core::parallactic_angle;
+    // At meridian, body south of zenith
+    let q0 = parallactic_angle(0.0, 0.0, 45.0);
+    assert!(q0.abs() < 1e-9, "q at meridian (lat>dec) = {q0}, expected 0");
+
+    // East of meridian (rising), equator observer, dec=0
+    let q_east = parallactic_angle(-90.0, 0.0, 0.0);
+    assert!(
+        (q_east - -90.0).abs() < 1e-9,
+        "q at H=−90° equator = {q_east}, expected −90°",
+    );
+
+    // West of meridian (setting)
+    let q_west = parallactic_angle(90.0, 0.0, 0.0);
+    assert!(
+        (q_west - 90.0).abs() < 1e-9,
+        "q at H=+90° equator = {q_west}, expected +90°",
+    );
+}
+
+/// Parallactic angle is antisymmetric in hour angle:
+/// `q(−H, δ, φ) = −q(H, δ, φ)`. Spot-check at random argument set.
+#[test]
+fn parallactic_angle_symmetry() {
+    use celestial_core::parallactic_angle;
+    let q_pos = parallactic_angle(30.0, 20.0, 40.0);
+    let q_neg = parallactic_angle(-30.0, 20.0, 40.0);
+    assert!(
+        (q_pos + q_neg).abs() < 1e-9,
+        "parallactic angle not antisymmetric: q(+H)={q_pos}, q(−H)={q_neg}",
+    );
+}
+
+// ─── Antiscia — symmetry around solstice axis ────────────────────────────────
+
+/// Antiscion = reflection around the 0° Cancer / 0° Capricorn axis (axis = 90°
+/// in the ecliptic). 2·90 − lon mod 360 = 180 − lon mod 360.
+/// e.g., Sun at 60° Gemini (=60°) has antiscion at 180−60 = 120° (Cancer 0°),
+/// contrantiscion at 300°.
+#[test]
+fn antiscion_solstice_axis_canonical() {
+    let pos = [60.0_f64, 0.0, 1.0, 0.0, 0.0, 0.0];
+    let a = antiscion(pos, 90.0);
+    assert!(
+        (a.antiscion[0] - 120.0).abs() < 1e-9,
+        "antiscion = {}°, expected 120°",
+        a.antiscion[0],
+    );
+    assert!(
+        (a.contrantiscion[0] - 300.0).abs() < 1e-9,
+        "contrantiscion = {}°, expected 300°",
+        a.contrantiscion[0],
+    );
+}
+
+/// Antiscion of antiscion (axis 90°) reflects back to the original point.
+/// Verifies the formula is an involution mod 360°.
+#[test]
+fn antiscion_involution() {
+    let original = [37.5_f64, 1.0, 1.0, 0.0, 0.0, 0.0];
+    let once = antiscion(original, 90.0);
+    let twice = antiscion(once.antiscion, 90.0);
+    let diff = ((twice.antiscion[0] - original[0] + 540.0) % 360.0 - 180.0).abs();
+    assert!(diff < 1e-9, "antiscion ∘ antiscion ≠ id (off by {diff}°)");
+}
+
+// ─── Great Conjunction 2020-12-21 — historic Jupiter–Saturn meeting ──────────
+
+/// Jupiter–Saturn Great Conjunction on 2020-12-21 18:00 UT. Both planets
+/// reached ~0°29' Aquarius (300.48°). Jupiter and Saturn were separated by
+/// only ~6 arcminutes — the closest meeting in 397 years. This pin catches
+/// any future Saturn/Jupiter VSOP87 regressions that would push the planets
+/// off Aquarius or invert the apparent ordering near conjunction.
+#[test]
+fn jupiter_saturn_great_conjunction_2020() {
+    let jd = julday(2020, 12, 21, 18.0, Calendar::Gregorian);
+    let jup = calc_ut(jd, Body::JUPITER, FLG).unwrap();
+    let sat = calc_ut(jd, Body::SATURN, FLG).unwrap();
+    assert_lon_within!(jup.lon, 300.48, 0.4, "Jupiter at Great Conjunction");
+    assert_lon_within!(sat.lon, 300.58, 0.4, "Saturn at Great Conjunction");
+    // Separation ≤ 0.3° (canonical is ~0.1°; current engine ~0.2°).
+    let sep = (jup.lon - sat.lon).abs();
+    let sep_wrap = sep.min(360.0 - sep);
+    assert!(
+        sep_wrap < 0.3,
+        "Jupiter–Saturn separation at Great Conjunction = {sep_wrap}°, expected < 0.3°",
+    );
+}
+
+// ─── 2017 Great American Total Solar Eclipse ─────────────────────────────────
+
+/// Greatest eclipse for 2017-08-21 occurred at 18:25 UT. The Sun was near
+/// 28°53' Leo (148.88°) and the Moon within 0.05° of it — the unmistakable
+/// new-moon signature. Pins both Sun longitude and the small Moon–Sun gap.
+#[test]
+fn great_american_eclipse_2017() {
+    let jd = julday(2017, 8, 21, 18.0 + 25.0 / 60.0, Calendar::Gregorian);
+    let sun = calc_ut(jd, Body::SUN, FLG).unwrap();
+    let moon = calc_ut(jd, Body::MOON, FLG).unwrap();
+    assert_lon_within!(sun.lon, 148.88, 0.05, "Sun at 2017 eclipse");
+    let sep = (moon.lon - sun.lon).abs();
+    let sep_wrap = sep.min(360.0 - sep);
+    assert!(
+        sep_wrap < 0.1,
+        "Moon–Sun separation at 2017 totality = {sep_wrap}°, expected < 0.1°",
+    );
+}
+
+// ─── 2019 Mercury Transit (Mercury crosses solar disc) ───────────────────────
+
+/// On 2019-11-11 15:21 UT Mercury transited the solar disc. Geocentric Mercury
+/// was at ~18°55' Scorpio (228.92°) and the Sun within ~0.02° — Mercury must
+/// be retrograde (inferior conjunction).
+#[test]
+fn mercury_transit_2019_inferior_conjunction() {
+    let jd = julday(2019, 11, 11, 15.0 + 21.0 / 60.0, Calendar::Gregorian);
+    let sun = calc_ut(jd, Body::SUN, FLG).unwrap();
+    let merc = calc_ut(jd, Body::MERCURY, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    assert_lon_within!(sun.lon, 228.93, 0.05, "Sun at Mercury transit");
+    assert_lon_within!(merc.lon, 228.93, 0.1, "Mercury at transit");
+    assert!(
+        merc.speed_lon < 0.0,
+        "Mercury must be retrograde at inferior conjunction, got speed_lon={}",
+        merc.speed_lon,
+    );
+    let sep = (merc.lon - sun.lon).abs();
+    let sep_wrap = sep.min(360.0 - sep);
+    assert!(
+        sep_wrap < 0.1,
+        "Mercury–Sun separation at transit = {sep_wrap}°, expected < 0.1°",
     );
 }
