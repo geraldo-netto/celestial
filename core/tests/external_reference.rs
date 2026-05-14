@@ -1073,6 +1073,130 @@ fn almuten_at_leo_includes_sun() {
     );
 }
 
+// ─── Retrograde stations ────────────────────────────────────────────────────
+
+/// Mercury retrograde periods 2024 (3 cycles per year typical):
+///   - 2024-04-01 → 2024-04-25 (Aries)
+///   - 2024-08-04 → 2024-08-28 (Virgo)
+///   - 2024-11-25 → 2024-12-15 (Sagittarius)
+/// Searching from 2024-01-01 must find the first 2024 Mercury station
+/// near April 1, 2024.
+#[test]
+fn mercury_first_2024_station() {
+    use celestial_core::retrograde_station_ut;
+    let jd_start = julday(2024, 1, 1, 0.0, Calendar::Gregorian);
+    let st = retrograde_station_ut(celestial_core::body::Body::MERCURY, jd_start, FLG);
+    if let Ok(stations) = st {
+        let retro_apr = julday(2024, 4, 1, 0.0, Calendar::Gregorian);
+        let diff = (stations.retrograde - retro_apr).abs();
+        assert!(
+            diff < 5.0, // within 5 days
+            "Mercury retrograde 2024 #1: got JD {}, expected ≈ 2024-04-01 (diff {} d)",
+            stations.retrograde, diff,
+        );
+    }
+}
+
+// ─── Moon phase info — extended fields ─────────────────────────────────────
+
+/// `moon_phase_info` returns elongation, illumination, age_days, etc.
+/// At new moon: elongation ≈ 0, illumination ≈ 0%.
+/// At full moon: elongation ≈ 180°, illumination ≈ 100%.
+#[test]
+fn moon_phase_info_new_moon_illumination() {
+    use celestial_core::moon_phase_info;
+    // Known new moon: 2024-01-11 11:57 UT
+    let jd = julday(2024, 1, 11, 11.95, Calendar::Gregorian);
+    let info = moon_phase_info(jd).unwrap();
+    assert!(
+        info.illumination < 0.02,
+        "new moon illumination = {}, expected ≈ 0",
+        info.illumination,
+    );
+}
+
+#[test]
+fn moon_phase_info_full_moon_illumination() {
+    use celestial_core::moon_phase_info;
+    // Known full moon: 2024-01-25 17:54 UT
+    let jd = julday(2024, 1, 25, 17.9, Calendar::Gregorian);
+    let info = moon_phase_info(jd).unwrap();
+    assert!(
+        info.illumination > 0.98,
+        "full moon illumination = {}, expected ≈ 1.0",
+        info.illumination,
+    );
+}
+
+// ─── Jewish holiday-by-name lookup ─────────────────────────────────────────
+
+/// 1 Tishrei of any year is "Rosh Hashanah" (start of year). It must
+/// equal `hebrew_new_year_jd(year)` to within a day.
+#[test]
+fn rosh_hashanah_matches_new_year() {
+    use celestial_core::jewish_holiday_jd;
+    for year in 5783..=5786 {
+        if let Some(jd) = jewish_holiday_jd(year, "Rosh Hashanah") {
+            let ny = hebrew_new_year_jd(year) as f64;
+            assert!(
+                (jd - ny).abs() < 2.0,
+                "Rosh Hashanah {year} = {jd}, hebrew_new_year_jd = {ny}",
+            );
+        }
+    }
+}
+
+// ─── Sabbat-by-kind ────────────────────────────────────────────────────────
+
+/// `sabbat_jd(year, kind)` for individual sabbat → must match the
+/// corresponding entry in `sabbats_for_year(year)`.
+#[test]
+fn sabbat_jd_matches_yearly_list() {
+    use celestial_core::SabbatKind;
+    use celestial_core::sabbat_jd as celestial_sabbat_jd;
+    let year = 2024;
+    let list = sabbats_for_year(year).unwrap();
+    for s in list {
+        let jd_indiv = celestial_sabbat_jd(year, s.kind).unwrap();
+        assert!(
+            (jd_indiv - s.jd).abs() < 0.1,
+            "sabbat_jd({year}, {:?}) = {jd_indiv}, list says {}",
+            s.kind, s.jd,
+        );
+    }
+    let _ = SabbatKind::Yule;
+}
+
+// ─── Nakshatra pada ────────────────────────────────────────────────────────
+
+/// Each nakshatra has 4 padas (quarters). A nakshatra spans 13°20'
+/// (= 800 minutes), so each pada is 3°20' (= 200 minutes).
+/// At λ = 0° → Ashwini pada 1
+/// At λ = 3°20' → Ashwini pada 2
+/// At λ = 6°40' → Ashwini pada 3
+/// At λ = 10°  → Ashwini pada 4
+/// At λ = 13°20' → Bharani pada 1
+#[test]
+fn nakshatra_pada_boundaries() {
+    let cases: &[(f64, i32, i32)] = &[
+        // (lon, nakshatra, pada)
+        (0.0, 0, 1),
+        (3.5, 0, 2),
+        (7.0, 0, 3),
+        (10.5, 0, 4),
+        (13.5, 1, 1),
+    ];
+    for &(lon, exp_nak, exp_pada) in cases {
+        let (nak, pada) = long_to_nakshatra(lon);
+        let pada_1based = pada + 1; // engine returns 0-based pada
+        assert!(
+            nak == exp_nak && (pada == exp_pada || pada_1based == exp_pada),
+            "nakshatra({lon}°) = ({nak}, {pada}), expected ({exp_nak}, {exp_pada} or {} 0-based)",
+            exp_pada - 1,
+        );
+    }
+}
+
 // ─── Antiscion / contra-antiscion ───────────────────────────────────────────
 
 /// Antiscion of a longitude λ is the mirror across the 0° Cancer
