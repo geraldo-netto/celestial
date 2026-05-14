@@ -435,7 +435,6 @@ pub fn arabic_parts_seven(
 ///
 /// Returns `(progressed_bodies, progressed_chart)` where `progressed_bodies`
 /// is a `Vec<(body_num, PlanetPos)>` and the chart has the progressed angles.
-#[must_use]
 pub fn secondary_progressions(
     jd_natal: f64,
     years: f64,
@@ -809,7 +808,6 @@ pub fn calc_chart_aspects_auto(
 /// let last = local_apparent_solar_time(2_451_545.0, 2.35).unwrap();
 /// println!("LAST Paris: {:.2}h", last);
 /// ```
-#[must_use]
 pub fn local_apparent_solar_time(jd_ut: f64, geolon_deg: f64) -> crate::Result<f64> {
     // Extract UTC hour-of-day from JD:
     // JD epoch is noon (12:00 UT), so fractional part 0.0 = noon.

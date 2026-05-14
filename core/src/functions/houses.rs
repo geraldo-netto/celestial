@@ -137,7 +137,6 @@ pub fn house_pos(
 /// House cusps from ARMC (sidereal time in degrees), latitude, and ecliptic obliquity.
 /// House cusps from ARMC (sidereal time in degrees), geographic latitude,
 /// ecliptic obliquity, and house system byte.
-#[must_use]
 pub fn houses_from_armc(armc: f64, geolat: f64, eps: f64, hsys: HouseSystem) -> HouseResult {
     crate::astronomy::houses_from_armc(armc, geolat, eps, hsys.as_raw())
 }

@@ -10,7 +10,6 @@ fn norm360(d: f64) -> f64 {
 
 /// Positions of the four stars used in Vedic Saturn-related calculations
 /// (`Pushya`, `Revati`, `Hasta`, `Chitra`) at a given Julian day.
-#[must_use]
 pub fn saturn_4_stars(jd: f64, flags: CalcFlags) -> crate::Result<[f64; 6]> {
     let sat = crate::calc_ut(jd, Body::SATURN, flags)?.lon;
     let ald = crate::functions::calc::fixstar("Aldebaran", jd, flags)?.xx[0];

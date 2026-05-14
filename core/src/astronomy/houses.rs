@@ -119,7 +119,6 @@ impl HouseSystem {
 /// - `hsys` — house system character (`b'P'` = Placidus, etc.)
 ///
 /// Uses sidereal time computed from JD.
-#[must_use]
 pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: u8) -> HouseResult {
     let armc = sidereal_time_deg(jd_ut) + geolon;
     let armc = norm_deg(armc);
@@ -131,7 +130,6 @@ pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: u8) -> HouseResult {
 ///
 /// This is the low-level entry point used when ARMC and obliquity are
 /// already known (e.g. from the full astronomy pipeline).
-#[must_use]
 pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
     let system = HouseSystem::from_char(hsys).unwrap_or(HouseSystem::Placidus);
     compute_houses(armc, geolat, eps, system)
@@ -788,7 +786,6 @@ pub fn obliquity_simple(jd_ut: f64) -> f64 {
     p2.mul_add(t, 23.439_291_111)
 }
 /// Alias for `houses_armc` — compute house cusps directly from ARMC, latitude and obliquity.
-#[must_use]
 pub fn houses_from_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
     houses_armc(armc, geolat, eps, hsys)
 }

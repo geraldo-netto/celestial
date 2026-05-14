@@ -55,20 +55,17 @@ enum BodyKind {
 
 /// Compute rise, transit or set time for the Sun on a given UT date.
 #[inline]
-#[must_use]
 pub fn sun_rise_set(jd_ut: f64, geolat: f64, geolon: f64, event: RiseSetEvent) -> RiseSetResult {
     rise_set_inner(jd_ut, geolat, geolon, event, BodyKind::Sun)
 }
 
 /// Compute rise, transit or set time for the Moon on a given UT date.
 #[inline]
-#[must_use]
 pub fn moon_rise_set(jd_ut: f64, geolat: f64, geolon: f64, event: RiseSetEvent) -> RiseSetResult {
     rise_set_inner(jd_ut, geolat, geolon, event, BodyKind::Moon)
 }
 
 /// Compute rise, transit or set time for a planet on a given UT date.
-#[must_use]
 pub fn planet_rise_set(
     jd_ut: f64,
     geolat: f64,

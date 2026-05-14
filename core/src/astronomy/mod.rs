@@ -102,13 +102,11 @@ pub use houses::houses_from_armc;
 /// - `geolat` — geographic latitude (degrees, N positive)
 /// - `geolon` — geographic longitude (degrees, E positive)
 /// - `hsys`   — house system byte: `b'P'` Placidus, `b'K'` Koch, `b'E'` Equal, etc.
-#[must_use]
 pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: u8) -> HouseResult {
     calc_houses(jd_ut, geolat, geolon, hsys)
 }
 
 /// Compute house cusps from ARMC, latitude and obliquity directly.
-#[must_use]
 pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
     calc_houses_armc(armc, geolat, eps, hsys)
 }

@@ -449,7 +449,6 @@ pub fn next_aspect_cusp2(
 
 /// Number of astrological years between two Julian days.
 /// An "astrological year" = one solar revolution.
-#[must_use]
 pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
     use crate::functions::calc::calc_ut;
     let sun1 = calc_ut(jd1, Body::SUN, flags)?.lon;
@@ -520,7 +519,6 @@ pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
 ///     println!("Saturn conjunct natal MC: JD {jd:.2}");
 /// }
 /// ```
-#[must_use]
 pub fn transit_to_degree(
     body: Body,
     target_lon: f64,
@@ -575,7 +573,6 @@ pub fn transit_to_degree(
 /// }
 /// ```
 #[allow(clippy::too_many_arguments)]
-#[must_use]
 pub fn mc_transit_ut(
     body: Body,
     jd_natal: f64,
@@ -596,7 +593,6 @@ pub fn mc_transit_ut(
 ///
 /// IC = natal MC + 180°. A planet at the IC is at the nadir of the chart.
 #[allow(clippy::too_many_arguments)]
-#[must_use]
 pub fn ic_transit_ut(
     body: Body,
     jd_natal: f64,
@@ -615,7 +611,6 @@ pub fn ic_transit_ut(
 
 /// Next time a planet transits the Ascendant (ASC) of a natal chart.
 #[allow(clippy::too_many_arguments)]
-#[must_use]
 pub fn asc_transit_ut(
     body: Body,
     jd_natal: f64,
@@ -636,7 +631,6 @@ pub fn asc_transit_ut(
 ///
 /// DSC = natal ASC + 180°.
 #[allow(clippy::too_many_arguments)]
-#[must_use]
 pub fn dsc_transit_ut(
     body: Body,
     jd_natal: f64,
@@ -736,7 +730,6 @@ pub fn planet_conjunct_mc(planet_lon: f64, mc_lon: f64, orb: f64) -> bool {
 /// let noon = meridian_transit_ut(Body::SUN, 2_451_545.0, [2.35, 48.85, 35.0], CalcFlags::BUILTIN);
 /// println!("Solar noon: JD {:.4}", noon.unwrap().tret);
 /// ```
-#[must_use]
 pub fn meridian_transit_ut(
     body: Body,
     jd_start: f64,
@@ -760,7 +753,6 @@ pub fn meridian_transit_ut(
 /// The lower meridian transit is ~12 hours before or after the upper transit.
 /// Computed by finding the upper transit then searching for the transit
 /// approximately 12 hours later.
-#[must_use]
 pub fn lower_meridian_transit_ut(
     body: Body,
     jd_start: f64,
@@ -975,7 +967,6 @@ impl SearchOptions {
     /// Execute a Midheaven (MC) transit search.
     ///
     /// Requires `.natal_chart()` to have been called.
-    #[must_use]
     pub fn search_mc_transit(self) -> crate::Result<f64> {
         mc_transit_ut(
             self.body,
@@ -990,7 +981,6 @@ impl SearchOptions {
     }
 
     /// Execute an IC transit search.
-    #[must_use]
     pub fn search_ic_transit(self) -> crate::Result<f64> {
         ic_transit_ut(
             self.body,
@@ -1005,7 +995,6 @@ impl SearchOptions {
     }
 
     /// Execute an Ascendant transit search.
-    #[must_use]
     pub fn search_asc_transit(self) -> crate::Result<f64> {
         asc_transit_ut(
             self.body,
@@ -1020,7 +1009,6 @@ impl SearchOptions {
     }
 
     /// Execute a Descendant transit search.
-    #[must_use]
     pub fn search_dsc_transit(self) -> crate::Result<f64> {
         dsc_transit_ut(
             self.body,
