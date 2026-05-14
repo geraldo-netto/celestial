@@ -10,8 +10,8 @@ use std::collections::BTreeMap;
 use celestial_core::body::{CalcFlags, HouseSystem};
 use celestial_core::solar::{solar_cycle, SolarCycleInfo};
 use celestial_core::{
-    arabic_parts_seven, calc_ut, diff_deg_signed, fixstar_mag, fixstar_ut, houses_ex, lon_to_sign,
-    midpoint_deg, moon_illumination, zodiac_sign_name,
+    arabic_parts_seven, calc_ut, diff_deg_signed, fixstar_mag, fixstar_ut, houses_ex, is_applying,
+    lon_to_sign, midpoint_deg, moon_illumination, zodiac_sign_name,
 };
 use serde_json::{json, Value};
 
@@ -38,7 +38,7 @@ pub(crate) fn build_context(
     let planets = build_planets(jd, asc);
     let signs = build_signs(asc);
     let houses = build_houses(&h, asc);
-    let aspects = compute_aspects(&planets);
+    let aspects = compute_aspects(&planets, asc, mc);
     let arabic_parts = build_arabic_parts(&planets, &h, asc);
     let fixed_stars = build_fixed_stars(jd, asc);
     let angles = build_angles(asc, mc, ic, dsc);
@@ -500,12 +500,38 @@ fn collect_body_longitudes(planets: &[Value]) -> BodyLongitudes {
     out
 }
 
-/// Compute pairwise aspects between every planet in `planets`.
+/// Build a synthetic aspect-grid entry for ASC or MC.
+///
+/// Angles have no body speed, so `speed=0`; aspect endpoints sit at
+/// the same `RP - 18.0` radius the planet entries use so the resulting
+/// line lands inside the inner wheel without overshooting the house ring.
+fn angle_entry(name: &str, lon: f64, asc: f64) -> Value {
+    json!({
+        "name":   name,
+        "key":    name.to_lowercase(),
+        "glyph":  name,
+        "lon":    (lon * 1e4).round() / 1e4,
+        "speed":  0.0,
+        "is_angle": true,
+        "asp_x":  (wx(CX, RP - 18.0, lon, asc) * 100.0).round() / 100.0,
+        "asp_y":  (wy(CY, RP - 18.0, lon, asc) * 100.0).round() / 100.0,
+    })
+}
+
+/// Compute pairwise aspects between every body in `planets` plus the
+/// ASC and MC angles. PDF natal charts include aspects to the angles
+/// (Sat-ASC, Ura-MC, Plu-ASC etc.) — omitting them produces a visibly
+/// incomplete aspect grid vs. a commercial reference.
 ///
 /// Aspects are matched in order of `ASPECT_DEFS` (conjunction, opposition,
 /// trine, square, sextile, …); first match within orb wins so a body pair
 /// satisfying multiple nearby aspects gets a single entry.
-fn compute_aspects(planets: &[Value]) -> Vec<Value> {
+///
+/// `applying` uses signed orb (which side of exact) and relative speed
+/// (`spd1 - spd2`) so it correctly reflects whether the pair is moving
+/// toward or away from exact. Static angles (ASC/MC) get `speed = 0` so
+/// `applying` collapses to the planet's own approach direction.
+fn compute_aspects(planets: &[Value], asc_lon: f64, mc_lon: f64) -> Vec<Value> {
     type PRef<'a> = (
         f64,       // lon
         f64,       // speed
@@ -514,7 +540,10 @@ fn compute_aspects(planets: &[Value]) -> Vec<Value> {
         &'a Value, // asp_x
         &'a Value, // asp_y
     );
-    let p_data: Vec<PRef> = planets
+    let asc_entry = angle_entry("ASC", asc_lon, asc_lon);
+    let mc_entry = angle_entry("MC", mc_lon, asc_lon);
+
+    let mut p_data: Vec<PRef> = planets
         .iter()
         .map(|p| {
             (
@@ -527,18 +556,37 @@ fn compute_aspects(planets: &[Value]) -> Vec<Value> {
             )
         })
         .collect();
+    for ang in [&asc_entry, &mc_entry] {
+        p_data.push((
+            ang["lon"].as_f64().unwrap_or(0.0),
+            0.0,
+            &ang["name"],
+            &ang["glyph"],
+            &ang["asp_x"],
+            &ang["asp_y"],
+        ));
+    }
 
     // Upper bound: each pair × ASPECT_DEFS could match, but most don't.
-    // n*(n-1)/2 is a safe ceiling; typical chart has < 30 aspects.
+    // n*(n-1)/2 is a safe ceiling; typical chart has < 40 aspects with angles.
     let n = p_data.len();
     let mut aspects = Vec::with_capacity(n * n / 4);
     for i in 0..n {
         let (lon1, spd1, name1, glyph1, asp_x1, asp_y1) = p_data[i];
-        for (lon2, _spd2, name2, glyph2, asp_x2, asp_y2) in p_data.iter().skip(i + 1).copied() {
-            let diff = diff_deg_signed(lon1, lon2).abs();
+        for (lon2, spd2, name2, glyph2, asp_x2, asp_y2) in p_data.iter().skip(i + 1).copied() {
+            // ASC↔MC angle is a house-system geometry artifact, not an
+            // aspect — exclude so the grid matches commercial output.
+            let n1 = name1.as_str().unwrap_or("");
+            let n2 = name2.as_str().unwrap_or("");
+            if (n1 == "ASC" && n2 == "MC") || (n1 == "MC" && n2 == "ASC") {
+                continue;
+            }
+            let signed = diff_deg_signed(lon1, lon2);
+            let diff = signed.abs();
             for &(asp_deg, asp_name, orb_lim, is_minor) in ASPECT_DEFS {
                 let orb = (diff - asp_deg).abs();
                 if orb <= orb_lim {
+                    let applying = is_applying(signed, spd1 - spd2, asp_deg);
                     aspects.push(json!({
                         "body1":       name1,
                         "glyph1":      glyph1,
@@ -547,7 +595,7 @@ fn compute_aspects(planets: &[Value]) -> Vec<Value> {
                         "aspect_name": asp_name,
                         "aspect_deg":  asp_deg,
                         "orb":         (orb * 100.0).round() / 100.0,
-                        "applying":    spd1 > 0.0 && diff < asp_deg,
+                        "applying":    applying,
                         "is_hard":     asp_name == "square" || asp_name == "opposition",
                         "is_minor":    is_minor,
                         "x1":          asp_x1,

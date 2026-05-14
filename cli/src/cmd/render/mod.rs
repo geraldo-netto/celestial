@@ -2036,7 +2036,97 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
             );
             let orb = asp["orb"].as_f64().unwrap();
             assert!((0.0..=8.0).contains(&orb), "orb out of range: {orb}");
+            assert!(
+                asp["applying"].as_bool().is_some(),
+                "applying flag must be boolean"
+            );
         }
+    }
+
+    /// Aspects to the angles (ASC and MC) are part of every commercial
+    /// natal chart — Sat-ASC squares, Ura-MC sesquiquadrates, etc. The
+    /// World-of-Wisdom reference for the 1986 São Paulo nativity shows
+    /// at least one aspect each to ASC and MC, so regression-lock that.
+    #[test]
+    fn context_aspects_include_asc_and_mc() {
+        // 1986-05-30 09:00 UT, São Paulo (PDF reference chart)
+        let jd = 2_446_580.875;
+        let ctx = build_context(
+            jd,
+            -23.5505,
+            -46.6333,
+            "1986-05-30",
+            'P',
+            std::collections::BTreeMap::new(),
+        )
+        .unwrap();
+        let aspects = ctx["aspects"].as_array().unwrap();
+        let asc_aspects: Vec<&serde_json::Value> = aspects
+            .iter()
+            .filter(|a| a["body1"] == "ASC" || a["body2"] == "ASC")
+            .collect();
+        let mc_aspects: Vec<&serde_json::Value> = aspects
+            .iter()
+            .filter(|a| a["body1"] == "MC" || a["body2"] == "MC")
+            .collect();
+        assert!(
+            !asc_aspects.is_empty(),
+            "expected at least one aspect involving ASC"
+        );
+        assert!(
+            !mc_aspects.is_empty(),
+            "expected at least one aspect involving MC"
+        );
+        // The PDF reference shows ~6 ASC aspects and ~8 MC aspects.
+        // Loose lower bound here so the test survives small orb-table
+        // tweaks without breaking on every edit.
+        assert!(
+            asc_aspects.len() >= 3,
+            "ASC should have several aspects, got {}",
+            asc_aspects.len()
+        );
+        assert!(
+            mc_aspects.len() >= 3,
+            "MC should have several aspects, got {}",
+            mc_aspects.len()
+        );
+    }
+
+    /// `applying` must use both the sign of the orb (which side of
+    /// exact we're on) and the *relative* speed of the two bodies.
+    /// Single-body speed checks misclassify retrograde outer-planet
+    /// transits to fast inner planets.
+    ///
+    /// For the 1986 São Paulo chart, the Sun-Saturn opposition has the
+    /// Sun (+0.96°/d) and Saturn retrograde (-0.07°/d) at a separation
+    /// of ~177.6° (below 180°). Their relative motion is closing the
+    /// |sep| gap *away* from 180°, so the opposition must be separating.
+    #[test]
+    fn context_aspects_applying_uses_signed_orb() {
+        let jd = 2_446_580.875; // 1986-05-30 09:00 UT
+        let ctx = build_context(
+            jd,
+            -23.5505,
+            -46.6333,
+            "1986-05-30",
+            'P',
+            std::collections::BTreeMap::new(),
+        )
+        .unwrap();
+        let aspects = ctx["aspects"].as_array().unwrap();
+        let sun_sat_opp = aspects.iter().find(|a| {
+            let names = [
+                a["body1"].as_str().unwrap_or(""),
+                a["body2"].as_str().unwrap_or(""),
+            ];
+            names.contains(&"Sun") && names.contains(&"Saturn") && a["aspect_deg"] == 180.0
+        });
+        let asp = sun_sat_opp.expect("Sun-Saturn opposition should be present");
+        assert_eq!(
+            asp["applying"].as_bool(),
+            Some(false),
+            "Sun (direct) opposing retrograde Saturn at <180° is separating"
+        );
     }
 
     // ── render_builtin_svg ────────────────────────────────────────────────────
