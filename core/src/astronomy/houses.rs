@@ -498,6 +498,10 @@ fn regiomontanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     cusps[1] = ascendant(armc, lat, eps);
     cusps[10] = midheaven(armc, eps);
+    // Set IC and DSC up front so the later "fill opposites from cusps
+    // 1..=6" loop has correct seed values for h=4 and h=1.
+    cusps[4] = norm_deg(cusps[10] + 180.0);
+    cusps[7] = norm_deg(cusps[1] + 180.0);
 
     for h in [11usize, 12, 2, 3, 8, 9] {
         // Campanus uses constant 30°-spaced angles per house; the input set is
@@ -651,6 +655,10 @@ fn alcabitius(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     cusps[1] = asc;
     cusps[10] = midheaven(armc, eps);
+    // IC and DSC seeded explicitly so the later opposite-fill loop has
+    // valid values for h=4 and h=1 (same bug class as Regiomontanus).
+    cusps[4] = norm_deg(cusps[10] + 180.0);
+    cusps[7] = norm_deg(cusps[1] + 180.0);
 
     for h in [11usize, 12, 2, 3] {
         let frac = match h {
