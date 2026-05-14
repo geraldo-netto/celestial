@@ -25,7 +25,6 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/celestial-js.yml"
-      - "sonar-project.properties"
   pull_request:
     paths:
       - "bindings/js/**"
@@ -33,7 +32,6 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/celestial-js.yml"
-      - "sonar-project.properties"
 
 concurrency:
   group: celestial-js-${{ github.ref }}
@@ -204,15 +202,3 @@ jobs:
           path: bindings/js/*.node
           if-no-files-found: ignore
           retention-days: 7
-
-  sonarqube:
-    name: SonarQube
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
