@@ -11,4 +11,5 @@
 //! println!("ASC = {:.4}°  MC = {:.4}°", h.ascmc[0], h.ascmc[1]);
 //! ```
 
+pub use crate::astronomy::houses::{mean_sidereal_time_deg, sidereal_time_deg};
 pub use crate::functions::houses::*;

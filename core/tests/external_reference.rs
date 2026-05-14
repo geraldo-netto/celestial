@@ -22,9 +22,9 @@ use celestial_core::body::{Body, CalcFlags, Calendar, SiderealMode};
 use celestial_core::{
     annual_profection, ayanamsa_ut, calc, calc_ut, deltat, easter_gregorian, easter_jd,
     esbats_for_year, four_pillars, full_dignity, hijri_from_jd, iso_week, julday,
-    long_to_nakshatra, long_to_navamsa, maya_long_count, next_new_moon, nowruz_jd, panchanga,
-    sabbats_for_year, set_sid_mode, solar_return_jd, solcross_ut, tonalpohualli, true_obliquity,
-    vimshottari_dasha, yallop_q, Dignity,
+    long_to_nakshatra, long_to_navamsa, maya_long_count, mean_sidereal_time_deg, next_new_moon,
+    nowruz_jd, panchanga, sabbats_for_year, set_sid_mode, sidereal_time_deg, solar_return_jd,
+    solcross_ut, tonalpohualli, true_obliquity, vimshottari_dasha, yallop_q, Dignity,
 };
 
 const FLG: CalcFlags = CalcFlags::BUILTIN;
@@ -100,6 +100,41 @@ fn sun_at_j2000_meeus() {
     assert_lon_within!(pos.lon, 280.4, 0.5, "Sun J2000 TT");
 }
 
+/// Chiron geocentric ecliptic longitude across 4 well-separated dates.
+/// Tolerance 5° (loose) because the engine uses a simple Kepler
+/// propagation of fixed orbital elements; it does not model the
+/// gravitational perturbations from Saturn/Uranus that significantly
+/// affect Chiron's orbit. Tighten when those perturbations are
+/// implemented.
+///
+/// Two bugs fixed in tandem before this test was added:
+///   1. `calc_chiron` was using heliocentric values as if geocentric
+///      (10–40° error at every chart date — needed a vector
+///      subtraction from Earth's position).
+///   2. Mean anomaly at J2000 was 48.5° instead of ~27° (Chiron's
+///      perihelion was 1996-02-14; at J2000 that's 1383 d post-
+///      perihelion ≈ 27° mean anomaly).
+#[test]
+fn chiron_multi_date_consistency() {
+    let cases: &[(i32, u32, u32, f64, f64, f64)] = &[
+        // (year, month, day, hour_ut, expected_lon_deg, tol_deg)
+        (2000, 1, 1, 12.0, 253.60, 5.0),   // J2000: 13°36' Sgr
+        (1961, 7, 1, 18.75, 336.00, 2.0),   // Diana: ~6° Pis
+        (2024, 1, 1, 0.0, 16.00, 5.0),       // 2024: ~16° Ari
+    ];
+    for &(y, m, d, h, expected, tol) in cases {
+        let jd = julday(y, m as i32, d as i32, h, Calendar::Gregorian);
+        let pos = calc_ut(jd, Body::CHIRON, FLG).unwrap();
+        let diff = ((pos.lon - expected + 540.0) % 360.0 - 180.0).abs();
+        assert!(
+            diff < tol,
+            "Chiron {y}-{m:02}-{d:02}: got {:.4}°, expected {expected:.4}° (diff {:.4}°, tol {tol}°)",
+            pos.lon,
+            diff,
+        );
+    }
+}
+
 /// Saturn longitude across 5 well-separated dates spanning 75 years.
 /// Cross-checks the VSOP87D Saturn L series against published ephemerides
 /// at multiple phases of Saturn's 29.5-year orbit. Currently within 0.6°
@@ -150,6 +185,36 @@ fn saturn_physical_motion_bounds() {
         "Saturn distance {:.4} AU outside physical bounds (7.5..11.5 AU)",
         pos.dist,
     );
+}
+
+// ─── Refraction ─────────────────────────────────────────────────────────────
+
+/// Bennett refraction at horizon (altitude = 0°) under standard
+/// atmosphere (1010 mb, 10°C) is about 34'10" = 0.5694°.
+/// Tolerance 0.1° covers small differences between Bennett truncations.
+#[test]
+fn refraction_at_horizon() {
+    let r = celestial_core::refrac(0.0, 1010.0, 10.0, 0);
+    // `direction == 0` returns altitude + r_corrected (true altitude).
+    // Convert back to refraction angle: r_corrected = result - altitude = result - 0.
+    assert!(
+        (0.4..=0.7).contains(&r),
+        "Refraction at horizon = {r:.4}°, expected ~0.569° (34'10\")",
+    );
+}
+
+/// Refraction must decrease monotonically with altitude in the 0°-90° band.
+#[test]
+fn refraction_monotonic_with_altitude() {
+    let mut prev = f64::INFINITY;
+    for alt_deg in [0.5_f64, 5.0, 10.0, 20.0, 45.0, 80.0] {
+        let r = celestial_core::refrac(alt_deg, 1010.0, 10.0, 0) - alt_deg;
+        assert!(
+            r < prev,
+            "Refraction at {alt_deg}° = {r:.4}° not less than previous {prev:.4}°",
+        );
+        prev = r;
+    }
 }
 
 // ─── ΔT ──────────────────────────────────────────────────────────────────────
@@ -361,6 +426,39 @@ fn panchanga_field_ranges() {
         assert!(p.vara <= 6, "vara {} out of range at jd {jd}", p.vara);
         assert!(p.nakshatra < 27, "nakshatra {} out of range at jd {jd}", p.nakshatra);
     }
+}
+
+// ─── GMST (Greenwich Mean Sidereal Time) ────────────────────────────────────
+
+/// GMST at J2000.0 noon UT = 18h 41m 50.5479s.
+/// In degrees: 280.46061837°.
+/// (Meeus, AA 2nd ed., chapter 12 worked example.)
+#[test]
+fn gmst_at_j2000_noon_ut() {
+    let gmst = mean_sidereal_time_deg(2_451_545.0);
+    let expected = 280.46061837;
+    let diff = ((gmst - expected + 540.0) % 360.0 - 180.0).abs();
+    assert!(
+        diff < 0.0001,
+        "GMST at J2000 noon UT = {gmst:.6}°, expected {expected:.6}° (diff {diff:.6}°)",
+    );
+}
+
+/// Apparent sidereal time differs from mean by the equation of the
+/// equinoxes (Δψ · cos ε). At J2000.0 Δψ ≈ −13.85" and cos ε ≈ 0.917,
+/// so |GAST − GMST| ≈ 12.7". Both must be in [0, 360°).
+#[test]
+fn apparent_sidereal_time_near_mean() {
+    let jd = 2_451_545.0;
+    let gmst = mean_sidereal_time_deg(jd);
+    let gast = sidereal_time_deg(jd);
+    let eqeq = ((gast - gmst + 540.0) % 360.0 - 180.0).abs();
+    assert!(
+        eqeq < 0.01, // < 36"
+        "Equation of equinoxes |GAST - GMST| = {eqeq:.6}° at J2000 — should be ~12.7\"",
+    );
+    assert!((0.0..360.0).contains(&gmst));
+    assert!((0.0..360.0).contains(&gast));
 }
 
 // ─── Obliquity ──────────────────────────────────────────────────────────────

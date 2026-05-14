@@ -3963,6 +3963,12 @@ fn check_outer_planet_physical_bounds(s: &mut Suite) {
         (Body::URANUS, 1.0, (17.0, 21.5), 0.10),
         (Body::NEPTUNE, 2.0, (28.5, 31.5), 0.07),
         (Body::PLUTO, 18.0, (28.0, 50.0), 0.05),
+        // Chiron: orbit between Saturn (9 AU) and Uranus (19 AU);
+        // perihelion 8.43 AU (1996), aphelion 18.85 AU. Inclination 6.93°
+        // → max |lat| ~ 7° at high-latitude points of orbit, but the
+        // residual error from the simple Kepler propagation can push
+        // this to ~8°.
+        (Body::CHIRON, 8.0, (7.5, 20.0), 0.25),
     ];
 
     let mut rng = Xorshift64::new(0xAA55_C00C_F00F_BEEF);
