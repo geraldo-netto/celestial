@@ -1711,6 +1711,23 @@ fn moon_speed_always_in_band() {
     }
 }
 
+// ─── Moon's Mean Node ──────────────────────────────────────────────────────
+
+/// Mean lunar node at J2000.0 ≈ 125°04'40" = 125.0445°. The mean
+/// node precesses westward (~−0.053°/d). Engine's CalcFlags::SPEED
+/// must report negative daily motion.
+#[test]
+fn mean_node_at_j2000() {
+    let flg = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    let pos = calc_ut(2_451_545.0, celestial_core::body::Body::MEAN_NODE, flg).unwrap();
+    assert_lon_within!(pos.lon, 125.045, 0.05, "Mean Node J2000");
+    assert!(
+        pos.speed_lon < 0.0,
+        "Mean Node speed must be retrograde (negative), got {}",
+        pos.speed_lon,
+    );
+}
+
 // ─── Arabic parts ───────────────────────────────────────────────────────────
 
 /// Lot of Fortune (Hellenistic):
