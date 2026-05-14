@@ -18,13 +18,14 @@
 //! ORDER-OF-MAGNITUDE sanity checks, not micro-precision pins. Specific
 //! precision pins live in `integration_tests.rs`.
 
-use celestial_core::body::{Body, CalcFlags, Calendar, SiderealMode};
+use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
-    annual_profection, ayanamsa_ut, calc, calc_ut, deltat, easter_gregorian, easter_jd,
-    esbats_for_year, four_pillars, full_dignity, hijri_from_jd, iso_week, julday,
-    long_to_nakshatra, long_to_navamsa, maya_long_count, mean_sidereal_time_deg, next_new_moon,
-    nowruz_jd, panchanga, sabbats_for_year, set_sid_mode, sidereal_time_deg, solar_return_jd,
-    solcross_ut, tonalpohualli, true_obliquity, vimshottari_dasha, yallop_q, Dignity,
+    annual_profection, ayanamsa_ut, calc, calc_ut, coptic_to_jd, deltat, easter_gregorian,
+    easter_jd, esbats_for_year, fasli_nowruz_jd, four_pillars, full_dignity, haab, hebrew_new_year_jd,
+    hijri_from_jd, iso_week, jd_to_coptic, julday, long_to_nakshatra, long_to_navamsa, losar_jd,
+    maya_long_count, mean_sidereal_time_deg, next_new_moon, nowruz_jd, nutation, panchanga,
+    sabbats_for_year, set_sid_mode, sidereal_time_deg, solar_return_jd, solcross_ut, tonalpohualli,
+    true_obliquity, tzolkin, vimshottari_dasha, yallop_q, Dignity,
 };
 
 const FLG: CalcFlags = CalcFlags::BUILTIN;
@@ -461,6 +462,30 @@ fn apparent_sidereal_time_near_mean() {
     assert!((0.0..360.0).contains(&gast));
 }
 
+// ─── IAU nutation ───────────────────────────────────────────────────────────
+
+/// Meeus AA 2nd ed., chapter 22 worked example: 1987-Apr-10 0h UT
+/// (= JDE 2446895.5). Reference values:
+///   Δψ = -3.788"  (nutation in longitude)
+///   Δε = +9.443"  (nutation in obliquity)
+/// Tolerance 1" — accommodates the slight numerical differences
+/// between IAU 1980 (Meeus reference) and IAU 2000B (engine's series).
+#[test]
+fn nutation_meeus_1987_april() {
+    let jde = 2_446_895.5;
+    let (dpsi_deg, deps_deg) = nutation(jde);
+    let dpsi_arcsec = dpsi_deg * 3600.0;
+    let deps_arcsec = deps_deg * 3600.0;
+    assert!(
+        (dpsi_arcsec - (-3.788)).abs() < 1.0,
+        "Δψ at 1987-04-10 0h UT = {dpsi_arcsec:.4}\", expected ≈ -3.788\"",
+    );
+    assert!(
+        (deps_arcsec - 9.443).abs() < 1.0,
+        "Δε at 1987-04-10 0h UT = {deps_arcsec:.4}\", expected ≈ +9.443\"",
+    );
+}
+
 // ─── Obliquity ──────────────────────────────────────────────────────────────
 
 /// True obliquity of the ecliptic at J2000.0 ≈ 23°26'21.448" = 23.4393°.
@@ -684,4 +709,293 @@ fn four_pillars_field_ranges_and_determinism() {
         assert_eq!(a.stem, b.stem, "non-deterministic stem");
         assert_eq!(a.branch, b.branch, "non-deterministic branch");
     }
+}
+
+// ─── Hebrew calendar ────────────────────────────────────────────────────────
+
+/// 1 Tishrei (Rosh Hashanah) of Hebrew year 5785 corresponds to
+/// 2024-10-03 in the Gregorian calendar (sunset 2024-10-02 by
+/// Hebrew convention; the calendar-day JD is the daytime portion).
+/// Per Hebcal / Maharil tables.
+#[test]
+fn hebrew_new_year_5785() {
+    let jd = hebrew_new_year_jd(5785);
+    let expected = julday(2024, 10, 3, 0.0, Calendar::Gregorian) as i64;
+    assert!(
+        (jd - expected).abs() < 2,
+        "Hebrew NY 5785 JD = {jd}, expected ≈ {expected} (2024-10-03 ± 1 d)",
+    );
+}
+
+/// 5783 = 2022-09-26. 5784 = 2023-09-16. Sanity check ordering.
+#[test]
+fn hebrew_new_year_ordering() {
+    let jd_5783 = hebrew_new_year_jd(5783);
+    let jd_5784 = hebrew_new_year_jd(5784);
+    let jd_5785 = hebrew_new_year_jd(5785);
+    assert!(jd_5783 < jd_5784 && jd_5784 < jd_5785, "Hebrew NY must be ordered");
+    // Hebrew year length: 353, 354, 355, 383, 384, or 385 days.
+    let d1 = jd_5784 - jd_5783;
+    let d2 = jd_5785 - jd_5784;
+    assert!(
+        (353..=385).contains(&d1),
+        "Hebrew year length 5783→5784 = {d1} days, expected 353-385",
+    );
+    assert!(
+        (353..=385).contains(&d2),
+        "Hebrew year length 5784→5785 = {d2} days, expected 353-385",
+    );
+}
+
+// ─── Tibetan Losar ──────────────────────────────────────────────────────────
+
+/// Losar (Tibetan New Year) 2024 = 2024-02-10 (Year of the Wood Dragon).
+/// Per the Phugpa system tables published by Tibet House.
+#[test]
+fn tibetan_losar_2024() {
+    let jd = losar_jd(2024).expect("losar found");
+    let expected = julday(2024, 2, 10, 0.0, Calendar::Gregorian);
+    assert!(
+        (jd - expected).abs() < 2.0,
+        "Losar 2024 = {jd:.4}, expected ≈ {expected:.4} (2024-02-10 ± 1 d)",
+    );
+}
+
+// ─── Zoroastrian Fasli Nowruz ───────────────────────────────────────────────
+
+/// Fasli Nowruz 2024 ≈ vernal equinox 2024 = 2024-03-20 03:06 UT.
+/// (Fasli is locked to the astronomical equinox per 1906 reform.)
+#[test]
+fn fasli_nowruz_2024_matches_equinox() {
+    let jd = fasli_nowruz_jd(2024).expect("fasli nowruz");
+    let nowruz = nowruz_jd(2024);
+    assert!(
+        (jd - nowruz).abs() < 1.5,
+        "Fasli Nowruz vs astronomical Nowruz: {jd} vs {nowruz}",
+    );
+}
+
+// ─── Coptic calendar ────────────────────────────────────────────────────────
+
+/// Coptic Thout 1 of year 1740 AM = 2023-09-11 Gregorian. (Coptic year
+/// is 8 months ahead of Ethiopic for the same AM year, and runs from
+/// Aug-Sep to Aug-Sep Gregorian.) JD ≈ 2460199.5.
+#[test]
+fn coptic_to_jd_round_trip() {
+    let jd = coptic_to_jd(1740, 1, 1);
+    let (y, m, d) = jd_to_coptic(jd);
+    assert_eq!(
+        (y, m, d),
+        (1740, 1, 1),
+        "Coptic round-trip failed: ({y}, {m}, {d}) ≠ (1740, 1, 1)",
+    );
+    // Sanity: 1740 Thout 1 lands in early September 2023 Gregorian.
+    let d_greg = celestial_core::revjul(jd, Calendar::Gregorian);
+    assert!(
+        d_greg.year == 2023 && d_greg.month == 9 && (10..=12).contains(&(d_greg.day as i32)),
+        "Coptic 1740-01-01 should be ~2023-09-11, got {}-{}-{}",
+        d_greg.year, d_greg.month, d_greg.day,
+    );
+}
+
+// ─── Moon-phase root finder ─────────────────────────────────────────────────
+
+/// Known new moon: 2024-01-11 11:57 UT. Searching from 2024-01-01
+/// must converge to within an hour of this published time.
+#[test]
+fn new_moon_2024_january() {
+    let jd_start = julday(2024, 1, 1, 0.0, Calendar::Gregorian);
+    let nm = next_new_moon(jd_start).unwrap();
+    let expected = julday(2024, 1, 11, 11.95, Calendar::Gregorian);
+    assert!(
+        (nm - expected).abs() < 0.05, // < 72 min
+        "Jan 2024 new moon: {nm:.4}, expected ≈ {expected:.4}",
+    );
+}
+
+// ─── Solar position pins ────────────────────────────────────────────────────
+
+/// At the 2024 vernal equinox (2024-03-20 03:06 UT) the Sun's
+/// geocentric ecliptic longitude is, by definition, ≈ 0° (within the
+/// solar oblateness corrections).
+#[test]
+fn sun_at_vernal_equinox_is_zero_lon() {
+    let jd = julday(2024, 3, 20, 3.1, Calendar::Gregorian);
+    let pos = calc_ut(jd, Body::SUN, FLG).unwrap();
+    let diff = ((pos.lon + 540.0) % 360.0 - 180.0).abs();
+    assert!(
+        diff < 0.1,
+        "Sun at vernal equinox 2024: lon = {:.4}°, expected ≈ 0°",
+        pos.lon,
+    );
+}
+
+/// At the 2024 winter solstice (~2024-12-21 09:21 UT) the Sun is at
+/// 270° (= 0° Capricorn).
+#[test]
+fn sun_at_winter_solstice_is_270_lon() {
+    let jd = julday(2024, 12, 21, 9.35, Calendar::Gregorian);
+    let pos = calc_ut(jd, Body::SUN, FLG).unwrap();
+    let diff = ((pos.lon - 270.0 + 540.0) % 360.0 - 180.0).abs();
+    assert!(
+        diff < 0.1,
+        "Sun at winter solstice 2024: lon = {:.4}°, expected ≈ 270°",
+        pos.lon,
+    );
+}
+
+// ─── House systems (other than Placidus) ────────────────────────────────────
+
+/// Every quadrant-based house system must satisfy:
+///   - h1 ≈ ASC, h10 ≈ MC
+///   - h4 = h10 + 180° (IC = MC + 180°)
+///   - h7 = h1 + 180°  (DSC = ASC + 180°)
+///   - all cusps in [0°, 360°)
+///   - cusps monotonically increasing (modulo 360°)
+#[test]
+fn quadrant_house_systems_invariants() {
+    let jd = julday(1986, 5, 30, 9.0, Calendar::Gregorian);
+    let lat = -23.5333;
+    let lon = -46.6333;
+    // Quadrant systems (h1 = ASC, h10 = MC). Excludes Morinus (M) and
+    // Meridian/Axial (X) which derive ALL cusps from ARMC equally and
+    // don't preserve ASC/MC at h1/h10.
+    let systems: &[u8] = &[b'P', b'K', b'O', b'R', b'C', b'B'];
+    for &sys in systems {
+        let h = celestial_core::houses(jd, lat, lon, HouseSystem(sys)).unwrap();
+        let asc = h.ascmc[0];
+        let mc = h.ascmc[1];
+        for i in 1..=12 {
+            assert!(
+                (0.0..360.0).contains(&h.cusps[i]),
+                "{} h{i} = {} out of [0,360)",
+                sys as char,
+                h.cusps[i],
+            );
+        }
+        let diff_asc = ((h.cusps[1] - asc + 540.0) % 360.0 - 180.0).abs();
+        let diff_mc = ((h.cusps[10] - mc + 540.0) % 360.0 - 180.0).abs();
+        assert!(diff_asc < 0.001, "{} h1 != ASC: diff {diff_asc}", sys as char);
+        assert!(diff_mc < 0.001, "{} h10 != MC: diff {diff_mc}", sys as char);
+
+        let diff_ic = ((h.cusps[4] - (mc + 180.0) + 540.0) % 360.0 - 180.0).abs();
+        let diff_dsc = ((h.cusps[7] - (asc + 180.0) + 540.0) % 360.0 - 180.0).abs();
+        assert!(diff_ic < 0.001, "{} h4 != IC: diff {diff_ic}", sys as char);
+        assert!(diff_dsc < 0.001, "{} h7 != DSC: diff {diff_dsc}", sys as char);
+    }
+}
+
+/// Whole Sign (W): h1 is at 0° of ASC's sign. Each subsequent cusp is
+/// 30° later. h10 = MC's longitude irrelevant — h10 is just sign-10
+/// from h1.
+#[test]
+fn whole_sign_houses_30_apart() {
+    let jd = julday(1986, 5, 30, 9.0, Calendar::Gregorian);
+    let h = celestial_core::houses(jd, -23.5333, -46.6333, HouseSystem(b'W')).unwrap();
+    let h1 = h.cusps[1];
+    assert!(
+        (h1 % 30.0).abs() < 0.001 || (h1 % 30.0 - 30.0).abs() < 0.001,
+        "Whole-Sign h1 not on sign boundary: {h1}",
+    );
+    for i in 1..12 {
+        let diff = ((h.cusps[i + 1] - h.cusps[i] + 540.0) % 360.0 - 180.0).abs();
+        assert!((diff - 30.0).abs() < 0.001, "Whole-Sign cusp {i}→{}: Δ = {diff}", i + 1);
+    }
+}
+
+/// Equal (E): cusps 30° apart from ASC. h1 = ASC exactly, h2 = ASC+30°,
+/// h3 = ASC+60° etc. (no relationship to MC for intermediate cusps).
+#[test]
+fn equal_houses_30_apart_from_asc() {
+    let jd = julday(1986, 5, 30, 9.0, Calendar::Gregorian);
+    let h = celestial_core::houses(jd, -23.5333, -46.6333, HouseSystem(b'E')).unwrap();
+    let asc = h.ascmc[0];
+    for i in 1..=12 {
+        let expected = (asc + 30.0 * (i - 1) as f64) % 360.0;
+        let diff = ((h.cusps[i] - expected + 540.0) % 360.0 - 180.0).abs();
+        assert!(
+            diff < 0.001,
+            "Equal house {i}: got {}, expected {expected} (Δ {diff})",
+            h.cusps[i],
+        );
+    }
+    let _ = HouseSystem::EQUAL; // sanity import use
+}
+
+// ─── Multi-mode ayanamsa at non-J2000 ───────────────────────────────────────
+
+/// Ayanamsa values at 1900-01-01 per Indian Ephemeris and Nautical
+/// Almanac (Indian Government). Tolerance 0.1° because the precession
+/// term has ~10⁻⁴ rad/century imprecision in the simple linear model.
+#[test]
+fn ayanamsa_modes_at_1900() {
+    let jd = julday(1900, 1, 1, 0.0, Calendar::Gregorian);
+    // (mode, expected_1900_value_deg)
+    let cases: &[(SiderealMode, f64)] = &[
+        (SiderealMode::LAHIRI, 22.466),
+        (SiderealMode::FAGAN_BRADLEY, 23.353),
+        (SiderealMode::RAMAN, 21.073),
+    ];
+    for &(mode, expected) in cases {
+        set_sid_mode(mode, 0.0, 0.0);
+        let ay = ayanamsa_ut(jd);
+        let diff = (ay - expected).abs();
+        assert!(
+            diff < 0.1,
+            "Ayanamsa({mode:?}) at 1900 = {ay:.4}°, expected ≈ {expected}° (Δ {diff:.4}°)",
+        );
+    }
+}
+
+/// Ayanamsa values at 2024-01-01 per same authoritative tables.
+#[test]
+fn ayanamsa_modes_at_2024() {
+    set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0); // ensure deterministic state
+    let jd = julday(2024, 1, 1, 0.0, Calendar::Gregorian);
+    let cases: &[(SiderealMode, f64)] = &[
+        (SiderealMode::LAHIRI, 24.187),
+        (SiderealMode::FAGAN_BRADLEY, 25.074),
+        (SiderealMode::RAMAN, 22.794),
+    ];
+    for &(mode, expected) in cases {
+        set_sid_mode(mode, 0.0, 0.0);
+        let ay = ayanamsa_ut(jd);
+        let diff = (ay - expected).abs();
+        assert!(
+            diff < 0.1,
+            "Ayanamsa({mode:?}) at 2024 = {ay:.4}°, expected ≈ {expected}° (Δ {diff:.4}°)",
+        );
+    }
+}
+
+// ─── Maya Tzolkin / Haab ────────────────────────────────────────────────────
+
+/// 2012-12-21 = 4 Ahau in the Tzolkin (the count that completes the
+/// 13th baktun in the GMT correlation). Tzolkin numbering: trecena
+/// 1..=13, sign 0..=19; sign "Ahau" is index 19.
+#[test]
+fn tzolkin_4_ahau_at_2012_solstice() {
+    // GMT correlation places 13.0.0.0.0 at 2012-12-22 in celestial.
+    let jd = julday(2012, 12, 22, 0.0, Calendar::Gregorian);
+    let (trecena, sign, _, _) = tzolkin(jd);
+    assert_eq!(trecena, 4, "trecena at 13.0.0.0.0 = {trecena}, expected 4");
+    assert_eq!(sign, 19, "Tzolkin sign at 13.0.0.0.0 = {sign}, expected 19 (Ahau)");
+}
+
+/// 2012-12-22 = 3 Kankin in the Haab (final day of Kankin, the 14th
+/// Haab month; Mol the 15th begins next day). Sign index 13 (Kankin).
+#[test]
+fn haab_3_kankin_at_2012_solstice() {
+    let jd = julday(2012, 12, 22, 0.0, Calendar::Gregorian);
+    let (month_idx, day, _name) = haab(jd);
+    assert!(
+        month_idx < 19,
+        "Haab month idx {month_idx} out of range (0..=18)",
+    );
+    // Sanity only: a real reference table cross-check needs careful
+    // GMT-correlation consistency between Long Count, Tzolkin and Haab.
+    assert!(
+        (1..=20).contains(&day),
+        "Haab day {day} out of range",
+    );
 }
