@@ -1644,6 +1644,73 @@ fn secondary_progression_30_years() {
     }
 }
 
+// ─── Solar ingress dates 2024 ──────────────────────────────────────────────
+
+/// Sun enters each tropical sign at a specific UT moment (NASA-pinned):
+///   Aries:     2024-03-20 03:06 UT
+///   Cancer:    2024-06-20 20:51 UT
+///   Libra:     2024-09-22 12:43 UT
+///   Capricorn: 2024-12-21 09:21 UT
+#[test]
+fn sun_cardinal_ingress_dates_2024() {
+    let cases: &[(f64, i32, u32, u32, f64)] = &[
+        // (target_lon, year, month, day, hour_ut)
+        (0.0, 2024, 3, 20, 3.1),
+        (90.0, 2024, 6, 20, 20.85),
+        (180.0, 2024, 9, 22, 12.72),
+        (270.0, 2024, 12, 21, 9.35),
+    ];
+    let jd_start = julday(2024, 1, 1, 0.0, Calendar::Gregorian);
+    for &(lon, y, m, d, h) in cases {
+        let jd = solcross_ut(lon, jd_start, FLG).unwrap();
+        let expected = julday(y, m as i32, d as i32, h, Calendar::Gregorian);
+        // Allow ±0.5 day for the search precision and reference-rounding.
+        assert!(
+            (jd - expected).abs() < 0.5,
+            "Sun ingress @ {lon}° = JD {jd:.4}, expected ≈ {expected:.4} ({y}-{m:02}-{d:02})",
+        );
+        // The next cardinal ingress check uses a slightly later start.
+        let _ = (jd_start, lon, h);
+    }
+}
+
+// ─── Solar speed monotonicity ───────────────────────────────────────────────
+
+/// Sun's daily motion varies seasonally (~0.95 to 1.02°/day) but is
+/// always positive (Sun never retrogrades). Check 12 dates across year.
+#[test]
+fn sun_speed_always_positive() {
+    let flg = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    for m in 1..=12 {
+        let jd = julday(2024, m, 15, 0.0, Calendar::Gregorian);
+        let pos = calc_ut(jd, celestial_core::body::Body::SUN, flg).unwrap();
+        assert!(
+            pos.speed_lon > 0.9 && pos.speed_lon < 1.05,
+            "Sun speed at 2024-{m:02}-15: {} °/d, expected 0.9..1.05",
+            pos.speed_lon,
+        );
+    }
+}
+
+// ─── Moon speed range ──────────────────────────────────────────────────────
+
+/// Moon's daily motion ranges from ~11.8°/d (apogee) to ~15.4°/d
+/// (perigee). Always positive (Moon never retrogrades — its
+/// geocentric motion is always direct).
+#[test]
+fn moon_speed_always_in_band() {
+    let flg = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    for m in 1..=12 {
+        let jd = julday(2024, m, 15, 0.0, Calendar::Gregorian);
+        let pos = calc_ut(jd, celestial_core::body::Body::MOON, flg).unwrap();
+        assert!(
+            pos.speed_lon > 11.0 && pos.speed_lon < 15.5,
+            "Moon speed at 2024-{m:02}-15: {} °/d, expected 11..15.5",
+            pos.speed_lon,
+        );
+    }
+}
+
 // ─── Polar latitudes ────────────────────────────────────────────────────────
 
 /// At extreme latitudes (≥ 66°), Placidus is mathematically undefined
