@@ -60,7 +60,7 @@ cargo test --package celestial-core --test chinese_test     -- --test-threads=1
 cargo test --package celestial-core --test mesoamerican_test -- --test-threads=1
 cargo test --package celestial-core --test indigenous_test  -- --test-threads=1
 
-# Property-based fuzz tests (all 84 suites, ~22M property checks, ~60 s)
+# Property-based fuzz tests (all 84 suites, ~1M property checks, ~15 s)
 cargo run --manifest-path fuzz/Cargo.toml
 
 # Benchmarks
@@ -281,12 +281,11 @@ crate or `core/`:
 
 | Pipeline | Trigger path | Jobs |
 |---|---|---|
-| `celestial-core` | `core/**`, `fuzz/**` | lint → test (955) ‖ fuzz (84 suites, ~22M checks) |
+| `celestial-core` | `core/**`, `fuzz/**` | lint → test (1101) ‖ fuzz (84 suites, ~1M checks) |
 | `celestial-cli` | `cli/**`, `core/**` | lint → test (154) → release build |
-| `celestial-python` | `bindings/python/**`, `core/**` | clippy → ruff/mypy → pytest |
-| `celestial-js` | `bindings/js/**`, `core/**` | clippy → tsc/eslint → node tests |
+| `celestial-python` | `bindings/python/**`, `core/**` | clippy → ruff/mypy → pytest (216 pure-logic) |
+| `celestial-js` | `bindings/js/**`, `core/**` | clippy → tsc/eslint → node tests (142 pure-logic) |
 | `celestial-php` | `bindings/php/**`, `core/**` | clippy → phpstan |
-
 | `binding-parity` | `bindings/**`, `xtask/**` | parity check → test-stubs validation |
 
 See [`.github/workflows/`](../.github/workflows/) for the full YAML.
@@ -337,22 +336,3 @@ The astronomy core is always compiled regardless of features:
 - **Maya Long Count**: `maya_long_count`, `maya_long_count_str`
 - **Yallop crescent visibility**: `yallop_q`, `best_time_method`
 - **Vietnamese Âm Lịch**: `vietnamese_month_start_jd`, `vietnamese_chinese_boundary_differs`
-
-
-
-## xtask — developer automation
-
-```bash
-cargo xtask parity          # Check Python / JS / PHP bindings expose identical fn sets
-cargo xtask codegen         # Preview stubs for functions missing from bindings
-cargo xtask codegen --apply # Write the generated stubs into each binding
-cargo xtask stubs           # Regenerate bindings/php/phpstan-stubs.php
-cargo xtask test-stubs      # Validate phpstan-stubs.php for PHP 8.0 syntax
-cargo xtask pyi             # Regenerate bindings/python/.../celestial_py.pyi
-cargo xtask pyi --check     # Verify .pyi is up-to-date (CI gate)
-cargo xtask dts             # Regenerate bindings/js/index.d.ts
-cargo xtask dts --check     # Verify .d.ts is up-to-date (CI gate)
-```
-
-The `--check` variants exit non-zero if the generated file is out of sync,
-so CI catches stale stubs before merge.

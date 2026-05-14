@@ -107,7 +107,7 @@ The following structs derive `serde::Serialize` and `serde::Deserialize` and can
 | `calc_pctr` | `(jd, body, center, flags) → Result<PlanetPos>` | Position relative to center |
 | `fixstar_ut` | `(name, jd, flags) → Result<FixStarPos>` | Fixed star (UT) |
 | `fixstar_mag` | `(name) → Result<f64>` | Fixed star visual magnitude |
-| `nutation` | `(jd, flags) → Result<NutationResult>` | IAU 2000B nutation + obliquity |
+| `nutation` | `(jde) → (dpsi, deps)` | IAU 2000B nutation in longitude + obliquity (degrees) |
 | `nod_aps` | `(jd, body, flags, method) → Result<NodAps>` | Nodes and apsides |
 
 **`PlanetPos` fields:**
@@ -309,7 +309,7 @@ The following structs derive `serde::Serialize` and `serde::Deserialize` and can
 | `gregorian_to_solar_hijri(year)` | Gregorian → Solar Hijri year |
 | `naw_ruz_jd(bahai_year)` | Bahá'í Naw-Rúz JD |
 | `jd_to_bahai(jd)` | JD → `BahaiDate` |
-| `bahai_holy_days(bahai_year)` | 13 Bahá'í holy days |
+| `bahai_holy_days(bahai_year)` | 11 Bahá'í holy days |
 
 **`BahaiDate`:** `year` (BE) · `month` (1–19, 0=Ayyám-i-Há) · `day` · `month_name`
 
@@ -562,17 +562,17 @@ fn main() -> Result<()> {
 | `egyptian_terms_ruler` | `(lon) → Body` | Egyptian bounds (Ptolemy/Tetrabiblos) |
 | `decan_ruler` | `(lon) → Body` | Chaldean decan (face) ruler |
 | `triplicity_rulers` | `(lon) → (Body, Body, Body)` | Day / night / participating |
-| `full_dignity` | `(body, lon, is_day) → (Dignity, i32)` | Dignity name + score |
-| `almuten` | `(lon, is_day) → (Body, i32)` | Highest-scoring planet |
+| `full_dignity` | `(body, lon, is_day) → (Dignity, i8)` | Dignity name + score |
+| `almuten` | `(lon, is_day) → (Body, i8)` | Highest-scoring planet |
 | `is_day_chart` | `(sun_lon, cusps) → bool` | Sun above horizon |
 | `same_sect` | `(body, is_day) → bool` | Sect membership |
 | `firdaria` | `(jd, is_day, span) → Vec<FirdariaPeriod>` | 75-year period list |
 | `annual_profection` | `(cusps, age) → (u8, f64)` | House number + lon |
 | `monthly_profection` | `(cusps, age_years, months) → (u8, f64)` | Sub-annual |
 
-**`Dignity` variants:** `Domicile` · `Exaltation` · `Triplicity` · `Term` · `Face` · `Peregrine` · `Detriment` · `Fall`
+**`Dignity` variants:** `Domicile` · `Exaltation` · `Triplicity` · `Term` · `Decan` · `Peregrine` · `Detriment` · `Fall`
 
-**`FirdariaPeriod` fields:** `major_lord` · `minor_lord` · `start_jd` · `end_jd` · `years`
+**`FirdariaPeriod` fields:** `major_lord` · `minor_lord` · `start` · `end` · `years` (JD start/end, span in years)
 
 ---
 
@@ -594,11 +594,11 @@ fn main() -> Result<()> {
 
 | Function | Signature | Description |
 |---|---|---|
-| `tonalpohualli` | `(jd) → (u8, u8, String, String)` | Aztec 260-day: trecena, sign, names |
-| `xiuhpohualli` | `(jd) → (u8, u8, String, String)` | Aztec 365-day: month, day, names |
-| `tzolkin` | `(jd) → (u8, u8, String, String)` | Maya 260-day: trecena, sign, names |
-| `haab` | `(jd) → (u8, u8, String)` | Maya 365-day: month, day, name |
-| `calendar_round` | `(jd) → (u8, u8, u8, u8)` | Tzolkin + Haab combined position |
+| `tonalpohualli` | `(jd) → (u8, usize, &'static str, &'static str)` | Aztec 260-day: trecena, sign_idx, nahuatl, english |
+| `xiuhpohualli` | `(jd) → (usize, u8, &'static str, &'static str)` | Aztec 365-day: month_idx, day, name, english |
+| `tzolkin` | `(jd) → (u8, usize, &'static str, &'static str)` | Maya 260-day: trecena, sign_idx, mayan, english |
+| `haab` | `(jd) → (usize, u8, &'static str)` | Maya 365-day: month_idx, day, name |
+| `calendar_round` | `(jd) → (u8, &'static str, u8, &'static str)` | Tzolkin + Haab combined position |
 
 **Constants:** `GMT_CORRELATION = 584_283i64` · `TONALPOHUALLI_SIGNS[20]` · `TZOLKIN_SIGNS[20]` · `XIUHPOHUALLI_MONTHS[18]`
 
@@ -608,8 +608,8 @@ fn main() -> Result<()> {
 
 | Function | Signature | Description |
 |---|---|---|
-| `medicine_wheel_totem` | `(sun_lon) → (String, String, String, String)` | Animal, element, clan, season |
-| `egyptian_decan` | `(lon) → (u8, String, String)` | Index 0–35, decan name, rising star |
+| `medicine_wheel_totem` | `(sun_lon) → (&'static str, &'static str, &'static str, &'static str)` | Animal, element, clan, season |
+| `egyptian_decan` | `(lon) → (usize, &'static str, &'static str)` | Index 0–35, decan name, rising star |
 
 ---
 
@@ -761,14 +761,14 @@ Structurally similar to Chinese calendar but uses UTC+7 for month boundaries (si
 The workspace provides `cargo xtask` commands for binding maintenance:
 
 ```bash
-cargo xtask parity            # Check Python / JS / PHP export identical function sets (198/198/198)
+cargo xtask parity            # Check Python / JS / PHP export identical function sets (194/194/194)
 cargo xtask codegen           # Preview stubs for functions missing from bindings
 cargo xtask codegen --apply   # Write generated stubs into the binding sources
-cargo xtask stubs             # Regenerate bindings/php/phpstan-stubs.php (396 symbols)
+cargo xtask stubs             # Regenerate bindings/php/phpstan-stubs.php (~400 symbols)
 cargo xtask test-stubs        # Validate phpstan-stubs.php for PHP 8.0 syntax
-cargo xtask pyi               # Regenerate bindings/python/.../celestial_py.pyi (198 stubs)
+cargo xtask pyi               # Regenerate bindings/python/.../celestial_py.pyi (~200 stubs)
 cargo xtask pyi --check       # Verify .pyi is in sync (CI gate)
-cargo xtask dts               # Regenerate bindings/js/index.d.ts (272 declarations — struct interfaces, constants, functions)
+cargo xtask dts               # Regenerate bindings/js/index.d.ts (~275 declarations — struct interfaces, constants, functions)
 cargo xtask dts --check       # Verify .d.ts is in sync (CI gate)
 ```
 

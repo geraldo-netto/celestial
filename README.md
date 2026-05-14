@@ -47,7 +47,7 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
 # Full workspace build
 cargo build
 
-# Tests — 1147 unit/integration + 84 fuzz suites (~22M property checks)
+# Tests — 1279 unit/integration across the workspace + 84 fuzz suites (~1M property checks)
 cargo test --workspace
 cargo run  --manifest-path fuzz/Cargo.toml
 
@@ -560,10 +560,21 @@ celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --chart-type medicine-
 |---|---|---|---|
 | Sun | ~1″ | ~0.1″ | ~0.00001 AU |
 | Moon | ~10″ | ~4″ | ~4 km |
-| Inner planets | ~1″–30″ | ~1″–10″ | ~0.001 AU |
-| Outer planets | ~1″–60″ | ~1″–30″ | ~0.01 AU |
+| Mercury / Venus / Mars | ~1″–30″ | ~1″–10″ | ~0.001 AU |
+| Jupiter / Saturn | ~5′–30′ | ~1′–5′ | ~0.01 AU |
+| Uranus / Neptune | ~5″–60″ | ~5″–30″ | ~0.01 AU |
+| Pluto | ~30″–10′ | ~30″–5′ | ~0.05 AU |
+| Chiron | ~30′–2° | ~10′–1° | ~0.1 AU |
 
 Accuracy degrades beyond ±3000 years from J2000. Nutation: **IAU 2000B** luni-solar series (77 terms, ~1 mas accuracy). Obliquity: **IAU 2006** formula.
+
+Jupiter, Saturn, and Chiron have known residuals against canonical
+ephemerides (Jupiter / Saturn from VSOP87 L-series transcription residuals
+that survived the initial coefficient audit; Chiron because the engine
+propagates Kepler elements without Saturn / Uranus perturbations).
+Regression-test pins in
+[`core/tests/external_reference.rs`](core/tests/external_reference.rs)
+hold these tolerances year-by-year against published nativities.
 
 Precision vs Meeus *Astronomical Algorithms* 2nd ed. using `calc()` (TT input):
 

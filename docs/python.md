@@ -416,7 +416,7 @@ house, degree = celestial.monthly_profection(cusps, age_years=35, age_months=6)
 A full `celestial_py.pyi` stub file ships with the binding at
 `bindings/python/python/celestial_py/celestial_py.pyi`.
 
-It covers all 198 exported functions and the following named types:
+It covers all 194 exported functions (verify with `cargo xtask parity`) and the following named types:
 
 | Class | Fields |
 |---|---|
@@ -485,7 +485,7 @@ except Exception as e:
 | `nutation` | `NutationResult` with fields: `dpsi deps eps_true` |
 | `moon_phase_info` | `MoonPhaseInfo` — see Moon phases section |
 | `four_pillars` | `list[dict]` — `stem_name branch_name animal stem_element branch_element yang` |
-| `firdaria` | `list[dict]` — `major_lord minor_lord start_jd end_jd years` |
+| `firdaria` | `list[dict]` — `major_lord minor_lord start end years` (JD start/end, span in years) |
 | `full_dignity` | `(str, int)` — dignity name, score |
 | `almuten` | `(int, int)` — body index, score |
 | `is_day_chart` | `bool` |

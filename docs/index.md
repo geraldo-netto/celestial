@@ -34,7 +34,7 @@ The engine now covers **19 additional functions** across 7 features — see
 | Tibetan Phugpa | Losar (New Year) + Rabjung cycle year names |
 | Vietnamese Âm Lịch | UTC+7 month boundaries — diverges from Chinese ~4% of days |
 
-All 19 functions are exported from **Python**, **JavaScript**, and **PHP** (198 per binding).
+All 19 functions are exported from **Python**, **JavaScript**, and **PHP** (194 per binding — verify with `cargo xtask parity`).
 
 ## Feature flags
 
@@ -129,9 +129,9 @@ celestial/
 │   │       ├── mesoamerican.rs Tonalpohualli, Tzolkin, Haab
 │   │       └── indigenous.rs   Medicine Wheel, Egyptian decans
 ├── cli/src/cmd/render/         27 chart-type SVG builders + 6 calendar overlays
-├── bindings/python/            PyO3 — 198 functions + celestial_py.pyi stubs (198 typed)
-├── bindings/js/                napi-rs — 198 functions + index.d.ts (272 typed — structs + consts)
-├── bindings/php/               ext-php-rs — 198 functions + phpstan-stubs.php (396 symbols)
+├── bindings/python/            PyO3 — 194 functions + celestial_py.pyi stubs (201 typed)
+├── bindings/js/                napi-rs — 194 functions + index.d.ts (276 typed — structs + consts)
+├── bindings/php/               ext-php-rs — 194 functions + phpstan-stubs.php (402 symbols)
 └── tests/fixtures/             reference_values.json — cross-language test fixture
 ```
 
@@ -150,14 +150,14 @@ pip install astropy pyephem
 python3 benches/precision_comparison.py
 ```
 
-Precision vs Meeus benchmarks confirmed at ~3.2″ Sun / ~0.7″ Moon. `SYNODIC_MONTH = 29.530_588_853` days.
+Precision vs Meeus benchmarks confirmed at ~3.2″ Sun / ~0.7″ Moon. Jupiter / Saturn carry ~5′–30′ residuals against canonical ephemerides — see [README.md#accuracy](../README.md#accuracy) for the full per-body table. `SYNODIC_MONTH = 29.530_588_853` days.
 ## CI pipelines
 
 Five independent pipelines, each triggered on changes to its crate or `core/`:
 
 | Pipeline | Jobs |
 |---|---|
-| **celestial-core** | `lint` (fmt + clippy) → `test` (955 tests) ‖ `fuzz` (84 suites, ~22M property checks) |
+| **celestial-core** | `lint` (fmt + clippy) → `test` (1101 tests) ‖ `fuzz` (84 suites, ~1M property checks) |
 | **celestial-cli** | `lint` (clippy) → `test` (154 tests) → `build` (3 OS) |
 | **celestial-python** | `lint-rs` ‖ `lint-py` (black + ruff) → `test` (216 pure-logic) → `build` (maturin wheel) |
 | **celestial-js** | `lint-rs` ‖ `lint-ts` (eslint + tsc) → `test` (142 pure-logic) → `build` (napi-rs addon) |
