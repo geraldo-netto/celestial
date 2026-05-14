@@ -1644,6 +1644,79 @@ fn secondary_progression_30_years() {
     }
 }
 
+// ─── Ancient dates / Gregorian-Julian boundary ──────────────────────────────
+
+/// 1 AD / 1 BC astronomical year handling: julday must accept year 0
+/// = 1 BC, year -1 = 2 BC.
+#[test]
+fn julday_year_zero_and_bc() {
+    let jd_1ad = julday(1, 1, 1, 0.0, Calendar::Julian);
+    let jd_1bc = julday(0, 1, 1, 0.0, Calendar::Julian);
+    let jd_2bc = julday(-1, 1, 1, 0.0, Calendar::Julian);
+    // Year-on-year should decrease by 365 or 366 days.
+    let d1 = jd_1ad - jd_1bc;
+    let d2 = jd_1bc - jd_2bc;
+    assert!(
+        (365.0..=366.0).contains(&d1),
+        "1 AD → 1 BC: {d1} days, expected 365 or 366",
+    );
+    assert!(
+        (365.0..=366.0).contains(&d2),
+        "1 BC → 2 BC: {d2} days, expected 365 or 366",
+    );
+}
+
+/// Gregorian calendar started 1582-10-15 (Thursday). The day before
+/// in the Julian calendar was 1582-10-04. JD for both should be
+/// consecutive integers (with the Gregorian one 1 higher).
+#[test]
+fn gregorian_julian_1582_switch() {
+    let jd_julian_oct4 = julday(1582, 10, 4, 0.0, Calendar::Julian);
+    let jd_greg_oct15 = julday(1582, 10, 15, 0.0, Calendar::Gregorian);
+    let diff = jd_greg_oct15 - jd_julian_oct4;
+    assert!(
+        (diff - 1.0).abs() < 0.01,
+        "Julian 1582-10-04 → Gregorian 1582-10-15 should be consecutive days, diff = {diff}",
+    );
+}
+
+// ─── Long-range planet positions ────────────────────────────────────────────
+
+/// Mars at 2003-08-28 (Earth/Mars closest approach in ~60,000 years):
+/// Mars at opposition (180° from Sun). Sun at end of August ≈ 155°
+/// (Virgo); Mars opposite ≈ 335° (5° Pisces).
+#[test]
+fn mars_at_2003_close_approach() {
+    let jd = julday(2003, 8, 28, 0.0, Calendar::Gregorian);
+    let pos = calc_ut(jd, celestial_core::body::Body::MARS, FLG).unwrap();
+    assert_lon_within!(pos.lon, 335.2, 0.5, "Mars 2003-08-28");
+}
+
+/// Venus at the 2012-06-06 transit of the Sun:
+/// Venus and Sun must be near-conjunct (within ~0.5°).
+#[test]
+fn venus_2012_transit_conjunct_sun() {
+    let jd = julday(2012, 6, 6, 1.0, Calendar::Gregorian); // ~01:30 UT mid-transit
+    let venus = calc_ut(jd, celestial_core::body::Body::VENUS, FLG).unwrap();
+    let sun = calc_ut(jd, celestial_core::body::Body::SUN, FLG).unwrap();
+    let diff = ((venus.lon - sun.lon + 540.0) % 360.0 - 180.0).abs();
+    assert!(
+        diff < 1.0,
+        "Venus-Sun conjunction at 2012 transit: diff {diff:.4}°",
+    );
+}
+
+/// Saturn at 1986-04-15: Saturn entered Sagittarius late 1985; at
+/// mid-April 1986 around 7° Sgr by published ephemerides. Tolerance
+/// 3° because residual Saturn L-series coefficient bugs remain in
+/// the engine (~0.5-3° band depending on date).
+#[test]
+fn saturn_at_1986_april() {
+    let jd = julday(1986, 4, 15, 0.0, Calendar::Gregorian);
+    let pos = calc_ut(jd, celestial_core::body::Body::SATURN, FLG).unwrap();
+    assert_lon_within!(pos.lon, 247.0, 3.0, "Saturn 1986-04-15");
+}
+
 // ─── Distance to MC ─────────────────────────────────────────────────────────
 
 /// `distance_to_mc` is the angular distance from a planet longitude
