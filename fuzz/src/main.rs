@@ -3184,13 +3184,17 @@ fn test_arabic_part_range(n: u32) -> Suite {
 
 /// Chart-aspect builder: takes a list of body positions and aspect angles,
 /// returns aspects found within auto-computed orbs. Each result must have
-/// a non-negative finite orb.
+/// a non-negative finite orb and a consistent `applying` flag.
+///
+/// `applying` is verified by independent perturbation: if `applying` is
+/// reported, advancing the bodies by a tiny `dt` should shrink the orb;
+/// if `applying = false`, the orb should grow (or both must be zero,
+/// which only happens at exact aspect with zero relative speed).
 fn test_chart_aspects_builder(n: u32) -> Suite {
     let mut s = Suite::new("chart_aspects_builder");
     let mut rng = Xorshift64::new(0xC0FF_EE15_BEEF_BABE);
     let aspect_angles = [0.0_f64, 60.0, 90.0, 120.0, 180.0];
     for _ in 0..n {
-        // Build a random "chart" of 5 bodies at random positions
         let positions: Vec<(Body, f64, f64)> = [
             Body::SUN,
             Body::MOON,
@@ -3205,6 +3209,31 @@ fn test_chart_aspects_builder(n: u32) -> Suite {
         for a in &aspects {
             s.check(a.orb.is_finite() && a.orb >= 0.0, || {
                 format!("aspect orb: {}", a.orb)
+            });
+
+            // Find the two positions involved so we can verify `applying`
+            // by perturbation. Skip if either body has near-zero relative
+            // speed at near-exact aspect — the flag is undefined there.
+            let p1 = positions.iter().find(|(b, ..)| *b == a.body1).unwrap();
+            let p2 = positions.iter().find(|(b, ..)| *b == a.body2).unwrap();
+            let rel_speed = (p1.2 - p2.2).abs();
+            if a.orb < 1e-6 || rel_speed < 1e-6 {
+                continue;
+            }
+
+            // Advance both bodies by dt; recompute the orb to this aspect.
+            let dt = 1e-4;
+            let lon1b = (p1.1 + p1.2 * dt).rem_euclid(360.0);
+            let lon2b = (p2.1 + p2.2 * dt).rem_euclid(360.0);
+            let sep = diff_deg_signed(lon1b, lon2b).abs();
+            let new_orb = (sep - a.aspect).abs().min(360.0 - (sep - a.aspect).abs());
+            let shrunk = new_orb < a.orb;
+            s.check(shrunk == a.applying, || {
+                format!(
+                    "applying={} but dt perturbation says orb {} -> {} (b1={:?} b2={:?} \
+                     spd1={} spd2={} aspect={})",
+                    a.applying, a.orb, new_orb, a.body1, a.body2, p1.2, p2.2, a.aspect
+                )
             });
         }
         s.passed += 1;

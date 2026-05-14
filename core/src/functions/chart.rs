@@ -31,6 +31,24 @@ pub struct ChartAspect {
     pub applying: bool,
 }
 
+/// Whether an aspect is **applying** (orb shrinking under current motion).
+///
+/// Derivation:
+/// - `d|sep|/dt = sign(signed_sep) · rel_speed`   (separation grows when bodies move apart)
+/// - `d(orb)/dt = sign(|sep| − aspect_deg) · d|sep|/dt`
+///   (above exact: orb shrinks as |sep| falls; below exact: orb shrinks as |sep| rises)
+/// - Applying ⇔ `d(orb)/dt < 0` ⇔ `rel_speed · signed_sep · (|sep| − aspect_deg) < 0`.
+///
+/// `signed_sep` is the signed angular separation (`diff_deg_signed(lon1, lon2)`, range
+/// `(−180, 180]`), `rel_speed = spd1 − spd2` in deg/day, and `aspect_deg` is the
+/// exact aspect angle (0, 60, 90, …). Returns `false` at the exact moment when any
+/// factor is zero — callers wanting a tri-state should test that explicitly.
+#[must_use]
+#[inline]
+pub fn is_applying(signed_sep: f64, rel_speed: f64, aspect_deg: f64) -> bool {
+    rel_speed * signed_sep * (signed_sep.abs() - aspect_deg) < 0.0
+}
+
 /// Standard major aspect angles in degrees.
 pub const MAJOR_ASPECTS: &[f64] = &[0.0, 60.0, 90.0, 120.0, 180.0];
 /// All traditional aspects (major + minor).
@@ -84,15 +102,13 @@ pub fn calc_chart_aspects(
         for j in (i + 1)..n {
             let (b1, lon1, spd1) = positions[i];
             let (b2, lon2, spd2) = positions[j];
-            let separation = diff_deg_signed(lon1, lon2).abs();
+            let signed = diff_deg_signed(lon1, lon2);
+            let separation = signed.abs();
             for &asp in aspects {
                 let diff = (separation - asp).abs();
                 let diff = diff.min(360.0 - diff);
                 if diff <= orb {
-                    // Applying if planets are moving toward exact
-                    let rate = spd1 - spd2; // relative speed
-                    let to_exact = diff_deg_signed(lon1 + asp, lon2);
-                    let applying = (rate > 0.0) == (to_exact > 0.0);
+                    let applying = is_applying(signed, spd1 - spd2, asp);
                     result.push(ChartAspect {
                         body1: b1,
                         body2: b2,
@@ -766,15 +782,14 @@ pub fn calc_chart_aspects_auto(
         for j in (i + 1)..n {
             let (b1, lon1, spd1) = positions[i];
             let (b2, lon2, spd2) = positions[j];
-            let separation = diff_deg_signed(lon1, lon2).abs();
+            let signed = diff_deg_signed(lon1, lon2);
+            let separation = signed.abs();
             for &asp in aspects {
                 let orb = default_orb(b1, b2, asp);
                 let diff = (separation - asp).abs();
                 let diff = diff.min(360.0 - diff);
                 if diff <= orb {
-                    let rate = spd1 - spd2;
-                    let to_exact = diff_deg_signed(lon1 + asp, lon2);
-                    let applying = (rate > 0.0) == (to_exact > 0.0);
+                    let applying = is_applying(signed, spd1 - spd2, asp);
                     result.push(ChartAspect {
                         body1: b1,
                         body2: b2,
