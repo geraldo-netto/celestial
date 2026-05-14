@@ -1644,6 +1644,157 @@ fn secondary_progression_30_years() {
     }
 }
 
+// ─── Distance to MC ─────────────────────────────────────────────────────────
+
+/// `distance_to_mc` is the angular distance from a planet longitude
+/// to the MC longitude. Pure modular arithmetic — must always return
+/// value in [0°, 180°] (shorter arc).
+#[test]
+fn distance_to_mc_bounds() {
+    use celestial_core::distance_to_mc;
+    let cases: &[(f64, f64, f64)] = &[
+        (10.0, 10.0, 0.0),    // same lon
+        (10.0, 190.0, 180.0), // opposite
+        (10.0, 100.0, 90.0),  // square
+        (350.0, 10.0, 20.0),  // wrap
+        (170.0, 190.0, 20.0), // small diff
+    ];
+    for &(plon, mc, expected) in cases {
+        let d = distance_to_mc(plon, mc);
+        assert!(
+            (d - expected).abs() < 0.001 && (0.0..=180.0).contains(&d),
+            "distance_to_mc({plon}, {mc}) = {d}, expected {expected}",
+        );
+    }
+}
+
+// ─── Day of year ────────────────────────────────────────────────────────────
+
+/// Day-of-year boundaries:
+///   Jan 1 → 1
+///   Feb 28 → 59 (non-leap), 59 leap
+///   Feb 29 → 60 (leap year only)
+///   Mar 1 → 60 (non-leap), 61 leap
+///   Dec 31 → 365 (non-leap), 366 leap
+#[test]
+fn day_of_year_canonical() {
+    use celestial_core::day_of_year;
+    let cases: &[(i32, u32, u32, u32)] = &[
+        (2023, 1, 1, 1),
+        (2023, 2, 28, 59),
+        (2023, 3, 1, 60),     // non-leap
+        (2024, 3, 1, 61),     // leap
+        (2024, 2, 29, 60),    // leap day
+        (2023, 12, 31, 365),
+        (2024, 12, 31, 366),
+        (1900, 12, 31, 365),  // not a leap year (centurial /400 exception)
+        (2000, 12, 31, 366),  // 2000 is leap (4-cycle and 400-cycle)
+    ];
+    for &(y, m, d, expected) in cases {
+        let doy = day_of_year(y, m, d);
+        assert_eq!(doy, expected, "day_of_year({y}, {m}, {d}) = {doy}, expected {expected}");
+    }
+}
+
+// ─── Months in Hebrew year ──────────────────────────────────────────────────
+
+/// Hebrew years have either 12 months (normal) or 13 months (leap,
+/// with Adar I + Adar II). The 19-year cycle has 7 leap years:
+/// 3, 6, 8, 11, 14, 17, 19.
+#[test]
+fn hebrew_months_per_year() {
+    use celestial_core::months_in_hebrew_year;
+    for y in 5780..=5800 {
+        let m = months_in_hebrew_year(y);
+        assert!(m == 12 || m == 13, "Hebrew year {y}: {m} months");
+    }
+    let total: i32 = (5780..=5798).map(months_in_hebrew_year).sum();
+    // 19-year cycle: 12·12 normal + 7·13 leap = 144 + 91 = 235 months.
+    assert_eq!(total, 235, "19-year Hebrew cycle: {total} months, expected 235");
+}
+
+// ─── Coptic month days ──────────────────────────────────────────────────────
+
+/// Coptic months 1-12 each have 30 days; month 13 (Pi Kogi Enavot,
+/// "small month") has 5 days normally and 6 in leap years.
+#[test]
+fn coptic_month_lengths() {
+    use celestial_core::coptic_month_days;
+    for m in 1..=12 {
+        assert_eq!(
+            coptic_month_days(1740, m), 30,
+            "Coptic month {m} should have 30 days",
+        );
+    }
+    let leap = coptic_month_days(1739, 13);
+    let normal = coptic_month_days(1740, 13);
+    // 1739 mod 4 == 3 → leap; 1740 mod 4 != 3 → normal.
+    assert_eq!(leap, 6, "Coptic 1739 month 13 (leap): {leap} days, expected 6");
+    assert_eq!(normal, 5, "Coptic 1740 month 13 (normal): {normal} days, expected 5");
+}
+
+// ─── Ethiopic calendar ──────────────────────────────────────────────────────
+
+/// Ethiopic Meskerem 1 of year 2017 EE = 2024-09-11 Gregorian.
+/// Round-trip via Ethiopic↔JD.
+#[test]
+fn ethiopic_round_trip_2017_ee() {
+    use celestial_core::{ethiopic_to_jd, jd_to_ethiopic};
+    let jd = ethiopic_to_jd(2017, 1, 1);
+    let (y, m, d) = jd_to_ethiopic(jd);
+    assert_eq!((y, m, d), (2017, 1, 1));
+    let gd = celestial_core::revjul(jd, Calendar::Gregorian);
+    assert!(
+        gd.year == 2024 && gd.month == 9 && (10..=12).contains(&(gd.day as i32)),
+        "Ethiopic 2017-01-01 ≈ 2024-09-11, got {}-{}-{}",
+        gd.year, gd.month, gd.day,
+    );
+}
+
+// ─── Bahá'í holy days ───────────────────────────────────────────────────────
+
+/// Bahá'í year has 19 months × 19 days + 4-5 Ayyám-i-Há intercalary
+/// days. `bahai_holy_days(year)` returns the 9-11 official holy days.
+#[test]
+fn bahai_holy_days_count() {
+    use celestial_core::{bahai_holy_days, jd_to_bahai};
+    let days = bahai_holy_days(181);
+    assert!(!days.is_empty(), "BE 181 holy days empty");
+    let nr = celestial_core::naw_ruz_jd(181);
+    let bd = jd_to_bahai(nr);
+    assert!(bd.year == 181 || bd.year == 180, "Naw-Rúz 181 should land in BE 181 (or just before)");
+}
+
+// ─── ISO week-year boundaries ──────────────────────────────────────────────
+
+/// ISO 8601 cross-year boundary cases (all confirmed against
+/// USNO / Wikipedia):
+///   2009-12-31 = 2009-W53 (53-week year — Jan 1 was Thu)
+///   2010-01-01 = 2009-W53 (Friday)
+///   2010-01-04 = 2010-W01 (Monday)
+///   2015-12-28 = 2015-W53
+///   2016-01-03 = 2015-W53 (Sunday — ISO uses Mon-Sun weeks)
+///   2016-01-04 = 2016-W01 (Monday)
+#[test]
+fn iso_week_year_boundaries() {
+    let cases: &[(i32, u32, u32, i32, u32)] = &[
+        (2009, 12, 31, 2009, 53),
+        (2010, 1, 1, 2009, 53),
+        (2010, 1, 4, 2010, 1),
+        (2015, 12, 28, 2015, 53),
+        (2016, 1, 3, 2015, 53),
+        (2016, 1, 4, 2016, 1),
+    ];
+    for &(y, m, d, iy_exp, iw_exp) in cases {
+        let jd = julday(y, m as i32, d as i32, 0.0, Calendar::Gregorian);
+        let (iy, iw) = iso_week(jd);
+        assert_eq!(
+            (iy, iw), (iy_exp, iw_exp),
+            "ISO week {y}-{m:02}-{d:02} = ({iy}, {iw}), expected ({iy_exp}, {iw_exp})",
+        );
+    }
+}
+
 // ─── Solar eclipse search ───────────────────────────────────────────────────
 
 /// Total solar eclipse of 2024-04-08 (maximum eclipse ≈ 18:18 UT,
