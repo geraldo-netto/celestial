@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console -- this file IS a console test runner */
 /**
  * Standalone pure-logic test runner for celestial-js.
  * Tests every calculation that does NOT require the compiled .node addon —
@@ -10,22 +11,36 @@
  * suite so that CI can confirm correctness without the native binary.
  */
 
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const TOL_DEFAULT = 1e-7;
+const TOL_TIGHT = 1e-12;
+const TOL_JD = 1e-8; // coord-transform / Julian-day round-trip tolerance
+const TOL_HOUR = 1e-9; // revJul fractional-hour comparisons
+const MARK_PASS = "  ✓ ";
+const MARK_FAIL = "  ✗ ";
+const INDENT_ERR = "      ";
+
 // ─── Tiny test framework ──────────────────────────────────────────────────────
 
-let passed = 0,
-  failed = 0;
+let passed = 0;
+let failed = 0;
 const failures = [];
 
 function test(name, fn) {
   try {
     fn();
-    console.log(`  ✓ ${name}`);
-    passed++;
+    console.log(`${MARK_PASS}${name}`);
+    passed += 1;
   } catch (err) {
-    console.log(`  ✗ ${name}`);
-    console.log(`      ${err.message}`);
+    console.log(`${MARK_FAIL}${name}`);
+    console.log(`${INDENT_ERR}${err.message}`);
     failures.push({ name, message: err.message });
-    failed++;
+    failed += 1;
   }
 }
 
@@ -34,17 +49,29 @@ function describe(name, fn) {
   fn();
 }
 
+/**
+ * Structural deep-equality. Replaces the brittle `JSON.stringify(a) ===
+ * JSON.stringify(b)` we used to lean on — that one breaks on undefined
+ * values, NaN, and unstable key order.
+ */
+function deepEqual(a, b) {
+  if (Object.is(a, b)) return true;
+  if (a === null || b === null) return false;
+  if (typeof a !== "object" || typeof b !== "object") return false;
+  const ka = Object.keys(a);
+  const kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  return ka.every((k) => Object.hasOwn(b, k) && deepEqual(a[k], b[k]));
+}
+
 function expect(val) {
   return {
     toBe: (exp) => {
       if (val !== exp) throw new Error(`Expected ${exp}, got ${val}`);
     },
-    toBeCloseTo: (exp, tol = 1e-7) => {
+    toBeCloseTo: (exp, tol = TOL_DEFAULT) => {
       if (Math.abs(val - exp) >= tol)
         throw new Error(`Expected ${exp} ± ${tol}, got ${val} (diff ${Math.abs(val - exp)})`);
-    },
-    toThrow: () => {
-      throw new Error("Use _expectThrows()");
     },
     toHaveLength: (n) => {
       if (val.length !== n) throw new Error(`Expected length ${n}, got ${val.length}`);
@@ -55,9 +82,8 @@ function expect(val) {
       }
     },
     toEqual: (exp) => {
-      const a = JSON.stringify(val),
-        b = JSON.stringify(exp);
-      if (a !== b) throw new Error(`Expected ${b}, got ${a}`);
+      if (!deepEqual(val, exp))
+        throw new Error(`Expected ${JSON.stringify(exp)}, got ${JSON.stringify(val)}`);
     },
     toBeTruthy: () => {
       if (!val) throw new Error(`Expected truthy, got ${val}`);
@@ -65,15 +91,8 @@ function expect(val) {
   };
 }
 
-function _expectThrows(fn, msgPart = "") {
-  let threw = false;
-  try {
-    fn();
-  } catch {
-    threw = true;
-  }
-  if (!threw) throw new Error(`Expected throw${msgPart ? ` containing "${msgPart}"` : ""}`);
-}
+// `expectThrows` lived here previously but no test in this file uses
+// it; removed to silence dead-code warnings. Re-add when needed.
 
 // ─── Pure-JS reimplementations matching the Rust/C library behaviour ──────────
 
@@ -82,9 +101,8 @@ function _expectThrows(fn, msgPart = "") {
  * Matches swe_degnorm().
  */
 function normDeg(x) {
-  x = x % 360;
-  if (x < 0) x += 360;
-  return x;
+  const r = x % 360;
+  return r < 0 ? r + 360 : r;
 }
 
 /**
@@ -92,9 +110,8 @@ function normDeg(x) {
  */
 function normRad(x) {
   const TWO_PI = 2 * Math.PI;
-  x = x % TWO_PI;
-  if (x < 0) x += TWO_PI;
-  return x;
+  const r = x % TWO_PI;
+  return r < 0 ? r + TWO_PI : r;
 }
 
 /**
@@ -102,7 +119,8 @@ function normRad(x) {
  * Matches swe_difdeg2n().
  */
 function diffDegSigned(p1, p2) {
-  let d = normDeg(p1) - normDeg(p2);
+  const raw = normDeg(p1) - normDeg(p2);
+  let d = raw;
   if (d > 180) d -= 360;
   if (d <= -180) d += 360;
   return d;
@@ -122,8 +140,7 @@ function degMidp(x1, x0) {
  */
 function normCs(p) {
   const FULL = 360 * 360000;
-  p = ((p % FULL) + FULL) % FULL;
-  return p;
+  return ((p % FULL) + FULL) % FULL;
 }
 
 /**
@@ -146,15 +163,24 @@ function splitDeg(deg) {
  * Julian day for a Gregorian calendar date.
  * Matches swe_julday() with GREG_CAL.
  */
-function julDay(y, m, d, h = 0) {
-  // Meeus algorithm (Astronomical Algorithms)
-  if (m <= 2) {
-    y -= 1;
-    m += 12;
-  }
+function julDay(year, month, d, h = 0) {
+  // Meeus algorithm (Astronomical Algorithms) — copy parameters into
+  // locals so we don't mutate them.
+  const [y, m] = month <= 2 ? [year - 1, month + 12] : [year, month];
   const A = Math.floor(y / 100);
   const B = 2 - A + Math.floor(A / 4);
   return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + h / 24 + B - 1524.5;
+}
+
+/**
+ * Gregorian correction `a` for `revJul` — pulled into its own helper so
+ * the main function can use a `const` expression instead of a mutable
+ * `let` plus if/else.
+ */
+function revJulA(z) {
+  if (z < 2299161) return z;
+  const alpha = Math.floor((z - 1867216.25) / 36524.25);
+  return z + 1 + alpha - Math.floor(alpha / 4);
 }
 
 /**
@@ -164,13 +190,7 @@ function julDay(y, m, d, h = 0) {
 function revJul(jd) {
   const z = Math.floor(jd + 0.5);
   const f = jd + 0.5 - z;
-  let a;
-  if (z < 2299161) {
-    a = z;
-  } else {
-    const alpha = Math.floor((z - 1867216.25) / 36524.25);
-    a = z + 1 + alpha - Math.floor(alpha / 4);
-  }
+  const a = revJulA(z);
   const b = a + 1524;
   const c = Math.floor((b - 122.1) / 365.25);
   const dd = Math.floor(365.25 * c);
@@ -225,7 +245,7 @@ describe("normDeg", () => {
   test("idempotent: normDeg(normDeg(x)) == normDeg(x)", () => {
     for (const v of [0, 45, 180, 270, 359.99, -90, 721]) {
       const n = normDeg(v);
-      expect(normDeg(n)).toBeCloseTo(n, 1e-12);
+      expect(normDeg(n)).toBeCloseTo(n, TOL_TIGHT);
     }
   });
   test("always in [0, 360)", () => {
@@ -239,8 +259,8 @@ describe("normDeg", () => {
 describe("normRad", () => {
   const TWO_PI = 2 * Math.PI;
   test("0 → 0", () => expect(normRad(0)).toBe(0));
-  test("2π → 0", () => expect(normRad(TWO_PI)).toBeCloseTo(0, 1e-12));
-  test("-π → π", () => expect(normRad(-Math.PI)).toBeCloseTo(Math.PI, 1e-12));
+  test("2π → 0", () => expect(normRad(TWO_PI)).toBeCloseTo(0, TOL_TIGHT));
+  test("-π → π", () => expect(normRad(-Math.PI)).toBeCloseTo(Math.PI, TOL_TIGHT));
   test("always [0,2π)", () => {
     for (const v of [-TWO_PI, -1, 0, 1, Math.PI, TWO_PI, 3 * Math.PI]) {
       const n = normRad(v);
@@ -251,9 +271,9 @@ describe("normRad", () => {
 
 describe("diffDegSigned", () => {
   test("(360.5, 540) == -179.5", () =>
-    expect(diffDegSigned(360.5, 540)).toBeCloseTo(-179.5, 1e-12));
+    expect(diffDegSigned(360.5, 540)).toBeCloseTo(-179.5, TOL_TIGHT));
   test("(100, 100) == 0", () => expect(diffDegSigned(100, 100)).toBe(0));
-  test("(0, 359) == 1", () => expect(diffDegSigned(0, 359)).toBeCloseTo(1, 1e-12));
+  test("(0, 359) == 1", () => expect(diffDegSigned(0, 359)).toBeCloseTo(1, TOL_TIGHT));
   test("always in (-180, +180]", () => {
     const pairs = [
       [0, 359],
@@ -338,7 +358,7 @@ describe("julDay / revJul", () => {
   test("2002-01-01 00:00 → 2452275.5", () => {
     expect(julDay(2002, 1, 1, 0)).toBe(2452275.5);
   });
-  test("J2000 epoch", () => expect(julDay(2000, 1, 1, 12)).toBeCloseTo(2451545.0, 1e-9));
+  test("J2000 epoch", () => expect(julDay(2000, 1, 1, 12)).toBeCloseTo(2451545.0, TOL_HOUR));
   test("revJul round-trip", () => {
     const dates = [
       [2002, 1, 1, 0],
@@ -354,13 +374,13 @@ describe("julDay / revJul", () => {
         throw new Error(
           `Round-trip failed: ${y}-${m}-${d} → JD ${jd} → ${back.year}-${back.month}-${back.day}`,
         );
-      if (Math.abs(back.hour - h) >= 1e-8) throw new Error(`Hour mismatch: ${h} → ${back.hour}`);
+      if (Math.abs(back.hour - h) >= TOL_JD) throw new Error(`Hour mismatch: ${h} → ${back.hour}`);
     }
   });
   test("revJul(2452275.5) → 2002-01-01 00:00", () => {
     const d = revJul(2452275.5);
     expect(d).toMatchObject({ year: 2002, month: 1, day: 1 });
-    expect(d.hour).toBeCloseTo(0, 1e-8);
+    expect(d.hour).toBeCloseTo(0, TOL_JD);
   });
 });
 
@@ -388,8 +408,8 @@ describe("dayOfWeek", () => {
 describe("coordTransform", () => {
   test("known values (eps=23.4)", () => {
     const [lon, lat, dist] = coordTransform([121.34, 43.57, 1.0], 23.4);
-    if (Math.abs(lon - 114.11984833491826) > 1e-8) throw new Error(`lon: ${lon} ≠ 114.119...`);
-    if (Math.abs(lat - 22.754921351892474) > 1e-8) throw new Error(`lat: ${lat} ≠ 22.754...`);
+    if (Math.abs(lon - 114.11984833491826) > TOL_JD) throw new Error(`lon: ${lon} ≠ 114.119...`);
+    if (Math.abs(lat - 22.754921351892474) > TOL_JD) throw new Error(`lat: ${lat} ≠ 22.754...`);
     if (dist !== 1.0) throw new Error(`dist: ${dist} ≠ 1.0`);
   });
   test("round-trip (eps, then -eps)", () => {
@@ -397,9 +417,9 @@ describe("coordTransform", () => {
     const eps = 23.44;
     const equ = coordTransform(original, eps);
     const back = coordTransform(equ, -eps);
-    if (Math.abs(back[0] - original[0]) > 1e-8)
+    if (Math.abs(back[0] - original[0]) > TOL_JD)
       throw new Error(`lon round-trip: ${back[0]} ≠ ${original[0]}`);
-    if (Math.abs(back[1] - original[1]) > 1e-8)
+    if (Math.abs(back[1] - original[1]) > TOL_JD)
       throw new Error(`lat round-trip: ${back[1]} ≠ ${original[1]}`);
   });
   test("poles are stable", () => {
@@ -414,7 +434,7 @@ describe("expected values from celestial tests", () => {
   test("revJul matches test_swe_revjul.py", () => {
     const d = revJul(2452275.5);
     expect(d).toMatchObject({ year: 2002, month: 1, day: 1 });
-    expect(d.hour).toBeCloseTo(0.0, 1e-9);
+    expect(d.hour).toBeCloseTo(0.0, TOL_HOUR);
   });
   test("normDeg(0)==0  (test_swe_degnorm)", () => expect(normDeg(0)).toBe(0));
   test("normDeg(360)==0 (test_swe_degnorm)", () => expect(normDeg(360)).toBe(0));
@@ -423,11 +443,11 @@ describe("expected values from celestial tests", () => {
   test("normCs(540*360000)==64800000", () => expect(normCs(540 * 360000)).toBe(64800000));
   test("normCs(-720*360000)==0", () => expect(normCs(-720 * 360000)).toBe(0));
   test("diffDegSigned(360.5,540)==-179.5", () =>
-    expect(diffDegSigned(360.5, 540)).toBeCloseTo(-179.5, 1e-12));
+    expect(diffDegSigned(360.5, 540)).toBeCloseTo(-179.5, TOL_TIGHT));
   test("coordTransform known (test_swe_cotrans)", () => {
     const [a, b] = coordTransform([121.34, 43.57, 1.0], 23.4);
-    if (Math.abs(a - 114.11984833491826) > 1e-8) throw new Error(`lon: ${a}`);
-    if (Math.abs(b - 22.754921351892474) > 1e-8) throw new Error(`lat: ${b}`);
+    if (Math.abs(a - 114.11984833491826) > TOL_JD) throw new Error(`lon: ${a}`);
+    if (Math.abs(b - 22.754921351892474) > TOL_JD) throw new Error(`lat: ${b}`);
   });
   test("splitDeg 123.123 matches test_swe_split_deg", () => {
     const [d, m, s, frac, sgn] = splitDeg(123.123);
@@ -1170,84 +1190,86 @@ describe("calc_many / calcMany — parallel multi-body", () => {
   });
 });
 
-if (failures.length > 0) {
-  console.log("\nFailed tests:");
-  failures.forEach((f) => console.log(`  • ${f.name}\n    ${f.message}`));
-  process.exit(1);
-}
-
 // ── Shared fixture-driven cross-language tests ────────────────────────────────
 
-import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname2 = dirname(fileURLToPath(import.meta.url));
-const _fx = JSON.parse(
-  readFileSync(resolve(__dirname2, '../../../tests/fixtures/reference_values.json'), 'utf8')
+const FIXTURE_DIR = dirname(fileURLToPath(import.meta.url));
+const fixtures = JSON.parse(
+  readFileSync(resolve(FIXTURE_DIR, "../../../tests/fixtures/reference_values.json"), "utf8"),
 );
 
-const _GMT = 584283;
-const _antiscion         = (lon) => ((180 - lon) % 360 + 360) % 360;
-const _contraAntiscion   = (lon) => ((360 - lon) % 360 + 360) % 360;
-const _tonalpohualli     = (jd)  => { const d = ((jd - _GMT) % 260 + 260) % 260; return [d % 13 + 1, d % 20]; };
-const _profectionHouse   = (age) => (age % 12) + 1;
-const _approxEq          = (a, b, places) => Math.abs(a - b) < Math.pow(10, -places);
+const GMT_CORRELATION = 584283;
+const TZOLKIN_LEN = 260;
+const TRECENA_LEN = 13;
+const TZOLKIN_SIGN_COUNT = 20;
+const HOUSE_COUNT = 12;
+const FIXTURE_PLACES = 9;
+
+const antiscion = (lon) => (((180 - lon) % 360) + 360) % 360;
+const contraAntiscion = (lon) => (((360 - lon) % 360) + 360) % 360;
+const tonalpohualli = (jd) => {
+  const d = (((jd - GMT_CORRELATION) % TZOLKIN_LEN) + TZOLKIN_LEN) % TZOLKIN_LEN;
+  return [(d % TRECENA_LEN) + 1, d % TZOLKIN_SIGN_COUNT];
+};
+const profectionHouse = (age) => (age % HOUSE_COUNT) + 1;
+const approxEq = (a, b, places) => Math.abs(a - b) < 10 ** -places;
 
 // Antiscia
-for (const c of _fx.antiscia) {
+for (const c of fixtures.antiscia) {
   test(`fixture antiscion(${c.input_lon}) = ${c.antiscion}`, () => {
-    const got = _antiscion(c.input_lon);
-    if (!_approxEq(got, c.antiscion, 9))
+    const got = antiscion(c.input_lon);
+    if (!approxEq(got, c.antiscion, FIXTURE_PLACES))
       throw new Error(`antiscion(${c.input_lon}): expected ${c.antiscion}, got ${got}`);
-    const gotC = _contraAntiscion(c.input_lon);
-    if (!_approxEq(gotC, c.contra, 9))
+    const gotC = contraAntiscion(c.input_lon);
+    if (!approxEq(gotC, c.contra, FIXTURE_PLACES))
       throw new Error(`contra(${c.input_lon}): expected ${c.contra}, got ${gotC}`);
   });
 }
 
 // Tonalpohualli
-for (const c of _fx.tonalpohualli) {
+for (const c of fixtures.tonalpohualli) {
   test(`fixture tonal jd=${c.jd} → ${c.trecena} ${c.name}`, () => {
-    const [t, s] = _tonalpohualli(c.jd);
+    const [t, s] = tonalpohualli(c.jd);
     if (t !== c.trecena) throw new Error(`trecena at jd=${c.jd}: expected ${c.trecena}, got ${t}`);
     if (s !== c.sign_idx) throw new Error(`sign at jd=${c.jd}: expected ${c.sign_idx}, got ${s}`);
   });
 }
 
 // Profections
-for (const c of _fx.profections) {
+for (const c of fixtures.profections) {
   test(`fixture profection age ${c.age} → house ${c.house}`, () => {
-    const h = _profectionHouse(c.age);
+    const h = profectionHouse(c.age);
     if (h !== c.house) throw new Error(`age ${c.age}: expected house ${c.house}, got ${h}`);
   });
 }
 
-// Medicine Wheel
-const _TOTEMS_FX = [
-  [300,330,'Snow Goose','Earth','Turtle','Winter'],
-  [330,360,'Otter','Air','Butterfly','Winter'],
-  [0,30,'Cougar','Air','Butterfly','Spring'],
-  [30,60,'Red Hawk','Fire','Thunderbird','Spring'],
-  [60,90,'Beaver','Earth','Turtle','Spring'],
-  [90,120,'Deer','Air','Butterfly','Summer'],
-  [120,150,'Flicker','Water','Frog','Summer'],
-  [150,180,'Sturgeon','Fire','Thunderbird','Summer'],
-  [180,210,'Brown Bear','Earth','Turtle','Autumn'],
-  [210,240,'Raven','Air','Butterfly','Autumn'],
-  [240,270,'Snake','Water','Frog','Autumn'],
-  [270,300,'Elk','Fire','Thunderbird','Winter'],
+// Medicine Wheel — totem fallback at the Aries cusp boundary.
+const TOTEMS_FX = [
+  [300, 330, "Snow Goose", "Earth", "Turtle", "Winter"],
+  [330, 360, "Otter", "Air", "Butterfly", "Winter"],
+  [0, 30, "Cougar", "Air", "Butterfly", "Spring"],
+  [30, 60, "Red Hawk", "Fire", "Thunderbird", "Spring"],
+  [60, 90, "Beaver", "Earth", "Turtle", "Spring"],
+  [90, 120, "Deer", "Air", "Butterfly", "Summer"],
+  [120, 150, "Flicker", "Water", "Frog", "Summer"],
+  [150, 180, "Sturgeon", "Fire", "Thunderbird", "Summer"],
+  [180, 210, "Brown Bear", "Earth", "Turtle", "Autumn"],
+  [210, 240, "Raven", "Air", "Butterfly", "Autumn"],
+  [240, 270, "Snake", "Water", "Frog", "Autumn"],
+  [270, 300, "Elk", "Fire", "Thunderbird", "Winter"],
 ];
-const _totemFx = (lon) => {
-  lon = ((lon % 360) + 360) % 360;
-  for (const [lo, hi, ...rest] of _TOTEMS_FX) {
-    if (lo < hi ? (lon >= lo && lon < hi) : (lon >= lo || lon < hi)) return rest;
+const TOTEM_FALLBACK = ["Snow Goose", "Earth", "Turtle", "Winter"];
+
+function totemFx(lon) {
+  const n = ((lon % 360) + 360) % 360;
+  for (const [lo, hi, ...rest] of TOTEMS_FX) {
+    if (lo < hi ? n >= lo && n < hi : n >= lo || n < hi) return rest;
   }
-  return ['Snow Goose','Earth','Turtle','Winter'];
-};
-for (const c of _fx.medicine_wheel) {
+  return TOTEM_FALLBACK;
+}
+
+for (const c of fixtures.medicine_wheel) {
   test(`fixture totem(${c.sun_lon}) = ${c.animal}`, () => {
-    const [animal, element, clan, season] = _totemFx(c.sun_lon);
+    const [animal, element, clan, season] = totemFx(c.sun_lon);
     if (animal !== c.animal) throw new Error(`animal: expected ${c.animal}, got ${animal}`);
     if (element !== c.element) throw new Error(`element: expected ${c.element}, got ${element}`);
     if (clan !== c.clan) throw new Error(`clan: expected ${c.clan}, got ${clan}`);
@@ -1255,4 +1277,11 @@ for (const c of _fx.medicine_wheel) {
   });
 }
 
+// ── Final summary ─────────────────────────────────────────────────────────────
+
+if (failures.length > 0) {
+  console.log("\nFailed tests:");
+  failures.forEach((f) => console.log(`  • ${f.name}\n    ${f.message}`));
+}
 console.log(`Results: ${passed} passed, ${failed} failed`);
+if (failed > 0) process.exit(1);
