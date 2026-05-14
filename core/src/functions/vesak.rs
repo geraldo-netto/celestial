@@ -121,13 +121,19 @@ pub fn vesak_jd(year: i32) -> f64 {
     // If the first full moon is in April, the second is Vesak; if in May, it might be the first
     let fm2 = next_full_moon_after(fm1 + 1.0);
 
-    // If fm1 is in April (after April 10), that's often Vesak; otherwise fm2
-    // Vesak = full moon when Sun is in Taurus (Vaisakha), approx Apr 20 – Jun 20
-    let apr20 = julday(year, 4, 20, 0.0, Calendar::Gregorian);
+    // Vesak per Theravada / Sri Lanka / Thailand / India Buddha Purnima
+    // is the May full moon (full moon when Sun is in sidereal Taurus,
+    // = tropical longitude ≳ Taurus mid-sign in modern era). The Apr 20
+    // cut-off previously used here picked the April full moon for
+    // years like 2021/2024 where the canonical date is the May one.
+    //
+    // Empirical fix: skip any full moon before May 1. The first
+    // full moon ≥ May 1 and ≤ Jun 20 is Vesak.
+    let may1 = julday(year, 5, 1, 0.0, Calendar::Gregorian);
     let jun20 = julday(year, 6, 20, 0.0, Calendar::Gregorian);
-    if fm1 >= apr20 && fm1 < jun20 {
+    if fm1 >= may1 && fm1 < jun20 {
         fm1
-    } else if fm2 >= apr20 && fm2 < jun20 {
+    } else if fm2 >= may1 && fm2 < jun20 {
         fm2
     } else {
         // Find one more FM
