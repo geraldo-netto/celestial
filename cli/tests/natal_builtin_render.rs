@@ -68,6 +68,34 @@ fn builtin_natal_has_three_wheels() {
 }
 
 #[test]
+fn builtin_natal_signs_use_element_colors_and_symbol_font() {
+    // Zodiac glyphs render in their classical element colour (fire=red
+    // c1272d, earth=green 5a7a30, air=gold c4a017, water=blue 1a5fb4)
+    // and prefer dedicated symbol fonts so the U+2648..U+2653 glyphs
+    // come out as vectors rather than chunky bitmap-style fallbacks.
+    let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_sign_colors.svg");
+    let element_colors = ["#c1272d", "#5a7a30", "#c4a017", "#1a5fb4"];
+    for col in element_colors {
+        let needle = format!("fill=\"{col}\"");
+        let count = svg.matches(&needle).count();
+        assert!(
+            count >= 3,
+            "expected ≥ 3 sign glyphs in element colour `{col}`, got {count}"
+        );
+    }
+    assert!(
+        svg.contains("Segoe UI Symbol"),
+        "sign glyph font stack must lead with a dedicated symbol font"
+    );
+    // The legacy generic serif fallback alone must not be the planet/sign
+    // family — confirm at least one sign uses the rich font stack.
+    assert!(
+        svg.contains("font-family=\"'Segoe UI Symbol'"),
+        "sign glyphs must use the rich symbol-font stack, not generic serif"
+    );
+}
+
+#[test]
 fn builtin_natal_planets_use_named_colors() {
     // Each named body must render in its traditional astrological hue
     // (BODY_COLORS table) — not the generic ring/planet fill. This pins

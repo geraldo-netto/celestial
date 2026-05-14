@@ -138,6 +138,20 @@ const SIGN_GLYPHS: [&str; 12] = [
     "\u{2650}", "\u{2651}", "\u{2652}", "\u{2653}",
 ];
 
+/// Per-sign colour, indexed by zodiac position (0=Aries .. 11=Pisces).
+/// Coloured by classical element — fire/earth/air/water — so the wheel
+/// is readable at a glance without losing the traditional astrological
+/// language.
+///
+/// * Fire (Aries, Leo, Sagittarius)         → red    `#c1272d`
+/// * Earth (Taurus, Virgo, Capricorn)       → green  `#5a7a30`
+/// * Air (Gemini, Libra, Aquarius)          → gold   `#c4a017`
+/// * Water (Cancer, Scorpio, Pisces)        → blue   `#1a5fb4`
+const SIGN_COLORS: [&str; 12] = [
+    "#c1272d", "#5a7a30", "#c4a017", "#1a5fb4", "#c1272d", "#5a7a30", "#c4a017", "#1a5fb4",
+    "#c1272d", "#5a7a30", "#c4a017", "#1a5fb4",
+];
+
 fn build_signs(asc: f64) -> Vec<Value> {
     (0..12)
         .map(|i| {
@@ -150,6 +164,7 @@ fn build_signs(asc: f64) -> Vec<Value> {
             json!({
                 "idx":       i,
                 "glyph":     SIGN_GLYPHS[i],
+                "color":     SIGN_COLORS[i],
                 "spoke_x1":  (wx(CX, RI, sl,  asc) * 100.0).round() / 100.0,
                 "spoke_y1":  (wy(CY, RI, sl,  asc) * 100.0).round() / 100.0,
                 "spoke_x2":  (wx(CX, RO, sl,  asc) * 100.0).round() / 100.0,

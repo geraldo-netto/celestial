@@ -185,6 +185,17 @@ fn write_signs(s: &mut String, pal: &Palette, signs: &[Value]) {
     }
 }
 
+/// Font stack for the zodiac glyphs. We prefer fonts that ship a
+/// high-quality dedicated outline for the U+2648..U+2653 block
+/// (Aries..Pisces): `Segoe UI Symbol` (Windows), `Apple Symbols` and
+/// `STIXTwoText` (macOS), `Noto Sans Symbols2` (Linux). Falling back to
+/// generic `serif` last produces the chunky bitmap-style glyph that the
+/// previous wheel suffered from. Use bigger size (22 vs 15) + medium
+/// weight (500 — 600 was too bold and caused vector-fill artefacts in
+/// some renderers).
+const SIGN_FONT_FAMILY: &str =
+    "'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif";
+
 fn write_sign(s: &mut String, pal: &Palette, sign: &Value) {
     let ring = pal.ring;
     let sx1 = sign["spoke_x1"].as_f64().unwrap_or(0.0);
@@ -194,10 +205,11 @@ fn write_sign(s: &mut String, pal: &Palette, sign: &Value) {
     let gx = sign["glyph_x"].as_f64().unwrap_or(0.0);
     let gy = sign["glyph_y"].as_f64().unwrap_or(0.0);
     let g = sign["glyph"].as_str().unwrap_or("");
+    let col = sign["color"].as_str().unwrap_or(ring);
     let _ = writeln!(
         s,
         r##"  <line x1="{sx1:.2}" y1="{sy1:.2}" x2="{sx2:.2}" y2="{sy2:.2}" stroke="{ring}" stroke-width="1.5" opacity=".55"/>
-  <text x="{gx:.2}" y="{gy:.2}" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{ring}">{g}</text>"##
+  <text x="{gx:.2}" y="{gy:.2}" font-size="22" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="{SIGN_FONT_FAMILY}" fill="{col}">{g}</text>"##
     );
 }
 
