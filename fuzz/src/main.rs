@@ -4013,6 +4013,98 @@ fn check_house_systems_invariants(s: &mut Suite) {
     }
 }
 
+/// All inner-planet positions across 100 random JDs spanning ±200 y
+/// must be finite, normalized, and have physical latitude/distance.
+fn check_inner_planets_bounds(s: &mut Suite) {
+    use celestial_core::body::{Body, CalcFlags};
+    use celestial_core::calc_ut;
+    let mut rng = Xorshift64::new(0x1234_5678_DEAD_C0DE);
+    let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    // (body, max |lat|°, dist range AU, max |speed|°/d)
+    // Latitudes are GEOCENTRIC — can exceed orbital inclination due
+    // to parallax (Mercury ~10° geo, Venus ~9°, Mars ~7°).
+    let bodies: &[(Body, f64, (f64, f64), f64)] = &[
+        (Body::SUN, 0.01, (0.95, 1.05), 1.1),
+        (Body::MOON, 6.0, (0.0023, 0.0029), 16.0),
+        (Body::MERCURY, 12.0, (0.5, 1.5), 3.5),
+        (Body::VENUS, 9.0, (0.25, 1.75), 2.5),
+        (Body::MARS, 7.0, (0.35, 2.7), 1.0),
+    ];
+    for &(body, max_lat, (dmin, dmax), max_speed) in bodies {
+        for _ in 0..100 {
+            let jd = 2_451_545.0 + rng.range_f64(-73_000.0, 73_000.0); // ±200 y
+            let Ok(pos) = calc_ut(jd, body, flags) else {
+                s.passed += 1;
+                continue;
+            };
+            s.check(
+                (0.0..360.0).contains(&pos.lon),
+                || format!("{body:?} lon {} out of range at jd={jd}", pos.lon),
+            );
+            s.check(
+                pos.lat.abs() < max_lat,
+                || format!("{body:?} |lat| {} > {max_lat} at jd={jd}", pos.lat),
+            );
+            s.check(
+                (dmin..=dmax).contains(&pos.dist),
+                || format!("{body:?} dist {} outside [{dmin}, {dmax}] at jd={jd}", pos.dist),
+            );
+            s.check(
+                pos.speed_lon.abs() < max_speed,
+                || format!("{body:?} speed {} > {max_speed} at jd={jd}", pos.speed_lon),
+            );
+        }
+    }
+}
+
+/// House cusps at random charts in extreme latitude regions but NOT
+/// at exactly the pole. Whole Sign is well-defined everywhere; this
+/// test asserts Whole Sign stays sane even at ±88° lat.
+fn check_house_polar_invariants(s: &mut Suite) {
+    use celestial_core::body::HouseSystem;
+    use celestial_core::houses;
+    let mut rng = Xorshift64::new(0xDEAD_BEEF_FAFA_CAFE);
+    for _ in 0..50 {
+        let jd = 2_451_545.0 + rng.range_f64(-36_500.0, 36_500.0);
+        let lat = if rng.next_u64() % 2 == 0 {
+            rng.range_f64(70.0, 88.0)
+        } else {
+            rng.range_f64(-88.0, -70.0)
+        };
+        let lon = rng.range_f64(-180.0, 180.0);
+        let Ok(h) = houses(jd, lat, lon, HouseSystem(b'W')) else {
+            s.passed += 1;
+            continue;
+        };
+        for i in 1..=12 {
+            s.check(
+                h.cusps[i].is_finite() && (0.0..360.0).contains(&h.cusps[i]),
+                || format!("Whole-Sign h{i} at lat {lat} not finite/in-range"),
+            );
+        }
+    }
+}
+
+/// All calendar functions over 200 random Gregorian years.
+fn check_calendar_fns_no_panic(s: &mut Suite) {
+    use celestial_core::{easter_gregorian, easter_orthodox, hebrew_new_year_jd};
+    let mut rng = Xorshift64::new(0xCAFE_FACE_BEEF_0BAD);
+    for _ in 0..200 {
+        let y = rng.range_i32(100, 2200);
+        let r = std::panic::catch_unwind(|| {
+            let (ey, m, d) = easter_gregorian(y);
+            (ey, m, d, easter_orthodox(y), hebrew_new_year_jd(y + 3760))
+        });
+        s.check(r.is_ok(), || format!("calendar fns panicked at year {y}"));
+        if let Ok((y2, m, d, _eo, _h)) = r {
+            s.check(
+                y == y2 && (3..=5).contains(&m) && d <= 31,
+                || format!("easter_gregorian({y}) → ({y2}, {m}, {d})"),
+            );
+        }
+    }
+}
+
 /// Maya calendar ranges over 1000 random JDs across a 2000-year window.
 fn check_maya_ranges(s: &mut Suite) {
     use celestial_core::{haab, maya_long_count, tonalpohualli, tzolkin};
@@ -4182,9 +4274,12 @@ fn test_boundary_values() -> Suite {
     check_hijri_from_jd_boundaries(&mut s);
     check_vedic_longitude_boundaries(&mut s);
     check_outer_planet_physical_bounds(&mut s);
+    check_inner_planets_bounds(&mut s);
     check_ayanamsa_monotonic(&mut s);
     check_ayanamsa_finite_and_normalized(&mut s);
     check_house_systems_invariants(&mut s);
+    check_house_polar_invariants(&mut s);
+    check_calendar_fns_no_panic(&mut s);
     check_maya_ranges(&mut s);
     check_calendar_round_trip(&mut s);
     check_synodic_month_consistency(&mut s);
