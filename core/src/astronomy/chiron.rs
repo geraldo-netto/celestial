@@ -50,7 +50,13 @@ pub fn chiron_pos(jd: f64) -> (f64, f64, f64) {
     let inc = to_rad(6.930_2_f64);
     let node = to_rad(209.386_7_f64); // ascending node
     let peri = to_rad(339.534_3_f64); // argument of perihelion (from node)
-    let m0 = to_rad(48.5_f64); // mean anomaly at J2000.0 (from ephemeris)
+    // Mean anomaly at J2000.0 in degrees.
+    // Chiron perihelion was JD 2450162.0 (1996-02-14). At J2000.0 the
+    // time since perihelion is 1383 d → M = n·1383 ≈ 27.0° where the
+    // mean motion n = 360° / (50.45 y · 365.25 d/y) = 0.01956°/d.
+    // The previous value 48.5° was ~21° ahead of orbit (caused ~26° too
+    // far advanced in ecliptic longitude at all dates).
+    let m0 = to_rad(27.0_f64);
                                // Orbital period: P = sqrt(a³) years
     let period = a.powf(1.5) * 365.25; // days
     let n = TWO_PI / period; // mean motion rad/day
@@ -87,15 +93,62 @@ pub fn chiron_pos(jd: f64) -> (f64, f64, f64) {
 }
 
 /// Speed of Chiron (deg/day) via numerical differentiation.
+/// Uses geocentric (`chiron_geocentric`) so consumers see the apparent
+/// motion of Chiron as seen from Earth — matching how
+/// `chiron_speed` is consumed by `calc_chiron`.
 #[must_use]
 pub fn chiron_speed(jd: f64) -> (f64, f64, f64) {
     let h = 0.5;
-    let (l0, b0, r0) = chiron_pos(jd - h);
-    let (l1, b1, r1) = chiron_pos(jd + h);
+    let (l0, b0, r0) = chiron_geocentric(jd - h);
+    let (l1, b1, r1) = chiron_geocentric(jd + h);
     let dl = ((l1 - l0 + 540.0) % 360.0) - 180.0; // handle 0/360 wrap
     (
         (dl / (2.0 * h)),
         (b1 - b0) / (2.0 * h),
         (r1 - r0) / (2.0 * h),
     )
+}
+
+/// Geocentric ecliptic position of Chiron at JDE.
+///
+/// `chiron_pos` returns HELIOCENTRIC coordinates. For chart use we need
+/// what Chiron looks like from Earth: subtract Earth's heliocentric
+/// position vector. Mirrors `astronomy::pluto::pluto_geocentric`.
+///
+/// Before this conversion existed, `calc_chiron` returned heliocentric
+/// coordinates labelled as geocentric, giving 10–40° errors at every
+/// chart date (J2000: 27° off vs published; Diana 1961: 10° off; 2024:
+/// 13° off; Geraldo Netto PDF 1986: 41° off).
+#[must_use]
+pub fn chiron_geocentric(jde: f64) -> (f64, f64, f64) {
+    use crate::astronomy::vsop87::{heliocentric, Planet};
+
+    let (ch_lon, ch_lat, ch_r) = chiron_pos(jde);
+    let earth = heliocentric(Planet::Earth, jde);
+
+    // Chiron heliocentric → rectangular ecliptic.
+    let plon_r = ch_lon.to_radians();
+    let plat_r = ch_lat.to_radians();
+    let (sin_plon, cos_plon) = plon_r.sin_cos();
+    let (sin_plat, cos_plat) = plat_r.sin_cos();
+    let px = ch_r * cos_plat * cos_plon;
+    let py = ch_r * cos_plat * sin_plon;
+    let pz = ch_r * sin_plat;
+
+    // Earth heliocentric (VSOP87 returns lon/lat in RADIANS already).
+    let (sin_elon, cos_elon) = earth.lon.sin_cos();
+    let (sin_elat, cos_elat) = earth.lat.sin_cos();
+    let ex = earth.rad * cos_elat * cos_elon;
+    let ey = earth.rad * cos_elat * sin_elon;
+    let ez = earth.rad * sin_elat;
+
+    // Geocentric position vector (Chiron − Earth).
+    let dx = px - ex;
+    let dy = py - ey;
+    let dz = pz - ez;
+
+    let dist = dx.hypot(dy).hypot(dz);
+    let lon = dy.atan2(dx).to_degrees().rem_euclid(360.0);
+    let lat = (dz / dist).asin().to_degrees();
+    (lon, lat, dist)
 }

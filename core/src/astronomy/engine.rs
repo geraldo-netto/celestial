@@ -112,7 +112,10 @@ fn calc_node(jde: f64, body_num: i32, flags: i32) -> PlanetPos {
 }
 
 fn calc_chiron(jde: f64, flags: i32) -> PlanetPos {
-    let (lon, lat, dist) = crate::astronomy::chiron::chiron_pos(jde);
+    // GEOcentric — `chiron_pos` is heliocentric. The previous version
+    // used `chiron_pos` directly here and returned heliocentric values
+    // labelled as geocentric, giving 10–40° wrong longitudes.
+    let (lon, lat, dist) = crate::astronomy::chiron::chiron_geocentric(jde);
     let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
         crate::astronomy::chiron::chiron_speed(jde)
     } else {
