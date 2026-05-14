@@ -92,54 +92,81 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     let houses = super::json_array(&ctx["houses"]);
     let aspects = super::json_array(&ctx["aspects"]);
 
+    let layout = Layout::compute(planets.len(), aspects.len());
+
     let mut s = String::with_capacity(64 * 1024);
 
-    write_header(&mut s, &pal, &header);
+    write_header(&mut s, &pal, &header, layout.page_h);
     write_signs(&mut s, &pal, signs);
     write_houses(&mut s, &pal, houses);
     write_angle_labels(&mut s, &pal, &ang);
     write_aspects(&mut s, &pal, aspects);
     write_planets(&mut s, &pal, planets, ang.asc);
 
-    let ly = CY + RO + 24.0;
-    let c1x = 24.0_f64;
-    let c2x = 314.0_f64;
-    let c3x = 584.0_f64;
+    let (c1x, c2x, c3x) = (24.0_f64, 314.0_f64, 584.0_f64);
 
-    write_planet_legend(&mut s, &pal, planets, c1x, ly);
-    write_angles_legend(&mut s, &pal, ctx, &ang, c2x, ly);
-    write_houses_legend(&mut s, &pal, houses, c2x, ly);
-    write_aspects_legend(&mut s, &pal, aspects, c3x, ly);
+    write_planet_legend(&mut s, &pal, planets, c1x, layout.ly);
+    write_angles_legend(&mut s, &pal, ctx, &ang, c2x, layout.ly);
+    write_houses_legend(&mut s, &pal, houses, c2x, layout.ly);
+    write_aspects_legend(&mut s, &pal, aspects, c3x, layout.ly);
 
-    let dig_y = ly + 16.0 + planets.len() as f64 * RH2 + 12.0;
-    write_dignities(&mut s, &pal, planets, c1x, dig_y);
+    write_dignities(&mut s, &pal, planets, c1x, layout.dig_y);
+    write_glyph_legend(&mut s, &pal, c1x, c2x, c3x, layout.gl_y);
 
-    // Symbol reference table replaces the Arabic-Parts and Solar-Cycle
-    // tables. The underlying values are still in the JSON context
-    // (`ctx["arabic_parts"]`, `ctx["solar_cycle"]`) for custom
-    // templates that want to surface them — the built-in chart just
-    // doesn't render them. The reference table is pushed 200 px below
-    // the dignities block so it never overlaps with the aspects
-    // legend on charts with many aspects (the aspects column grows
-    // downward with chart busy-ness).
-    let gl_y = dig_y + 26.0 + planets.len() as f64 * RH2 + 8.0 + 200.0;
-    write_glyph_legend(&mut s, &pal, c1x, c2x, c3x, gl_y);
-
-    write_footer(&mut s, &pal);
+    write_footer(&mut s, &pal, layout.footer_y);
     s
 }
 
-fn write_header(s: &mut String, pal: &Palette, h: &ChartHeader) {
+/// Vertical positions for the table block beneath the wheel. The
+/// "symbol-reference" legend sits at the same `LEGEND_GAP` distance
+/// below the deepest of the dignities and aspects columns as the gap
+/// between the planet-list and dignities columns (12 px). Page height
+/// then shrinks to fit the legend bottom plus a footer band — charts
+/// with fewer aspects produce a shorter page than busy charts.
+struct Layout {
+    ly: f64,
+    dig_y: f64,
+    gl_y: f64,
+    footer_y: f64,
+    page_h: f64,
+}
+
+impl Layout {
+    fn compute(planets_n: usize, aspects_n: usize) -> Self {
+        const LEGEND_GAP: f64 = 12.0; // same as planet→dignities gap
+        const FOOTER_PAD: f64 = 20.0;
+        let planets_f = planets_n as f64;
+        let aspects_f = aspects_n as f64;
+        let ly = CY + RO + 24.0;
+        let dig_y = ly + 16.0 + planets_f * RH2 + LEGEND_GAP;
+        let dig_bottom = dig_y + 26.0 + planets_f * RH2;
+        let aspects_bottom = ly + 16.0 + aspects_f * 15.0;
+        let gl_y = dig_bottom.max(aspects_bottom) + LEGEND_GAP;
+        let legend_rows = 12.0_f64; // longest column (signs)
+        let gl_bottom = gl_y + 36.0 + legend_rows * RH2;
+        let footer_y = gl_bottom + FOOTER_PAD;
+        let page_h = (footer_y + FOOTER_PAD).round();
+        Self {
+            ly,
+            dig_y,
+            gl_y,
+            footer_y,
+            page_h,
+        }
+    }
+}
+
+fn write_header(s: &mut String, pal: &Palette, h: &ChartHeader, page_h: f64) {
     let (bg, txt, ring, title) = (pal.bg, pal.txt, pal.ring, pal.title);
     let _ = writeln!(
         s,
         r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1980" width="900" height="1980">"##
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 {page_h:.0}" width="900" height="{page_h:.0}">"##
     );
     super::glyph_paths::emit_defs(s);
     let _ = writeln!(
         s,
-        r##"  <rect width="900" height="1980" fill="{bg}"/>
+        r##"  <rect width="900" height="{page_h:.0}" fill="{bg}"/>
   <text x="450" y="34" text-anchor="middle" font-size="18" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
   <text x="450" y="54" text-anchor="middle" font-size="10"
@@ -809,12 +836,12 @@ fn legend_glyph_color<'a>(pal: &'a Palette, glyph: &'a str) -> &'a str {
     pal.ring
 }
 
-fn write_footer(s: &mut String, pal: &Palette) {
+fn write_footer(s: &mut String, pal: &Palette, footer_y: f64) {
     let ring = pal.ring;
     let _ = writeln!(
         s,
         r##"
-  <text x="450" y="1960" text-anchor="middle" font-size="9"
+  <text x="450" y="{footer_y:.0}" text-anchor="middle" font-size="9"
         font-family="'Segoe UI',system-ui,sans-serif"
         fill="{ring}" opacity=".35">Generated by Celestial</text>
 </svg>"##
