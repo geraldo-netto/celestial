@@ -2478,3 +2478,20 @@ fn saturn_pluto_conjunction_2020() {
         plu.lon,
     );
 }
+
+// ─── Princess Diana ASC / MC pin — Placidus, Sandringham ─────────────────────
+
+/// Diana's chart at 1961-07-01 18:45 UT, Sandringham (52.83°N, 0.50°E)
+/// has the canonical Placidus angles ASC = 18°24' Sag (258.40°) and
+/// MC = 23°03' Lib (203.05°). These match published nativities within
+/// arcminutes — the test catches MC-formula regressions in houses().
+#[test]
+fn diana_asc_mc_placidus_pin() {
+    use celestial_core::houses;
+    let jd = julday(1961, 7, 1, 18.75, Calendar::Gregorian);
+    let result = houses(jd, 52.83, 0.50, HouseSystem::PLACIDUS).unwrap();
+    let asc = result.ascmc[0];
+    let mc = result.ascmc[1];
+    assert_lon_within!(asc, 258.40, 0.05, "Diana ASC");
+    assert_lon_within!(mc, 203.05, 0.05, "Diana MC");
+}
