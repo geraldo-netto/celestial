@@ -3987,7 +3987,7 @@ fn check_house_systems_invariants(s: &mut Suite) {
     use celestial_core::body::HouseSystem;
     use celestial_core::houses;
     let mut rng = Xorshift64::new(0xCAFE_BABE_CAFE_BABE);
-    let systems: &[u8] = &[b'P', b'E', b'W', b'O'];
+    let systems: &[u8] = b"PEWO";
     for _ in 0..50 {
         let jd = 2_451_545.0 + rng.range_f64(-36_500.0, 36_500.0); // ±100y
         let lat = rng.range_f64(-65.0, 65.0);
@@ -4066,7 +4066,7 @@ fn check_house_polar_invariants(s: &mut Suite) {
     let mut rng = Xorshift64::new(0xDEAD_BEEF_FAFA_CAFE);
     for _ in 0..50 {
         let jd = 2_451_545.0 + rng.range_f64(-36_500.0, 36_500.0);
-        let lat = if rng.next_u64() % 2 == 0 {
+        let lat = if rng.next_u64().is_multiple_of(2) {
             rng.range_f64(70.0, 88.0)
         } else {
             rng.range_f64(-88.0, -70.0)
