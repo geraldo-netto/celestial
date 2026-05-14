@@ -143,7 +143,7 @@ static AYANAMSA_J2000: &[(i32, f64)] = &[
     (2, 29.659_500),  // De Luce             (0° Aries at 221 CE)
     (3, 22.460_148),  // Raman               (sundry tradition)
     (4, 20.916_667),  // Usha-Shashi         (Moon as reference)
-    (5, 23.979_472),  // Krishnamurti
+    (5, 23.785_278),  // Krishnamurti (KP)  = 23°47'07" per K.S. Krishnamurti
     (6, 23.333_333),  // Djwhal Khul
     (7, 22.460_148),  // Yukteshwar          (same as Raman tradition)
     (8, 22.460_148),  // J.N.Bhasin
