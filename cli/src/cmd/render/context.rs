@@ -156,26 +156,49 @@ fn build_signs(asc: f64) -> Vec<Value> {
         .collect()
 }
 
+/// House-cusp geometry helpers — picked once per cusp.
+///
+/// `R2`: outer endpoint of the cusp spoke. Angular cusps (1/4/7/10) extend
+/// all the way to `RO` so the ASC/IC/DSC/MC axes visibly cross the sign band
+/// (matching the World-of-Wisdom natal-chart layout). Intermediate cusps stop
+/// at `RI` so they don't overlap sign glyphs.
+fn house_outer_radius(is_angle: bool) -> f64 {
+    if is_angle {
+        RO
+    } else {
+        RI
+    }
+}
+
+fn round2(v: f64) -> f64 {
+    (v * 100.0).round() / 100.0
+}
+
+fn build_house_value(house_lons: &[f64], i: usize, asc: f64) -> Value {
+    let lon2 = house_lons[i];
+    let next_lon = house_lons[(i + 1) % 12];
+    let mid_lon = midpoint_deg(lon2, next_lon);
+    let is_angle = matches!(i, 0 | 3 | 6 | 9);
+    let r_out = house_outer_radius(is_angle);
+    let r_num = (RH + RI) / 2.0;
+    json!({
+        "num":      i + 1,
+        "lon":      (lon2 * 1e4).round() / 1e4,
+        "dms":      fmt_lon_dms(lon2),
+        "is_angle": is_angle,
+        "x1":       round2(wx(CX, RC, lon2, asc)),
+        "y1":       round2(wy(CY, RC, lon2, asc)),
+        "x2":       round2(wx(CX, r_out, lon2, asc)),
+        "y2":       round2(wy(CY, r_out, lon2, asc)),
+        "num_x":    round2(wx(CX, r_num, mid_lon, asc)),
+        "num_y":    round2(wy(CY, r_num, mid_lon, asc))
+    })
+}
+
 fn build_houses(h: &celestial_core::HouseResult, asc: f64) -> Vec<Value> {
     let house_lons: Vec<f64> = h.cusps[1..=12].to_vec();
     (0..12)
-        .map(|i| {
-            let lon2 = house_lons[i];
-            let next_lon = house_lons[(i + 1) % 12];
-            let mid_lon = midpoint_deg(lon2, next_lon);
-            let is_angle = i == 0 || i == 3 || i == 6 || i == 9;
-            json!({
-                "num":      i + 1,
-                "lon":      (lon2 * 1e4).round() / 1e4,
-                "dms":      fmt_lon_dms(lon2),
-                "is_angle": is_angle,
-                "x1":       (wx(CX, RH, lon2, asc) * 100.0).round() / 100.0,
-                "y1":       (wy(CY, RH, lon2, asc) * 100.0).round() / 100.0,
-                "x2":       (wx(CX, RI, lon2, asc) * 100.0).round() / 100.0,
-                "y2":       (wy(CY, RI, lon2, asc) * 100.0).round() / 100.0,
-                "num_x":    (wx(CX, RH - 14.0, mid_lon, asc) * 100.0).round() / 100.0,
-                "num_y":    (wy(CY, RH - 14.0, mid_lon, asc) * 100.0).round() / 100.0})
-        })
+        .map(|i| build_house_value(&house_lons, i, asc))
         .collect()
 }
 

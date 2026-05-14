@@ -7,7 +7,7 @@ use std::fmt::Write as FmtWrite;
 
 use serde_json::Value;
 
-use super::{spread_labels, wx, wy, CX, CY, RH, RI, RM, RO, RP};
+use super::{spread_labels, wx, wy, CX, CY, RC, RH, RI, RM, RO, RP};
 
 const LABEL_R: f64 = RP + 26.0;
 const RH2: f64 = 16.0;
@@ -80,6 +80,7 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     write_houses(&mut s, &pal, houses);
     write_angle_labels(&mut s, &pal, &ang);
     write_aspects(&mut s, &pal, aspects);
+    write_inner_disc(&mut s, &pal);
     write_planets(&mut s, &pal, planets, ang.asc);
     write_moon_phase(&mut s, &pal, phase, illum);
 
@@ -136,11 +137,16 @@ fn write_header(s: &mut String, pal: &Palette, date: &str, jd: f64, lat: f64, lo
         s,
         r##"</text>
 
-  <!-- rings -->
-  <circle cx="{CX}" cy="{CY}" r="{RO}" fill="none" stroke="{ring}" stroke-width="2.5" opacity=".6"/>
-  <circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>
-  <circle cx="{CX}" cy="{CY}" r="{RI}" fill="none" stroke="{ring}" stroke-width="2.0" opacity=".55"/>
-  <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width="1.2" opacity=".35"/>"##
+  <!-- rings: outer · sign-band-inner · sign-band-divider · house-ring-inner
+       · planet-ring.  Concentric circles delineate the sign band (RO→RM),
+       the house band (RI→RH) and the planet ring (RP).  The inner disc
+       (RC) is drawn later, after aspects, so it occludes aspect line
+       crossings near the centre. -->
+  <circle cx="{CX}" cy="{CY}" r="{RO}" fill="none" stroke="{ring}" stroke-width="2.5" opacity=".75"/>
+  <circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="{ring}" stroke-width="1.0" opacity=".30"/>
+  <circle cx="{CX}" cy="{CY}" r="{RI}" fill="none" stroke="{ring}" stroke-width="2.0" opacity=".70"/>
+  <circle cx="{CX}" cy="{CY}" r="{RH}" fill="none" stroke="{ring}" stroke-width="1.6" opacity=".55"/>
+  <circle cx="{CX}" cy="{CY}" r="{RP}" fill="none" stroke="{ring}" stroke-width="0.8" opacity=".25"/>"##
     );
 }
 
@@ -188,6 +194,25 @@ fn write_houses(s: &mut String, pal: &Palette, houses: &[Value]) {
     }
 }
 
+/// Per-cusp visual style. Angular cusps (1/4/7/10) get a thicker, more
+/// opaque spoke and a bolder number to mark the ASC/IC/DSC/MC axes —
+/// matches the World-of-Wisdom natal-chart layout.
+fn house_line_style(is_angle: bool) -> (&'static str, &'static str) {
+    if is_angle {
+        ("3.0", ".90")
+    } else {
+        ("1.2", ".50")
+    }
+}
+
+fn house_number_style(is_angle: bool) -> (&'static str, &'static str, &'static str) {
+    if is_angle {
+        ("13", "800", ".95")
+    } else {
+        ("12", "700", ".80")
+    }
+}
+
 fn write_house(s: &mut String, pal: &Palette, h: &Value) {
     let ring = pal.ring;
     let x1 = h["x1"].as_f64().unwrap_or(0.0);
@@ -198,15 +223,12 @@ fn write_house(s: &mut String, pal: &Palette, h: &Value) {
     let ny = h["num_y"].as_f64().unwrap_or(0.0);
     let n = h["num"].as_u64().unwrap_or(0);
     let is_angle = h["is_angle"].as_bool().unwrap_or(false);
-    let (sw, op) = if is_angle {
-        ("3.0", ".85")
-    } else {
-        ("1.5", ".55")
-    };
+    let (sw, op) = house_line_style(is_angle);
+    let (nfs, nfw, nop) = house_number_style(is_angle);
     let _ = writeln!(
         s,
         r##"  <line x1="{x1:.2}" y1="{y1:.2}" x2="{x2:.2}" y2="{y2:.2}" stroke="{ring}" stroke-width="{sw}" opacity="{op}"/>
-  <text x="{nx:.2}" y="{ny:.2}" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".6">{n}</text>"##
+  <text x="{nx:.2}" y="{ny:.2}" font-size="{nfs}" font-weight="{nfw}" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity="{nop}">{n}</text>"##
     );
 }
 
@@ -243,6 +265,18 @@ fn aspect_style(orb: f64, minor: bool) -> (&'static str, &'static str, &'static 
         let o = if orb < 2.0 { ".55" } else { ".22" };
         ("1.8", o, "")
     }
+}
+
+/// Draw the centre disc (`RC` radius) on top of aspect lines so the
+/// chart's centre stays clean. The disc is filled with the chart's
+/// background colour to occlude aspect line crossings and circled
+/// with the ring colour for a crisp boundary.
+fn write_inner_disc(s: &mut String, pal: &Palette) {
+    let (bg, ring) = (pal.bg, pal.ring);
+    let _ = writeln!(
+        s,
+        r##"  <circle cx="{CX}" cy="{CY}" r="{RC}" fill="{bg}" stroke="{ring}" stroke-width="1.2" opacity=".8"/>"##
+    );
 }
 
 fn write_aspect(s: &mut String, pal: &Palette, asp: &Value) {
