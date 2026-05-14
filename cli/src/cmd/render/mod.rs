@@ -196,12 +196,25 @@ struct RenderSection {
 /// SVG x coordinate for an ecliptic longitude on the wheel.
 /// ASC is placed at the 9-o'clock position (leftmost), per astrological convention.
 pub(super) fn wx(cx: f64, r: f64, lon: f64, asc: f64) -> f64 {
-    cx + r * (180.0 - (lon - asc)).rem_euclid(360.0).to_radians().cos()
+    cx + r * wheel_angle(lon, asc).to_radians().cos()
 }
 
 /// SVG y coordinate for an ecliptic longitude on the wheel.
 pub(super) fn wy(cy: f64, r: f64, lon: f64, asc: f64) -> f64 {
-    cy - r * (180.0 - (lon - asc)).rem_euclid(360.0).to_radians().sin()
+    cy - r * wheel_angle(lon, asc).to_radians().sin()
+}
+
+/// Convert an ecliptic longitude (degrees) to a wheel position in
+/// standard math coordinates (0° = east / 3 o'clock, increasing CCW).
+/// The chart is rotated so the Ascendant sits at 9 o'clock (180°) and
+/// zodiac longitudes increase CCW around the wheel — i.e. moving
+/// 30° past the ASC takes us **below** the horizon (lower-left of
+/// the wheel) which puts House 1 at the bottom-left, IC at the
+/// bottom, DSC on the right and MC at the top, matching the
+/// World-of-Wisdom PDF and the AstroDienst / traditional layout.
+#[must_use]
+pub(super) fn wheel_angle(lon: f64, asc: f64) -> f64 {
+    (180.0 + (lon - asc)).rem_euclid(360.0)
 }
 
 /// Borrow the array at `v`, or an empty slice for non-arrays.
@@ -556,10 +569,7 @@ pub(super) fn spread_labels(lons: &[f64], asc: f64) -> Vec<f64> {
     const MAX_ITER: usize = 300;
 
     let n = lons.len();
-    let natural: Vec<f64> = lons
-        .iter()
-        .map(|&l| (180.0 - (l - asc)).rem_euclid(360.0))
-        .collect();
+    let natural: Vec<f64> = lons.iter().map(|&l| wheel_angle(l, asc)).collect();
     let mut placed = natural.clone();
 
     // Iterative pairwise repulsion until no pair is crowded (or MAX_ITER).
@@ -1581,13 +1591,47 @@ mod tests {
 
     #[test]
     fn wheel_mc_at_top() {
-        // MC = ASC + 90 → top of chart (cx, cy - r)
+        // In traditional natal charts the MC sits roughly 90° earlier
+        // in zodiac longitude than the ASC (e.g. ASC=191°, MC=99°),
+        // and is rendered at the top of the wheel. With the chart
+        // rotated so longitudes increase CCW past the ASC (lower-left
+        // first), MC = asc − 90 lands at (cx, cy − r).
         let (cx, cy, r, asc) = (450.0, 490.0, 212.0, 0.0);
-        let mc = 90.0_f64;
+        let mc = -90.0_f64;
         let x = wx(cx, r, mc, asc);
         let y = wy(cy, r, mc, asc);
         assert!((x - cx).abs() < 1e-9, "MC x should be cx, got {x}");
         assert!((y - (cy - r)).abs() < 1e-9, "MC should be at top, got {y}");
+    }
+
+    #[test]
+    fn wheel_ic_at_bottom() {
+        // IC = MC + 180 = asc + 90 in the canonical case → wheel
+        // bottom (cx, cy + r). This is the position House 1 starts
+        // descending from (just below the ASC on the lower-left) and
+        // House 4 occupies, matching the World-of-Wisdom PDF layout.
+        let (cx, cy, r, asc) = (450.0, 490.0, 212.0, 0.0);
+        let ic = 90.0_f64;
+        let x = wx(cx, r, ic, asc);
+        let y = wy(cy, r, ic, asc);
+        assert!((x - cx).abs() < 1e-9, "IC x should be cx, got {x}");
+        assert!((y - (cy + r)).abs() < 1e-9, "IC should be at bottom, got {y}");
+    }
+
+    #[test]
+    fn wheel_house_1_starts_below_ascendant() {
+        // House 1 starts at the ASC (left edge) and spans CCW into the
+        // **lower** hemisphere. The midpoint of house 1 (asc + 15°)
+        // must therefore land below the centre line (y > cy).
+        let (cx, cy, r, asc) = (450.0, 490.0, 212.0, 30.0);
+        let house1_mid = asc + 15.0;
+        let y = wy(cy, r, house1_mid, asc);
+        assert!(
+            y > cy,
+            "house 1 midpoint should be below the wheel centre (y > {cy}), got {y}"
+        );
+        let x = wx(cx, r, house1_mid, asc);
+        assert!(x < cx, "house 1 midpoint should be left of centre, got {x}");
     }
 
     // ── formatting ────────────────────────────────────────────────────────────

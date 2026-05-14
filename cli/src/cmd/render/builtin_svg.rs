@@ -427,7 +427,7 @@ fn write_planet(s: &mut String, pal: &Palette, p: &Value, lon_i: f64, placed_ang
     let lx = CX + LABEL_R * placed_ang.to_radians().cos();
     let ly = CY - LABEL_R * placed_ang.to_radians().sin();
 
-    let nat_ang = (180.0 - (lon_i - asc)).rem_euclid(360.0);
+    let nat_ang = super::wheel_angle(lon_i, asc);
     let anchor_r = RP + 13.0;
     let ax = CX + anchor_r * nat_ang.to_radians().cos();
     let ay = CY - anchor_r * nat_ang.to_radians().sin();
