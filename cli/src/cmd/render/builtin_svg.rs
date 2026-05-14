@@ -137,7 +137,10 @@ impl Layout {
         const FOOTER_PAD: f64 = 20.0;
         let planets_f = planets_n as f64;
         let aspects_f = aspects_n as f64;
-        let ly = CY + RO + 24.0;
+        // Wheel bottom is `CY + RO`; leave a 34 px breathing band before
+        // the legend strip starts (24 px header offset + 10 px visual gap
+        // requested to separate the wheel from the table block).
+        let ly = CY + RO + 34.0;
         let dig_y = ly + 16.0 + planets_f * RH2 + LEGEND_GAP;
         let dig_bottom = dig_y + 26.0 + planets_f * RH2;
         let aspects_bottom = ly + 16.0 + aspects_f * 15.0;

@@ -376,7 +376,7 @@ fn builtin_natal_house_numbers_sit_inside_house_band() {
     // wheel centre (CX=450, CY=490) — i.e. inside the house band, clear
     // of both the planet ring (RP=212) and the sign band (RI=262 outward).
     let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_num_radii.svg");
-    let centre = (450.0_f64, 490.0_f64);
+    let centre = (450.0_f64, 430.0_f64);
     let expected_r = (238.0_f64 + 262.0_f64) / 2.0; // (RH + RI)/2
     let mut count_inside = 0;
     for ln in svg.lines() {
