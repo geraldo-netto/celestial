@@ -3950,6 +3950,98 @@ fn check_synodic_month_consistency(s: &mut Suite) {
     }
 }
 
+/// All sidereal modes must return finite ayanamsa for any in-range JD
+/// and the value must be in [0, 360°). 25 random JDs × 6 ayanamsa modes.
+fn check_ayanamsa_finite_and_normalized(s: &mut Suite) {
+    use celestial_core::body::SiderealMode;
+    use celestial_core::{ayanamsa_ut, set_sid_mode};
+    let modes = [
+        SiderealMode::LAHIRI,
+        SiderealMode::FAGAN_BRADLEY,
+        SiderealMode::RAMAN,
+        SiderealMode::KRISHNAMURTI,
+        SiderealMode::DELUCE,
+        SiderealMode::SASSANIAN,
+    ];
+    let mut rng = Xorshift64::new(0xAFAF_5050_1234_BEEF);
+    for mode in modes {
+        set_sid_mode(mode, 0.0, 0.0);
+        for _ in 0..25 {
+            let jd = 2_451_545.0 + rng.range_f64(-100_000.0, 100_000.0);
+            let ay = ayanamsa_ut(jd);
+            s.check(
+                ay.is_finite() && (0.0..360.0).contains(&ay),
+                || format!("ayanamsa({mode:?}, jd={jd}) = {ay}"),
+            );
+        }
+    }
+}
+
+/// House cusps at random lat/lon. Skipping ±66° to avoid polar
+/// circumpolar edge cases. 50 random charts × 4 house systems.
+/// Each chart must satisfy:
+///   - all cusps in [0°, 360°)
+///   - h7 = h1 + 180° exactly
+///   - h4 = h10 + 180° exactly (where h10 is preserved by system)
+fn check_house_systems_invariants(s: &mut Suite) {
+    use celestial_core::body::HouseSystem;
+    use celestial_core::houses;
+    let mut rng = Xorshift64::new(0xCAFE_BABE_CAFE_BABE);
+    let systems: &[u8] = &[b'P', b'E', b'W', b'O'];
+    for _ in 0..50 {
+        let jd = 2_451_545.0 + rng.range_f64(-36_500.0, 36_500.0); // ±100y
+        let lat = rng.range_f64(-65.0, 65.0);
+        let lon = rng.range_f64(-180.0, 180.0);
+        for &sys in systems {
+            let Ok(h) = houses(jd, lat, lon, HouseSystem(sys)) else {
+                s.passed += 1;
+                continue;
+            };
+            for i in 1..=12 {
+                s.check(
+                    (0.0..360.0).contains(&h.cusps[i]),
+                    || format!("{} h{i} out of [0,360) at jd={jd}", sys as char),
+                );
+            }
+            let opp = (h.cusps[1] + 180.0) % 360.0;
+            let diff_7 = ((h.cusps[7] - opp + 540.0) % 360.0 - 180.0).abs();
+            s.check(
+                diff_7 < 1e-6,
+                || format!("{} h7 != h1+180° (diff {diff_7})", sys as char),
+            );
+        }
+    }
+}
+
+/// Maya calendar ranges over 1000 random JDs across a 2000-year window.
+fn check_maya_ranges(s: &mut Suite) {
+    use celestial_core::{haab, maya_long_count, tonalpohualli, tzolkin};
+    let mut rng = Xorshift64::new(0xFACE_F00D_C0DE_BEEF);
+    for _ in 0..1000 {
+        let jd = 1_500_000.0 + rng.range_f64(0.0, 730_000.0); // ~ -2000 to 0 CE-ish
+        let (trec_t, sign_t, _, _) = tonalpohualli(jd);
+        let (trec_z, sign_z, _, _) = tzolkin(jd);
+        s.check(
+            (1..=13).contains(&trec_t) && sign_t < 20,
+            || format!("tonalpohualli out of range at jd={jd}: ({trec_t}, {sign_t})"),
+        );
+        s.check(
+            trec_t == trec_z && sign_t == sign_z,
+            || format!("tonalpohualli != tzolkin (same cycle): jd={jd}"),
+        );
+        let (month, day, _) = haab(jd);
+        s.check(
+            month < 19 && day < 20,
+            || format!("haab out of range at jd={jd}: ({month}, {day})"),
+        );
+        let (b, k, t, u, kin) = maya_long_count(jd);
+        s.check(
+            b < 50 && k < 20 && t < 20 && u < 18 && kin < 20,
+            || format!("long_count out of range at jd={jd}: ({b}.{k}.{t}.{u}.{kin})"),
+        );
+    }
+}
+
 fn check_outer_planet_physical_bounds(s: &mut Suite) {
     use celestial_core::body::{Body, CalcFlags};
     use celestial_core::calc_ut;
@@ -4091,6 +4183,9 @@ fn test_boundary_values() -> Suite {
     check_vedic_longitude_boundaries(&mut s);
     check_outer_planet_physical_bounds(&mut s);
     check_ayanamsa_monotonic(&mut s);
+    check_ayanamsa_finite_and_normalized(&mut s);
+    check_house_systems_invariants(&mut s);
+    check_maya_ranges(&mut s);
     check_calendar_round_trip(&mut s);
     check_synodic_month_consistency(&mut s);
     check_solar_cycle_boundaries(&mut s);

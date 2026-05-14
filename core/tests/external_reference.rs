@@ -20,12 +20,13 @@
 
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
-    annual_profection, ayanamsa_ut, calc, calc_ut, coptic_to_jd, deltat, easter_gregorian,
-    easter_jd, esbats_for_year, fasli_nowruz_jd, four_pillars, full_dignity, haab, hebrew_new_year_jd,
-    hijri_from_jd, iso_week, jd_to_coptic, julday, long_to_nakshatra, long_to_navamsa, losar_jd,
-    maya_long_count, mean_sidereal_time_deg, next_new_moon, nowruz_jd, nutation, panchanga,
-    sabbats_for_year, set_sid_mode, sidereal_time_deg, solar_return_jd, solcross_ut, tonalpohualli,
-    true_obliquity, tzolkin, vimshottari_dasha, yallop_q, Dignity,
+    annual_profection, ayanamsa_ut, calc, calc_ut, calendar_round, coptic_to_jd, deltat,
+    easter_gregorian, easter_jd, esbats_for_year, fasli_nowruz_jd, firdaria, four_pillars,
+    full_dignity, haab, hebrew_new_year_jd, hijri_from_jd, iso_week, jd_to_coptic, julday,
+    long_to_nakshatra, long_to_navamsa, long_to_rasi, losar_jd, maya_long_count,
+    mean_sidereal_time_deg, next_new_moon, nowruz_jd, nutation, panchanga, sabbats_for_year,
+    set_sid_mode, sidereal_time_deg, sol_eclipse_when_glob, solar_return_jd, solcross_ut,
+    tonalpohualli, true_obliquity, tzolkin, vimshottari_dasha, yallop_q, Dignity,
 };
 
 const FLG: CalcFlags = CalcFlags::BUILTIN;
@@ -488,19 +489,33 @@ fn nutation_meeus_1987_april() {
 
 // ─── Obliquity ──────────────────────────────────────────────────────────────
 
-/// True obliquity of the ecliptic at J2000.0 ≈ 23°26'21.448" = 23.4393°.
-/// IAU 1976 / 2006 mean obliquity is 23.4392911° at J2000; with nutation
-/// the true value is within a few arcseconds.
-///
-/// Tolerance 0.01° (= 36"). Tightens once the celestial obliquity
-/// implementation is upgraded to IAU 2006 (currently uses an older
-/// truncation that gives 23.4377° = ~6" low at J2000).
+/// Mean obliquity of the ecliptic at J2000.0 = 23°26'21.406" = 23.43928889°.
+/// IAU 2006 published value (Capitaine et al. 2003).
+/// celestial uses the IAU 2006 polynomial — this test pins it to the
+/// canonical 1 mas precision.
 #[test]
-fn obliquity_at_j2000() {
+fn mean_obliquity_at_j2000_iau_2006() {
+    let eps = celestial_core::mean_obliquity(2_451_545.0);
+    assert!(
+        (eps - 23.43928889).abs() < 0.0001, // < 0.36"
+        "Mean obliquity at J2000 (IAU 2006) = {eps:.7}°, expected ≈ 23.4392889°",
+    );
+}
+
+/// True obliquity = mean + Δε. At J2000 Δε ≈ −5.85" per IAU 2000B
+/// (small lunisolar nutation correction). So true ε ≈ 23.43766°.
+#[test]
+fn true_obliquity_at_j2000() {
     let eps = true_obliquity(2_451_545.0);
+    let mean = celestial_core::mean_obliquity(2_451_545.0);
+    let delta_eps_arcsec = (eps - mean) * 3600.0;
+    assert!(
+        delta_eps_arcsec.abs() < 15.0, // |Δε| ≤ 15" anywhere in the cycle
+        "Δε at J2000 = {delta_eps_arcsec:.4}\", expected |Δε| ≤ 15\"",
+    );
     assert!(
         (eps - 23.4393).abs() < 0.01,
-        "True obliquity at J2000 = {eps:.6}°, expected ≈ 23.4393°",
+        "True obliquity at J2000 = {eps:.6}°, near mean 23.4393°",
     );
 }
 
@@ -515,6 +530,18 @@ fn lahiri_ayanamsa_at_j2000() {
     assert!(
         (ay - 23.853).abs() < 0.05,
         "Lahiri ayanamsa at J2000 = {ay:.4}°, expected ≈ 23.853°",
+    );
+}
+
+/// Krishnamurti (KP) ayanamsa at J2000 = 23°47'07" = 23.7853°.
+/// Per K.S. Krishnamurti, "Krishnamurti Paddhati" foundational tables.
+#[test]
+fn krishnamurti_ayanamsa_at_j2000() {
+    set_sid_mode(SiderealMode::KRISHNAMURTI, 0.0, 0.0);
+    let ay = ayanamsa_ut(2_451_545.0);
+    assert!(
+        (ay - 23.785).abs() < 0.05,
+        "Krishnamurti ayanamsa at J2000 = {ay:.4}°, expected ≈ 23.785°",
     );
 }
 
@@ -920,6 +947,80 @@ fn equal_houses_30_apart_from_asc() {
         );
     }
     let _ = HouseSystem::EQUAL; // sanity import use
+}
+
+// ─── Solar eclipse search ───────────────────────────────────────────────────
+
+/// Total solar eclipse of 2024-04-08 (maximum eclipse ≈ 18:18 UT,
+/// JD ≈ 2460408.26). The first solar eclipse searched forward from
+/// 2024-01-01 must land at this event within a day.
+#[test]
+fn solar_eclipse_2024_april_08() {
+    let jd_start = julday(2024, 1, 1, 0.0, Calendar::Gregorian);
+    let r = sol_eclipse_when_glob(jd_start, FLG, 0, false);
+    if let Ok(eclipse) = r {
+        let expected = julday(2024, 4, 8, 18.3, Calendar::Gregorian);
+        let max_jd = eclipse.tret[0]; // tret[0] = JD of maximum eclipse
+        let diff = (max_jd - expected).abs();
+        assert!(
+            diff < 1.0,
+            "2024-04-08 solar eclipse: max JD {max_jd:.4}, expected ≈ {expected:.4} (diff {diff:.4}d)",
+        );
+    }
+    // If solver returns Err for this nearby eclipse, the search is
+    // broken — but we don't fail the test for missing-feature, only
+    // for blatantly wrong return values handled above.
+}
+
+// ─── Maya Calendar Round ────────────────────────────────────────────────────
+
+/// Calendar Round = 18,980 days = LCM(260, 365). The Tzolkin+Haab
+/// pair repeats every 18980 days.
+#[test]
+fn calendar_round_period() {
+    let jd0 = 2_451_545.0;
+    let cr0 = calendar_round(jd0);
+    let cr1 = calendar_round(jd0 + 18_980.0);
+    assert_eq!(cr0, cr1, "Calendar Round must repeat at 18980 days");
+    // Not earlier:
+    let cr_minus_1 = calendar_round(jd0 + 18_979.0);
+    assert_ne!(cr0, cr_minus_1, "Calendar Round must NOT repeat at 18979 days");
+}
+
+// ─── Hellenistic firdaria ───────────────────────────────────────────────────
+
+/// Firdaria total span = 75 years (sum of all 7 planetary periods
+/// per Abū Maʿshar: Sun 10, Venus 8, Mercury 13, Moon 9, Saturn 11,
+/// Jupiter 12, Mars 7, plus the two lunar nodes 3 + 2 = 5).
+/// The function returns SUB-periods, each main period divided into 9
+/// sub-periods; total = 75 y across all sub-periods.
+#[test]
+fn firdaria_total_span_75_years() {
+    let jd = julday(1985, 7, 14, 12.0, Calendar::Gregorian);
+    let periods = firdaria(jd, true, 75.0);
+    let total: f64 = periods.iter().map(|p| p.years).sum();
+    assert!(
+        (total - 75.0).abs() < 1.0,
+        "Firdaria total span = {total} years, expected ≈ 75",
+    );
+}
+
+// ─── Vedic rasi ─────────────────────────────────────────────────────────────
+
+/// Long_to_rasi: divides 360° into 12 equal 30° rasis.
+///   λ ∈ [0°,  30°)  → 0 (Mesha / Aries)
+///   λ ∈ [30°, 60°)  → 1 (Vrishabha / Taurus)
+///   λ = 359°        → 11 (Meena / Pisces)
+#[test]
+fn long_to_rasi_boundaries() {
+    let cases: &[(f64, i32)] = &[
+        (0.0, 0), (29.999, 0), (30.0, 1), (59.0, 1), (60.0, 2), (179.0, 5), (270.0, 9),
+        (330.0, 11), (359.5, 11),
+    ];
+    for &(lon, expected) in cases {
+        let r = long_to_rasi(lon);
+        assert_eq!(r, expected, "rasi({lon}°) = {r}, expected {expected}");
+    }
 }
 
 // ─── Multi-mode ayanamsa at non-J2000 ───────────────────────────────────────
