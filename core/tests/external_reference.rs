@@ -1711,6 +1711,37 @@ fn moon_speed_always_in_band() {
     }
 }
 
+// ─── Arabic parts ───────────────────────────────────────────────────────────
+
+/// Lot of Fortune (Hellenistic):
+///   day chart:   Asc + Moon - Sun
+///   night chart: Asc + Sun - Moon
+/// Test with synthetic values to verify the formula.
+#[test]
+fn arabic_part_lot_of_fortune() {
+    use celestial_core::arabic_part;
+    // Asc=0, Moon=90, Sun=120: Asc + Moon - Sun = 0 + 90 - 120 = -30 → 330.
+    let p = arabic_part(0.0, 90.0, 120.0);
+    assert!(
+        (p - 330.0).abs() < 0.001,
+        "arabic_part(0, 90, 120) = {p}, expected 330",
+    );
+
+    // Wrap: Asc=350, Moon=10, Sun=5 → 350+10-5 = 355.
+    let p = arabic_part(350.0, 10.0, 5.0);
+    assert!(
+        (p - 355.0).abs() < 0.001,
+        "arabic_part(350, 10, 5) = {p}, expected 355",
+    );
+
+    // Negative wrap: Asc=10, Moon=20, Sun=50 → 10+20-50 = -20 → 340.
+    let p = arabic_part(10.0, 20.0, 50.0);
+    assert!(
+        (p - 340.0).abs() < 0.001,
+        "arabic_part(10, 20, 50) = {p}, expected 340 (mod 360)",
+    );
+}
+
 // ─── Outer-planet distance extremes ────────────────────────────────────────
 
 /// Pluto at 1989 perihelion ≈ 29.66 AU heliocentric (closest in
