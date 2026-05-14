@@ -20,16 +20,18 @@
 
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
-    almuten, annual_profection, antiscion, ayanamsa_ut, calc, calc_ut, calendar_round,
-    christian_feasts, coptic_to_jd, day_of_week, days_in_hebrew_year, decan_ruler, deltat,
-    easter_gregorian, easter_jd, egyptian_terms_ruler, esbats_for_year, fasli_nowruz_jd, firdaria,
-    four_pillars, full_dignity, haab, hebrew_new_year_jd, hijri_from_jd, hijri_month_days,
-    hindu_festivals, is_coptic_leap_year, is_day_chart, iso_week, jd_to_coptic, jewish_holidays,
-    julday, long_to_nakshatra, long_to_navamsa, long_to_rasi, losar_jd, maya_long_count,
+    almuten, annual_profection, antiscion, azalt, ayanamsa_ut, best_time_method, calc, calc_ut,
+    calendar_round, christian_feasts, coord_transform, coptic_to_jd, day_of_week,
+    days_in_hebrew_year, decan_ruler, deltat, easter_gregorian, easter_jd, egyptian_terms_ruler,
+    esbats_for_year, fasli_nowruz_jd, firdaria, fixstar_mag, four_pillars, full_dignity, haab,
+    hebrew_new_year_jd, hijri_from_jd, hijri_month_days, hindu_festivals, is_coptic_leap_year,
+    is_day_chart, iso_week, jd_to_coptic, jewish_holidays, julday, long_to_nakshatra,
+    long_to_navamsa, long_to_rasi, losar_jd, lunar_return_jd, maya_long_count,
     mean_sidereal_time_deg, midpoint_deg, naw_ruz_jd, next_first_quarter, next_new_moon, nowruz_jd,
-    nutation, panchanga, sabbats_for_year, same_sect, set_sid_mode, sidereal_time_deg,
-    sol_eclipse_when_glob, solar_return_jd, solcross_ut, time_equ, tonalpohualli, triplicity_rulers,
-    true_obliquity, tzolkin, vesak_jd, vimshottari_dasha, yallop_q, Dignity,
+    nutation, panchanga, rise_trans, sabbats_for_year, same_sect, secondary_progressions,
+    set_sid_mode, sidereal_time_deg, sol_eclipse_when_glob, solar_arc_directions, solar_return_jd,
+    solcross_ut, tibetan_year_name, time_equ, tonalpohualli, triplicity_rulers, true_obliquity,
+    tzolkin, vesak_jd, vietnamese_month_start_jd, vimshottari_dasha, yallop_q, Dignity,
 };
 
 const FLG: CalcFlags = CalcFlags::BUILTIN;
@@ -1317,6 +1319,205 @@ fn next_first_quarter_after_new_moon() {
         (dt - 7.4).abs() < 1.5,
         "FQ from NM dt = {dt:.4} d, expected ≈ 7.38 d",
     );
+}
+
+// ─── Az / Alt coordinate conversion ─────────────────────────────────────────
+
+/// `azalt` ecliptic → horizontal. Just verify return values are
+/// finite and apparent altitude is within [-90°, 90°].
+#[test]
+fn azalt_smoke_test() {
+    let jd = 2_451_545.0;
+    let geopos = [0.0_f64, 45.0, 0.0]; // lon, lat, alt_m
+    let xin = [120.0_f64, 0.0, 1.0]; // ecliptic
+    let r = azalt(jd, 0, geopos, 1013.25, 15.0, xin);
+    assert!(r.azimuth.is_finite() && r.true_alt.is_finite() && r.apparent_alt.is_finite());
+    assert!((-90.0..=90.0).contains(&r.true_alt));
+    assert!((0.0..360.0).contains(&r.azimuth));
+}
+
+// ─── Coordinate transforms ─────────────────────────────────────────────────
+
+/// Ecliptic ↔ equatorial transform round-trip via cos/sin
+/// preservation. `coord_transform` rotates by obliquity ε. Apply
+/// twice with opposite signs → identity (within numerical precision).
+#[test]
+fn coord_transform_round_trip() {
+    let eps = 23.4393;
+    let input = [45.0_f64, 10.0, 1.0]; // lon, lat, dist
+    let forward = coord_transform(input, eps);
+    let back = coord_transform(forward, -eps);
+    for i in 0..3 {
+        assert!(
+            (input[i] - back[i]).abs() < 1e-9,
+            "coord_transform round-trip differs at index {i}: {} → {} → {}",
+            input[i], forward[i], back[i],
+        );
+    }
+}
+
+// ─── Fixed star catalog ────────────────────────────────────────────────────
+
+/// Sirius (α Canis Majoris) is the brightest star: apparent magnitude
+/// ≈ −1.46. Spica (α Virginis) ≈ +0.98. Aldebaran ≈ +0.85.
+/// Test that `fixstar_mag` returns sane values for these known stars.
+#[test]
+fn fixed_star_magnitudes() {
+    let cases: &[(&str, f64)] = &[
+        ("Sirius", -1.46),
+        ("Spica", 0.98),
+        ("Aldebaran", 0.85),
+        ("Algol", 2.12),
+    ];
+    for &(name, expected) in cases {
+        if let Ok(mag) = fixstar_mag(name) {
+            assert!(
+                (mag - expected).abs() < 1.0,
+                "{name} magnitude = {mag}, expected ≈ {expected}",
+            );
+        }
+        // If star not in catalog, skip — `find_star` may not have it.
+    }
+}
+
+// ─── Yallop visibility classification — full table ─────────────────────────
+
+/// Yallop 1998 classification:
+///   q ≥ +0.216         → 'A'  easily visible
+///   q ∈ [-0.014, +0.216) → 'B'  visible under perfect conditions
+///   q ∈ [-0.160, -0.014) → 'C'  may need optical aid
+///   q ∈ [-0.232, -0.160) → 'D'  optical aid required
+///   q ∈ [-0.293, -0.232) → 'E'  not visible w/o aid
+///   q <  -0.293         → 'F'  not visible
+///
+/// Test with manually-constructed Yallop inputs that fall in each
+/// regime. Q depends on ARCV (altitude diff), ARCL (elongation),
+/// and SD (lunar semi-diameter). Tweak ARCV to traverse classes.
+#[test]
+fn yallop_classes_traversal() {
+    let sd = 15.5; // typical lunar semi-diameter at modest distance
+    let arcl = 10.0; // moderate elongation
+    let classes_seen: std::collections::HashSet<char> =
+        (1..30).map(|i| yallop_q(f64::from(i) * 0.6, arcl, sd).1).collect();
+    // We should see at least 2 different classes as ARCV traverses.
+    assert!(
+        classes_seen.len() >= 2,
+        "expected ≥2 Yallop classes as ARCV grows from 0.6 to 17.4°, got {} ({:?})",
+        classes_seen.len(), classes_seen,
+    );
+    // Top class should be 'A' for large arc-v.
+    let (_, big_class) = yallop_q(15.0, 12.0, sd);
+    assert_eq!(big_class, 'A', "large ARCV should yield class A");
+}
+
+/// `best_time_method` returns a JD in the (sunset, moonset) bracket
+/// — the conventional best-time for crescent visibility check.
+#[test]
+fn best_time_method_bracketed() {
+    let sunset = 2_460_000.5_f64;
+    let moonset = sunset + 0.04; // ~1 hour later
+    let jd = best_time_method(sunset, moonset);
+    assert!(
+        jd > sunset && jd < moonset,
+        "best_time should be between sunset and moonset, got {jd}",
+    );
+}
+
+// ─── Tibetan year name cycle ───────────────────────────────────────────────
+
+/// Rabjung cycles are 60 years long. Within a cycle: year-in-cycle,
+/// element, gender, and animal repeat after 60 years. The Rabjung
+/// cycle NUMBER increments by 1.
+#[test]
+fn tibetan_year_name_60y_cycle() {
+    let (rab1, yic1, el1, gen1, ani1) = tibetan_year_name(2024);
+    let (rab2, yic2, el2, gen2, ani2) = tibetan_year_name(2024 + 60);
+    assert_eq!(rab2, rab1 + 1, "Rabjung cycle should advance by 1 at +60y");
+    assert_eq!(yic2, yic1, "year-in-cycle repeats at +60y");
+    assert_eq!(el2, el1, "element repeats at +60y");
+    assert_eq!(gen2, gen1, "gender repeats at +60y");
+    assert_eq!(ani2, ani1, "animal repeats at +60y");
+}
+
+// ─── Vietnamese calendar ───────────────────────────────────────────────────
+
+/// `vietnamese_month_start_jd` finds the new moon that starts the
+/// Vietnamese lunar month containing `jd`. Result must be a JD
+/// within 30 days BEFORE `jd` (one synodic month max).
+#[test]
+fn vietnamese_month_start_within_synodic() {
+    let jd = julday(2024, 7, 15, 0.0, Calendar::Gregorian);
+    if let Some(start) = vietnamese_month_start_jd(jd) {
+        let dt = jd - start;
+        assert!(
+            (0.0..=30.0).contains(&dt),
+            "Vietnamese month start {start} not within 30 d of {jd} (dt={dt})",
+        );
+    }
+}
+
+// ─── Lunar return ──────────────────────────────────────────────────────────
+
+/// `lunar_return_jd` finds the next time the Moon returns to its
+/// natal longitude. Consecutive lunar returns are separated by one
+/// sidereal month (27.32 days).
+#[test]
+fn consecutive_lunar_returns_sidereal_month() {
+    let jd_natal = julday(2000, 1, 1, 12.0, Calendar::Gregorian);
+    let lr1 = lunar_return_jd(jd_natal, jd_natal + 1.0, FLG).unwrap();
+    let lr2 = lunar_return_jd(jd_natal, lr1 + 1.0, FLG).unwrap();
+    let dt = lr2 - lr1;
+    assert!(
+        (dt - 27.32).abs() < 1.0,
+        "Consecutive lunar returns: dt = {dt:.4} d, expected ≈ 27.32",
+    );
+}
+
+// ─── Solar arc directions ──────────────────────────────────────────────────
+
+/// Solar arc advances every planet's longitude by the SUN's arc
+/// since birth. After 1 year, solar arc ≈ 1°. After 30 years ≈ 30°.
+#[test]
+fn solar_arc_30_years_about_30_degrees() {
+    use celestial_core::body::Body;
+    let jd_natal = julday(1985, 7, 14, 12.0, Calendar::Gregorian);
+    let natal_positions = [
+        (Body::SUN, 100.0),
+        (Body::MOON, 200.0),
+        (Body::MARS, 300.0),
+    ];
+    let result = solar_arc_directions(jd_natal, 30.0, &natal_positions, 30.0, FLG);
+    if let Ok((arc, _directed, _mc_arc)) = result {
+        // Solar arc after 30 tropical years ≈ 29-31° (varies by sun speed).
+        assert!(
+            (arc - 30.0).abs() < 2.0,
+            "Solar arc 30y = {arc}°, expected 29-31°",
+        );
+    }
+}
+
+// ─── Secondary progressions ────────────────────────────────────────────────
+
+/// Secondary progressions: 1 day after birth represents 1 year of life.
+/// Progressed Sun at age 30 = Sun position 30 days after birth ≈
+/// 30° later than natal Sun (since Sun moves ~1°/day).
+#[test]
+fn secondary_progression_30_years() {
+    use celestial_core::body::{Body, HouseSystem};
+    let jd_natal = julday(1985, 7, 14, 12.0, Calendar::Gregorian);
+    let bodies = [Body::SUN, Body::MOON];
+    let natal_sun = calc_ut(jd_natal, Body::SUN, FLG).unwrap();
+    let result = secondary_progressions(
+        jd_natal, 30.0, &bodies, 0.0, 0.0, HouseSystem::PLACIDUS, FLG,
+    );
+    if let Ok((positions, _cusps)) = result {
+        let prog_sun_lon = positions[0].1.lon;
+        let diff = ((prog_sun_lon - natal_sun.lon + 540.0) % 360.0 - 180.0).abs();
+        assert!(
+            (diff - 30.0).abs() < 2.0,
+            "Progressed Sun 30y diff = {diff}°, expected ≈ 30°",
+        );
+    }
 }
 
 // ─── Solar eclipse search ───────────────────────────────────────────────────
