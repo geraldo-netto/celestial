@@ -215,9 +215,23 @@ pub(super) fn fmt_lon_dms(lon: f64) -> String {
     let d = deg_in_sign as u32;
     let m = ((deg_in_sign - d as f64) * 60.0) as u32;
     let s = (((deg_in_sign - d as f64) * 3600.0) - m as f64 * 60.0).round() as u32;
+    // Trailing `\u{FE0E}` forces the text-presentation form of each
+    // zodiac glyph — without it SVG renderers fall back to colour-emoji
+    // bitmap glyphs (Noto Color Emoji et al.) which look blocky next
+    // to the surrounding crisp serif/sans digits.
     let glyphs = [
-        "\u{2648}", "\u{2649}", "\u{264A}", "\u{264B}", "\u{264C}", "\u{264D}", "\u{264E}",
-        "\u{264F}", "\u{2650}", "\u{2651}", "\u{2652}", "\u{2653}",
+        "\u{2648}\u{FE0E}",
+        "\u{2649}\u{FE0E}",
+        "\u{264A}\u{FE0E}",
+        "\u{264B}\u{FE0E}",
+        "\u{264C}\u{FE0E}",
+        "\u{264D}\u{FE0E}",
+        "\u{264E}\u{FE0E}",
+        "\u{264F}\u{FE0E}",
+        "\u{2650}\u{FE0E}",
+        "\u{2651}\u{FE0E}",
+        "\u{2652}\u{FE0E}",
+        "\u{2653}\u{FE0E}",
     ];
     format!(
         "{d:02}\u{00B0}{m:02}\u{2032}{s:02}\u{2033}{}",
@@ -321,19 +335,23 @@ pub(super) fn jd_to_date_str(jd: f64) -> String {
 
 // ─── Planet table ─────────────────────────────────────────────────────────────
 
+/// Planet display glyphs. Each Unicode symbol is followed by the
+/// text-presentation variation selector (`U+FE0E`) so renderers don't
+/// substitute the chunky colour-emoji form for the astrological symbol
+/// — same fix as the zodiac glyphs in `SIGN_GLYPHS`.
 pub(super) const BODIES: &[(Body, &str, &str, &str)] = &[
-    (Body::SUN, "sun", "Sun", "\u{2609}"),
-    (Body::MOON, "moon", "Moon", "\u{263D}"),
-    (Body::MERCURY, "mercury", "Mercury", "\u{263F}"),
-    (Body::VENUS, "venus", "Venus", "\u{2640}"),
-    (Body::MARS, "mars", "Mars", "\u{2642}"),
-    (Body::JUPITER, "jupiter", "Jupiter", "\u{2643}"),
-    (Body::SATURN, "saturn", "Saturn", "\u{2644}"),
-    (Body::URANUS, "uranus", "Uranus", "\u{2645}"),
-    (Body::NEPTUNE, "neptune", "Neptune", "\u{2646}"),
-    (Body::PLUTO, "pluto", "Pluto", "\u{2647}"),
-    (Body::MEAN_NODE, "mean_node", "Mean Node", "\u{260A}"),
-    (Body::CHIRON, "chiron", "Chiron", "\u{26B7}"),
+    (Body::SUN, "sun", "Sun", "\u{2609}\u{FE0E}"),
+    (Body::MOON, "moon", "Moon", "\u{263D}\u{FE0E}"),
+    (Body::MERCURY, "mercury", "Mercury", "\u{263F}\u{FE0E}"),
+    (Body::VENUS, "venus", "Venus", "\u{2640}\u{FE0E}"),
+    (Body::MARS, "mars", "Mars", "\u{2642}\u{FE0E}"),
+    (Body::JUPITER, "jupiter", "Jupiter", "\u{2643}\u{FE0E}"),
+    (Body::SATURN, "saturn", "Saturn", "\u{2644}\u{FE0E}"),
+    (Body::URANUS, "uranus", "Uranus", "\u{2645}\u{FE0E}"),
+    (Body::NEPTUNE, "neptune", "Neptune", "\u{2646}\u{FE0E}"),
+    (Body::PLUTO, "pluto", "Pluto", "\u{2647}\u{FE0E}"),
+    (Body::MEAN_NODE, "mean_node", "Mean Node", "\u{260A}\u{FE0E}"),
+    (Body::CHIRON, "chiron", "Chiron", "\u{26B7}\u{FE0E}"),
 ];
 
 /// Per-body display colour (key → hex). Picked to approximate the
@@ -1921,7 +1939,11 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let lon = sun["lon"].as_f64().unwrap();
         assert!((0.0..360.0).contains(&lon), "Sun lon out of range: {lon}");
         assert_eq!(sun["name"], "Sun");
-        assert_eq!(sun["glyph"], "\u{2609}");
+        // Sun glyph is paired with `U+FE0E` to force the text-presentation
+        // form (see comment on `BODIES`); the JSON context preserves the
+        // pair verbatim so SVG renderers don't substitute the colour
+        // emoji.
+        assert_eq!(sun["glyph"], "\u{2609}\u{FE0E}");
     }
 
     #[test]

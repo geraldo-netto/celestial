@@ -68,6 +68,36 @@ fn builtin_natal_has_three_wheels() {
 }
 
 #[test]
+fn builtin_natal_glyphs_use_text_presentation_selector() {
+    // Every astrological glyph (zodiac signs + planet symbols) must
+    // carry the trailing `U+FE0E` text-presentation variation selector,
+    // otherwise SVG renderers substitute the colour-emoji form (Noto
+    // Color Emoji et al.) which looks chunky next to the surrounding
+    // text. Counting glyphs paired with VS15 confirms the selector is
+    // applied to all of them.
+    let svg = render_builtin("2000-01-01", "48.8566", "2.3522", "natal_text_vs.svg");
+    let glyphs = [
+        "♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓", // zodiac
+        "☉", "☽", "☿", "♀", "♂", "♃", "♄", "♅", "♆", "♇", "☊", "⚷", // planets
+    ];
+    for g in glyphs {
+        let bare = format!(">{g}<");
+        let paired = format!(">{g}\u{FE0E}<");
+        let bare_only = svg.matches(&bare).count();
+        let paired_count = svg.matches(&paired).count();
+        // The `bare` pattern matches both `>{g}<` and `>{g}\u{FE0E}<` (it
+        // is a prefix match). Real bare emissions = bare_only − paired.
+        let unprotected = bare_only.saturating_sub(paired_count);
+        assert_eq!(
+            unprotected, 0,
+            "glyph `{g}` appears without `U+FE0E` text-presentation \
+             selector in the rendered SVG ({paired_count} protected, \
+             {bare_only} total occurrences)"
+        );
+    }
+}
+
+#[test]
 fn builtin_natal_legend_signs_use_tspan_colour_and_symbol_font() {
     // Table rows (planet legend, angles, houses, arabic parts) wrap the
     // trailing zodiac glyph in a `<tspan>` carrying the symbol-font

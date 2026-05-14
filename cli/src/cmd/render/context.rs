@@ -133,9 +133,26 @@ fn build_planets(jd: f64, asc: f64) -> Vec<Value> {
     planets
 }
 
+/// Zodiac glyphs with the Unicode text-presentation variation selector
+/// (`U+FE0E`) appended. The selector forces SVG renderers to pick the
+/// outline / "text" form of the sign from the symbol-font stack rather
+/// than the chunky colour-emoji form most systems ship by default
+/// (Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji). Without
+/// this selector, ♈ would render as a tiny red bubble emoji instead
+/// of a crisp vector glyph.
 const SIGN_GLYPHS: [&str; 12] = [
-    "\u{2648}", "\u{2649}", "\u{264A}", "\u{264B}", "\u{264C}", "\u{264D}", "\u{264E}", "\u{264F}",
-    "\u{2650}", "\u{2651}", "\u{2652}", "\u{2653}",
+    "\u{2648}\u{FE0E}",
+    "\u{2649}\u{FE0E}",
+    "\u{264A}\u{FE0E}",
+    "\u{264B}\u{FE0E}",
+    "\u{264C}\u{FE0E}",
+    "\u{264D}\u{FE0E}",
+    "\u{264E}\u{FE0E}",
+    "\u{264F}\u{FE0E}",
+    "\u{2650}\u{FE0E}",
+    "\u{2651}\u{FE0E}",
+    "\u{2652}\u{FE0E}",
+    "\u{2653}\u{FE0E}",
 ];
 
 /// Per-sign colour, indexed by zodiac position (0=Aries .. 11=Pisces).

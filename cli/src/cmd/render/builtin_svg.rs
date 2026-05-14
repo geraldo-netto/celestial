@@ -209,14 +209,19 @@ fn sign_glyph_color(g: char) -> Option<&'static str> {
     })
 }
 
-/// Split a degree-minute-second string (e.g. `"09°51'58\"♑"`) into its
-/// numeric prefix and trailing sign glyph. Returns `None` when no zodiac
-/// sign glyph is present.
-fn split_dms_sign(dms: &str) -> Option<(&str, char, &'static str)> {
-    let last = dms.chars().last()?;
+/// Split a degree-minute-second string (e.g. `"09°51'58\"♑︎"`) into its
+/// numeric prefix and trailing sign glyph (plus VS15 text-presentation
+/// selector). Returns `None` when no zodiac sign glyph is present.
+fn split_dms_sign(dms: &str) -> Option<(&str, &str, &'static str)> {
+    // Walk back over any trailing `U+FE0E` (text-presentation selector)
+    // so the actual sign character lights up the colour lookup.
+    let trimmed = dms.trim_end_matches('\u{FE0E}');
+    let last = trimmed.chars().last()?;
     let col = sign_glyph_color(last)?;
-    let prefix = &dms[..dms.len() - last.len_utf8()];
-    Some((prefix, last, col))
+    let glyph_start = trimmed.len() - last.len_utf8();
+    let prefix = &dms[..glyph_start];
+    let glyph = &dms[glyph_start..];
+    Some((prefix, glyph, col))
 }
 
 /// Compose a `<text>` element that renders a DMS string with the
