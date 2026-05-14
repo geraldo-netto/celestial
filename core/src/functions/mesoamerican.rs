@@ -88,10 +88,13 @@ pub const XIUHPOHUALLI_MONTHS: &[(&str, &str)] = &[
 /// synchrony with the Maya Tzolkin.
 #[must_use]
 pub fn tonalpohualli(jd: f64) -> (u8, usize, &'static str, &'static str) {
-    // Aztec day number from the base correlation
+    // Aztec day number from the base correlation. JD 584283 (Maya
+    // Long Count epoch) is the canonical "4 Ahau" / "4 Cipactli"
+    // anchor: trecena 4, sign index 19. The +3 / +19 offsets shift
+    // a raw 0-based day_num onto that anchor.
     let day_num = (jd as i64 - GMT_CORRELATION).rem_euclid(260) as usize;
-    let trecena = (day_num % 13 + 1) as u8; // 1–13
-    let sign_idx = day_num % 20; // 0–19
+    let trecena = ((day_num + 3) % 13 + 1) as u8; // 1-13, anchored at 4
+    let sign_idx = (day_num + 19) % 20; // 0-19, anchored at 19 (Ahau)
     (
         trecena,
         sign_idx,
@@ -127,9 +130,12 @@ pub fn xiuhpohualli(jd: f64) -> (usize, u8, &'static str, &'static str) {
 /// Returns `(trecena_number, day_sign_index, day_sign_name, day_sign_english)`.
 #[must_use]
 pub fn tzolkin(jd: f64) -> (u8, usize, &'static str, &'static str) {
+    // Per Maya GMT correlation, JD 584283 = 4 Ahau (trecena 4,
+    // sign 19). The +3 / +19 offsets shift the raw 0-based day_num
+    // onto that canonical anchor.
     let day_num = (jd as i64 - GMT_CORRELATION).rem_euclid(260) as usize;
-    let trecena = (day_num % 13 + 1) as u8;
-    let sign_idx = day_num % 20;
+    let trecena = ((day_num + 3) % 13 + 1) as u8;
+    let sign_idx = (day_num + 19) % 20;
     (
         trecena,
         sign_idx,
@@ -148,7 +154,11 @@ pub fn haab(jd: f64) -> (usize, u8, &'static str) {
         "Pop", "Wo", "Sip", "Sotz", "Sek", "Xul", "Yaxkin", "Mol", "Ch'en", "Yax", "Sak", "Keh",
         "Mak", "Kankin", "Muwan", "Pax", "Kayab", "Kumku", "Wayeb",
     ];
-    let day_num = (jd as i64 - GMT_CORRELATION).rem_euclid(365) as usize;
+    // Per Maya GMT correlation, JD 584283 = "8 Kumku" — i.e. day 8 in
+    // the 18th Haab month (Kumku, index 17). Cumulative position in
+    // the 365-day Haab cycle: 17·20 + 8 = 348.
+    let day_num =
+        (jd as i64 - GMT_CORRELATION + 348).rem_euclid(365) as usize;
     let month_idx = (day_num / 20).min(18);
     let day = (day_num % 20) as u8;
     let name = if month_idx < 19 {

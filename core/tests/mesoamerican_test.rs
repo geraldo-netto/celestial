@@ -100,11 +100,12 @@ mod extra_mesoamerican {
     }
 
     #[test]
-    fn tonalpohualli_day_one_is_cipactli() {
-        let (t, s, name, _) = tonalpohualli(GMT);
-        assert_eq!(t, 1, "GMT day: trecena 1");
-        assert_eq!(s, 0, "GMT day: sign 0 (Cipactli)");
-        assert_eq!(name, "Cipactli", "GMT day: name Cipactli");
+    fn tonalpohualli_epoch_is_4_xochitl() {
+        // GMT correlation: JD 584283 = Maya "4 Ahau" = Aztec "4 Xochitl"
+        // (sign 19 in both naming systems). Identical 260-day cycle.
+        let (t, s, _name, _) = tonalpohualli(GMT);
+        assert_eq!(t, 4, "GMT day: trecena 4 (Maya canon = 4 Ahau)");
+        assert_eq!(s, 19, "GMT day: sign 19 (Aztec Xochitl / Maya Ahau)");
     }
 
     #[test]

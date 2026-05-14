@@ -1552,13 +1552,21 @@ fn four_pillars_hour_pillar_changes_every_2_hours() {
 
 #[test]
 fn tonalpohualli_j2000_known_values() {
-    // J2000.0 = JD 2451545.0
-    // (2451545 - 584283) % 260 = 1867262 % 260 = 82
-    // trecena = 82 % 13 + 1 = 8; sign_idx = 82 % 20 = 2 → Calli (House)
+    // J2000.0 = JD 2451545.0. Anchored to the canonical Maya GMT
+    // correlation where JD 584283 = 4 Ahau (trecena 4, sign 19).
+    //
+    //   day_num = (2451545 - 584283) mod 260 = 1867262 mod 260 = 202
+    //   trecena = (202 + 3) mod 13 + 1 = 11
+    //   sign    = (202 + 19) mod 20    = 1 → Ehecatl (Wind)
+    //
+    // Cross-check via Long Count backward from 13.0.0.0.0 (4 Ahau on
+    // 2012-12-22): J2000 is 4738 days earlier. 4738 mod 13 = 6 →
+    // trecena drops by 6 from 4 = 11 (wrapping). 4738 mod 20 = 18 →
+    // sign drops by 18 from 19 = 1. Consistent.
     let (t, s, name, _) = tonalpohualli(JD_J2000);
-    assert_eq!(t, 8, "J2000 trecena should be 8, got {t}");
-    assert_eq!(s, 2, "J2000 sign should be 2 (Calli), got {s}");
-    assert_eq!(name, "Calli", "J2000 sign name should be Calli, got {name}");
+    assert_eq!(t, 11, "J2000 trecena should be 11, got {t}");
+    assert_eq!(s, 1, "J2000 sign should be 1 (Ehecatl), got {s}");
+    assert_eq!(name, "Ehecatl", "J2000 sign name should be Ehecatl, got {name}");
 }
 
 #[test]
