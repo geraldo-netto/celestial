@@ -177,27 +177,29 @@ class TestHouses:
         cusps, ascmc = celestial.houses(2452275.499255786, 0.0, 0.0, ord("P"))
         assert len(cusps) == 12
         assert len(ascmc) == 8
-        # Values from our pure-Rust engine (GMST differs ~1.7° from SE C library)
+        # Values from our pure-Rust engine (Placidus semi-arc method, commit
+        # 39873ab). Old equator-approx values were replaced after that fix;
+        # MC values now also use the corrected atan2 args (commit 207ce15).
         expected_cusps = [
-            191.098934667859965,
-            310.066792143820635,
-            37.113582421728267,
-            281.098934667859965,
-            119.731624601773660,
-            34.740490378186450,
-            11.098934667859965,
-            130.066792143820635,
-            217.113582421728267,
-            101.098934667859965,
-            299.731624601773660,
-            214.740490378186479,
+            191.098931650278360,  # H1 = ASC
+            222.650394279552130,
+            251.723817487253260,
+            279.376843038247600,  # H4 = IC = MC+180
+            307.790745457391150,
+            338.578253236862340,
+            11.098931650278360,  # H7 = DSC = ASC+180
+            42.650394279552130,
+            71.723817487253270,
+            99.376843038247600,  # H10 = MC
+            127.790745457391150,
+            158.578253236862300,
         ]
         expected_ascmc = [
-            191.098934667859965,  # ASC
-            101.098934667859965,  # MC  (our GMST differs ~1.7° from SE)
-            100.203166925323956,  # ARMC
+            191.098931650278360,  # ASC
+            99.376843038247600,  # MC
+            100.203164140412480,  # ARMC
             180.0,  # Vertex
-            190.203166925323956,  # Eq. Asc
+            190.203164140412470,  # Eq. Asc
             0.0,
             0.0,
             0.0,
