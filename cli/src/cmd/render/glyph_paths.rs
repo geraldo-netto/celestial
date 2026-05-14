@@ -61,6 +61,17 @@ pub(super) fn emit_defs(s: &mut String) {
             r##"    <symbol id="g-{cp:04X}" viewBox="{vb}" preserveAspectRatio="xMidYMid meet"><path d="{d}"/></symbol>"##
         );
     }
+    // South Node (U+260B) — diametric opposite of the North Node glyph.
+    // No separate path table entry: we derive it by flipping the North
+    // Node symbol vertically. The wrapping `<g>` mirrors around the
+    // viewBox horizontal midline so the resulting glyph keeps the same
+    // bounding box as `g-260A` and aligns with surrounding text.
+    if let Some((vb, _)) = glyph_path(0x260A) {
+        let _ = writeln!(
+            s,
+            r##"    <symbol id="g-260B" viewBox="{vb}" preserveAspectRatio="xMidYMid meet"><g transform="translate(0,2048) scale(1,-1)"><use href="#g-260A"/></g></symbol>"##
+        );
+    }
     let _ = s.write_str("  </defs>\n");
 }
 
@@ -71,7 +82,10 @@ pub(super) fn emit_defs(s: &mut String) {
 /// `U+FE0E` / VS15) are tolerated — only the leading char matters.
 pub(super) fn write_use(s: &mut String, cp: u32, cx: f64, cy: f64, size: f64, fill: &str) -> bool {
     use std::fmt::Write as _;
-    if glyph_path(cp).is_none() {
+    // 0x260B (South Node) has no path-table entry — its `<symbol>` is
+    // synthesised by `emit_defs` as a vertical flip of the North Node
+    // (0x260A), so it's still referenceable via `<use>` here.
+    if cp != 0x260B && glyph_path(cp).is_none() {
         return false;
     }
     let x = cx - size / 2.0;

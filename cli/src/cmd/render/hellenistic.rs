@@ -69,6 +69,20 @@ pub fn build_hellenistic_context(
                 p["almuten"] = json!(format!("{alm:?}"));
                 p["almuten_score"] = json!(alm_score);
                 p["same_sect"] = json!(sect_ok);
+            } else {
+                // South Node and any other synthetic / non-`Body`
+                // entries get placeholder dignity fields so downstream
+                // consumers don't have to special-case missing keys.
+                p["dignity5"] = json!("peregrine");
+                p["dignity_score"] = json!(0);
+                p["term_ruler"] = json!("—");
+                p["decan_ruler"] = json!("—");
+                p["triplicity_day"] = json!("—");
+                p["triplicity_night"] = json!("—");
+                p["triplicity_part"] = json!("—");
+                p["almuten"] = json!("—");
+                p["almuten_score"] = json!(0);
+                p["same_sect"] = json!(true);
             }
         }
     }

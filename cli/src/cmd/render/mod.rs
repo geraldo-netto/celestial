@@ -385,6 +385,7 @@ pub(super) const BODY_COLORS: &[(&str, &str)] = &[
     ("pluto", "#7c1a1a"),
     ("mean_node", "#6a4f8a"),
     ("true_node", "#6a4f8a"),
+    ("south_node", "#6a4f8a"),
     ("chiron", "#6c3a1a"),
 ];
 
@@ -1854,8 +1855,8 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let v = ctx.unwrap();
         assert_eq!(v["date"], "2000-01-01 12:00 UT"); // J2000.0 = noon
         assert!((v["jd"].as_f64().unwrap() - 2451545.0).abs() < 0.1);
-        // 12 planets
-        assert_eq!(v["planets"].as_array().unwrap().len(), 12);
+        // 12 BODIES entries + the synthesised South Node = 13 rows.
+        assert_eq!(v["planets"].as_array().unwrap().len(), 13);
         // 12 houses
         assert_eq!(v["houses"].as_array().unwrap().len(), 12);
         // ASC is a valid longitude
@@ -2284,7 +2285,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let ctx = build_progressed_context(jd, 30.0, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
         let prog = ctx["progressed_planets"].as_array();
         assert!(prog.is_some(), "context missing progressed_planets");
-        assert_eq!(prog.unwrap().len(), 12);
+        assert_eq!(prog.unwrap().len(), 13);
     }
 
     #[test]
@@ -2329,7 +2330,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
             ctx["outer_planets"].as_array().is_some(),
             "outer_planets missing"
         );
-        assert_eq!(ctx["outer_planets"].as_array().unwrap().len(), 12);
+        assert_eq!(ctx["outer_planets"].as_array().unwrap().len(), 13);
     }
 
     #[test]
@@ -2363,6 +2364,8 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let vars = std::collections::BTreeMap::new();
         let ctx = build_dial_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
         assert!(ctx["midpoints"].as_array().is_some(), "midpoints missing");
+        // The 90° dial builder iterates `BODIES` directly (no South
+        // Node synthesis) so the planets array stays at 12.
         assert!(ctx["planets"].as_array().unwrap().len() == 12);
         // Every planet dial_lon must be in [0, 90)
         for p in ctx["planets"].as_array().unwrap() {
@@ -2408,7 +2411,11 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
             jd1, jd2, jd3, 48.85, 2.35, "natal", "prog", "transit", 'P', vars,
         )
         .unwrap();
-        assert!(ctx["planets"].as_array().unwrap().len() == 12, "inner ring");
+        // Inner ring goes through `build_context` so it carries the
+        // synthesised South Node (13 rows). Rings 2 and 3 iterate the
+        // raw `BODIES` table for the transiting positions and stay at
+        // the 12 canonical bodies.
+        assert!(ctx["planets"].as_array().unwrap().len() == 13, "inner ring");
         assert!(
             ctx["ring2_planets"].as_array().unwrap().len() == 12,
             "ring 2"
@@ -3144,7 +3151,8 @@ mod tests_vedic {
         let vars = std::collections::BTreeMap::new();
         let ctx = build_hellenistic_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
         let planets = ctx["planets"].as_array().unwrap();
-        assert_eq!(planets.len(), 12);
+        // 12 BODIES + synthesised South Node = 13.
+        assert_eq!(planets.len(), 13);
         for p in planets {
             // Every planet must have the new Phase 5 dignity fields
             assert!(

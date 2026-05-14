@@ -80,7 +80,7 @@ pub(crate) fn build_context(
 
 fn build_planets(jd: f64, asc: f64) -> Vec<Value> {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
-    let mut planets = Vec::with_capacity(BODIES.len());
+    let mut planets = Vec::with_capacity(BODIES.len() + 1);
     for &(body, key, name, glyph) in BODIES {
         if let Ok(pos) = calc_ut(jd, body, flags) {
             let (sign_idx, deg_in_sign) = lon_to_sign(pos.lon);
@@ -130,7 +130,73 @@ fn build_planets(jd: f64, asc: f64) -> Vec<Value> {
                 "asp_y":    (wy(CY, RP - 18.0, pos.lon, asc) * 100.0).round() / 100.0}));
         }
     }
+    if let Some(south) = synthesize_south_node(&planets, asc) {
+        planets.push(south);
+    }
     planets
+}
+
+/// The South Lunar Node (☋) is the point diametrically opposite the
+/// North Node. The astronomy layer doesn't expose it as a body, so we
+/// synthesise it from the North-Node entry by adding 180° to the
+/// longitude and recomputing the wheel-position fields. This means
+/// the south node automatically tracks whichever node (mean or true)
+/// the renderer chose for the north.
+fn synthesize_south_node(planets: &[Value], asc: f64) -> Option<Value> {
+    let north = planets.iter().find(|p| {
+        let k = p["key"].as_str().unwrap_or("");
+        k == "mean_node" || k == "true_node"
+    })?;
+    let north_lon = north["lon"].as_f64()?;
+    let south_lon = (north_lon + 180.0).rem_euclid(360.0);
+    let (sign_idx, deg_in_sign) = lon_to_sign(south_lon);
+    let sign_full = zodiac_sign_name(sign_idx);
+    let sign_short = &sign_full[..sign_full
+        .char_indices()
+        .nth(3)
+        .map_or(sign_full.len(), |(i, _)| i)];
+    let speed = north["speed"].as_f64().unwrap_or(0.0);
+    let retro = speed < 0.0;
+    let deg_label = format!(
+        "{:.0}\u{00B0}{}{}",
+        deg_in_sign.floor(),
+        sign_short,
+        if retro { "\u{211E}" } else { "" }
+    );
+    Some(json!({
+        "name":          "South Node",
+        "key":           "south_node",
+        "glyph":         "\u{260B}\u{FE0E}",
+        "color":         body_color("south_node"),
+        "lon":           (south_lon * 1e4).round() / 1e4,
+        "lat":           0.0,
+        "dist":          north["dist"].as_f64().unwrap_or(0.0),
+        "speed":         (speed * 1e4).round() / 1e4,
+        "retro":         retro,
+        "near_station":  speed.abs() < 0.05,
+        "dignity":       "peregrine",
+        "antiscia_lon":  (antiscion_lon(south_lon) * 1e4).round() / 1e4,
+        "contra_lon":    (contra_antiscion_lon(south_lon) * 1e4).round() / 1e4,
+        "antiscia_x":    (wx(CX, RH - 4.0, antiscion_lon(south_lon), asc) * 100.0).round() / 100.0,
+        "antiscia_y":    (wy(CY, RH - 4.0, antiscion_lon(south_lon), asc) * 100.0).round() / 100.0,
+        "sign":          sign_idx,
+        "sign_name":     zodiac_sign_name(sign_idx),
+        "dms":           fmt_lon_dms(south_lon),
+        "deg_label":     deg_label,
+        "speed_str":     format!("{}{:.2}\u{00B0}/d",
+                                if retro { "\u{211E} " } else { "" },
+                                speed.abs()),
+        "x":             (wx(CX, RP, south_lon, asc) * 100.0).round() / 100.0,
+        "y":             (wy(CY, RP, south_lon, asc) * 100.0).round() / 100.0,
+        "label_x":       (wx(CX, RP + 20.0, south_lon, asc) * 100.0).round() / 100.0,
+        "label_y":       (wy(CY, RP + 20.0, south_lon, asc) * 100.0).round() / 100.0,
+        "tick_x1":       (wx(CX, RH + 2.0, south_lon, asc) * 100.0).round() / 100.0,
+        "tick_y1":       (wy(CY, RH + 2.0, south_lon, asc) * 100.0).round() / 100.0,
+        "tick_x2":       (wx(CX, RP - 12.0, south_lon, asc) * 100.0).round() / 100.0,
+        "tick_y2":       (wy(CY, RP - 12.0, south_lon, asc) * 100.0).round() / 100.0,
+        "asp_x":         (wx(CX, RP - 18.0, south_lon, asc) * 100.0).round() / 100.0,
+        "asp_y":         (wy(CY, RP - 18.0, south_lon, asc) * 100.0).round() / 100.0
+    }))
 }
 
 /// Zodiac glyphs with the Unicode text-presentation variation selector

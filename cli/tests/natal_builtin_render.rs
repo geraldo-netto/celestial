@@ -80,16 +80,15 @@ fn builtin_natal_emits_glyph_symbol_defs_exactly_once() {
         1,
         "<defs> block should appear exactly once"
     );
-    // All 12 zodiac symbols + the 11 luminary/planet glyphs we render
-    // (Sun, Moon, Mercury, Venus, Earth-glyph stub, Mars, Jupiter,
-    // Saturn, Uranus, Neptune, Pluto) + Mean Node + Chiron → 25 unique
-    // `<symbol id="g-XXXX">` entries. The Earth code-point (U+2641) is
-    // pre-baked in the glyph table for future Heliocentric charts even
-    // though no natal chart references it.
+    // 25 entries from `GLYPH_PATHS` (12 zodiac + Sun, Moon, Mercury,
+    // Venus, Earth-stub, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto,
+    // Mean Node, Chiron) plus the synthesised South Node (`g-260B`,
+    // emitted by `emit_defs` as a vertically-flipped `<use>` of the
+    // North Node) → 26 unique `<symbol id="g-XXXX">` defs.
     let symbol_count = svg.matches("<symbol id=\"g-").count();
     assert_eq!(
-        symbol_count, 25,
-        "expected 25 <symbol> definitions (12 zodiac + 11 planets + node + Chiron); got {symbol_count}"
+        symbol_count, 26,
+        "expected 26 <symbol> definitions (25 from glyph_paths + South Node); got {symbol_count}"
     );
 }
 

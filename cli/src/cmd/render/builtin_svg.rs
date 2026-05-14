@@ -732,7 +732,8 @@ const PLANET_LEGEND: &[(&str, &str)] = &[
     ("\u{2645}\u{FE0E}", "Uranus"),
     ("\u{2646}\u{FE0E}", "Neptune"),
     ("\u{2647}\u{FE0E}", "Pluto"),
-    ("\u{260A}\u{FE0E}", "Mean Node"),
+    ("\u{260A}\u{FE0E}", "Mean Node (North)"),
+    ("\u{260B}\u{FE0E}", "South Node"),
     ("\u{26B7}\u{FE0E}", "Chiron"),
 ];
 
@@ -832,6 +833,7 @@ fn legend_glyph_color<'a>(pal: &'a Palette, glyph: &'a str) -> &'a str {
             ('\u{2646}', "neptune"),
             ('\u{2647}', "pluto"),
             ('\u{260A}', "mean_node"),
+            ('\u{260B}', "south_node"),
             ('\u{26B7}', "chiron"),
         ];
         if let Some((_, key)) = body_keys.iter().find(|(c2, _)| *c2 == c) {
