@@ -485,7 +485,7 @@ pub(super) fn contra_antiscion_lon(lon: f64) -> f64 {
 // ─── Build the full context ───────────────────────────────────────────────────
 
 pub(super) const CX: f64 = 450.0;
-pub(super) const CY: f64 = 430.0;
+pub(super) const CY: f64 = 424.0;
 pub(super) const RO: f64 = 320.0; // outer ring
 pub(super) const RM: f64 = 290.0; // sign band outer
 pub(super) const RI: f64 = 262.0; // sign band inner
