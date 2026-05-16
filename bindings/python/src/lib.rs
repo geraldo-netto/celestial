@@ -4,7 +4,7 @@
 //! The module is exposed as `celestial_py`.
 
 use celestial::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
-use celestial_core as celestial;
+use celestial_ffi as celestial;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 // pyo3 0.24 deprecated the `IntoPy::into_py(py) -> PyObject` conversion in

@@ -34,7 +34,7 @@
 
 use celestial::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 
-use celestial_core as celestial;
+use celestial_ffi as celestial;
 use ext_php_rs::prelude::*;
 use std::collections::HashMap;
 

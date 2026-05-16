@@ -46,3 +46,31 @@ pub fn pos6(p: &celestial_core::PlanetPos) -> [f64; 6] {
         p.speed_dist,
     ]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pos6_preserves_field_order() {
+        let p = celestial_core::PlanetPos {
+            lon: 1.0,
+            lat: 2.0,
+            dist: 3.0,
+            speed_lon: 4.0,
+            speed_lat: 5.0,
+            speed_dist: 6.0,
+            ret_flags: 7,
+        };
+        assert_eq!(pos6(&p), [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+    }
+
+    #[test]
+    fn ffi_error_message_matches_core_display() {
+        let core_err = celestial_core::Error::BodyNotImplemented { body: 99 };
+        let want = core_err.to_string();
+        let ffi: FfiError = core_err.into();
+        assert_eq!(ffi.message(), want);
+        assert_eq!(ffi.to_string(), want); // transparent
+    }
+}

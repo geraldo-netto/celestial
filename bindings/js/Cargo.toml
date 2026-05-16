@@ -9,7 +9,6 @@ description = "Node.js/TypeScript bindings for Swiss Ephemeris via napi-rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-celestial-core = { path = "../../core", default-features = false }
 celestial-ffi  = { path = "../ffi", default-features = false }
 napi          = { workspace = true }
 napi-derive   = { workspace = true }
@@ -19,5 +18,5 @@ napi-build = "2"
 
 [features]
 default = ["timezone", "calendar-traditions"]
-timezone = ["celestial-core/timezone", "celestial-ffi/timezone"]
-calendar-traditions = ["celestial-core/calendar-traditions", "celestial-ffi/calendar-traditions"]
+timezone = ["celestial-ffi/timezone"]
+calendar-traditions = ["celestial-ffi/calendar-traditions"]

@@ -6,7 +6,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use celestial::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
-use celestial_core as celestial;
+use celestial_ffi as celestial;
 use napi_derive::napi;
 
 fn to_napi(e: celestial::Error) -> napi::Error {

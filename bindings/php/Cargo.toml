@@ -14,7 +14,6 @@ crate-type = ["cdylib"]
 name       = "celestial"
 
 [dependencies]
-celestial-core = { path = "../../core", default-features = false }
 celestial-ffi  = { path = "../ffi", default-features = false }
 ext-php-rs  = "0.13"
 
@@ -34,5 +33,5 @@ ext-php-rs  = "0.13"
 
 [features]
 default = ["timezone", "calendar-traditions"]
-timezone = ["celestial-core/timezone", "celestial-ffi/timezone"]
-calendar-traditions = ["celestial-core/calendar-traditions", "celestial-ffi/calendar-traditions"]
+timezone = ["celestial-ffi/timezone"]
+calendar-traditions = ["celestial-ffi/calendar-traditions"]
