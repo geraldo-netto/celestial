@@ -2753,3 +2753,51 @@ fn perf1_heliocentric_mars_speed_regression_lock() {
     approx(p.speed_lat, 0.0129670887, "speed_lat");
     approx(p.speed_dist, 0.0005168649, "speed_dist");
 }
+
+/// PERF-2..5 regression lock. The post-bisection `calc_ut`/`houses`
+/// re-evaluations in next_aspect_with / next_aspect_cusp are NOT
+/// redundant: the scan loop uses SPEED-stripped flags, so the final
+/// full-flag eval at the exact converged jd is the authoritative
+/// result — "reuse the scan eval" would drop SPEED (precision loss,
+/// WONTFIX like PERF-1/6). bisect_retro_station already reuses `pm`
+/// (no post-loop recompute — PERF-4 audit was inaccurate).
+/// next_aspect_with2 is two independent ±aspect searches; merging is a
+/// precision-sensitive rewrite for marginal gain (PERF-5, declined).
+/// This pins the converged outputs so any future change must
+/// reproduce them (tol 1e-6).
+#[test]
+fn perf2345_search_regression_lock() {
+    use celestial_core::{
+        next_aspect_cusp, next_aspect_with, next_retro, Body, CalcFlags, HouseSystem,
+    };
+    let f = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    let approx = |got: f64, want: f64, what: &str| {
+        assert!(
+            (got - want).abs() < 1e-6,
+            "{what}: got {got:.10}, want {want:.10}"
+        );
+    };
+
+    let a = next_aspect_with(Body::MARS, 0.0, Body::JUPITER, 2451545.0, false, 4000.0, f).unwrap();
+    approx(a.jd, 2451640.22880441, "aspect_with.jd");
+    approx(a.pos1[0], 39.9522907799, "aspect_with.pos1.lon");
+
+    let c = next_aspect_cusp(
+        Body::SUN,
+        0.0,
+        10,
+        2451545.0,
+        48.85,
+        2.35,
+        HouseSystem::PLACIDUS,
+        false,
+        f,
+    )
+    .unwrap();
+    approx(c.jd, 2451545.99610184, "aspect_cusp.jd");
+    approx(c.pos[0], 281.3913799069, "aspect_cusp.pos.lon");
+
+    let r = next_retro(Body::MERCURY, 2451545.0, false, 400.0, f).unwrap();
+    approx(r.jd, 2451596.02107659, "retro.jd");
+    approx(r.pos[0], 347.1761286497, "retro.pos.lon");
+}

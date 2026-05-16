@@ -30,10 +30,10 @@ No function in the workspace exceeds CC 10 — nothing open. Current peak is ~6�
 | id | file:line | issue | impact | status |
 |---|---|---|---|---|
 | PERF-1 | core/src/astronomy/engine.rs:161 | heliocentric-speed path evaluates the full VSOP series 3× (jde, jde±0.5) when `FLG_SPEED` set on a heliocentric calc | HOT | WONTFIX-as-stated / analytic deferred — `h(jde)` is needed for the position; speed is an O(h²) central difference. "Reuse central → 1-day diff" = forward/back O(h) = speed precision loss (identical to PERF-6). The only precision-safe route is an analytic VSOP-series derivative — large, precision-sensitive, its own soak. Locked by a J2000 heliocentric-Mars regression test so a future derivative rewrite must reproduce it (commit forthcoming) |
-| PERF-2 | core/src/functions/searches.rs:316-318 | `next_aspect_with` recomputes `calc_ut(jd_ret, SPEED)` after the bisection already converged via `diff_at` | WARM | OPEN — stash the final bisection eval |
-| PERF-3 | core/src/functions/searches.rs:411-412 | `next_aspect_cusp` re-runs `calc_ut` + `houses()` after convergence (already computed inside the last `diff_at`) | WARM | OPEN — reuse converged result |
-| PERF-4 | core/src/functions/searches.rs:149 | `bisect_retro_station` recomputes `pos_at` after the loop; the converged midpoint already holds `speed_lon` | WARM | OPEN — return the converged sample |
-| PERF-5 | core/src/functions/searches.rs:340-354 | `next_aspect_with2` runs two independent ±aspect scan loops over the same JD range from `jd_start` | WARM | OPEN — merge into one multi-target scan |
+| PERF-2 | core/src/functions/searches.rs:316-318 | `next_aspect_with` post-bisect `calc_ut(jd_ret, flags)` | WARM | WONTFIX — not redundant: the scan's `diff_at` uses `flags & !SPEED` (line 289), so the post-bisect full-flag eval at the exact converged jd is the authoritative result; "reuse the scan eval" drops SPEED = precision loss (PERF-1/6 rationale). Locked by `perf2345_search_regression_lock` |
+| PERF-3 | core/src/functions/searches.rs:411-412 | `next_aspect_cusp` post-bisect `calc_ut` + `houses()` | WARM | WONTFIX — same as PERF-2 (scan_flags strips SPEED at line 390); the final eval is authoritative, not redundant. Regression-locked |
+| PERF-4 | core/src/functions/searches.rs:149 | `bisect_retro_station` final sample | WARM | RESOLVED/N-A — audit was inaccurate: the fn already reuses `pm` from the last loop iteration; there is **no** post-loop recompute. Regression-locked |
+| PERF-5 | core/src/functions/searches.rs:340-354 | `next_aspect_with2` runs two independent ±aspect searches | WARM | DECLINED — merging into one multi-target scan is a precision-sensitive rewrite (must reproduce the exact nearest-crossing selection) for marginal gain over a correct, clear path (DP-1 net-negative dynamic). Regression-locked |
 | PERF-6 | core/src/astronomy/engine.rs:74,268 | `compute_speed` central-difference ±0.5 d | HOT | WONTFIX — forward/back diff would reduce precision; central diff already minimal 2-eval 2nd-order (kept so it is not re-flagged) |
 
 Precision invariant for any fix here: `calc` + moon phases + vedic/meso/bazi SVG must stay byte-identical to the 1986-05-30 PDF reference and Diana 1961-07-01 charts.
@@ -94,5 +94,4 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 4. **ARCH-11 + ARCH-13** — pure `compute()` seam + `RenderArgs::validate`; cheap, unlocks render-logic testing.
 5. **ARCH-12** — bindings depend only on `celestial-ffi` (finish the Phase-7 facade).
 6. **DUP-7 / ARCH-13 / DP-8 / DP-10 / DP-9** — bounded, byte-safe cleanups (palette+title helper, event enum, locale table, config registry).
-7. **PERF-2..5** — post-bisection recompute reuse in `searches.rs` (WARM, precision-safe).
 8. **Deferred isolated efforts (own session + precision soak each):** ARCH-7 lib.rs de-glob · ARCH-8 render helper single-span moves · ARCH-10/DP-4 binding codegen · DP-2 unit newtypes · DP-6 SVG templates.
