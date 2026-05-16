@@ -13,9 +13,6 @@ pub fn build_mesoamerican_context(
     date_str: &str,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
-    let mut vars = user_vars;
-    vars.entry("title".to_string())
-        .or_insert_with(|| "Mesoamerican Calendars".to_string());
 
     let (trecena, sign_idx, tonal_name, tonal_en) = tonalpohualli(jd);
     let (xiu_month, xiu_day, xiu_month_name, xiu_month_en) = xiuhpohualli(jd);
@@ -23,15 +20,6 @@ pub fn build_mesoamerican_context(
     let (haab_month, haab_day, haab_month_name) = haab(jd);
     let (cr_trecena, cr_sign, cr_haab_day, cr_haab_month) = calendar_round(jd);
 
-    let palette = super::palette_with_defaults(
-        &[
-            ("bg_color", "#1a0a00"),
-            ("border_color", "#d4a800"),
-            ("text_color", "#f0e0c0"),
-            ("planet_color", "#ffd070"),
-        ],
-        &vars,
-    );
 
     // ARCH-9/DP-5: typed per-tradition context. Serializes to a JSON
     // object byte-for-byte equivalent to the previous `json!` (field
@@ -61,7 +49,16 @@ pub fn build_mesoamerican_context(
         cr_sign,
         cr_haab_day,
         cr_haab_month,
-        vars: Value::Object(palette.into_iter().collect()),
+        vars: super::palette_vars(
+            user_vars,
+            "Mesoamerican Calendars",
+            &[
+                ("bg_color", "#1a0a00"),
+                ("border_color", "#d4a800"),
+                ("text_color", "#f0e0c0"),
+                ("planet_color", "#ffd070"),
+            ],
+        ),
     };
     serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
 }

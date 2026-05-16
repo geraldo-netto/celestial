@@ -15,9 +15,6 @@ pub fn build_bazi_context(
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN;
-    let mut vars = user_vars;
-    vars.entry("title".to_string())
-        .or_insert_with(|| "Four Pillars of Destiny (八字)".to_string());
 
     // Compute Sun's ecliptic longitude for solar-term-based month pillar
     let sun_pos = calc_ut(jd, Body::SUN, flags)?;
@@ -68,15 +65,6 @@ pub fn build_bazi_context(
         .map(|(&name, &count)| json!({ "element": name, "count": count }))
         .collect();
 
-    let palette = super::palette_with_defaults(
-        &[
-            ("bg_color", "#ffffff"),
-            ("border_color", "#8b0000"),
-            ("text_color", "#1a0a00"),
-            ("planet_color", "#2a1a60"),
-        ],
-        &vars,
-    );
 
     // ARCH-9/DP-5: typed top-level context (inner pillar/element arrays
     // stay `Vec<Value>` so the serialized object is byte-identical).
@@ -94,7 +82,16 @@ pub fn build_bazi_context(
         degrees_into_term: (deg_into * 100.0).round() / 100.0,
         degrees_to_next: (deg_to * 100.0).round() / 100.0,
         sun_lon: (sun_pos.lon * 1e4).round() / 1e4,
-        vars: Value::Object(palette.into_iter().collect()),
+        vars: super::palette_vars(
+            user_vars,
+            "Four Pillars of Destiny (八字)",
+            &[
+                ("bg_color", "#ffffff"),
+                ("border_color", "#8b0000"),
+                ("text_color", "#1a0a00"),
+                ("planet_color", "#2a1a60"),
+            ],
+        ),
     };
     serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
 }

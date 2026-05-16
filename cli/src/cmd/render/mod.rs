@@ -407,6 +407,22 @@ pub(super) fn palette_with_defaults(
     palette
 }
 
+/// DUP-7: the title-default + palette-merge + JSON-object boilerplate
+/// every tradition builder repeated. Inserts `title` only when the
+/// user didn't supply one, merges `defaults` under the user vars, and
+/// returns the ready `vars` JSON object — byte-identical to the
+/// former hand-written trio.
+pub(super) fn palette_vars(
+    mut user_vars: std::collections::BTreeMap<String, String>,
+    title_default: &str,
+    defaults: &[(&str, &str)],
+) -> Value {
+    user_vars
+        .entry("title".to_string())
+        .or_insert_with(|| title_default.to_string());
+    Value::Object(palette_with_defaults(defaults, &user_vars).into_iter().collect())
+}
+
 // ─── Label collision avoidance ────────────────────────────────────────────────
 
 /// Compute non-overlapping wheel angles for planet degree labels.

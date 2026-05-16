@@ -16,23 +16,11 @@ pub fn build_medicine_wheel_context(
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN;
-    let mut vars = user_vars;
-    vars.entry("title".to_string())
-        .or_insert_with(|| "Medicine Wheel".to_string());
 
     let sun_pos = calc_ut(jd, Body::SUN, flags)?;
     let (animal, element, clan, season) = medicine_wheel_totem(sun_pos.lon);
     let (decan_idx, decan_name, decan_star) = egyptian_decan(sun_pos.lon);
 
-    let palette = super::palette_with_defaults(
-        &[
-            ("bg_color", "#0a1a0a"),
-            ("border_color", "#a0c040"),
-            ("text_color", "#d0e8a0"),
-            ("planet_color", "#80c060"),
-        ],
-        &vars,
-    );
 
     // ARCH-9/DP-5: typed context (field names == JSON keys).
     let ctx = MedicineWheelContext {
@@ -48,7 +36,16 @@ pub fn build_medicine_wheel_context(
         decan_idx,
         decan_name,
         decan_star,
-        vars: Value::Object(palette.into_iter().collect()),
+        vars: super::palette_vars(
+            user_vars,
+            "Medicine Wheel",
+            &[
+                ("bg_color", "#0a1a0a"),
+                ("border_color", "#a0c040"),
+                ("text_color", "#d0e8a0"),
+                ("planet_color", "#80c060"),
+            ],
+        ),
     };
     serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
 }
