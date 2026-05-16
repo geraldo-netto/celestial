@@ -47,36 +47,87 @@ pub(crate) fn build_context(
     let solar_cycle_json = build_solar_cycle(jd);
     let vars = build_vars(&user_vars);
 
-    Ok(json!({
+    // ARCH-9/DP-5: typed natal/core context. Field names == JSON keys;
+    // `serde_json::to_value` reproduces the former object byte-for-byte,
+    // so every build_context-reusing builder (natal/derived/hellenistic/
+    // composite/triwheel) and the renderers are unaffected.
+    let ctx = NatalContext {
         // Derive canonical date+time from JD; fall back to caller label
         // for composite/synastry/test strings that aren't plain dates.
-        "date": jd_to_date_str(jd),
-        "date_label":          date_str,
-        "jd":                  (jd * 1e4).round() / 1e4,
-        "lat":                 lat,
-        "lon":                 lon,
-        "asc":                 (asc * 1e4).round() / 1e4,
-        "mc":                  (mc  * 1e4).round() / 1e4,
-        "ic":                  (ic  * 1e4).round() / 1e4,
-        "dsc":                 (dsc * 1e4).round() / 1e4,
-        "asc_dms":             fmt_lon_dms(asc),
-        "mc_dms":              fmt_lon_dms(mc),
-        "ic_dms":              fmt_lon_dms(ic),
-        "dsc_dms":             fmt_lon_dms(dsc),
-        "moon_phase_name":     moon_phase_str(jd),
-        "moon_illumination":   illum_pct,
-        "cx":                  CX, "cy": CY,
-        "r_outer":             RO, "r_sign_outer": RM, "r_sign_inner": RI,
-        "r_house":             RH, "r_planet": RP,    "r_inner": RC,
-        "planets":             planets,
-        "signs":               signs,
-        "houses":              houses,
-        "angles":              angles,
-        "aspects":             aspects,
-        "arabic_parts":        arabic_parts,
-        "fixed_stars":         fixed_stars,
-        "solar_cycle":         solar_cycle_json,
-        "vars":                Value::Object(vars)}))
+        date: jd_to_date_str(jd),
+        date_label: date_str.to_string(),
+        jd: (jd * 1e4).round() / 1e4,
+        lat,
+        lon,
+        asc: (asc * 1e4).round() / 1e4,
+        mc: (mc * 1e4).round() / 1e4,
+        ic: (ic * 1e4).round() / 1e4,
+        dsc: (dsc * 1e4).round() / 1e4,
+        asc_dms: fmt_lon_dms(asc),
+        mc_dms: fmt_lon_dms(mc),
+        ic_dms: fmt_lon_dms(ic),
+        dsc_dms: fmt_lon_dms(dsc),
+        moon_phase_name: moon_phase_str(jd),
+        moon_illumination: illum_pct,
+        cx: CX,
+        cy: CY,
+        r_outer: RO,
+        r_sign_outer: RM,
+        r_sign_inner: RI,
+        r_house: RH,
+        r_planet: RP,
+        r_inner: RC,
+        planets,
+        signs,
+        houses,
+        angles,
+        aspects,
+        arabic_parts,
+        fixed_stars,
+        solar_cycle: solar_cycle_json,
+        vars: Value::Object(vars),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed natal/core chart context (ARCH-9/DP-5). Produced by
+/// `build_context` and reused (then mutated as a `Value`) by the
+/// derived/hellenistic/composite/triwheel builders. `#[derive(Serialize)]`
+/// field names are the exact JSON keys the renderers + templates read.
+#[derive(serde::Serialize)]
+struct NatalContext {
+    date: String,
+    date_label: String,
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    asc: f64,
+    mc: f64,
+    ic: f64,
+    dsc: f64,
+    asc_dms: String,
+    mc_dms: String,
+    ic_dms: String,
+    dsc_dms: String,
+    moon_phase_name: &'static str,
+    moon_illumination: f64,
+    cx: f64,
+    cy: f64,
+    r_outer: f64,
+    r_sign_outer: f64,
+    r_sign_inner: f64,
+    r_house: f64,
+    r_planet: f64,
+    r_inner: f64,
+    planets: Vec<Value>,
+    signs: Vec<Value>,
+    houses: Vec<Value>,
+    angles: Vec<Value>,
+    aspects: Vec<Value>,
+    arabic_parts: Vec<Value>,
+    fixed_stars: Vec<Value>,
+    solar_cycle: Value,
+    vars: Value,
 }
 
 fn build_planets(jd: f64, asc: f64) -> Vec<Value> {
