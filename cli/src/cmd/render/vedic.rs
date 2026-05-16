@@ -16,9 +16,10 @@ use std::collections::BTreeMap;
 use std::fmt::Write;
 
 pub fn render_north_indian_svg(ctx: &Value) -> String {
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
-    let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
+    let pal = super::svg_common::SvgPalette::from_ctx(
+        ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
+    );
+    let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
     let retro = ctx["vars"]["retro_color"].as_str().unwrap_or("#a01030");
     let _asc_c = ctx["vars"]["asc_color"].as_str().unwrap_or("#006030");
@@ -337,9 +338,10 @@ fn write_av_totals_row(s: &mut String, totals: &[Value], ty: f64, border: &str, 
 }
 
 pub fn render_ashtakavarga_svg(ctx: &Value) -> String {
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
-    let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
+    let pal = super::svg_common::SvgPalette::from_ctx(
+        ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
+    );
+    let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
     let title = ctx["vars"]
         .get("title")
@@ -456,9 +458,10 @@ pub fn build_shadbala_context(
 }
 
 pub fn render_shadbala_svg(ctx: &Value) -> String {
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
-    let border = ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
+    let pal = super::svg_common::SvgPalette::from_ctx(
+        ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
+    );
+    let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
     let title = ctx["vars"]
         .get("title")

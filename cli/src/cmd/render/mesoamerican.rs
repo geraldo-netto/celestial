@@ -63,9 +63,10 @@ pub fn build_mesoamerican_context(
 pub fn render_mesoamerican_svg(ctx: &Value) -> String {
     use std::fmt::Write;
 
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#1a0a00");
-    let gold = ctx["vars"]["border_color"].as_str().unwrap_or("#d4a800");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#f0e0c0");
+    let pal = super::svg_common::SvgPalette::from_ctx(
+        ctx, "#1a0a00", "border_color", "#d4a800", "#f0e0c0",
+    );
+    let (bg, gold, txt) = (pal.bg, pal.accent, pal.text);
     let title = ctx["vars"]
         .get("title")
         .and_then(|v| v.as_str())
@@ -85,12 +86,11 @@ pub fn render_mesoamerican_svg(ctx: &Value) -> String {
     let cr_hmonth = ctx["cr_haab_month"].as_str().unwrap_or("?");
     let sign_idx = ctx["tonal_sign_idx"].as_u64().unwrap_or(0);
 
-    let mut s = String::with_capacity(8 * 1024);
+    let mut s = super::svg_common::svg_doc_open(700, 580, bg);
+    s.reserve(8 * 1024);
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 580" width="700" height="580">
-  <rect width="700" height="580" fill="{bg}"/>
+        r##"
   <text x="350" y="28" text-anchor="middle" font-size="16" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{gold}">{title}</text>
   <text x="350" y="46" text-anchor="middle" font-size="9"
@@ -98,13 +98,14 @@ pub fn render_mesoamerican_svg(ctx: &Value) -> String {
     );
 
     // Tonalpohualli panel (left)
+    s.push_str("\n  <!-- Aztec Tonalpohualli -->");
+    super::svg_common::panel_card(
+        &mut s, 20.0, 65.0, 310.0, 130.0, gold, ".6",
+        "Tonalpohualli (Aztec 260-day)", gold,
+    );
     let _ = writeln!(
         s,
         r##"
-  <!-- Aztec Tonalpohualli -->
-  <rect x="20" y="65" width="310" height="130" rx="6" fill="none" stroke="{gold}" stroke-width="1.5" opacity=".6"/>
-  <text x="175" y="82" text-anchor="middle" font-size="11" font-weight="600"
-        fill="{gold}">Tonalpohualli (Aztec 260-day)</text>
   <text x="175" y="106" text-anchor="middle" font-size="32" font-weight="700"
         fill="{gold}">{trecena} {tonal_name}</text>
   <text x="175" y="128" text-anchor="middle" font-size="11"
@@ -117,13 +118,14 @@ pub fn render_mesoamerican_svg(ctx: &Value) -> String {
     );
 
     // Xiuhpohualli panel (right)
+    s.push_str("\n  <!-- Aztec Xiuhpohualli -->");
+    super::svg_common::panel_card(
+        &mut s, 370.0, 65.0, 310.0, 130.0, gold, ".6",
+        "Xiuhpohualli (Aztec 365-day)", gold,
+    );
     let _ = writeln!(
         s,
         r##"
-  <!-- Aztec Xiuhpohualli -->
-  <rect x="370" y="65" width="310" height="130" rx="6" fill="none" stroke="{gold}" stroke-width="1.5" opacity=".6"/>
-  <text x="525" y="82" text-anchor="middle" font-size="11" font-weight="600"
-        fill="{gold}">Xiuhpohualli (Aztec 365-day)</text>
   <text x="525" y="106" text-anchor="middle" font-size="28" font-weight="700"
         fill="{gold}">Day {xiu_day}</text>
   <text x="525" y="128" text-anchor="middle" font-size="14"
@@ -137,13 +139,14 @@ pub fn render_mesoamerican_svg(ctx: &Value) -> String {
     // Haab (Maya) panel
 
     // Calendar Round (bottom centre)
+    s.push_str("\n  <!-- Calendar Round (52-year cycle) -->");
+    super::svg_common::panel_card(
+        &mut s, 150.0, 365.0, 400.0, 80.0, gold, ".5",
+        "Calendar Round (52-year cycle)", gold,
+    );
     let _ = writeln!(
         s,
         r##"
-  <!-- Calendar Round (52-year cycle) -->
-  <rect x="150" y="365" width="400" height="80" rx="6" fill="none" stroke="{gold}" stroke-width="1.5" opacity=".5"/>
-  <text x="350" y="382" text-anchor="middle" font-size="11" font-weight="600"
-        fill="{gold}">Calendar Round (52-year cycle)</text>
   <text x="350" y="406" text-anchor="middle" font-size="18" font-weight="700"
         fill="{gold}">{cr_tre} {cr_sign} — {cr_hday} {cr_hmonth}</text>
   <text x="350" y="426" text-anchor="middle" font-size="8"

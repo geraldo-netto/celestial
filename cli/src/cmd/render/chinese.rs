@@ -233,9 +233,10 @@ fn write_bazi_elements(s: &mut String, elements: &[Value], ey: f64, txt: &str) {
 pub fn render_bazi_svg(ctx: &Value) -> String {
     use std::fmt::Write;
 
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
-    let border = ctx["vars"]["border_color"].as_str().unwrap_or("#8b0000");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#1a0a00");
+    let pal = super::svg_common::SvgPalette::from_ctx(
+        ctx, "#ffffff", "border_color", "#8b0000", "#1a0a00",
+    );
+    let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#2a1a60");
     let title = ctx["vars"]
         .get("title")

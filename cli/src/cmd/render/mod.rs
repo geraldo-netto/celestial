@@ -61,6 +61,7 @@ mod indigenous;
 mod mesoamerican;
 mod omer_grid;
 mod specialist;
+mod svg_common;
 mod vedic;
 mod western;
 

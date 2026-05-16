@@ -82,11 +82,10 @@ fn element_color(elem: &str) -> &'static str {
 
 fn write_mw_header(s: &mut String, bg: &str, green: &str, txt: &str, title: &str, date: &str) {
     use std::fmt::Write;
+    s.push_str(&super::svg_common::svg_doc_open(700, 600, bg));
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 600" width="700" height="600">
-  <rect width="700" height="600" fill="{bg}"/>
+        r##"
   <text x="350" y="26" text-anchor="middle" font-size="15" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{green}">{title}</text>
   <text x="350" y="43" text-anchor="middle" font-size="8"
@@ -182,9 +181,10 @@ fn write_mw_decan(s: &mut String, txt: &str, decan_idx: u64, decan_name: &str, d
 pub fn render_medicine_wheel_svg(ctx: &Value) -> String {
     use std::fmt::Write;
 
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#0a1a0a");
-    let green = ctx["vars"]["border_color"].as_str().unwrap_or("#a0c040");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#d0e8a0");
+    let pal = super::svg_common::SvgPalette::from_ctx(
+        ctx, "#0a1a0a", "border_color", "#a0c040", "#d0e8a0",
+    );
+    let (bg, green, txt) = (pal.bg, pal.accent, pal.text);
     let title = ctx["vars"]
         .get("title")
         .and_then(|v| v.as_str())

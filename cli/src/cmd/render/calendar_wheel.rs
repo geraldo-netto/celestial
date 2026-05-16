@@ -109,11 +109,10 @@ pub fn render_sabbat_wheel_svg(ctx: &Value) -> String {
     let mut s = String::with_capacity(4096);
 
     // Header
+    s.push_str(&super::svg_common::svg_doc_open(900, 800, bg));
     let _ = write!(
         s,
-        r#"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 800" width="900" height="800">
-  <rect width="900" height="800" fill="{bg}"/>
+        r#"
   <text x="450" y="36" text-anchor="middle" font-size="20" font-weight="600"
         font-family="Georgia,serif" fill="{txt}">{title}</text>
   <text x="450" y="58" text-anchor="middle" font-size="11"
