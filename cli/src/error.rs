@@ -52,5 +52,11 @@ impl From<&str> for CliError {
     }
 }
 
+impl From<crate::parse::ParseError> for CliError {
+    fn from(e: crate::parse::ParseError) -> Self {
+        CliError::Parse(e.to_string())
+    }
+}
+
 /// Result alias used throughout the CLI crate.
 pub type CliResult<T> = std::result::Result<T, CliError>;
