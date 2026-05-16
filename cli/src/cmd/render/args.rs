@@ -3,8 +3,70 @@
 //! Split out of the former 3.5k-line `mod.rs` god file (pure code
 //! movement; re-exported by the facade as before).
 
-use clap::Args;
+use clap::{Args, ValueEnum};
 use std::path::PathBuf;
+
+/// Calendar overlays selectable via `--calendar`. A fixed, clap-validated
+/// set (replaces the old free-form `Vec<String>`): an unknown value now
+/// fails at parse time with the valid list, instead of being silently
+/// ignored deep in the overlay code.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum CalendarKind {
+    #[value(name = "gregorian")]
+    Gregorian,
+    #[value(name = "gregorian-year", alias = "year-calendar")]
+    GregorianYear,
+    #[value(name = "omer")]
+    Omer,
+    #[value(name = "sabbats", alias = "wheel")]
+    Sabbats,
+    #[value(name = "moon", alias = "lunar")]
+    Moon,
+    #[value(name = "hebrew", alias = "jewish")]
+    Hebrew,
+}
+
+impl CalendarKind {
+    /// Primary input token (the canonical spelling `resolve_overlay`
+    /// matches on; clap maps every accepted alias to one of these).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            CalendarKind::Gregorian => "gregorian",
+            CalendarKind::GregorianYear => "gregorian-year",
+            CalendarKind::Omer => "omer",
+            CalendarKind::Sabbats => "sabbats",
+            CalendarKind::Moon => "moon",
+            CalendarKind::Hebrew => "hebrew",
+        }
+    }
+}
+
+/// clap value-parser for `--chart-type`: validates against the live
+/// `CHART_REGISTRY` aliases at parse time (the registry stays the single
+/// source of truth — no duplicated enum), so an unknown type fails
+/// immediately with the valid list instead of after argument handling.
+fn parse_chart_type(s: &str) -> Result<String, String> {
+    let key = s.trim().to_lowercase();
+    if super::registered_chart_types()
+        .split(' ')
+        .any(|a| a == key)
+    {
+        Ok(key)
+    } else {
+        Err(format!(
+            "unknown chart type `{s}`; valid: {}",
+            super::registered_chart_types()
+        ))
+    }
+}
+
+/// clap value-parser for `--hsys`: accepts a house-system name or letter
+/// (reusing the canonical CLI parser) and validates at parse time.
+fn parse_hsys_char(s: &str) -> Result<char, String> {
+    crate::parse::parse_hsys(s)
+        .map(|b| b as char)
+        .map_err(|e| e.to_string())
+}
 
 #[derive(Args, Debug, Default)]
 pub struct RenderArgs {
@@ -58,8 +120,8 @@ pub struct RenderArgs {
     /// --calendar moon` produces a natal context that ALSO carries
     /// `omer.today` and `moon.phases[]`, so a custom template can tag a
     /// natal wheel with current Omer day and full-moon dates.
-    #[arg(long = "calendar", value_name = "NAME", action = clap::ArgAction::Append)]
-    pub calendars: Vec<String>,
+    #[arg(long = "calendar", value_name = "NAME", value_enum, action = clap::ArgAction::Append)]
+    pub calendars: Vec<CalendarKind>,
 
     /// Month (1–12). Used by `--chart-type calendar`. Defaults to the month
     /// from `--date` (or the current month if `--date` is "now").
@@ -67,7 +129,7 @@ pub struct RenderArgs {
     pub month: Option<u32>,
 
     /// Chart type: natal | cosmogram | solar-return | lunar-return | progressed | solar-arc | biwheel
-    #[arg(long, default_value = "natal")]
+    #[arg(long, default_value = "natal", value_parser = parse_chart_type)]
     pub chart_type: String,
 
     /// Second date for bi-wheel (partner/transits) or natal date for return/progression charts
@@ -95,7 +157,8 @@ pub struct RenderArgs {
     pub lon2: Option<f64>,
 
     /// House system: P=Placidus K=Koch E=Equal W=WholeSign O=Porphyry …
-    #[arg(long, default_value = "P")]
+    /// (a full name like `placidus` is also accepted)
+    #[arg(long, default_value = "P", value_parser = parse_hsys_char)]
     pub hsys: char,
 
     /// Print the built-in example template to stdout. Pipe to a `.svg`

@@ -51,7 +51,7 @@ pub(crate) fn build_calendar_context(
     let month = args.month.unwrap_or(date.month as u32);
 
     // Default to all overlays if none requested explicitly.
-    let calendars = if args.calendars.is_empty() {
+    let calendars: Vec<String> = if args.calendars.is_empty() {
         vec![
             "gregorian".to_string(),
             "omer".to_string(),
@@ -59,7 +59,11 @@ pub(crate) fn build_calendar_context(
             "moon".to_string(),
         ]
     } else {
-        let mut v = args.calendars.clone();
+        let mut v: Vec<String> = args
+            .calendars
+            .iter()
+            .map(|c| c.as_str().to_string())
+            .collect();
         if !v.iter().any(|c| c == "gregorian") {
             v.insert(0, "gregorian".to_string());
         }
@@ -299,7 +303,9 @@ pub fn run(mut args: RenderArgs) -> Result<(), CliError> {
     // into the typed `ChartContext` at the render / serialize boundary.
     let mut ctx = ctx.into_value();
 
-    apply_universal_overlays(&mut ctx, jd, &args.calendars);
+    let overlay_cals: Vec<String> =
+        args.calendars.iter().map(|c| c.as_str().to_string()).collect();
+    apply_universal_overlays(&mut ctx, jd, &overlay_cals);
 
     // Expose the input timezone + local civil time to templates and the
     // built-in SVG. `date_local` falls back to the UT date when the input
