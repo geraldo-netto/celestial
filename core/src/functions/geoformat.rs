@@ -34,22 +34,13 @@ pub fn degsplit(pos: f64) -> [i32; 4] {
 }
 
 /// English name of a zodiac sign (0 = Aries … 11 = Pisces).
+///
+/// Range-checked wrapper over the canonical table in
+/// [`zodiac_sign_name`](crate::functions::chart::zodiac_sign_name).
 pub fn sign_name(sign: i32) -> Option<&'static str> {
-    match sign {
-        0 => Some("Aries"),
-        1 => Some("Taurus"),
-        2 => Some("Gemini"),
-        3 => Some("Cancer"),
-        4 => Some("Leo"),
-        5 => Some("Virgo"),
-        6 => Some("Libra"),
-        7 => Some("Scorpio"),
-        8 => Some("Sagittarius"),
-        9 => Some("Capricorn"),
-        10 => Some("Aquarius"),
-        11 => Some("Pisces"),
-        _ => None,
-    }
+    (0..=11)
+        .contains(&sign)
+        .then(|| crate::functions::chart::zodiac_sign_name(sign as u8))
 }
 
 /// Integer id for a house-system char.

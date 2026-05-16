@@ -1,6 +1,6 @@
 //! Shared argument parsers used by all subcommands.
 
-use celestial_core::body::{Body, Calendar};
+use celestial_core::body::{Body, Calendar, HouseSystem};
 use celestial_core::{jdnow, julday, revjul};
 use celestial_core::{
     CHIRON, JUPITER, MARS, MEAN_NODE, MERCURY, MOON, NEPTUNE, PLUTO, SATURN, SUN, TRUE_NODE,
@@ -253,21 +253,13 @@ pub fn parse_hsys(s: &str) -> Result<u8, String> {
     })
 }
 
-/// House system byte → display name.
+/// House system byte → display name. Delegates to the canonical table on
+/// [`celestial_core::body::HouseSystem`]; only the CLI-specific `'A'` alias
+/// for Gauquelin is handled here (core maps `'G'` only).
 pub fn hsys_name(hsys: u8) -> &'static str {
     match hsys {
-        b'P' => "Placidus",
-        b'K' => "Koch",
-        b'E' => "Equal",
-        b'W' => "Whole-Sign",
-        b'O' => "Porphyry",
-        b'R' => "Regiomontanus",
-        b'C' => "Campanus",
-        b'M' => "Morinus",
-        b'B' => "Alcabitus",
-        b'X' => "Axial Rotation",
-        b'A' | b'G' => "Gauquelin",
-        _ => "Unknown",
+        b'A' => "Gauquelin",
+        b => HouseSystem(b).name(),
     }
 }
 

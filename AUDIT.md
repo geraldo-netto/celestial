@@ -32,8 +32,6 @@ Note: many 11–15-arm `match` fns (houses dispatch, parse, esbats, main subcomm
 | bindings/{python,php}/src/lib.rs | `Position`→tuple/vec unpack ×~10/lang | ~120 LOC | one `pos_to_vec/tuple()` helper |
 | cli/src/cmd/render/{mesoamerican,chinese,indigenous,vedic,hellenistic,specialist,omer_grid,calendar_*}.rs | identical SVG preamble (xml/svg/rect/title/date) ×~17 | ~250 LOC | `svg_header(ctx,w,h)->(String,Palette)` |
 | cli/src/cmd/render/*.rs | panel-card `<rect>/<text>` blocks re-hand-written | dozens | `panel_card(s,x,y,w,h,heading,rows)` |
-| core geoformat.rs::sign_name vs chart.rs::zodiac_sign_name | 2 full sign-name lookups | 2×~15 | one canonical fn |
-| body/mod.rs + parse.rs + houses.rs + geoformat.rs | house-system name map in 4 places | 4×~13 | single source-of-truth table |
 | cli/src/cmd/{calc,moon,houses,...}.rs | `parse_date` + json/text output scaffold ×~10 | ~10–20 each | `run_with_jd` + `emit()` helper |
 | bindings */lib.rs `*_many` | verbatim copy of non-`many` sibling | ~6 pairs ×3 | generic `map_results` closure |
 
