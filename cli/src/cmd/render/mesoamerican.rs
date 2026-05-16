@@ -3,7 +3,7 @@
 use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::{calendar_round, haab, tonalpohualli, tzolkin, xiuhpohualli};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::collections::BTreeMap;
 
 pub fn build_mesoamerican_context(
@@ -33,33 +33,68 @@ pub fn build_mesoamerican_context(
         &vars,
     );
 
-    Ok(json!({
-        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
-        // Tonalpohualli (Aztec 260-day)
-        "tonal_trecena":  trecena,
-        "tonal_sign_idx": sign_idx,
-        "tonal_name":     tonal_name,
-        "tonal_english":  tonal_en,
-        // Xiuhpohualli (Aztec 365-day)
-        "xiu_month":      xiu_month,
-        "xiu_day":        xiu_day,
-        "xiu_month_name": xiu_month_name,
-        "xiu_month_en":   xiu_month_en,
-        // Tzolkin (Maya 260-day)
-        "tzol_trecena":   tzol_trecena,
-        "tzol_sign_idx":  tzol_idx,
-        "tzol_name":      tzol_name,
-        "tzol_english":   tzol_en,
-        // Haab (Maya 365-day)
-        "haab_month":     haab_month,
-        "haab_day":       haab_day,
-        "haab_month_name":haab_month_name,
-        // Calendar Round
-        "cr_trecena":     cr_trecena,
-        "cr_sign":        cr_sign,
-        "cr_haab_day":    cr_haab_day,
-        "cr_haab_month":  cr_haab_month,
-        "vars": Value::Object(palette.into_iter().collect())}))
+    // ARCH-9/DP-5: typed per-tradition context. Serializes to a JSON
+    // object byte-for-byte equivalent to the previous `json!` (field
+    // names == keys, same value types); the renderer reads by key so
+    // its SVG output is unchanged.
+    let ctx = MesoamericanContext {
+        date: date_str.to_string(),
+        jd,
+        lat,
+        lon,
+        tonal_trecena: trecena,
+        tonal_sign_idx: sign_idx,
+        tonal_name,
+        tonal_english: tonal_en,
+        xiu_month,
+        xiu_day,
+        xiu_month_name,
+        xiu_month_en,
+        tzol_trecena,
+        tzol_sign_idx: tzol_idx,
+        tzol_name,
+        tzol_english: tzol_en,
+        haab_month,
+        haab_day,
+        haab_month_name,
+        cr_trecena,
+        cr_sign,
+        cr_haab_day,
+        cr_haab_month,
+        vars: Value::Object(palette.into_iter().collect()),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed Mesoamerican chart context (ARCH-9/DP-5). `#[derive(Serialize)]`
+/// field names are the exact JSON keys the renderer reads, so
+/// `serde_json::to_value` reproduces the former `json!` object.
+#[derive(serde::Serialize)]
+struct MesoamericanContext {
+    date: String,
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    tonal_trecena: u8,
+    tonal_sign_idx: usize,
+    tonal_name: &'static str,
+    tonal_english: &'static str,
+    xiu_month: usize,
+    xiu_day: u8,
+    xiu_month_name: &'static str,
+    xiu_month_en: &'static str,
+    tzol_trecena: u8,
+    tzol_sign_idx: usize,
+    tzol_name: &'static str,
+    tzol_english: &'static str,
+    haab_month: usize,
+    haab_day: u8,
+    haab_month_name: &'static str,
+    cr_trecena: u8,
+    cr_sign: &'static str,
+    cr_haab_day: u8,
+    cr_haab_month: &'static str,
+    vars: Value,
 }
 
 pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
