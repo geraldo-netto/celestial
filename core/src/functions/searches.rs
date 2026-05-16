@@ -284,9 +284,13 @@ pub fn next_aspect_with(
     let step = 0.5_f64;
     let dir = if backward { -step } else { step };
 
+    // Scan reads only `.lon`; drop SPEED bits so each probe skips ~2 extra
+    // position evals (the scan can run 100k+ iterations).
+    let scan_flags = flags & !(CalcFlags::SPEED | CalcFlags::SPEED3);
+
     let mut diff_at = |jd: f64| -> Option<f64> {
-        let p1 = calc_ut(jd, body, flags).ok()?.lon;
-        let p2 = calc_ut(jd, other, flags).ok()?.lon;
+        let p1 = calc_ut(jd, body, scan_flags).ok()?.lon;
+        let p2 = calc_ut(jd, other, scan_flags).ok()?.lon;
         Some(diff_deg_signed(p1 + aspect, p2))
     };
 
@@ -382,8 +386,11 @@ pub fn next_aspect_cusp(
     let step = 0.05_f64;
     let dir = if backward { -step } else { step };
 
+    // Scan reads only `.lon`; drop SPEED bits (see `next_aspect_with`).
+    let scan_flags = flags & !(CalcFlags::SPEED | CalcFlags::SPEED3);
+
     let mut diff_at = |jd: f64| -> Option<f64> {
-        let p = calc_ut(jd, body, flags).ok()?.lon;
+        let p = calc_ut(jd, body, scan_flags).ok()?.lon;
         let hr = houses(jd, lat, lon, hsys).ok()?;
         Some(diff_deg_signed(p + aspect, hr.cusps[cusp]))
     };
@@ -451,6 +458,8 @@ pub fn next_aspect_cusp2(
 /// An "astrological year" = one solar revolution.
 pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
     use crate::functions::calc::calc_ut;
+    // Only `.lon` is used — no need to compute solar speed.
+    let flags = flags & !(CalcFlags::SPEED | CalcFlags::SPEED3);
     let sun1 = calc_ut(jd1, Body::SUN, flags)?.lon;
     let sun2 = calc_ut(jd2, Body::SUN, flags)?.lon;
     let mut years = 0.0_f64;

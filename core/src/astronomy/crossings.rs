@@ -164,8 +164,13 @@ pub fn find_crossing(
     let step = crossing_step(body);
     let dir = if forward { 1.0 } else { -1.0 };
 
+    // The bracket/refine scan only reads `pos.lon`; computing speed (the
+    // SPEED/SPEED3 bits, set by the DEFAULT flag set) would do ~2 extra
+    // full position evaluations per probe over potentially 100k+ probes.
+    let scan_flags = flags & !(crate::constants::FLG_SPEED | crate::constants::FLG_SPEED3);
+
     let lon_at = |jd: f64| -> Option<f64> {
-        let pos = calc_ut(jd, body, flags).ok()?;
+        let pos = calc_ut(jd, body, scan_flags).ok()?;
         Some(pos.lon)
     };
 
@@ -304,8 +309,11 @@ pub(crate) fn find_crossing_window(
     };
     let dir = if forward { 1.0 } else { -1.0 };
 
+    // Scan reads only `pos.lon`; drop the SPEED bits (see `find_crossing`).
+    let scan_flags = flags & !(crate::constants::FLG_SPEED | crate::constants::FLG_SPEED3);
+
     let lon_at = |jd: f64| -> Option<f64> {
-        let pos = calc_ut(jd, body, flags).ok()?;
+        let pos = calc_ut(jd, body, scan_flags).ok()?;
         Some(pos.lon)
     };
     let diff = |lon: f64| -> f64 { (x2cross - lon + 540.0).rem_euclid(360.0) - 180.0 };
