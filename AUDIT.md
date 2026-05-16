@@ -1,106 +1,101 @@
 # Celestial — Code Audit
 
-Date: 2026-05-16 · Scope: Rust workspace (`core/`, `cli/`, `bindings/`, `xtask/`, `benches/`, `fuzz/`) — 143 files, ~68.5k LOC. One table per category; `status` column carries resolution where work has been done.
+Date: 2026-05-16 · Rescan: 2026-05-16 (post architecture/perf refactor, develop @ 8e0b071). One table per category; first column is a stable ID; `status` carries resolution where work has been done.
 
 ---
 
-## 1. Cyclomatic complexity > 10 — severity: MODERATE
+## 1. Cyclomatic complexity
 
-| file:line | fn | est. CC | why |
-|---|---|---|---|
-| cli/src/cmd/render/mod.rs:1517 | `run` | ~22 | many `?`, nested if/else for tz/date branches, 4 early-return flags |
-| cli/src/cmd/render/context.rs:534 | `compute_aspects` | ~16 | triple-nested loop (n×n×ASPECT_DEFS) + ASC/MC guard + orb check |
-| core/src/functions/chart.rs:256 | `retrograde_station_ut` | ~15 | scan loop + sign-change branch + 4 state guards + 3-arm result match |
-| core/src/functions/searches.rs:452 | `years_diff` | ~13 | mirrored fwd/back loops, inner break conds |
-| cli/src/cmd/render/calendar_overlays.rs:508 | `render_day_cell` | ~12 | 9 overlay branches (lag/sabbat/moon/omer badges) |
-| core/src/functions/searches.rs:756 | `lower_meridian_transit_ut` | ~11 | closure + scan while-loop + dual cond |
-| cli/src/cmd/render/calendar_overlays.rs:673 | `render_default_calendar_svg` | ~11 | week/day loops + conditional SVG sections |
-| cli/src/cmd/render/vedic.rs:18 | `render_north_indian_svg` | ~11 | 4 loops + if branches (12-house diamond) |
-| cli/src/cmd/render/vedic.rs:747 | `render_dasha_svg` | ~11 | 3 nested loops + conditional rows |
-| cli/src/cmd/render/specialist.rs:* | `build_*_context` (dial/composite/triwheel/graphic_ephemeris) | ~10–12 | optional-field if-let chains + loops |
+| id | file:line | fn | est. CC | status |
+|---|---|---|---|---|
+| CX-0 | — | — | — | RESOLVED — no function in the workspace exceeds CC 10. The prior offenders (`render::run` ~22, `compute_aspects` ~16, `retrograde_station_ut` ~15, `years_diff` ~13, the calendar/vedic renderers) were broken up by the render split + helper extraction; current peak is ~6–7 (`searches::years_diff`, `pipeline::run`). |
 
-Note: many 11–15-arm `match` fns (houses dispatch, parse, esbats, main subcommand) are flat lookup tables — high arm count, low real path risk. No outliers > ~25.
+Note: many 11–15-arm `match` fns (houses/parse/registry dispatch) remain flat lookup tables — high arm count, no real path-risk; intentionally excluded.
 
 ---
 
-## 2. Code duplication — severity: MODERATE-HIGH
+## 2. Code duplication
 
-| location(s) | duplicated | size | status |
-|---|---|---|---|
-| bindings/{python,php,js}/src/lib.rs | ~201-fn FFI surface hand-mirrored 3× | ~7.7k LOC | OPEN — code-gen all 3 from one API spec/macro (deferred: major architecture change, no-precision-loss rule) |
-| cli/src/cmd/render/* | SVG preamble + panel-card blocks | ~250 LOC | DONE — `svg_common::{svg_doc_open,SvgPalette,panel_card}` (commit d488454) |
-| core/cli sign-name / house-system lookups | repeated match tables | small | DONE — deduped (commit 6f5b780) |
-| bindings js/php `PlanetPos` unpack | repeated field unpack | small | DONE — deduped (commit 21e2a31) |
-| cli/src/cmd/{calc,houses,…}.rs | `parse_date`+emit scaffold ×~15 | ~10–20 each | DROPPED — only shared code is the already-shared `parse::parse_date` one-liner + a 2-line `println!(json…); Ok(())` tail; JSON bodies are per-command, 9/15 cmds have 2–12 divergent branches. `run_with_jd`/`emit` would be a leaky wrapper. |
-| bindings */lib.rs `*_many` | non-`many` sibling | 6 fns total | DROPPED — napi/pyo3/php macro + error-pipeline divergence makes a generic `map_results` impractical; per-lang extraction saves ~3 lines, adds indirection. |
+| id | location(s) | duplicated | size | status |
+|---|---|---|---|---|
+| DUP-1 | bindings/{js,python,php}/src/lib.rs | ~201 per-export macro stubs hand-mirrored ×3 | ~6k LOC | OPEN (structural) — napi/pyo3/php proc-macros + native return shapes can't be unified by a plain crate; only a codegen/macro from one spec would remove it (see DP-4) |
+| DUP-2 | bindings/{js,python,php} eclipse exports | ~15 eclipse stubs ×3 (sol/lun_eclipse_when*, _how, _where) | ~450 LOC | OPEN — per-lang result marshalling differs; codegen candidate |
+| DUP-3 | bindings/{js,python,php} houses exports | `houses`/`houses_ex`/`houses_ex2` ×3 | ~90 LOC | OPEN — codegen candidate |
+| DUP-4 | bindings/{js,python,php} `revjul`/`revjul_hms` | same call, 3 inconsistent return shapes (CalDate / tuple / map) | ~24 LOC | OPEN — normalize shape in `celestial-ffi`, then thin per-lang |
+| DUP-5 | cli/src/cmd/render/{calendar_wheel,indigenous,mesoamerican}.rs | wheel CX/CY/R geometry + palette-fetch + `json!()` preamble per tradition | ~180 LOC | LOW — partly intentional (per-tradition layout); a shared coords/palette helper would still cut ~half |
 
-Core logic largely well-factored; remaining duplication concentrated in the tri-lingual FFI surface.
+Resolved since last audit: SVG preamble/panel-card (`svg_common`, d488454), sign/house-name lookups (6f5b780), PlanetPos unpack (21e2a31), the 3 error shims → `FfiError` + `pos6` (`celestial-ffi`, 8fbed69), CLI `Result<_,String>` → `CliError` (94e0598), parse scaffolding (7bfa598), render god-file split (b4262f9).
 
 ---
 
 ## 3. Performance
 
-| file:line | issue | impact | status |
-|---|---|---|---|
-| core/src/functions/moon_phases.rs:162-178 | `bisect_phase` Newton via per-iter finite-diff (4 calc_ut ×15) | hot | DONE — analytic mean elongation rate (≈12.19°/day); root unchanged (commit 5a79aa3) |
-| core/src/functions/moon_phases.rs:181 | post-loop recomputes elongation already known | warm | DONE — single post-loop eval reused for value + residual (commit 5a79aa3) |
-| cli/src/cmd/chart.rs:389-462 | `push_str(&format!())` in 360°/sign/cusp/aspect loops | warm | DONE — `write!` directly into buffer (commit 5a79aa3) |
-| core/src/astronomy/planetary.rs:36-63 | `apparent_planet` heliocentric evals ×3 under SPEED scans | hot | DONE — strip SPEED flag in scan loops (commit f4b1203) |
-| core/src/astronomy/engine.rs:74,268 | `compute_speed` central-difference ±0.5 d | hot | WONTFIX — "reuse central" = forward/backward diff (O(h) vs O(h²)), reduces speed precision; central diff is already the minimal 2-eval 2nd-order form |
+| id | file:line | issue | impact | status |
+|---|---|---|---|---|
+| PERF-1 | core/src/astronomy/engine.rs:161 | heliocentric-speed path evaluates the full VSOP series 3× (jde, jde±0.5) when `FLG_SPEED` set on a heliocentric calc | HOT | OPEN — analytic d/dt VSOP, or reuse the central eval for a 1-day diff |
+| PERF-2 | core/src/functions/searches.rs:316-318 | `next_aspect_with` recomputes `calc_ut(jd_ret, SPEED)` after the bisection already converged via `diff_at` | WARM | OPEN — stash the final bisection eval |
+| PERF-3 | core/src/functions/searches.rs:411-412 | `next_aspect_cusp` re-runs `calc_ut` + `houses()` after convergence (already computed inside the last `diff_at`) | WARM | OPEN — reuse converged result |
+| PERF-4 | core/src/functions/searches.rs:149 | `bisect_retro_station` recomputes `pos_at` after the loop; the converged midpoint already holds `speed_lon` | WARM | OPEN — return the converged sample |
+| PERF-5 | core/src/functions/searches.rs:340-354 | `next_aspect_with2` runs two independent ±aspect scan loops over the same JD range from `jd_start` | WARM | OPEN — merge into one multi-target scan |
+| PERF-6 | core/src/astronomy/engine.rs:74,268 | `compute_speed` central-difference ±0.5 d | HOT | WONTFIX — forward/back diff would reduce precision; central diff already minimal 2-eval 2nd-order |
 
-Verification: `calc` + all four next-phase outputs byte-identical before/after for the 1986-05-30 09:00 UT PDF reference chart and the Princess Diana 1961-07-01 18:45 UT chart; full workspace test suite green.
+Resolved since last audit: analytic moon-phase derivative + single elongation reuse (5a79aa3), `chart.rs` `write!` buffers (5a79aa3), SPEED-flag strip in scan loops (f4b1203). Verified across all phases: `calc` + moon phases + vedic/meso/bazi SVG byte-identical to the 1986-05-30 PDF reference and Diana 1961-07-01 charts.
 
 ---
 
-## 4. Security — severity: MODERATE (memory-safe, no `unsafe`, FFI clean)
+## 4. Security — MODERATE (memory-safe, no `unsafe`, FFI clean, no shell exec)
 
-| severity | file:line | issue | fix |
-|---|---|---|---|
-| HIGH | cli/src/cmd/render/builtin_svg.rs:180 | `--var title`/TOML `[vars]` raw into SVG `<text>` | XML-escape all `vars` values |
-| HIGH | cli/src/cmd/render/builtin_svg.rs:178-180 | palette strings raw into SVG attrs (attr breakout) | XML-attr-escape palette |
-| HIGH | cli/src/cmd/chart.rs:567 | `--name` verbatim into `<text>` | XML-escape `name` |
-| MEDIUM | cli/Cargo.toml `toml = "=0.4.10"` | 2019 unmaintained TOML parser on untrusted `--config` | upgrade to `toml` 0.8.x |
-| MEDIUM | cli/src/cmd/chart.rs:719 / render mod.rs:939 | `--out`/config `out=` no traversal/abs-path check → arbitrary write | reject `..`/abs or confine to base dir |
-| MEDIUM | cli/src/cmd/render/mod.rs:911-923 | MiniJinja env no fuel/recursion sandbox on `--template` → DoS | set fuel limit, strict undefined |
-| MEDIUM | cli/src/cmd/render/builtin_svg.rs:664 | `&aname[..len.min(4)]` non-char-boundary slice → panic | char-aware truncation |
-| LOW | cli/src/parse.rs:108 | fragile `offsets[0]` (safe by arm order) | assert/restructure arm |
-| LOW | core/src/.../time.rs:61-104 | unbounded `f64→i64 as` saturates silently | checked/clamped cast |
-| LOW | fuzz/src/main.rs:52 | `% (hi-lo)` panics if hi==lo (test-only) | guard hi==lo |
+| id | severity | file:line | issue | fix |
+|---|---|---|---|---|
+| SEC-1 | HIGH | cli/src/cmd/render/builtin_svg.rs:181 | `--var title=` / TOML `[vars]` written raw into SVG `<text>` → markup injection | XML-escape all `vars` text values |
+| SEC-2 | HIGH | cli/src/cmd/chart.rs:582 | `--name` written verbatim into SVG `<text>` | XML-escape `name` |
+| SEC-3 | HIGH | cli/src/cmd/render/builtin_svg.rs:663-665 | `&b1[..len.min(3)]` slices on non-char-boundary → panic on multibyte body label | `chars().take(3).collect()` |
+| SEC-4 | HIGH | cli/Cargo.toml:27 | `toml = "=0.4.10"` (2019, unmaintained) parsing untrusted `--config` | upgrade to `toml` 0.8.x |
+| SEC-5 | MED | cli/src/cmd/render/pipeline.rs:230-241 | `--out`/config `out=` no traversal/abs-path check → arbitrary write | reject `..`/abs or confine to base dir |
+| SEC-6 | MED | cli/src/cmd/render/pipeline.rs:215-224 | MiniJinja env: no fuel/recursion limit on `--template` → DoS | `set_fuel`/call-stack limit, strict undefined |
+| SEC-7 | MED | cli/src/parse.rs:169 | `offsets[0]` assumes non-empty after the tz match | guard `offsets.is_empty()` |
+| SEC-8 | LOW | core/src/functions/time.rs:92-103 | unbounded `f64 → i64 as` saturates silently on extreme JD | checked/`TryFrom` cast |
 
-Notes: no `unsafe` in core/cli/bindings; FFI (napi/pyo3/ext-php-rs) clean; no command injection in plugin.rs (PATH exec, no shell); untrusted CLI parsing uses checked `parse()`.
+Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `plugin.rs` execs via arg array (no shell). Code moved (render split) but every prior HIGH/MED is still present at the new locations above.
 
 ---
 
 ## 5. Architecture
 
-| area | problem | improvement | status |
-|---|---|---|---|
-| CLI error handling | all `Result<_,String>` + `.map_err(e.to_string())`, loses typed core::Error | one `thiserror CliError` (`Parse/Config/Compute(#[from])/Io`); String only at `main` | DONE — commit 94e0598 |
-| parse.rs | `parse_date/tz/body/hsys/sid_mode` → `Result<_,String>`, no shared error | `TryFrom`/`FromStr` on newtypes + one `ParseError` | DONE — commit 7bfa598 |
-| core domain vs functions/ | `moon.rs`/`houses.rs` are `pub use functions::*` shims; impl is `pub(crate)` | collapse shims or document `functions/` as canonical private layer | DONE — documented facade/private contract, commit 6acfe12 |
-| core/src/lib.rs | 23 glob `pub use *::*` flatten whole API surface | curate explicit re-exports; lean on `prelude` | DEFERRED — root globs are load-bearing for core's own internals (precision compute files use `crate::calc_ut` etc); faithful de-glob = exhaustive ~280-symbol mirror over the precision path for cleanliness-only gain. Own isolated effort. |
-| cli/src/cmd/render/mod.rs (3541 LOC) | god file: args, config, tz, 28 dispatch wrappers, registry, template, schema, tests | split into `args.rs`/`config.rs`/`pipeline.rs`/`registry.rs`; thin facade | DONE — 4 concern modules + facade, mod.rs 3543→2415, commit b4262f9 |
-| context build vs render | `dispatch_*` returns `(serde_json::Value, fn)`; schema implicit, test-enforced only | typed `ChartContext`; serialize to JSON only at template boundary | DONE (bounded) — `ChartContext` newtype at the dispatch boundary; full per-tradition typed model left as larger follow-on, commit 40a5c49 |
-| bindings js/python/php | 3×~2.5k LOC mirror same ~150 fns + per-lang error shims | extract `celestial-ffi` facade crate; bindings = thin marshalling | DONE (bounded) — `celestial-ffi` crate: shared seam + `FfiError` + `pos6`; per-lang macro stubs inherently can't be shared, commit 8fbed69 |
-| testability | `run()` does IO inline; logic only via full CLI path | `build_output(args)->Result<String,CliError>` pure; IO stays in `run` | OPEN — not in the 7-item batch |
+| id | area | problem | improvement | status |
+|---|---|---|---|---|
+| ARCH-1 | CLI error handling | `Result<_,String>` everywhere | one `thiserror CliError` | DONE — 94e0598 |
+| ARCH-2 | parse.rs | ad-hoc `Result<_,String>` parsers | `FromStr` newtypes + one `ParseError` | DONE — 7bfa598 |
+| ARCH-3 | core domain vs functions/ | shim/impl layer ambiguity | document facade/private contract | DONE — 6acfe12 |
+| ARCH-4 | cli render god-file | 3543-line `mod.rs` | split args/config/registry/pipeline | DONE — b4262f9 (mod.rs → ~2415) |
+| ARCH-5 | context build vs render | bare `(Value, fn)` tuple | typed `ChartContext` | DONE (bounded) — boundary newtype, 40a5c49 |
+| ARCH-6 | bindings shared seam | 3 hand-rolled error/marshal shims | `celestial-ffi` facade | DONE (bounded) — 8fbed69 |
+| ARCH-7 | core/src/lib.rs | 12 crate-root `pub use mod::*` globs flatten whole surface | curate explicit re-exports | DEFERRED — load-bearing for core internals (precision compute uses `crate::calc_ut` etc); faithful de-glob ≈ exhaustive ~280-symbol mirror over the precision path. Own isolated effort |
+| ARCH-8 | cli/src/cmd/render/mod.rs (~2415 LOC) | residual bulk: ~80 test fns + geometry/format/const/dignity helpers still inline | move geometry→`wheel.rs`, format→`format.rs`, tables→`const.rs`, dignity→`dignity.rs`; tests stay | OPEN |
+| ARCH-9 | per-tradition context typing | `ChartContext` typed only at the dispatch boundary; the 21 builders still compose raw `serde_json::Value` | per-tradition typed structs (`NatalContext`, `VedicContext`, …) impl `Serialize`+`Deref` | OPEN — the larger half of ARCH-5 |
+| ARCH-10 | bindings 201×3 stubs | no codegen; every export hand-written per language | generate all 3 from one signature spec / macro (see DP-4) | OPEN |
+| ARCH-11 | testability | `pipeline::run` does IO + dispatch inline | extract pure `compute(&RenderArgs)->Result<String,CliError>`; `run` wraps IO | OPEN — not in the original 7-item batch |
 
 ---
 
 ## 6. Design pattern opportunities
 
-| location | current | pattern | payoff |
-|---|---|---|---|
-| `CHART_REGISTRY` + 28 `dispatch_*` | hand-written near-identical wrappers | Strategy trait or declarative macro from `(aliases,title,build,render)` | −~400 LOC; new type = 1 row |
-| `jd/lat/lon: f64`, `offset/24.0`, `hsys: u8` positional | primitive obsession; unguarded arithmetic | newtypes `JulianDay`/`Degrees`/`UtcOffset`/`HouseSystem` | compiler-enforced units; tz/JD becomes method |
-| parse.rs `parse_*` | ad-hoc `fn(&str)->Result<_,String>` | `FromStr`/`TryFrom` for newtypes | composes with clap `value_parser`, one error type |
-| `dispatch_*` arg threading (`jd,&args,&vars` ×28) | long positional rebuilt per wrapper | `ChartContextBuilder` | one construction path |
-| `fn(&Value)->String` + JSON traversal | stringly-typed every renderer | typed `ChartContext` + serde (+Visitor for overlays) | schema compile-checked; `context_schema.txt` generated |
-| core `Error` (5 legacy String variants) | `Calc(String)` catch-alls dominate | finish structured-variant migration + thiserror | programmatic error handling in bindings |
-| `to_napi`/`to_py`/`to_php` shims | same conversion ×3 | `From<core::Error>` in shared ffi crate | one site, consistent messages |
+| id | location | current | pattern | payoff |
+|---|---|---|---|---|
+| DP-1 | render/registry.rs:22-434 | `CHART_REGISTRY` + 28 near-identical `dispatch_*`; O(n) alias `.find()` | `trait ChartBuilder` impls or declarative macro from `(aliases,title,build,render)` | −~400 LOC; new type = 1 row; per-type metadata |
+| DP-2 | core `PlanetPos`, `jd/lat/lon: f64`, `hsys: u8` | primitive obsession; units stringly-documented | newtypes `JulianDay`/`Latitude`/`Longitude`/`HouseSystem` (in `celestial-ffi`) | compile-checked units across CLI + bindings |
+| DP-3 | cli/src/cmd/render/args.rs | `chart_type: String`, `calendars: Vec<String>`, `hsys: char` parsed at runtime | clap `#[derive(ValueEnum)]` enums | invalid `--chart-type` fails at parse, help lists valid values |
+| DP-4 | bindings/{js,python,php}/src/lib.rs | 201×3 stubs + per-lang `PlanetPos`/error shim | codegen/macro `#[export(shape,langs)]` over `celestial-ffi` | ~3k LOC culled; one signature per export (realizes ARCH-10, DUP-1/2/3) |
+| DP-5 | render/context.rs:31-613 + tradition builders | `json!({...})` + `p["k"].as_f64().unwrap_or(0.0)` everywhere | typed builder structs + `ContextError` | template-field typos & missing data caught before render (realizes ARCH-9) |
+| DP-6 | render/builtin_svg.rs + tradition renderers | hand-rolled SVG `push_str`/`write!` strings, untyped `vars[...]` | MiniJinja templates + parsed `Palette` struct | ~500 LOC → templates; per-tradition theming; checked at build |
 
 ---
 
 ## Recommended order
 
-1. **HIGH security** — XML-escape user-controlled SVG values (small, urgent).
-2. **Architecture** — split `render/mod.rs` + introduce `CliError`; unlocks registry-as-Strategy, typed `ChartContext`, testable `build_output` seam.
+1. **SEC-1..4 (HIGH)** — XML-escape user SVG values + char-boundary fix + `toml` upgrade. Small, contained, urgent.
+2. **PERF-1** — heliocentric-speed VSOP triple-eval (only remaining HOT, big win, precision-safe via analytic derivative or central reuse).
+3. **ARCH-8 / ARCH-11** — finish the render decomposition (helpers out, pure `compute` seam); cheap, unlocks testing.
+4. **DP-4 / ARCH-10** — binding codegen: the single largest LOC reduction left (~3k), removes DUP-1/2/3.
+5. **ARCH-9 / DP-5** — per-tradition typed contexts (the larger half of the ChartContext work).
+6. **ARCH-7** — lib.rs de-glob, as its own isolated effort with a dedicated precision soak.
