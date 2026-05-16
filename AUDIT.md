@@ -38,20 +38,19 @@ Precision invariant for any fix here: `calc` + moon phases + vedic/meso/bazi SVG
 
 ---
 
-## 4. Security — MODERATE (memory-safe, no `unsafe`, FFI clean, no shell exec)
+## 4. Security — clean (memory-safe, no `unsafe`, FFI sound, no shell exec)
 
-| id | severity | file:line | issue | fix |
-|---|---|---|---|---|
-| SEC-1 | HIGH | cli/src/cmd/render/builtin_svg.rs:181 | `--var title=` / TOML `[vars]` written raw into SVG `<text>` → markup injection | XML-escape all `vars` text values |
-| SEC-2 | HIGH | cli/src/cmd/chart.rs:582 | `--name` written verbatim into SVG `<text>` | XML-escape `name` |
-| SEC-3 | HIGH | cli/src/cmd/render/builtin_svg.rs:663-665 | `&b1[..len.min(3)]` slices on non-char-boundary → panic on multibyte body label | `chars().take(3).collect()` |
-| SEC-4 | HIGH | cli/Cargo.toml:27 | `toml = "=0.4.10"` (2019, unmaintained) parsing untrusted `--config` | upgrade to `toml` 0.8.x |
-| SEC-5 | MED | cli/src/cmd/render/pipeline.rs:230-241 | `--out`/config `out=` no traversal/abs-path check → arbitrary write | reject `..`/abs or confine to base dir |
-| SEC-6 | MED | cli/src/cmd/render/pipeline.rs:215-224 | MiniJinja env: no fuel/recursion limit on `--template` → DoS | `set_fuel`/call-stack limit, strict undefined |
-| SEC-7 | MED | cli/src/parse.rs:169 | `offsets[0]` assumes non-empty after the tz match | guard `offsets.is_empty()` |
-| SEC-8 | LOW | core/src/functions/time.rs:92-103 | unbounded `f64 → i64 as` saturates silently on extreme JD | checked/`TryFrom` cast |
+All previously-flagged items resolved — nothing open:
 
-Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `plugin.rs` execs via arg array (no shell).
+- SEC-1/2 (HIGH) — `format::xml_escape` on title/palette (builtin_svg) and `--name` (chart). `0d15c20`
+- SEC-3 (HIGH) — UTF-8-safe `trunc_chars` replaces byte slices. `0d15c20`
+- SEC-4 (HIGH) — `toml` 0.4.10 → 0.8.23. `f710c34`
+- SEC-5 (MED) — config-supplied `out` confined to relative-no-`..`; CLI `--out` unrestricted. `d014909`
+- SEC-6 (MED) — MiniJinja `fuel` cap (50M) on `--template`; recursion default-bounded. `0ce4060`
+- SEC-7 (MED) — `offsets.first()` guard (was latent index panic). `95fa795`
+- SEC-8 (LOW) — `day_of_week` non-finite/absurd-jd sentinel guard (matches `revjul`). `fbd486c`
+
+Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `plugin.rs` execs via arg array (no shell). Re-verify on each rescan; do not re-flag the resolved items.
 
 ---
 
@@ -108,6 +107,7 @@ branch coverage is the main test-debt item; the engine itself is solid.
 
 ## Recommended order
 
-1. **SEC-1..4 (HIGH)** — XML-escape user SVG values + char-boundary fix + `toml` upgrade. Small, contained, urgent.
-2. **Test debt** — cover the 0% CLI `run()` wrappers with in-process tests (now feasible via the `compute()` seam) + raise `searches.rs` branch coverage; consider a CI coverage floor.
-3. **Deferred isolated efforts (own session + precision soak each):** ARCH-7 lib.rs de-glob · ARCH-8 render helper single-span moves · ARCH-10/DP-4 binding codegen · DP-2 unit newtypes · DP-6 SVG templates · PERF-1 analytic VSOP derivative.
+1. **Test debt** — cover the 0% CLI `run()` wrappers with in-process tests (now feasible via the `compute()` seam) + raise `searches.rs` branch coverage; consider a CI coverage floor.
+2. **Deferred isolated efforts (own session + precision soak each):** ARCH-7 lib.rs de-glob · ARCH-8 render helper single-span moves · ARCH-10/DP-4 binding codegen · DP-2 unit newtypes · DP-6 SVG templates · PERF-1 analytic VSOP derivative.
+
+(All §4 security items are resolved; §1 complexity clean; §2/§3/§5/§6 hold only deferred/decided decisions.)
