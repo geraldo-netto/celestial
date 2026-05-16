@@ -64,9 +64,6 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 | ARCH-7 | core/src/lib.rs | 12 crate-root `pub use mod::*` globs flatten whole surface | curate explicit re-exports | DEFERRED — load-bearing for core internals (precision compute uses `crate::calc_ut` etc); faithful de-glob ≈ exhaustive ~280-symbol mirror over the precision path. Own isolated effort |
 | ARCH-8 | cli/src/cmd/render/mod.rs (~2415 LOC) | residual bulk: ~80 test fns + geometry/format/const/dignity helpers still inline | move geometry→`wheel.rs`, format→`format.rs`, tables→`const.rs`, dignity→`dignity.rs`; tests stay | DEFERRED — post-Phase-5 mod.rs is already a facade; the bulk is the test module. Safe extraction is many single-span-per-commit moves (a bulk multi-span pass corrupts line math); low architectural payoff vs risk to the precision-verified tree. Isolated effort. `dignity.rs` single-span move verified trivial — the viable unit of work |
 | ARCH-10 | bindings 201×3 stubs | no codegen; every export hand-written per language | generate all 3 from one signature spec / macro (see DP-4) | DEFERRED — stubs are heterogeneous (arg counts, `()` / `PyResult<()>` / `PyResult<PyObject>` returns, pyo3/napi/php attributes + per-module registration all differ); a macro needs ≈ per-fn arms (DP-1 dynamic) and the only real fix is a spec-driven codegen framework over 3 *published* bindings on the precision compute path — disproportionate to do atomically/verifiably; the spec table still enumerates all 201. Error shims already unified via `FfiError` (8fbed69). Own isolated effort with a dedicated binding-test soak |
-| ARCH-11 | testability | `pipeline::run` does IO + dispatch inline (`std::fs` at pipeline.rs:217/241/245) | extract pure `compute(&RenderArgs)->Result<String,CliError>`; `run` wraps IO | OPEN |
-| ARCH-12 | bindings/{js,python,php}/Cargo.toml | each binding dual-depends on **both** `celestial-core` and `celestial-ffi`; the ffi seam re-exports core but is not the sole dependency, and feature flags are threaded to both | depend only on `celestial-ffi` (re-exports the core API); define `timezone`/`calendar-traditions` once in ffi and propagate inward | OPEN — completes the Phase-7 facade intent |
-| ARCH-13 | cli/src/cmd/render/args.rs | `RenderArgs` not range-validated before dispatch (lat∉[-90,90] / lon∉[-180,180] reach core unchecked) | `impl RenderArgs { fn validate(&self) }` called at the top of `pipeline::run` | OPEN — small; pairs with ARCH-11 |
 
 ---
 
@@ -79,9 +76,6 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 | DP-4 | bindings/{js,python,php}/src/lib.rs | 201×3 stubs + per-lang `PlanetPos`/error shim | codegen/macro `#[export(shape,langs)]` over `celestial-ffi` | DEFERRED with ARCH-10 (same item) — partial single-family macro is net-negative (DP-1 dynamic); only a full spec-driven codegen realizes it. Error-shim half already done via `FfiError` |
 | DP-6 | render/builtin_svg.rs + tradition renderers | hand-rolled SVG `push_str`/`write!` strings, untyped `vars[...]` | MiniJinja templates + parsed `Palette` struct | DEFERRED / partly done — the template-engine half **conflicts with the mandated byte-identical-vs-PDF/Diana precision gate**: moving renderers to `.tt` changes whitespace/attribute layout, so it cannot be done while the precision invariant holds (mutually exclusive — would need the gate relaxed). The `Palette` half is substantially realized via `svg_common::SvgPalette` (bg/accent/text trio, used by the vedic/etc renderers, commit d488454); the remaining ad-hoc `vars[...]` reads are per-renderer-distinct colour sets (omer 6 keys, specialist 12, …) — not shared duplication, so a generic getter is lateral (DP-1 dynamic) |
 | DP-7 | core/src/functions/aspects.rs:119-270 | `match_aspect{,_2,_3,_4}` overloads | parametric `OrbSpec` struct + one core matcher; variants become adapters | removes the DUP-6 redundant math; precision-sensitive (byte-verify aspect output) |
-| DP-8 | core/src/functions/motion.rs:102-107 | `event_type: i32` + `(bool,bool,bool)` tuple matching | `#[repr(u8)] enum RiseSetEvent { Rise, Transit, Set }` | type-safe event dispatch; invalid combinations unrepresentable |
-| DP-9 | core/src/functions/config.rs:8-15 | hand-rolled `thread_local! { Cell }` per setting (`SID_MODE`/`TOPO_POS`/`DELTA_T_USERDEF`) | a small typed config-registry abstraction | adding a setting stops repeating thread-local boilerplate; one audit surface |
-| DP-10 | cli/src/i18n.rs:66-90 | `Lang::from_locale` hardcoded prefix `match` arms | const `(prefix, Lang)` table + lookup | new language = one table row, no match edit |
 | DP-11 | cli/src/cmd/{calc,moon,houses,chart}.rs | per-command ad-hoc `Row` struct + json/text branch | `OutputFormatter<T: Serialize>` (`.table()`/`.json()`) | re-examined earlier as leaky; revisit only if a 4th+ command needs it — currently borderline, not net-positive |
 
 ---
@@ -89,9 +83,6 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 ## Recommended order
 
 1. **SEC-1..4 (HIGH)** — XML-escape user SVG values + char-boundary fix + `toml` upgrade. Small, contained, urgent.
-2. **PERF-1 analytic derivative** — only as its own precision-soak effort (reuse-central is a precision loss; regression-locked).
-3. **DUP-6 / DP-7** — collapse the four `match_aspect` overloads to one parametric matcher (~60 LOC, HIGH; byte-verify aspect output).
-4. **ARCH-11 + ARCH-13** — pure `compute()` seam + `RenderArgs::validate`; cheap, unlocks render-logic testing.
-5. **ARCH-12** — bindings depend only on `celestial-ffi` (finish the Phase-7 facade).
-6. **DUP-7 / ARCH-13 / DP-8 / DP-10 / DP-9** — bounded, byte-safe cleanups (palette+title helper, event enum, locale table, config registry).
-8. **Deferred isolated efforts (own session + precision soak each):** ARCH-7 lib.rs de-glob · ARCH-8 render helper single-span moves · ARCH-10/DP-4 binding codegen · DP-2 unit newtypes · DP-6 SVG templates.
+2. **DUP-6 / DP-7** — collapse the four `match_aspect` overloads to one parametric matcher (~60 LOC, HIGH; byte-verify aspect output).
+3. **DUP-7** — `palette!(vars, title, [(k,d)…])` helper across the ~10 render builders (bounded, byte-identical).
+4. **Deferred isolated efforts (own session + precision soak each):** ARCH-7 lib.rs de-glob · ARCH-8 render helper single-span moves · ARCH-10/DP-4 binding codegen · DP-2 unit newtypes · DP-6 SVG templates · PERF-1 analytic VSOP derivative.
