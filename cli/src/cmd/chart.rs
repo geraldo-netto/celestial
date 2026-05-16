@@ -1,6 +1,7 @@
 //! `celestial chart` — full astrological chart with JSON and SVG output.
 #![allow(clippy::needless_range_loop)]
 
+use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::{Body, CalcFlags, HouseSystem};
 use celestial_core::{
@@ -111,9 +112,9 @@ fn sign_glyph(sign: u8) -> &'static str {
 
 // ─── Chart computation ────────────────────────────────────────────────────────
 
-pub fn compute_chart(jd: f64, lat: f64, lon: f64, hsys: u8) -> Result<ChartData, String> {
+pub fn compute_chart(jd: f64, lat: f64, lon: f64, hsys: u8) -> Result<ChartData, CliError> {
     let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys))
-        .map_err(|e| e.to_string())?;
+        ?;
 
     let asc = h.ascmc[0];
     let mc = h.ascmc[1];
@@ -707,7 +708,7 @@ fn print_table_aspects(chart: &ChartData) {
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
-pub fn run(args: ChartArgs) -> Result<(), String> {
+pub fn run(args: ChartArgs) -> Result<(), CliError> {
     // Merge --time into --date if provided and --date has no time component
     let date_str = if let Some(ref t) = args.time {
         let base = args.date.trim();

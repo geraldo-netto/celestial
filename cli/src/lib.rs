@@ -5,6 +5,7 @@
 //! exercise the parsers without spawning the full CLI process.
 
 pub mod cmd;
+pub mod error;
 pub mod format;
 pub mod i18n;
 pub mod parse;

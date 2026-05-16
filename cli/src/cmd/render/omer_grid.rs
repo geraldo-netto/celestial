@@ -4,6 +4,7 @@
 //! Layout: 7 rows (weeks) × 7 columns (days within the week). Cell (week, day)
 //! holds day number `(week - 1) * 7 + day`. Lag Ba'Omer (day 33) is highlighted.
 
+use crate::error::CliError;
 use celestial_core::{omer_days, omer_period, revjul, Calendar};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -116,15 +117,15 @@ fn apply_var_defaults(
 pub fn build_omer_grid_context(
     jd: f64,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let period = omer_period(jd);
     let hebrew_year = period.hebrew_year;
     let days = omer_days(hebrew_year);
     if days.len() != 49 {
-        return Err(format!(
+        return Err(CliError::Msg(format!(
             "expected 49 Omer days, got {} for Hebrew year {hebrew_year}",
             days.len()
-        ));
+        )));
     }
 
     let grid_x0 = MARGIN_X + ROW_HEADER_W;

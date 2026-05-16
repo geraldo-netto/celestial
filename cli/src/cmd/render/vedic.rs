@@ -1,5 +1,6 @@
 //! Vedic chart builders — split from render.rs.
 
+use crate::error::CliError;
 use super::{
     fmt_lon_dms, jd_to_date_str, render_south_indian_svg, sarvashtakavarga, BODIES, NI_CELLS,
     RASI_GLYPHS, RASI_NAMES,
@@ -145,14 +146,14 @@ pub fn build_ashtakavarga_context(
     lon: f64,
     date_str: &str,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN | CalcFlags(64); // sidereal
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| "Ashtakavarga".to_string());
 
     let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(b'P'))
-        .map_err(|e| e.to_string())?;
+        ?;
     let asc_lon = h.ascmc[0];
     let asc_rasi = (asc_lon % 360.0 / 30.0) as usize % 12;
 
@@ -375,7 +376,7 @@ pub fn build_shadbala_context(
     lon: f64,
     date_str: &str,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED | CalcFlags(64);
     let mut vars = user_vars;
     vars.entry("title".to_string())
@@ -633,7 +634,7 @@ pub fn build_vedic_context(
     date_str: &str,
     user_vars: BTreeMap<String, String>,
     chart_type: &str,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED | CalcFlags(64); // FLG_SIDEREAL
     let mut vars = user_vars;
     vars.entry("title".to_string())

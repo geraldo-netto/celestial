@@ -1,5 +1,6 @@
 //! Chinese chart builders — split from render.rs.
 
+use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::{calc_ut, four_pillars, solar_term_position, SOLAR_TERMS};
 use serde_json::{json, Value};
@@ -11,14 +12,14 @@ pub fn build_bazi_context(
     lon: f64,
     date_str: &str,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN;
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| "Four Pillars of Destiny (八字)".to_string());
 
     // Compute Sun's ecliptic longitude for solar-term-based month pillar
-    let sun_pos = calc_ut(jd, Body::SUN, flags).map_err(|e| e.to_string())?;
+    let sun_pos = calc_ut(jd, Body::SUN, flags)?;
 
     // Extract hour from fractional JD (JD starts at noon)
     let day_frac = (jd + 0.5).fract(); // fraction of day since midnight UT

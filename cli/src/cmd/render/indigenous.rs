@@ -1,5 +1,6 @@
 //! Indigenous chart builders — split from render.rs.
 
+use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::calc_ut;
 use celestial_core::{egyptian_decan, medicine_wheel_totem};
@@ -12,13 +13,13 @@ pub fn build_medicine_wheel_context(
     lon: f64,
     date_str: &str,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN;
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| "Medicine Wheel".to_string());
 
-    let sun_pos = calc_ut(jd, Body::SUN, flags).map_err(|e| e.to_string())?;
+    let sun_pos = calc_ut(jd, Body::SUN, flags)?;
     let (animal, element, clan, season) = medicine_wheel_totem(sun_pos.lon);
     let (decan_idx, decan_name, decan_star) = egyptian_decan(sun_pos.lon);
 

@@ -1,5 +1,6 @@
 //! `celestial calc` — geocentric planetary positions.
 
+use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::{Body, CalcFlags, SiderealMode};
 use celestial_core::{calc_ut, set_sid_mode};
@@ -29,7 +30,7 @@ pub struct CalcArgs {
     pub json: bool,
 }
 
-pub fn run(args: CalcArgs) -> Result<(), String> {
+pub fn run(args: CalcArgs) -> Result<(), CliError> {
     let jd = parse::parse_date(&args.date)?;
 
     let bodies: Vec<i32> = match &args.body {

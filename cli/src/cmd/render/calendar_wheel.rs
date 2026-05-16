@@ -1,5 +1,6 @@
 //! Calendar-wheel renderers — Celtic Wheel of the Year (sabbats).
 
+use crate::error::CliError;
 use celestial_core::{revjul, sabbats_for_year, Calendar};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -13,7 +14,7 @@ use std::collections::BTreeMap;
 pub fn build_sabbat_wheel_context(
     jd: f64,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let date = revjul(jd, Calendar::Gregorian);
     let year = date.year;
 

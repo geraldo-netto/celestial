@@ -1,5 +1,6 @@
 //! Mesoamerican chart builders — split from render.rs.
 
+use crate::error::CliError;
 use celestial_core::{calendar_round, haab, tonalpohualli, tzolkin, xiuhpohualli};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -10,7 +11,7 @@ pub fn build_mesoamerican_context(
     lon: f64,
     date_str: &str,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| "Mesoamerican Calendars".to_string());

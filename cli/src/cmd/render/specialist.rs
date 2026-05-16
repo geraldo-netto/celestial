@@ -1,5 +1,6 @@
 //! Specialist chart builders — split from render.rs.
 
+use crate::error::CliError;
 use super::{
     build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI,
     RO,
@@ -23,7 +24,7 @@ pub fn build_dial_context(
     date_str: &str,
     hsys: char,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut vars = user_vars;
     vars.entry("title".to_string())
@@ -35,7 +36,7 @@ pub fn build_dial_context(
     let mut planet_entries: Vec<Value> = Vec::with_capacity(bodies.len());
 
     let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
-        .map_err(|e| e.to_string())?;
+        ?;
     let asc = h.ascmc[0];
 
     for &(body, key, name, glyph) in bodies {
@@ -97,16 +98,16 @@ pub fn build_composite_context(
     date2: &str,
     hsys: char,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| "Composite Chart".to_string());
 
     let h1 = houses_ex(jd1, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
-        .map_err(|e| e.to_string())?;
+        ?;
     let h2 = houses_ex(jd2, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
-        .map_err(|e| e.to_string())?;
+        ?;
     // Composite ASC: midpoint of the two ASCs
     let asc1 = h1.ascmc[0];
     let asc2 = h2.ascmc[0];
@@ -168,7 +169,7 @@ pub fn build_triwheel_context(
     date3: &str,
     hsys: char,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut vars = user_vars;
     vars.entry("title".to_string())
@@ -289,7 +290,7 @@ pub fn build_graphic_ephemeris_context(
     jd_start: f64,
     jd_end: f64,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN;
     let mut vars = user_vars;
     vars.entry("title".to_string())
@@ -535,7 +536,7 @@ pub fn build_local_space_context(
     lon: f64,
     date_str: &str,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN;
     let geopos = [lon, lat, 0.0_f64];
     let mut vars = user_vars;

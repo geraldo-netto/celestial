@@ -1,5 +1,6 @@
 //! Shared argument parsers used by all subcommands.
 
+use crate::error::CliError;
 use celestial_core::body::{Body, Calendar, HouseSystem};
 use celestial_core::{jdnow, julday, revjul};
 use celestial_core::{
@@ -17,7 +18,7 @@ use celestial_core::{
 /// - `YYYY-MM-DD HH:MM`        — that time UT
 /// - `YYYY-MM-DD HH:MM:SS`     — that time UT
 /// - a bare float              — Julian day number
-pub fn parse_date(s: &str) -> Result<f64, String> {
+pub fn parse_date(s: &str) -> Result<f64, CliError> {
     let s = s.trim();
 
     if s.eq_ignore_ascii_case("now") {
@@ -38,7 +39,7 @@ pub fn parse_date(s: &str) -> Result<f64, String> {
     // Parse YYYY-MM-DD
     let dp: Vec<&str> = date_s.split('-').collect();
     if dp.len() != 3 {
-        return Err(format!("expected YYYY-MM-DD, got: {date_s}"));
+        return Err(CliError::Parse(format!("expected YYYY-MM-DD, got: {date_s}")));
     }
     let year: i32 = dp[0].parse().map_err(|_| format!("bad year: {}", dp[0]))?;
     let month: i32 = dp[1].parse().map_err(|_| format!("bad month: {}", dp[1]))?;
@@ -69,7 +70,7 @@ pub fn parse_date(s: &str) -> Result<f64, String> {
 ///
 /// `Local = UTC + offset`, so the caller converts a local civil time to UT
 /// with `jd_utc = jd_local - offset / 24.0`.
-pub fn parse_tz_offset(s: &str) -> Result<f64, String> {
+pub fn parse_tz_offset(s: &str) -> Result<f64, CliError> {
     let t = s.trim();
     if t.is_empty() {
         return Err("empty timezone".into());
@@ -96,10 +97,10 @@ pub fn parse_tz_offset(s: &str) -> Result<f64, String> {
         .filter(|z| z.name.eq_ignore_ascii_case(t))
         .collect();
     match matches.as_slice() {
-        [] => Err(format!(
+        [] => Err(CliError::Parse(format!(
             "unknown timezone `{s}` — use a numeric offset like `-03:00`, \
              `UTC`, or a known abbreviation (see README timezone table)"
-        )),
+        ))),
         _ => {
             let offsets: Vec<f64> = matches
                 .iter()
@@ -113,11 +114,11 @@ pub fn parse_tz_offset(s: &str) -> Result<f64, String> {
                     .iter()
                     .map(|z| format!("{} = {} ({})", z.name, z.offset, z.desc))
                     .collect();
-                return Err(format!(
+                return Err(CliError::Parse(format!(
                     "ambiguous timezone `{s}` maps to multiple offsets:\n  {}\n\
                      pass an explicit numeric offset instead, e.g. `--timezone -03:00`",
                     opts.join("\n  ")
-                ));
+                )));
             }
             Ok(first)
         }
@@ -125,15 +126,15 @@ pub fn parse_tz_offset(s: &str) -> Result<f64, String> {
 }
 
 /// Parse a signed numeric offset: `+HH`, `-HH`, `+HH:MM`, `-HHMM`.
-fn parse_numeric_offset(s: &str) -> Result<f64, String> {
+fn parse_numeric_offset(s: &str) -> Result<f64, CliError> {
     let s = s.trim();
     let (sign, rest) = match s.as_bytes().first() {
         Some(b'+') => (1.0, &s[1..]),
         Some(b'-') => (-1.0, &s[1..]),
-        _ => return Err(format!("offset must start with + or -, got `{s}`")),
+        _ => return Err(CliError::Parse(format!("offset must start with + or -, got `{s}`"))),
     };
     if rest.is_empty() {
-        return Err(format!("empty numeric offset `{s}`"));
+        return Err(CliError::Parse(format!("empty numeric offset `{s}`")));
     }
     let (hh, mm) = if let Some((h, m)) = rest.split_once(':') {
         (h, m)
@@ -149,7 +150,7 @@ fn parse_numeric_offset(s: &str) -> Result<f64, String> {
         .parse()
         .map_err(|_| format!("bad offset minutes `{mm}`"))?;
     if !(0.0..=14.0).contains(&h) || !(0.0..60.0).contains(&m) {
-        return Err(format!("offset out of range `{s}`"));
+        return Err(CliError::Parse(format!("offset out of range `{s}`")));
     }
     Ok(sign * (h + m / 60.0))
 }
@@ -166,18 +167,18 @@ pub fn fmt_utc_offset(offset_hours: f64) -> String {
 
 /// Ensure a date string carries an explicit time-of-day component.
 /// Returns `Ok` for `now` and bare JD floats (already unambiguous in UT).
-pub fn require_datetime(date_str: &str) -> Result<(), String> {
+pub fn require_datetime(date_str: &str) -> Result<(), CliError> {
     let s = date_str.trim();
     if s.eq_ignore_ascii_case("now") || s.parse::<f64>().is_ok() {
         return Ok(());
     }
     match s.split_once(' ') {
         Some((_, t)) if t.trim().contains(':') => Ok(()),
-        _ => Err(format!(
+        _ => Err(CliError::Parse(format!(
             "date `{date_str}` has no time-of-day — a natal chart needs the \
              exact birth time. Pass it as `--date \"YYYY-MM-DD HH:MM\"` (or \
              add `--time HH:MM`)"
-        )),
+        ))),
     }
 }
 
@@ -197,7 +198,7 @@ pub fn jd_to_str(jd: f64) -> String {
 // ─── Celestial bodies ─────────────────────────────────────────────────────────
 
 /// Parse a body name or number to a body constant.
-pub fn parse_body(s: &str) -> Result<i32, String> {
+pub fn parse_body(s: &str) -> Result<i32, CliError> {
     Ok(match s.to_lowercase().as_str() {
         "sun" => SUN,
         "moon" => MOON,
@@ -231,7 +232,7 @@ pub fn body_name(body: Body) -> &'static str {
 // ─── House systems ────────────────────────────────────────────────────────────
 
 /// Parse a house system name or letter to its byte code.
-pub fn parse_hsys(s: &str) -> Result<u8, String> {
+pub fn parse_hsys(s: &str) -> Result<u8, CliError> {
     Ok(match s.to_lowercase().as_str() {
         "placidus" | "p" => b'P',
         "koch" | "k" => b'K',
@@ -245,10 +246,10 @@ pub fn parse_hsys(s: &str) -> Result<u8, String> {
         "axial" | "x" => b'X',
         s if s.len() == 1 => s.as_bytes()[0].to_ascii_uppercase(),
         _ => {
-            return Err(format!(
+            return Err(CliError::Parse(format!(
                 "unknown house system: {s} \
             (use: placidus, koch, equal, whole, porphyry, regio, campanus, morinus)"
-            ))
+            )))
         }
     })
 }
@@ -266,7 +267,7 @@ pub fn hsys_name(hsys: u8) -> &'static str {
 // ─── Sidereal modes ───────────────────────────────────────────────────────────
 
 /// Parse a sidereal mode name to its integer code.
-pub fn parse_sid_mode(s: &str) -> Result<i32, String> {
+pub fn parse_sid_mode(s: &str) -> Result<i32, CliError> {
     Ok(match s.to_lowercase().as_str() {
         "fagan" | "fagan-bradley" | "fagan_bradley" => 0,
         "lahiri" => 1,

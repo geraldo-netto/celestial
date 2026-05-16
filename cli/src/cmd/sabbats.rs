@@ -1,5 +1,6 @@
 //! `celestial sabbats` and `celestial esbats` — Celtic calendar.
 
+use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::Calendar;
 use celestial_core::{esbats_for_year, jdnow, next_esbat, next_sabbat, revjul, sabbats_for_year};
@@ -22,9 +23,9 @@ pub struct SabbatsArgs {
     pub json: bool,
 }
 
-pub fn run_sabbats(args: SabbatsArgs) -> Result<(), String> {
+pub fn run_sabbats(args: SabbatsArgs) -> Result<(), CliError> {
     if args.next {
-        let s = next_sabbat(jdnow()).map_err(|e| e.to_string())?;
+        let s = next_sabbat(jdnow())?;
         if args.json {
             println!(
                 "{}",
@@ -51,7 +52,7 @@ pub fn run_sabbats(args: SabbatsArgs) -> Result<(), String> {
     let year = args
         .year
         .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
-    let sabbats = sabbats_for_year(year).map_err(|e| e.to_string())?;
+    let sabbats = sabbats_for_year(year)?;
 
     if args.json {
         let items: Vec<String> = sabbats
@@ -120,9 +121,9 @@ pub struct EsbatsArgs {
     pub json: bool,
 }
 
-pub fn run_esbats(args: EsbatsArgs) -> Result<(), String> {
+pub fn run_esbats(args: EsbatsArgs) -> Result<(), CliError> {
     if args.next {
-        let e = next_esbat(jdnow()).map_err(|e| e.to_string())?;
+        let e = next_esbat(jdnow())?;
         if args.json {
             println!(
                 "{}",
@@ -145,7 +146,7 @@ pub fn run_esbats(args: EsbatsArgs) -> Result<(), String> {
     let year = args
         .year
         .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
-    let esbats = esbats_for_year(year).map_err(|e| e.to_string())?;
+    let esbats = esbats_for_year(year)?;
 
     if args.json {
         let items: Vec<String> = esbats

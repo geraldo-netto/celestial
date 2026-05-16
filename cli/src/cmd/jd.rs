@@ -1,5 +1,6 @@
 //! `celestial jd` — Julian day ↔ calendar date conversion.
 
+use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::Calendar;
 use celestial_core::{deltat, revjul, sidtime};
@@ -20,7 +21,7 @@ pub struct JdArgs {
     pub json: bool,
 }
 
-pub fn run(args: JdArgs) -> Result<(), String> {
+pub fn run(args: JdArgs) -> Result<(), CliError> {
     let jd = if let Some(jd) = args.from_jd {
         jd
     } else if let Some(ref s) = args.date {

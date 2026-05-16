@@ -5,6 +5,7 @@
 
 #![allow(clippy::too_many_arguments)]
 
+use crate::error::CliError;
 use std::collections::BTreeMap;
 
 use celestial_core::body::{CalcFlags, HouseSystem};
@@ -27,9 +28,9 @@ pub(crate) fn build_context(
     date_str: &str,
     hsys: char,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
-        .map_err(|e| e.to_string())?;
+        ?;
     let asc = h.ascmc[0];
     let mc = h.ascmc[1];
     let ic = (mc + 180.0).rem_euclid(360.0);

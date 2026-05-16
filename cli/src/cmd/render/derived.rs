@@ -4,6 +4,7 @@
 //! (progressions, solar arc) or from two charts overlaid (biwheel).
 //! Extracted from `mod.rs` to group related logic.
 
+use crate::error::CliError;
 use std::collections::BTreeMap;
 
 use celestial_core::body::{Body, CalcFlags};
@@ -21,7 +22,7 @@ pub(super) fn build_progressed_context(
     _date_str: &str,
     hsys: char,
     user_vars: BTreeMap<String, String>,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, CliError> {
     let prog_jd = jd + years * 365.25;
     let prog_date = jd_to_date_str(prog_jd);
     let mut vars = user_vars;
@@ -48,15 +49,15 @@ pub(super) fn build_solar_arc_context(
     date_str: &str,
     hsys: char,
     user_vars: BTreeMap<String, String>,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, CliError> {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut ctx = build_context(jd, lat, lon, date_str, hsys, user_vars)?;
     // Compute solar arc delta
-    let sun_natal = calc_ut(jd, Body::SUN, flags).map_err(|e| e.to_string())?;
+    let sun_natal = calc_ut(jd, Body::SUN, flags)?;
     // Solar arc direction: 1 day = 1 year (secondary progression rate)
     // Progressed Sun is at birth + years days; arc = difference from natal Sun.
     let progressed_jd = jd + years; // 1 day per year
-    let sun_progressed = calc_ut(progressed_jd, Body::SUN, flags).map_err(|e| e.to_string())?;
+    let sun_progressed = calc_ut(progressed_jd, Body::SUN, flags)?;
     let arc = (sun_progressed.lon - sun_natal.lon + 360.0) % 360.0;
     ctx["solar_arc_deg"] = serde_json::json!(arc);
     ctx["solar_arc_degrees"] = serde_json::json!(arc); // alias for test compat
@@ -95,7 +96,7 @@ pub(super) fn build_biwheel_context(
     date2: &str,
     hsys: char,
     user_vars: BTreeMap<String, String>,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, CliError> {
     let mut vars1 = user_vars.clone();
     vars1
         .entry("title".to_string())

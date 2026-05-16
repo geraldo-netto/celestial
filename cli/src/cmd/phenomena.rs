@@ -5,6 +5,7 @@
 //! programmatic equivalent (Python/JS/PHP bindings) returns a 20-element
 //! array; this command formats it as a labelled table (or JSON).
 
+use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::{pheno_ut, Body, CalcFlags};
 use clap::Args;
@@ -29,7 +30,7 @@ pub struct PhenomenaArgs {
     pub json: bool,
 }
 
-pub fn run(args: PhenomenaArgs) -> Result<(), String> {
+pub fn run(args: PhenomenaArgs) -> Result<(), CliError> {
     let date_str = match (&args.time, args.date.contains(' ')) {
         (Some(t), false) if args.date != "now" && args.date.parse::<f64>().is_err() => {
             format!("{} {}", args.date, t)

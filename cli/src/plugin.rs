@@ -3,6 +3,7 @@
 //! Any executable named `celestial-<name>` on $PATH becomes a subcommand.
 //! `celestial <name> [args…]` execs it with the remaining arguments verbatim.
 
+use crate::error::CliError;
 use std::path::PathBuf;
 
 const PREFIX: &str = "celestial-";
@@ -44,19 +45,19 @@ pub fn discover() -> Vec<Plugin> {
 
 /// Try to exec `celestial-<subcommand>` with `args`.  
 /// Only returns on error or when no matching plugin is found.
-pub fn try_exec(subcommand: &str, args: &[String]) -> Result<(), String> {
+pub fn try_exec(subcommand: &str, args: &[String]) -> Result<(), CliError> {
     let target = format!("{PREFIX}{subcommand}");
     for dir in std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()) {
         let candidate = dir.join(&target);
         if is_exec(&candidate) {
             let err = do_exec(&candidate, args);
-            return Err(format!("failed to exec `{target}`: {err}"));
+            return Err(CliError::Msg(format!("failed to exec `{target}`: {err}")));
         }
     }
-    Err(format!(
+    Err(CliError::Msg(format!(
         "unknown command `{subcommand}` — no built-in and no `{target}` on PATH\n\
          Run `celestial --help` for available commands."
-    ))
+    )))
 }
 
 fn is_exec(p: &std::path::Path) -> bool {
@@ -276,7 +277,7 @@ mod tests {
         let result = try_exec("definitely_not_a_real_plugin_xyz", &[]);
         std::env::set_var("PATH", &saved);
         assert!(result.is_err(), "unknown plugin must return Err");
-        let msg = result.unwrap_err();
+        let msg = result.unwrap_err().to_string();
         assert!(
             msg.contains("definitely_not_a_real_plugin_xyz"),
             "error message must name the subcommand"

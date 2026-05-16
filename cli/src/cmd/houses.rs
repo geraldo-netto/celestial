@@ -1,5 +1,6 @@
 //! `celestial houses` — house cusps and special angles.
 
+use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::{CalcFlags, HouseSystem};
 use celestial_core::houses_ex;
@@ -28,7 +29,7 @@ pub struct HousesArgs {
     pub json: bool,
 }
 
-pub fn run(args: HousesArgs) -> Result<(), String> {
+pub fn run(args: HousesArgs) -> Result<(), CliError> {
     let jd = parse::parse_date(&args.date)?;
     let hsys = parse::parse_hsys(&args.system)?;
 
@@ -39,7 +40,7 @@ pub fn run(args: HousesArgs) -> Result<(), String> {
         args.lon,
         HouseSystem(hsys),
     )
-    .map_err(|e| e.to_string())?;
+    ?;
 
     let asc = h.ascmc[0];
     let mc = h.ascmc[1];

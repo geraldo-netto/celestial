@@ -2,6 +2,7 @@
 //!
 //! Subcommand dispatches to jewish, easter, islamic, panchanga, vesak, or nowruz.
 
+use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::Calendar;
 use celestial_core::{
@@ -36,7 +37,7 @@ pub enum Tradition {
     Nowruz(NowruzArgs),
 }
 
-pub fn run(args: CalendarArgs) -> Result<(), String> {
+pub fn run(args: CalendarArgs) -> Result<(), CliError> {
     match args.tradition {
         Tradition::Jewish(a) => run_jewish(a),
         Tradition::Easter(a) => run_easter(a),
@@ -59,7 +60,7 @@ pub struct JewishArgs {
     pub json: bool,
 }
 
-fn run_jewish(args: JewishArgs) -> Result<(), String> {
+fn run_jewish(args: JewishArgs) -> Result<(), CliError> {
     let greg_year = args
         .year
         .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
@@ -135,7 +136,7 @@ pub struct EasterArgs {
     pub json: bool,
 }
 
-fn run_easter(args: EasterArgs) -> Result<(), String> {
+fn run_easter(args: EasterArgs) -> Result<(), CliError> {
     let year = args
         .year
         .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
@@ -212,7 +213,7 @@ pub struct IslamicArgs {
     pub json: bool,
 }
 
-fn run_islamic(args: IslamicArgs) -> Result<(), String> {
+fn run_islamic(args: IslamicArgs) -> Result<(), CliError> {
     if let Some(ref date_str) = args.convert {
         let jd = parse::parse_date(date_str)?;
         let (hy, hm, hd) = hijri_from_jd(jd);
@@ -320,7 +321,7 @@ pub struct PanchangaArgs {
     pub json: bool,
 }
 
-fn run_panchanga(args: PanchangaArgs) -> Result<(), String> {
+fn run_panchanga(args: PanchangaArgs) -> Result<(), CliError> {
     if args.festivals {
         let year = args
             .year
@@ -418,7 +419,7 @@ pub struct VesakArgs {
     pub json: bool,
 }
 
-fn run_vesak(args: VesakArgs) -> Result<(), String> {
+fn run_vesak(args: VesakArgs) -> Result<(), CliError> {
     let year = args
         .year
         .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
@@ -494,7 +495,7 @@ pub struct NowruzArgs {
     pub json: bool,
 }
 
-fn run_nowruz(args: NowruzArgs) -> Result<(), String> {
+fn run_nowruz(args: NowruzArgs) -> Result<(), CliError> {
     let year = args
         .year
         .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);

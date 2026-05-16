@@ -1,5 +1,6 @@
 //! Hellenistic chart builders — split from render.rs.
 
+use crate::error::CliError;
 use super::{build_context, jd_to_date_str, key_to_body, render_builtin_svg, wx, wy, CX, CY, RO};
 
 use celestial_core::monthly_profection;
@@ -20,7 +21,7 @@ pub fn build_hellenistic_context(
     date_str: &str,
     hsys: char,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| "Hellenistic Chart".to_string());
@@ -29,7 +30,7 @@ pub fn build_hellenistic_context(
     let mut ctx = build_context(jd, lat, lon, date_str, hsys, vars)?;
 
     let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
-        .map_err(|e| e.to_string())?;
+        ?;
     let cusps_arr: [f64; 13] = {
         let mut a = [0.0f64; 13];
         a.copy_from_slice(&h.cusps);
@@ -198,20 +199,20 @@ pub fn build_firdaria_context(
     date_str: &str,
     hsys: char,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN;
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| "Firdaria Timeline".to_string());
 
-    let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8)).map_err(|e| e.to_string())?;
+    let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8))?;
     let cusps_arr: [f64; 13] = {
         let mut a = [0.0f64; 13];
         a.copy_from_slice(&h.cusps);
         a
     };
 
-    let sun_pos = calc_ut(jd, Body::SUN, flags).map_err(|e| e.to_string())?;
+    let sun_pos = calc_ut(jd, Body::SUN, flags)?;
     let is_day = is_day_chart(sun_pos.lon, &cusps_arr);
 
     let periods = firdaria(jd, is_day, 75.0);
@@ -423,13 +424,13 @@ pub fn build_profection_context(
     hsys: char,
     age: u32,
     user_vars: BTreeMap<String, String>,
-) -> Result<Value, String> {
+) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN;
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert(format!("Annual Profection — Age {age}"));
 
-    let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8)).map_err(|e| e.to_string())?;
+    let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8))?;
     let cusps_arr: [f64; 13] = {
         let mut a = [0.0f64; 13];
         a.copy_from_slice(&h.cusps);

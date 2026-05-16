@@ -34,6 +34,7 @@
 //! ring_color   = "#1a1a2e"    dark navy for rings and labels
 //! ```
 
+use crate::error::CliError;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
@@ -637,7 +638,7 @@ fn override_if<T>(field: &mut T, candidate: Option<T>, should_override: bool) {
 /// Read a TOML config file and merge its defaults into `args` (only fields
 /// still at their sentinel defaults are overridden), returning its `[vars]`
 /// map. Empty map if no config file is specified.
-fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, String>, String> {
+fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, String>, CliError> {
     let mut file_vars = BTreeMap::new();
     let Some(cfg_path) = args.config.clone() else {
         return Ok(file_vars);
@@ -682,7 +683,7 @@ fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, String>, String
 fn apply_var_overrides(
     vars: &[String],
     mut base: BTreeMap<String, String>,
-) -> Result<BTreeMap<String, String>, String> {
+) -> Result<BTreeMap<String, String>, CliError> {
     for kv in vars {
         let (k, v) = kv
             .split_once('=')
@@ -744,7 +745,7 @@ fn build_calendar_context(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, CliError> {
     let date = revjul(jd, Calendar::Gregorian);
     let year = date.year;
     let month = args.month.unwrap_or(date.month as u32);
@@ -905,7 +906,7 @@ fn render_to_string(
     ctx: &serde_json::Value,
     render_fn: fn(&serde_json::Value) -> String,
     template_path: Option<&PathBuf>,
-) -> Result<String, String> {
+) -> Result<String, CliError> {
     let Some(tmpl_path) = template_path else {
         return Ok(render_fn(ctx));
     };
@@ -921,12 +922,12 @@ fn render_to_string(
         .get_template("t")
         .map_err(|e| format!("template lookup error: {e}"))?;
     tpl.render(MjValue::from_serialize(ctx))
-        .map_err(|e| format!("template render error: {e}"))
+        .map_err(|e| CliError::Msg(format!("template render error: {e}")))
 }
 
 /// Either write `output` to `path` (creating parent dirs if needed) or
 /// print it to stdout if `path` is None.
-fn write_or_print(output: &str, path: Option<&PathBuf>) -> Result<(), String> {
+fn write_or_print(output: &str, path: Option<&PathBuf>) -> Result<(), CliError> {
     let Some(p) = path else {
         print!("{output}");
         return Ok(());
@@ -960,7 +961,7 @@ fn dispatch_natal(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Natal Chart");
     Ok((
         build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
@@ -972,7 +973,7 @@ fn dispatch_cosmogram(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let mut v = vars_with_title(user_vars, "Cosmogram");
     v.insert("no_houses".to_string(), "1".to_string());
     Ok((
@@ -985,13 +986,13 @@ fn dispatch_solar_return(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let year = args.return_year.unwrap_or_else(|| {
         let today_jd = crate::parse::parse_date("now").unwrap_or(2_451_545.0);
         let d = celestial_core::revjul(today_jd, celestial_core::body::Calendar::Gregorian);
         d.year as i32
     });
-    let sr_jd = solar_return_jd(jd, year, CalcFlags::BUILTIN).map_err(|e| e.to_string())?;
+    let sr_jd = solar_return_jd(jd, year, CalcFlags::BUILTIN)?;
     let sr_date = jd_to_date_str(sr_jd);
     let mut v = user_vars.clone();
     v.insert("title".to_string(), format!("Solar Return {year}"));
@@ -1009,14 +1010,14 @@ fn dispatch_lunar_return(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let start = args
         .date2
         .as_deref()
         .map(crate::parse::parse_date)
         .transpose()?
         .unwrap_or(jd);
-    let lr_jd = lunar_return_jd(jd, start, CalcFlags::BUILTIN).map_err(|e| e.to_string())?;
+    let lr_jd = lunar_return_jd(jd, start, CalcFlags::BUILTIN)?;
     let lr_date = jd_to_date_str(lr_jd);
     let mut v = user_vars.clone();
     v.insert("title".to_string(), "Lunar Return".to_string());
@@ -1030,7 +1031,7 @@ fn dispatch_progressed(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let years = args
         .years
         .ok_or("--years DECIMAL required for progressed chart")?;
@@ -1049,7 +1050,7 @@ fn dispatch_solar_arc(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let years = args
         .years
         .ok_or("--years DECIMAL required for solar-arc chart")?;
@@ -1068,7 +1069,7 @@ fn dispatch_biwheel(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let date2 = args
         .date2
         .as_deref()
@@ -1089,7 +1090,7 @@ fn dispatch_composite(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let date2 = args
         .date2
         .as_deref()
@@ -1108,7 +1109,7 @@ fn dispatch_triwheel(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let date2 = args
         .date2
         .as_deref()
@@ -1132,7 +1133,7 @@ fn dispatch_ephemeris(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let date2 = args.date2.as_deref().unwrap_or("now");
     let jd2 = crate::parse::parse_date(date2)?;
     let (jd_s, jd_e) = if jd < jd2 { (jd, jd2) } else { (jd2, jd) };
@@ -1147,7 +1148,7 @@ fn dispatch_profection(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let age = args
         .years
         .map(|y| y as u32)
@@ -1173,7 +1174,7 @@ fn dispatch_dial(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "90° Midpoint Dial");
     Ok((
         specialist::build_dial_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
@@ -1185,7 +1186,7 @@ fn dispatch_local_space(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Local Space");
     Ok((
         specialist::build_local_space_context(jd, args.lat, args.lon, &args.date, v)?,
@@ -1197,7 +1198,7 @@ fn dispatch_rasi(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Rasi Chart (South Indian)");
     Ok((
         vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
@@ -1209,7 +1210,7 @@ fn dispatch_navamsa(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Navamsa D9 Chart");
     Ok((
         vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Navamsa")?,
@@ -1221,7 +1222,7 @@ fn dispatch_dasha(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Vimshottari Dasha Timeline");
     Ok((
         vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Dasha")?,
@@ -1233,7 +1234,7 @@ fn dispatch_north_indian(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "North Indian Chart");
     Ok((
         vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
@@ -1245,7 +1246,7 @@ fn dispatch_ashtakavarga(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Ashtakavarga");
     Ok((
         vedic::build_ashtakavarga_context(jd, args.lat, args.lon, &args.date, v)?,
@@ -1257,7 +1258,7 @@ fn dispatch_shadbala(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Shadbala");
     Ok((
         vedic::build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?,
@@ -1269,7 +1270,7 @@ fn dispatch_hellenistic(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Hellenistic Chart");
     Ok((
         hellenistic::build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
@@ -1281,7 +1282,7 @@ fn dispatch_firdaria(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Firdaria Timeline");
     Ok((
         hellenistic::build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
@@ -1293,7 +1294,7 @@ fn dispatch_bazi(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Four Pillars (八字)");
     Ok((
         chinese::build_bazi_context(jd, args.lat, args.lon, &args.date, v)?,
@@ -1305,7 +1306,7 @@ fn dispatch_mesoamerican(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Mesoamerican Calendars");
     Ok((
         mesoamerican::build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?,
@@ -1317,7 +1318,7 @@ fn dispatch_medicine_wheel(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Medicine Wheel / Egyptian Decans");
     Ok((
         indigenous::build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?,
@@ -1329,7 +1330,7 @@ fn dispatch_wheel_of_year(
     jd: f64,
     _args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     Ok((
         calendar_wheel::build_sabbat_wheel_context(jd, user_vars.clone())?,
         calendar_wheel::render_sabbat_wheel_svg,
@@ -1340,7 +1341,7 @@ fn dispatch_omer_grid(
     jd: f64,
     _args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     Ok((
         omer_grid::build_omer_grid_context(jd, user_vars.clone())?,
         omer_grid::render_omer_grid_svg,
@@ -1351,7 +1352,7 @@ fn dispatch_calendar(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), String> {
+) -> Result<(Value, ChartRenderer), CliError> {
     Ok((
         build_calendar_context(jd, args, user_vars)?,
         calendar_overlays::render_default_calendar_svg,
@@ -1366,7 +1367,7 @@ fn dispatch_calendar(
 // nothing else to keep in sync.
 
 type ChartBuilder =
-    fn(f64, &RenderArgs, &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), String>;
+    fn(f64, &RenderArgs, &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), CliError>;
 
 struct ChartEntry {
     aliases: &'static [&'static str],
@@ -1502,20 +1503,20 @@ fn dispatch_chart_type(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(serde_json::Value, ChartRenderer), String> {
+) -> Result<(serde_json::Value, ChartRenderer), CliError> {
     CHART_REGISTRY
         .iter()
         .find(|e| e.aliases.contains(&chart_type))
         .map(|e| (e.builder)(jd, args, user_vars))
         .unwrap_or_else(|| {
-            Err(format!(
+            Err(CliError::Parse(format!(
                 "unknown --type '{chart_type}'; valid: {}",
                 registered_chart_types()
-            ))
+            )))
         })
 }
 
-pub fn run(mut args: RenderArgs) -> Result<(), String> {
+pub fn run(mut args: RenderArgs) -> Result<(), CliError> {
     // --print-schema: dump the context schema and exit. This runs BEFORE any
     // chart computation so the user gets fast feedback while learning the
     // template format — no need for valid date/lat/lon args.

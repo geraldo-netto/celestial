@@ -1,5 +1,6 @@
 //! `celestial omer` — Sefirat HaOmer (Counting of the Omer).
 
+use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::{omer_days, omer_declaration, omer_from_jd, omer_period};
 use clap::Args;
@@ -141,7 +142,7 @@ fn run_not_in_omer_mode(jd: f64, json: bool) {
     println!();
 }
 
-pub fn run(args: OmerArgs) -> Result<(), String> {
+pub fn run(args: OmerArgs) -> Result<(), CliError> {
     let jd = parse::parse_date(&args.date)?;
 
     // Determine Hebrew year (from --year flag or from date)

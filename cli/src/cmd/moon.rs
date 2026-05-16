@@ -1,5 +1,6 @@
 //! `celestial moon` — Moon phase, illumination, and principal phase timing.
 
+use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::{
     moon_phase_info, moon_phases_for_month, next_first_quarter, next_full_moon_phase,
@@ -39,7 +40,7 @@ pub struct MoonArgs {
 }
 
 /// Dispatch `moon` to the right mode based on CLI flags.
-pub fn run(args: MoonArgs) -> Result<(), String> {
+pub fn run(args: MoonArgs) -> Result<(), CliError> {
     let jd = parse::parse_date(&args.date)?;
 
     if let Some(ref ym) = args.month {
@@ -52,9 +53,9 @@ pub fn run(args: MoonArgs) -> Result<(), String> {
 }
 
 /// Print all Moon phases for a calendar month (`--month YYYY-MM`).
-fn run_month_mode(ym: &str, json: bool) -> Result<(), String> {
+fn run_month_mode(ym: &str, json: bool) -> Result<(), CliError> {
     let (year, month) = parse_year_month(ym)?;
-    let events = moon_phases_for_month(year, month).map_err(|e| e.to_string())?;
+    let events = moon_phases_for_month(year, month)?;
 
     if json {
         let items: Vec<String> = events
@@ -83,27 +84,27 @@ fn run_month_mode(ym: &str, json: bool) -> Result<(), String> {
 
 /// Print the next occurrence of each phase the user asked for.
 /// Any combination of `--new`, `--first-quarter`, `--full`, `--last-quarter`.
-fn run_phase_mode(args: &MoonArgs, jd: f64) -> Result<(), String> {
+fn run_phase_mode(args: &MoonArgs, jd: f64) -> Result<(), CliError> {
     let mut results: Vec<(&str, f64)> = Vec::new();
     if args.new {
-        results.push(("New Moon", next_new_moon(jd).map_err(|e| e.to_string())?));
+        results.push(("New Moon", next_new_moon(jd)?));
     }
     if args.first_quarter {
         results.push((
             "First Quarter",
-            next_first_quarter(jd).map_err(|e| e.to_string())?,
+            next_first_quarter(jd)?,
         ));
     }
     if args.full {
         results.push((
             "Full Moon",
-            next_full_moon_phase(jd).map_err(|e| e.to_string())?,
+            next_full_moon_phase(jd)?,
         ));
     }
     if args.last_quarter {
         results.push((
             "Last Quarter",
-            next_last_quarter(jd).map_err(|e| e.to_string())?,
+            next_last_quarter(jd)?,
         ));
     }
 
@@ -134,8 +135,8 @@ fn run_phase_mode(args: &MoonArgs, jd: f64) -> Result<(), String> {
 }
 
 /// Print the current Moon phase + surrounding context (default mode).
-fn run_info_mode(args: &MoonArgs, jd: f64) -> Result<(), String> {
-    let info = moon_phase_info(jd).map_err(|e| e.to_string())?;
+fn run_info_mode(args: &MoonArgs, jd: f64) -> Result<(), CliError> {
+    let info = moon_phase_info(jd)?;
 
     if args.json {
         println!(
@@ -185,10 +186,10 @@ fn run_info_mode(args: &MoonArgs, jd: f64) -> Result<(), String> {
     Ok(())
 }
 
-fn parse_year_month(s: &str) -> Result<(i32, u8), String> {
+fn parse_year_month(s: &str) -> Result<(i32, u8), CliError> {
     let parts: Vec<&str> = s.splitn(2, '-').collect();
     if parts.len() != 2 {
-        return Err(format!("expected YYYY-MM, got: {s}"));
+        return Err(CliError::Parse(format!("expected YYYY-MM, got: {s}")));
     }
     let year: i32 = parts[0]
         .parse()
@@ -197,7 +198,7 @@ fn parse_year_month(s: &str) -> Result<(i32, u8), String> {
         .parse()
         .map_err(|_| format!("bad month: {}", parts[1]))?;
     if !(1..=12).contains(&month) {
-        return Err(format!("month must be 1–12, got: {month}"));
+        return Err(CliError::Parse(format!("month must be 1–12, got: {month}")));
     }
     Ok((year, month))
 }
