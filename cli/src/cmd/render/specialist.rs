@@ -1,5 +1,6 @@
 //! Specialist chart builders — split from render.rs.
 
+use super::ChartContext;
 use crate::error::CliError;
 use super::{
     build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI,
@@ -224,7 +225,7 @@ pub fn build_triwheel_context(
     Ok(ctx)
 }
 
-pub fn render_triwheel_svg(ctx: &Value) -> String {
+pub fn render_triwheel_svg(ctx: &ChartContext) -> String {
     let mut s = render_builtin_svg(ctx);
 
     let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
@@ -362,7 +363,7 @@ const GE_SIGN_GLYPHS: [&str; 12] = [
     "♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓",
 ];
 
-pub fn render_graphic_ephemeris_svg(ctx: &Value) -> String {
+pub fn render_graphic_ephemeris_svg(ctx: &ChartContext) -> String {
     let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
     let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
@@ -697,7 +698,7 @@ fn write_ls_planet(s: &mut String, p: &Value, pfg: &str) {
     );
 }
 
-pub fn render_local_space_svg(ctx: &Value) -> String {
+pub fn render_local_space_svg(ctx: &ChartContext) -> String {
     let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
     let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
     let pfg = ctx["vars"]["planet_color"].as_str().unwrap_or("#0d0d1e");
@@ -726,7 +727,7 @@ pub fn render_local_space_svg(ctx: &Value) -> String {
 }
 
 /// Render a 90° midpoint dial SVG.
-pub fn render_dial_svg(ctx: &serde_json::Value) -> String {
+pub fn render_dial_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
     let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
     let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");

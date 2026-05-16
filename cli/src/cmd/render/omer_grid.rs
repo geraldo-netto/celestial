@@ -4,6 +4,7 @@
 //! Layout: 7 rows (weeks) × 7 columns (days within the week). Cell (week, day)
 //! holds day number `(week - 1) * 7 + day`. Lag Ba'Omer (day 33) is highlighted.
 
+use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::{omer_days, omer_period, revjul, Calendar};
 use serde_json::{json, Value};
@@ -160,7 +161,7 @@ pub fn build_omer_grid_context(
 }
 
 /// Built-in SVG renderer for the Omer grid.
-pub fn render_omer_grid_svg(ctx: &Value) -> String {
+pub fn render_omer_grid_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
     let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
@@ -345,7 +346,7 @@ mod tests {
     fn omer_grid_renders_valid_svg() {
         let jd = celestial_core::julday(2024, 5, 1, 12.0, Calendar::Gregorian);
         let ctx = build_omer_grid_context(jd, BTreeMap::new()).unwrap();
-        let svg = render_omer_grid_svg(&ctx);
+        let svg = render_omer_grid_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.starts_with("<?xml"), "SVG should start with <?xml");
         assert!(svg.contains("<svg "), "should contain <svg> tag");
         assert!(svg.ends_with("</svg>\n"), "should close </svg>");

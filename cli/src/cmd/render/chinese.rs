@@ -1,5 +1,6 @@
 //! Chinese chart builders — split from render.rs.
 
+use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::{calc_ut, four_pillars, solar_term_position, SOLAR_TERMS};
@@ -231,7 +232,7 @@ fn write_bazi_elements(s: &mut String, elements: &[Value], ey: f64, txt: &str) {
     }
 }
 
-pub fn render_bazi_svg(ctx: &Value) -> String {
+pub fn render_bazi_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
     let pal = super::svg_common::SvgPalette::from_ctx(

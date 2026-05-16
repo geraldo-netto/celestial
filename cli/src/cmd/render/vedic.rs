@@ -1,5 +1,6 @@
 //! Vedic chart builders — split from render.rs.
 
+use super::ChartContext;
 use crate::error::CliError;
 use super::{
     fmt_lon_dms, jd_to_date_str, render_south_indian_svg, sarvashtakavarga, BODIES, NI_CELLS,
@@ -16,7 +17,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fmt::Write;
 
-pub fn render_north_indian_svg(ctx: &Value) -> String {
+pub fn render_north_indian_svg(ctx: &ChartContext) -> String {
     let pal = super::svg_common::SvgPalette::from_ctx(
         ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
     );
@@ -338,7 +339,7 @@ fn write_av_totals_row(s: &mut String, totals: &[Value], ty: f64, border: &str, 
     }
 }
 
-pub fn render_ashtakavarga_svg(ctx: &Value) -> String {
+pub fn render_ashtakavarga_svg(ctx: &ChartContext) -> String {
     let pal = super::svg_common::SvgPalette::from_ctx(
         ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
     );
@@ -458,7 +459,7 @@ pub fn build_shadbala_context(
         "vars": Value::Object(palette.into_iter().collect())}))
 }
 
-pub fn render_shadbala_svg(ctx: &Value) -> String {
+pub fn render_shadbala_svg(ctx: &ChartContext) -> String {
     let pal = super::svg_common::SvgPalette::from_ctx(
         ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
     );
@@ -723,7 +724,7 @@ pub fn build_vedic_context(
         "vars": Value::Object(palette.into_iter().collect())}))
 }
 
-pub fn render_navamsa_svg(ctx: &Value) -> String {
+pub fn render_navamsa_svg(ctx: &ChartContext) -> String {
     // Navamsa uses the same South Indian grid layout but with navamsa positions
     let planets_orig = super::json_array(&ctx["planets"]);
     // Rebuild rasi_planets using navamsa index instead of rasi
@@ -735,20 +736,21 @@ pub fn render_navamsa_svg(ctx: &Value) -> String {
         rasi_planets[nav].push(format!("{g}{}", if ret { "℞" } else { "" }));
     }
     // Temporarily patch ctx to use navamsa groupings
-    let mut ctx2 = ctx.clone();
-    if let Some(planets) = ctx2["planets"].as_array_mut() {
+    let mut patched = ctx.as_value().clone();
+    if let Some(planets) = patched["planets"].as_array_mut() {
         for p in planets.iter_mut() {
             let nav = p["navamsa"].as_i64().unwrap_or(0);
             p["rasi"] = json!(nav);
         }
     }
-    if let Some(v) = ctx2["vars"].as_object_mut() {
+    if let Some(v) = patched["vars"].as_object_mut() {
         v.insert("title".to_string(), json!("Navamsa (D9) Chart"));
     }
+    let ctx2 = ChartContext::from(patched);
     render_south_indian_svg(&ctx2)
 }
 
-pub fn render_dasha_svg(ctx: &Value) -> String {
+pub fn render_dasha_svg(ctx: &ChartContext) -> String {
     let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
     let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");

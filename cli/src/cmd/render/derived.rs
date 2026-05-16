@@ -4,6 +4,7 @@
 //! (progressions, solar arc) or from two charts overlaid (biwheel).
 //! Extracted from `mod.rs` to group related logic.
 
+use super::ChartContext;
 use crate::error::CliError;
 use std::collections::BTreeMap;
 
@@ -37,7 +38,7 @@ pub(super) fn build_progressed_context(
     Ok(ctx)
 }
 
-pub(super) fn render_progressed_svg(ctx: &serde_json::Value) -> String {
+pub(super) fn render_progressed_svg(ctx: &ChartContext) -> String {
     render_builtin_svg(ctx)
 }
 
@@ -80,7 +81,7 @@ pub(super) fn build_solar_arc_context(
     Ok(ctx)
 }
 
-pub(super) fn render_cosmogram_svg(ctx: &serde_json::Value) -> String {
+pub(super) fn render_cosmogram_svg(ctx: &ChartContext) -> String {
     render_builtin_svg(ctx)
 }
 
@@ -135,6 +136,6 @@ pub(super) fn build_biwheel_context(
     Ok(ctx)
 }
 
-pub(super) fn render_biwheel_svg(ctx: &serde_json::Value) -> String {
+pub(super) fn render_biwheel_svg(ctx: &ChartContext) -> String {
     render_builtin_svg(ctx)
 }

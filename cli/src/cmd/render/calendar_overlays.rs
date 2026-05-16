@@ -17,6 +17,7 @@
 //!
 //! works without the user having to compute lookups themselves.
 
+use super::ChartContext;
 use celestial_core::{
     julday, moon_illumination, moon_phases_for_month, omer_days, omer_period, revjul,
     sabbats_for_year, Calendar, PrincipalPhase,
@@ -670,7 +671,7 @@ impl<'a> CalendarPalette<'a> {
     }
 }
 
-pub fn render_default_calendar_svg(ctx: &Value) -> String {
+pub fn render_default_calendar_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
     let palette = CalendarPalette::from_ctx(ctx);

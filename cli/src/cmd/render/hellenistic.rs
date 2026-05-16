@@ -1,5 +1,6 @@
 //! Hellenistic chart builders — split from render.rs.
 
+use super::ChartContext;
 use crate::error::CliError;
 use super::{build_context, jd_to_date_str, key_to_body, render_builtin_svg, wx, wy, CX, CY, RO};
 
@@ -167,7 +168,7 @@ fn write_hell_planet_row(extra: &mut String, p: &Value, ry: f64, txt: &str) {
     }
 }
 
-pub fn render_hellenistic_svg(ctx: &Value) -> String {
+pub fn render_hellenistic_svg(ctx: &ChartContext) -> String {
     // Delegate to the full natal SVG — the dignity5/term/decan fields
     // are in the context and visible via --print-context.
     // We add an extra dignities legend section below the normal wheel.
@@ -247,7 +248,7 @@ pub fn build_firdaria_context(
         "vars": Value::Object(palette.into_iter().collect())}))
 }
 
-pub fn render_firdaria_svg(ctx: &Value) -> String {
+pub fn render_firdaria_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
     let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
     let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
@@ -451,7 +452,7 @@ pub fn build_profection_context(
     Ok(ctx)
 }
 
-pub fn render_profection_svg(ctx: &Value) -> String {
+pub fn render_profection_svg(ctx: &ChartContext) -> String {
     // Start from the natal wheel, add a profection marker
     let mut s = render_builtin_svg(ctx);
 

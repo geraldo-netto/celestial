@@ -3,6 +3,7 @@
 //!
 //! Extracted from `mod.rs` to reduce that file's size.
 
+use super::ChartContext;
 use std::fmt::Write as FmtWrite;
 
 use serde_json::Value;
@@ -68,7 +69,7 @@ struct ChartHeader<'a> {
     illum: f64,
 }
 
-pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
+pub(crate) fn render_builtin_svg(ctx: &ChartContext) -> String {
     let pal = Palette::from(&ctx["vars"]);
     let date = ctx["date"].as_str().unwrap_or("");
     let jd = ctx["jd"].as_f64().unwrap_or(0.0);

@@ -19,16 +19,16 @@ pub(crate) fn vars_with_title(
     v
 }
 
-pub(crate) type ChartRenderer = fn(&serde_json::Value) -> String;
+pub(crate) type ChartRenderer = fn(&ChartContext) -> String;
 
 pub(crate) fn dispatch_natal(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Natal Chart");
     Ok((
-        build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+        build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
         render_builtin_svg,
     ))
 }
@@ -37,11 +37,11 @@ pub(crate) fn dispatch_cosmogram(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let mut v = vars_with_title(user_vars, "Cosmogram");
     v.insert("no_houses".to_string(), "1".to_string());
     Ok((
-        build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+        build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
         render_cosmogram_svg,
     ))
 }
@@ -50,7 +50,7 @@ pub(crate) fn dispatch_solar_return(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let year = args.return_year.unwrap_or_else(|| {
         let today_jd = crate::parse::parse_date("now").unwrap_or(2_451_545.0);
         let d = celestial_core::revjul(today_jd, celestial_core::body::Calendar::Gregorian);
@@ -65,7 +65,7 @@ pub(crate) fn dispatch_solar_return(
         format!("Solar Return {year}"),
     );
     Ok((
-        build_context(sr_jd, args.lat, args.lon, &sr_date, args.hsys, v)?,
+        build_context(sr_jd, args.lat, args.lon, &sr_date, args.hsys, v)?.into(),
         render_builtin_svg,
     ))
 }
@@ -74,7 +74,7 @@ pub(crate) fn dispatch_lunar_return(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let start = args
         .date2
         .as_deref()
@@ -86,7 +86,7 @@ pub(crate) fn dispatch_lunar_return(
     let mut v = user_vars.clone();
     v.insert("title".to_string(), "Lunar Return".to_string());
     Ok((
-        build_context(lr_jd, args.lat, args.lon, &lr_date, args.hsys, v)?,
+        build_context(lr_jd, args.lat, args.lon, &lr_date, args.hsys, v)?.into(),
         render_builtin_svg,
     ))
 }
@@ -95,7 +95,7 @@ pub(crate) fn dispatch_progressed(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let years = args
         .years
         .ok_or("--years DECIMAL required for progressed chart")?;
@@ -105,7 +105,7 @@ pub(crate) fn dispatch_progressed(
         format!("Secondary Progressions ({years:.1}y)"),
     );
     Ok((
-        build_progressed_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?,
+        build_progressed_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
         render_progressed_svg,
     ))
 }
@@ -114,7 +114,7 @@ pub(crate) fn dispatch_solar_arc(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let years = args
         .years
         .ok_or("--years DECIMAL required for solar-arc chart")?;
@@ -124,7 +124,7 @@ pub(crate) fn dispatch_solar_arc(
         format!("Solar Arc Directions ({years:.1}y)"),
     );
     Ok((
-        build_solar_arc_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?,
+        build_solar_arc_context(jd, years, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
         render_progressed_svg,
     ))
 }
@@ -133,7 +133,7 @@ pub(crate) fn dispatch_biwheel(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let date2 = args
         .date2
         .as_deref()
@@ -145,7 +145,7 @@ pub(crate) fn dispatch_biwheel(
     Ok((
         build_biwheel_context(
             jd, jd2, args.lat, args.lon, lat2, lon2, &args.date, date2, args.hsys, v,
-        )?,
+        )?.into(),
         render_biwheel_svg,
     ))
 }
@@ -154,7 +154,7 @@ pub(crate) fn dispatch_composite(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let date2 = args
         .date2
         .as_deref()
@@ -164,7 +164,7 @@ pub(crate) fn dispatch_composite(
     Ok((
         specialist::build_composite_context(
             jd, jd2, args.lat, args.lon, &args.date, date2, args.hsys, v,
-        )?,
+        )?.into(),
         render_builtin_svg,
     ))
 }
@@ -173,7 +173,7 @@ pub(crate) fn dispatch_triwheel(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let date2 = args
         .date2
         .as_deref()
@@ -188,7 +188,7 @@ pub(crate) fn dispatch_triwheel(
     Ok((
         specialist::build_triwheel_context(
             jd, jd2, jd3, args.lat, args.lon, &args.date, date2, date3, args.hsys, v,
-        )?,
+        )?.into(),
         specialist::render_triwheel_svg,
     ))
 }
@@ -197,13 +197,13 @@ pub(crate) fn dispatch_ephemeris(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let date2 = args.date2.as_deref().unwrap_or("now");
     let jd2 = crate::parse::parse_date(date2)?;
     let (jd_s, jd_e) = if jd < jd2 { (jd, jd2) } else { (jd2, jd) };
     let v = vars_with_title(user_vars, "Graphic Ephemeris");
     Ok((
-        specialist::build_graphic_ephemeris_context(jd_s, jd_e, v)?,
+        specialist::build_graphic_ephemeris_context(jd_s, jd_e, v)?.into(),
         specialist::render_graphic_ephemeris_svg,
     ))
 }
@@ -212,7 +212,7 @@ pub(crate) fn dispatch_profection(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let age = args
         .years
         .map(|y| y as u32)
@@ -224,7 +224,7 @@ pub(crate) fn dispatch_profection(
     Ok((
         hellenistic::build_profection_context(
             jd, args.lat, args.lon, &args.date, args.hsys, age, v,
-        )?,
+        )?.into(),
         hellenistic::render_profection_svg,
     ))
 }
@@ -238,10 +238,10 @@ pub(crate) fn dispatch_dial(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "90° Midpoint Dial");
     Ok((
-        specialist::build_dial_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+        specialist::build_dial_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
         specialist::render_dial_svg,
     ))
 }
@@ -250,10 +250,10 @@ pub(crate) fn dispatch_local_space(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Local Space");
     Ok((
-        specialist::build_local_space_context(jd, args.lat, args.lon, &args.date, v)?,
+        specialist::build_local_space_context(jd, args.lat, args.lon, &args.date, v)?.into(),
         specialist::render_local_space_svg,
     ))
 }
@@ -262,10 +262,10 @@ pub(crate) fn dispatch_rasi(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Rasi Chart (South Indian)");
     Ok((
-        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
+        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?.into(),
         render_south_indian_svg,
     ))
 }
@@ -274,10 +274,10 @@ pub(crate) fn dispatch_navamsa(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Navamsa D9 Chart");
     Ok((
-        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Navamsa")?,
+        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Navamsa")?.into(),
         vedic::render_navamsa_svg,
     ))
 }
@@ -286,10 +286,10 @@ pub(crate) fn dispatch_dasha(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Vimshottari Dasha Timeline");
     Ok((
-        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Dasha")?,
+        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Dasha")?.into(),
         vedic::render_dasha_svg,
     ))
 }
@@ -298,10 +298,10 @@ pub(crate) fn dispatch_north_indian(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "North Indian Chart");
     Ok((
-        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?,
+        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?.into(),
         vedic::render_north_indian_svg,
     ))
 }
@@ -310,10 +310,10 @@ pub(crate) fn dispatch_ashtakavarga(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Ashtakavarga");
     Ok((
-        vedic::build_ashtakavarga_context(jd, args.lat, args.lon, &args.date, v)?,
+        vedic::build_ashtakavarga_context(jd, args.lat, args.lon, &args.date, v)?.into(),
         vedic::render_ashtakavarga_svg,
     ))
 }
@@ -322,10 +322,10 @@ pub(crate) fn dispatch_shadbala(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Shadbala");
     Ok((
-        vedic::build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?,
+        vedic::build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?.into(),
         vedic::render_shadbala_svg,
     ))
 }
@@ -334,10 +334,10 @@ pub(crate) fn dispatch_hellenistic(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Hellenistic Chart");
     Ok((
-        hellenistic::build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+        hellenistic::build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
         hellenistic::render_hellenistic_svg,
     ))
 }
@@ -346,10 +346,10 @@ pub(crate) fn dispatch_firdaria(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Firdaria Timeline");
     Ok((
-        hellenistic::build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?,
+        hellenistic::build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
         hellenistic::render_firdaria_svg,
     ))
 }
@@ -358,10 +358,10 @@ pub(crate) fn dispatch_bazi(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Four Pillars (八字)");
     Ok((
-        chinese::build_bazi_context(jd, args.lat, args.lon, &args.date, v)?,
+        chinese::build_bazi_context(jd, args.lat, args.lon, &args.date, v)?.into(),
         chinese::render_bazi_svg,
     ))
 }
@@ -370,10 +370,10 @@ pub(crate) fn dispatch_mesoamerican(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Mesoamerican Calendars");
     Ok((
-        mesoamerican::build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?,
+        mesoamerican::build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?.into(),
         mesoamerican::render_mesoamerican_svg,
     ))
 }
@@ -382,10 +382,10 @@ pub(crate) fn dispatch_medicine_wheel(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Medicine Wheel / Egyptian Decans");
     Ok((
-        indigenous::build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?,
+        indigenous::build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?.into(),
         indigenous::render_medicine_wheel_svg,
     ))
 }
@@ -394,9 +394,9 @@ pub(crate) fn dispatch_wheel_of_year(
     jd: f64,
     _args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     Ok((
-        calendar_wheel::build_sabbat_wheel_context(jd, user_vars.clone())?,
+        calendar_wheel::build_sabbat_wheel_context(jd, user_vars.clone())?.into(),
         calendar_wheel::render_sabbat_wheel_svg,
     ))
 }
@@ -405,9 +405,9 @@ pub(crate) fn dispatch_omer_grid(
     jd: f64,
     _args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     Ok((
-        omer_grid::build_omer_grid_context(jd, user_vars.clone())?,
+        omer_grid::build_omer_grid_context(jd, user_vars.clone())?.into(),
         omer_grid::render_omer_grid_svg,
     ))
 }
@@ -416,9 +416,9 @@ pub(crate) fn dispatch_calendar(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     Ok((
-        build_calendar_context(jd, args, user_vars)?,
+        build_calendar_context(jd, args, user_vars)?.into(),
         calendar_overlays::render_default_calendar_svg,
     ))
 }
@@ -431,7 +431,7 @@ pub(crate) fn dispatch_calendar(
 // nothing else to keep in sync.
 
 pub(crate) type ChartBuilder =
-    fn(f64, &RenderArgs, &BTreeMap<String, String>) -> Result<(Value, ChartRenderer), CliError>;
+    fn(f64, &RenderArgs, &BTreeMap<String, String>) -> Result<(ChartContext, ChartRenderer), CliError>;
 
 pub(crate) struct ChartEntry {
     aliases: &'static [&'static str],
@@ -567,7 +567,7 @@ pub(crate) fn dispatch_chart_type(
     jd: f64,
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
-) -> Result<(serde_json::Value, ChartRenderer), CliError> {
+) -> Result<(ChartContext, ChartRenderer), CliError> {
     CHART_REGISTRY
         .iter()
         .find(|e| e.aliases.contains(&chart_type))

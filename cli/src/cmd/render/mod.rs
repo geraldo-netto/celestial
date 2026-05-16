@@ -66,12 +66,14 @@ mod western;
 
 // ── Split-out concerns (former god-file sections; facade re-exports) ─────────
 mod args;
+mod chart_context;
 mod config;
 mod pipeline;
 mod registry;
 
 pub use args::RenderArgs;
 pub use pipeline::run;
+pub(crate) use chart_context::ChartContext;
 pub(crate) use config::*;
 pub(crate) use pipeline::*;
 pub(crate) use registry::*;
@@ -607,7 +609,7 @@ mod tests {
         let jd = 2_460_482.5;
         let ctx = calendar_wheel::build_sabbat_wheel_context(jd, std::collections::BTreeMap::new())
             .unwrap();
-        let svg = calendar_wheel::render_sabbat_wheel_svg(&ctx);
+        let svg = calendar_wheel::render_sabbat_wheel_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.starts_with("<?xml"), "SVG should start with <?xml");
         assert!(svg.contains("<svg "), "should contain <svg> tag");
         assert!(svg.ends_with("</svg>\n"), "should close </svg>");
@@ -1079,7 +1081,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
             std::collections::BTreeMap::new(),
         )
         .unwrap();
-        let svg = render_builtin_svg(&ctx);
+        let svg = render_builtin_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.starts_with("<?xml"), "must start with XML declaration");
         assert!(svg.contains("<svg "), "must contain <svg>");
         assert!(svg.contains("</svg>"), "must contain </svg>");
@@ -1098,7 +1100,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
             std::collections::BTreeMap::new(),
         )
         .unwrap();
-        let svg = render_builtin_svg(&ctx);
+        let svg = render_builtin_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("Planets"), "legend must have Planets section");
         assert!(svg.contains("Aspects"), "legend must have Aspects section");
         assert!(
@@ -1120,7 +1122,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
             std::collections::BTreeMap::new(),
         )
         .unwrap();
-        let svg = render_builtin_svg(&ctx);
+        let svg = render_builtin_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         // All 12 planet glyphs must appear — as `<symbol id="g-XXXX">`
         // entries in the defs block plus `<use href="#g-XXXX">` references
         // in the wheel and legend tables. The bare character is no longer
@@ -1141,7 +1143,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         vars.insert("bg_color".to_string(), "#FACADE".to_string());
         vars.insert("title".to_string(), "Test Title".to_string());
         let ctx = build_context(2451545.0, 0.0, 0.0, "test", 'E', vars).unwrap();
-        let svg = render_builtin_svg(&ctx);
+        let svg = render_builtin_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(
             svg.contains("#FACADE"),
             "custom bg_color must appear in SVG"
@@ -1164,7 +1166,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
             std::collections::BTreeMap::new(),
         )
         .unwrap();
-        let svg = render_builtin_svg(&ctx);
+        let svg = render_builtin_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(
             svg.contains("<svg"),
             "SVG must be generated for winter solstice date"
@@ -1406,7 +1408,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_dial_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
-        let svg = specialist::render_dial_svg(&ctx);
+        let svg = specialist::render_dial_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("☉"), "Sun glyph missing from dial");
         assert!(svg.contains("☽"), "Moon glyph missing from dial");
         assert!(svg.contains("</svg>"), "SVG not closed");
@@ -1479,7 +1481,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let jd_end = jd_start + 60.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_graphic_ephemeris_context(jd_start, jd_end, vars).unwrap();
-        let svg = specialist::render_graphic_ephemeris_svg(&ctx);
+        let svg = specialist::render_graphic_ephemeris_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("<path"), "no paths in ephemeris SVG");
         assert!(svg.contains("</svg>"), "SVG not closed");
     }
@@ -1506,7 +1508,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_local_space_context(jd, 48.85, 2.35, "2000-01-01", vars).unwrap();
-        let svg = specialist::render_local_space_svg(&ctx);
+        let svg = specialist::render_local_space_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains(">N<"), "N direction missing");
         assert!(svg.contains(">S<"), "S direction missing");
         assert!(svg.contains(">E<"), "E direction missing");
@@ -1858,7 +1860,7 @@ fn write_si_dashas(s: &mut String, ctx: &Value, dy: f64, total_w: f64, txt: &str
     }
 }
 
-pub(super) fn render_south_indian_svg(ctx: &Value) -> String {
+pub(super) fn render_south_indian_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
     let pal = SiPalette {
         bg: ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff"),
@@ -1974,7 +1976,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_vedic_context(jd, 0.0, 0.0, "2000-01-01", vars, "Rasi").unwrap();
-        let svg = render_south_indian_svg(&ctx);
+        let svg = render_south_indian_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         // All 12 rasi abbreviations must appear
         for sign in [
             "Ar", "Ta", "Ge", "Ca", "Le", "Vi", "Li", "Sc", "Sg", "Cp", "Aq", "Pi",
@@ -1992,7 +1994,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_vedic_context(jd, 0.0, 0.0, "2000-01-01", vars, "Dasha").unwrap();
-        let svg = vedic::render_dasha_svg(&ctx);
+        let svg = vedic::render_dasha_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("<rect"), "no bars in dasha SVG");
         assert!(svg.contains("</svg>"), "SVG not closed");
     }
@@ -2002,7 +2004,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_vedic_context(jd, 0.0, 0.0, "2000-01-01", vars, "Navamsa").unwrap();
-        let svg = vedic::render_navamsa_svg(&ctx);
+        let svg = vedic::render_navamsa_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("D9"), "Navamsa title missing");
         assert!(svg.contains("</svg>"));
     }
@@ -2031,7 +2033,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_vedic_context(jd, 13.08, 80.27, "2000-01-01", vars, "Rasi").unwrap();
-        let svg = vedic::render_north_indian_svg(&ctx);
+        let svg = vedic::render_north_indian_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         // All 12 house numbers (1..=12) should appear
         for h in 1..=12u32 {
             assert!(
@@ -2047,7 +2049,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_vedic_context(jd, 0.0, 0.0, "2000-01-01", vars, "Rasi").unwrap();
-        let svg = vedic::render_north_indian_svg(&ctx);
+        let svg = vedic::render_north_indian_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         // At least Aries glyph should appear
         assert!(svg.contains('\u{2648}'), "Aries glyph missing");
     }
@@ -2108,7 +2110,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_ashtakavarga_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
-        let svg = vedic::render_ashtakavarga_svg(&ctx);
+        let svg = vedic::render_ashtakavarga_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("Sun"), "Sun row missing from Ashtakavarga SVG");
         assert!(svg.contains("Moon"), "Moon row missing");
         assert!(svg.contains("Total"), "Total row missing");
@@ -2161,7 +2163,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_shadbala_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
-        let svg = vedic::render_shadbala_svg(&ctx);
+        let svg = vedic::render_shadbala_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         for planet in &[
             "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn",
         ] {
@@ -2218,7 +2220,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_hellenistic_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
-        let svg = hellenistic::render_hellenistic_svg(&ctx);
+        let svg = hellenistic::render_hellenistic_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(
             svg.contains("Hellenistic Dignities"),
             "dignity table heading missing"
@@ -2249,7 +2251,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_firdaria_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
-        let svg = hellenistic::render_firdaria_svg(&ctx);
+        let svg = hellenistic::render_firdaria_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("<rect"), "no bars in Firdaria SVG");
         assert!(svg.contains("</svg>"), "SVG not closed");
     }
@@ -2272,7 +2274,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_profection_context(jd, 48.85, 2.35, "2000-01-01", 'P', 30, vars).unwrap();
-        let svg = hellenistic::render_profection_svg(&ctx);
+        let svg = hellenistic::render_profection_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("profection"), "profection annotation missing");
         assert!(svg.contains("</svg>"), "SVG not closed");
     }
@@ -2322,7 +2324,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_bazi_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
-        let svg = chinese::render_bazi_svg(&ctx);
+        let svg = chinese::render_bazi_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         // All 4 column labels must appear
         for lbl in ["Hour 時", "Day 日", "Month 月", "Year 年"] {
             assert!(
@@ -2338,7 +2340,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_bazi_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
-        let svg = chinese::render_bazi_svg(&ctx);
+        let svg = chinese::render_bazi_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(
             svg.contains("Element balance"),
             "element balance section missing"
@@ -2374,7 +2376,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_mesoamerican_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
-        let svg = mesoamerican::render_mesoamerican_svg(&ctx);
+        let svg = mesoamerican::render_mesoamerican_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("Tonalpohualli"), "Aztec label missing");
         assert!(svg.contains("Tzolkin"), "Maya label missing");
         assert!(svg.contains("</svg>"), "SVG not closed");
@@ -2398,7 +2400,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_medicine_wheel_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
-        let svg = indigenous::render_medicine_wheel_svg(&ctx);
+        let svg = indigenous::render_medicine_wheel_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         // Cardinal directions
         for dir in ["N", "E", "S", "W"] {
             assert!(

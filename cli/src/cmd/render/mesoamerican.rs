@@ -1,5 +1,6 @@
 //! Mesoamerican chart builders — split from render.rs.
 
+use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::{calendar_round, haab, tonalpohualli, tzolkin, xiuhpohualli};
 use serde_json::{json, Value};
@@ -61,7 +62,7 @@ pub fn build_mesoamerican_context(
         "vars": Value::Object(palette.into_iter().collect())}))
 }
 
-pub fn render_mesoamerican_svg(ctx: &Value) -> String {
+pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
     let pal = super::svg_common::SvgPalette::from_ctx(

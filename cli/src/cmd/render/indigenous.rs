@@ -1,5 +1,6 @@
 //! Indigenous chart builders — split from render.rs.
 
+use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::calc_ut;
@@ -179,7 +180,7 @@ fn write_mw_decan(s: &mut String, txt: &str, decan_idx: u64, decan_name: &str, d
     );
 }
 
-pub fn render_medicine_wheel_svg(ctx: &Value) -> String {
+pub fn render_medicine_wheel_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
     let pal = super::svg_common::SvgPalette::from_ctx(

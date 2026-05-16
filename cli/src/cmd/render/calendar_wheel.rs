@@ -1,5 +1,6 @@
 //! Calendar-wheel renderers — Celtic Wheel of the Year (sabbats).
 
+use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::{revjul, sabbats_for_year, Calendar};
 use serde_json::{json, Value};
@@ -96,7 +97,7 @@ pub fn build_sabbat_wheel_context(
 ///
 /// Draws an outer ring, two cross-axis lines (solstice/equinox axes), 8 radial
 /// ticks at each sabbat, the sabbat name and date, and a centre-piece title.
-pub fn render_sabbat_wheel_svg(ctx: &Value) -> String {
+pub fn render_sabbat_wheel_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
     let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");

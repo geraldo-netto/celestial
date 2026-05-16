@@ -203,8 +203,8 @@ pub(crate) fn apply_universal_overlays(ctx: &mut serde_json::Value, jd: f64, cal
 /// Render the final output: either feeds `ctx` to the built-in renderer
 /// for `chart_type`, or runs `ctx` through the user-supplied template.
 pub(crate) fn render_to_string(
-    ctx: &serde_json::Value,
-    render_fn: fn(&serde_json::Value) -> String,
+    ctx: &ChartContext,
+    render_fn: ChartRenderer,
     template_path: Option<&PathBuf>,
 ) -> Result<String, CliError> {
     let Some(tmpl_path) = template_path else {
@@ -294,7 +294,10 @@ pub fn run(mut args: RenderArgs) -> Result<(), CliError> {
     };
 
     // Dispatch to the appropriate chart-type builder
-    let (mut ctx, render_fn) = dispatch_chart_type(chart_type, jd, &args, &user_vars)?;
+    let (ctx, render_fn) = dispatch_chart_type(chart_type, jd, &args, &user_vars)?;
+    // The builders compose JSON; mutate it as a `Value` here, then re-wrap
+    // into the typed `ChartContext` at the render / serialize boundary.
+    let mut ctx = ctx.into_value();
 
     apply_universal_overlays(&mut ctx, jd, &args.calendars);
 
@@ -328,6 +331,7 @@ pub fn run(mut args: RenderArgs) -> Result<(), CliError> {
         return Ok(());
     }
 
+    let ctx = ChartContext::from(ctx);
     let output = render_to_string(&ctx, render_fn, args.template.as_ref())?;
     write_or_print(&output, args.out.as_ref())?;
     Ok(())
