@@ -91,6 +91,25 @@ pub(crate) fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, Stri
             args.template = r.template;
         }
         if args.out.is_none() {
+            // SEC-5: a config file may be untrusted. An `out` taken
+            // from it must stay a relative path inside the working
+            // dir — reject absolute paths and any `..` component so a
+            // crafted `[render] out = "/etc/…"` / "../../…" can't make
+            // the tool write (and `create_dir_all`) outside cwd. An
+            // explicit CLI `--out` is the user's own intent and is
+            // left unrestricted (this branch only runs when it's None).
+            if let Some(o) = &r.out {
+                if o.is_absolute()
+                    || o.components()
+                        .any(|c| matches!(c, std::path::Component::ParentDir))
+                {
+                    return Err(CliError::Config(format!(
+                        "config `out` must be a relative path without `..` (got `{}`); \
+                         pass an absolute path via the `--out` flag instead",
+                        o.display()
+                    )));
+                }
+            }
             args.out = r.out;
         }
     }
