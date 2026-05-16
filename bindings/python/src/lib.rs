@@ -69,14 +69,7 @@ fn close() {
 #[pyo3(signature = (tjdet, planet, flags = 258))]
 fn calc(py: Python<'_>, tjdet: f64, planet: i32, flags: i32) -> PyResult<PyObject> {
     let pos = celestial::calc(tjdet, Body::from_raw(planet), CalcFlags(flags)).map_err(to_py)?;
-    let xx = (
-        pos.lon,
-        pos.lat,
-        pos.dist,
-        pos.speed_lon,
-        pos.speed_lat,
-        pos.speed_dist,
-    );
+    let xx = celestial_ffi::pos6_tuple(&pos);
     Ok((xx, pos.ret_flags).into_py_any(py).unwrap())
 }
 
@@ -85,14 +78,7 @@ fn calc(py: Python<'_>, tjdet: f64, planet: i32, flags: i32) -> PyResult<PyObjec
 #[pyo3(signature = (tjdut, planet, flags = 258))]
 fn calc_ut(py: Python<'_>, tjdut: f64, planet: i32, flags: i32) -> PyResult<PyObject> {
     let pos = celestial::calc_ut(tjdut, Body::from_raw(planet), CalcFlags(flags)).map_err(to_py)?;
-    let xx = (
-        pos.lon,
-        pos.lat,
-        pos.dist,
-        pos.speed_lon,
-        pos.speed_lat,
-        pos.speed_dist,
-    );
+    let xx = celestial_ffi::pos6_tuple(&pos);
     Ok((xx, pos.ret_flags).into_py_any(py).unwrap())
 }
 
@@ -135,14 +121,7 @@ fn calc_many(py: Python<'_>, tjdet: f64, planets: Vec<i32>, flags: i32) -> PyRes
         .into_iter()
         .map(|r| {
             let pos = r.map_err(to_py)?;
-            let xx = (
-                pos.lon,
-                pos.lat,
-                pos.dist,
-                pos.speed_lon,
-                pos.speed_lat,
-                pos.speed_dist,
-            );
+            let xx = celestial_ffi::pos6_tuple(&pos);
             Ok::<PyObject, pyo3::PyErr>((xx, pos.ret_flags).into_py_any(py).unwrap())
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -159,14 +138,7 @@ fn calc_ut_many(py: Python<'_>, tjdut: f64, planets: Vec<i32>, flags: i32) -> Py
         .into_iter()
         .map(|r| {
             let pos = r.map_err(to_py)?;
-            let xx = (
-                pos.lon,
-                pos.lat,
-                pos.dist,
-                pos.speed_lon,
-                pos.speed_lat,
-                pos.speed_dist,
-            );
+            let xx = celestial_ffi::pos6_tuple(&pos);
             Ok::<PyObject, pyo3::PyErr>((xx, pos.ret_flags).into_py_any(py).unwrap())
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -190,14 +162,7 @@ fn calc_pctr(
         CalcFlags(flags),
     )
     .map_err(to_py)?;
-    let xx = (
-        pos.lon,
-        pos.lat,
-        pos.dist,
-        pos.speed_lon,
-        pos.speed_lat,
-        pos.speed_dist,
-    );
+    let xx = celestial_ffi::pos6_tuple(&pos);
     Ok((xx, pos.ret_flags).into_py_any(py).unwrap())
 }
 

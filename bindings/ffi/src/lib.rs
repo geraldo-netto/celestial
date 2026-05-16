@@ -47,6 +47,21 @@ pub fn pos6(p: &celestial_core::PlanetPos) -> [f64; 6] {
     ]
 }
 
+/// Same six fields as [`pos6`] but as a **tuple** — for bindings (e.g.
+/// pyo3) that marshal a fixed-arity tuple rather than an array/list, so
+/// the field order lives in exactly one place (DUP-8).
+#[inline]
+pub fn pos6_tuple(p: &celestial_core::PlanetPos) -> (f64, f64, f64, f64, f64, f64) {
+    (
+        p.lon,
+        p.lat,
+        p.dist,
+        p.speed_lon,
+        p.speed_lat,
+        p.speed_dist,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
