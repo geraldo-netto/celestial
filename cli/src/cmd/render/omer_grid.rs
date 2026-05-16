@@ -141,23 +141,45 @@ pub fn build_omer_grid_context(
     let total_h = grid_y0 + grid_h + 50.0;
     let vars_json = apply_var_defaults(user_vars, hebrew_year);
 
-    Ok(json!({
-        "hebrew_year":  hebrew_year,
-        "jd":           jd,
-        "date":         date_str_from_jd(jd),
-        "start_jd":     period.start_jd,
-        "end_jd":       period.end_jd,
-        "cells":        cells,
-        "col_headers":  col_headers,
-        "row_headers":  row_headers,
-        "grid_x0":      grid_x0,
-        "grid_y0":      grid_y0,
-        "grid_w":       grid_w,
-        "grid_h":       grid_h,
-        "viewbox_w":    total_w,
-        "viewbox_h":    total_h,
-        "vars":         Value::Object(vars_json),
-    }))
+    // ARCH-9/DP-5: typed context (field names == JSON keys).
+    let ctx = OmerGridContext {
+        hebrew_year,
+        jd,
+        date: date_str_from_jd(jd),
+        start_jd: period.start_jd,
+        end_jd: period.end_jd,
+        cells,
+        col_headers,
+        row_headers,
+        grid_x0,
+        grid_y0,
+        grid_w,
+        grid_h,
+        viewbox_w: total_w,
+        viewbox_h: total_h,
+        vars: Value::Object(vars_json),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed Omer-grid context (ARCH-9/DP-5). Field names == JSON keys.
+#[derive(serde::Serialize)]
+struct OmerGridContext {
+    hebrew_year: i32,
+    jd: f64,
+    date: String,
+    start_jd: f64,
+    end_jd: f64,
+    cells: Vec<Value>,
+    col_headers: Vec<Value>,
+    row_headers: Vec<Value>,
+    grid_x0: f64,
+    grid_y0: f64,
+    grid_w: f64,
+    grid_h: f64,
+    viewbox_w: f64,
+    viewbox_h: f64,
+    vars: Value,
 }
 
 /// Built-in SVG renderer for the Omer grid.

@@ -81,12 +81,33 @@ pub fn build_dial_context(
         &vars,
     );
 
-    Ok(json!({
-        "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
-        "asc": (asc * 1e4).round() / 1e4,
-        "planets": planet_entries,
-        "midpoints": mp_entries,
-        "vars": Value::Object(palette.into_iter().collect())}))
+    // ARCH-9/DP-5: typed context (field names == JSON keys).
+    let ctx = DialContext {
+        date: jd_to_date_str(jd),
+        date_label: date_str.to_string(),
+        jd,
+        lat,
+        lon,
+        asc: (asc * 1e4).round() / 1e4,
+        planets: planet_entries,
+        midpoints: mp_entries,
+        vars: Value::Object(palette.into_iter().collect()),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed 90° dial context (ARCH-9/DP-5).
+#[derive(serde::Serialize)]
+struct DialContext {
+    date: String,
+    date_label: String,
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    asc: f64,
+    planets: Vec<Value>,
+    midpoints: Vec<Value>,
+    vars: Value,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -339,12 +360,29 @@ pub fn build_graphic_ephemeris_context(
         &vars,
     );
 
-    Ok(json!({
-        "jd_start": jd_start, "jd_end": jd_end,
-        "jd_points": jd_points,
-        "days": days, "step": step,
-        "planet_series": planet_series,
-        "vars": Value::Object(palette.into_iter().collect())}))
+    // ARCH-9/DP-5: typed context (field names == JSON keys).
+    let ctx = GraphicEphemerisContext {
+        jd_start,
+        jd_end,
+        jd_points,
+        days,
+        step,
+        planet_series,
+        vars: Value::Object(palette.into_iter().collect()),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed graphic-ephemeris context (ARCH-9/DP-5).
+#[derive(serde::Serialize)]
+struct GraphicEphemerisContext {
+    jd_start: f64,
+    jd_end: f64,
+    jd_points: Vec<f64>,
+    days: usize,
+    step: usize,
+    planet_series: Vec<Value>,
+    vars: Value,
 }
 
 // Graphic ephemeris layout constants
@@ -571,10 +609,29 @@ pub fn build_local_space_context(
         &vars,
     );
 
-    Ok(json!({
-        "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
-        "planets": planets,
-        "vars": Value::Object(palette.into_iter().collect())}))
+    // ARCH-9/DP-5: typed context (field names == JSON keys).
+    let ctx = LocalSpaceContext {
+        date: jd_to_date_str(jd),
+        date_label: date_str.to_string(),
+        jd,
+        lat,
+        lon,
+        planets,
+        vars: Value::Object(palette.into_iter().collect()),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed local-space context (ARCH-9/DP-5).
+#[derive(serde::Serialize)]
+struct LocalSpaceContext {
+    date: String,
+    date_label: String,
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    planets: Vec<Value>,
+    vars: Value,
 }
 
 const LS_CX: f64 = 450.0;

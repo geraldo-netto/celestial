@@ -85,12 +85,23 @@ pub fn build_sabbat_wheel_context(
         vars_json.insert(k, json!(v));
     }
 
-    Ok(json!({
-        "year": year,
-        "jd": jd,
-        "sabbats": entries,
-        "vars": Value::Object(vars_json),
-    }))
+    // ARCH-9/DP-5: typed context (field names == JSON keys).
+    let ctx = SabbatWheelContext {
+        year,
+        jd,
+        sabbats: entries,
+        vars: Value::Object(vars_json),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed Wheel-of-the-Year context (ARCH-9/DP-5).
+#[derive(serde::Serialize)]
+struct SabbatWheelContext {
+    year: i32,
+    jd: f64,
+    sabbats: Vec<Value>,
+    vars: Value,
 }
 
 /// Built-in SVG renderer for the Wheel of the Year.
