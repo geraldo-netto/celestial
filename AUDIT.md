@@ -104,13 +104,11 @@ No coverage gate is enforced in CI. Remaining test-debt: CLI
 render-orchestration (`config`/`registry`/`calendar` 11–37%) and
 `searches.rs` rare-edge branches; the engine itself is solid.
 
-**TEST-1 (flake)** — `cli plugin::tests` (e.g.
-`discover_deduplicates_by_name`, `try_exec_*`) pass isolated /
-`--test-threads=1` but fail under the full parallel run: the
-plugin-discovery tests mutate/read the process-global `$PATH`
-(`std::env::set_var`) without serialization, racing each other.
-Fix: a shared `env`-lock (or `serial_test`) around the PATH-touching
-tests. Pre-existing; orthogonal to the coverage work.
+**TEST-1 (flake)** — RESOLVED (commit d9b7b79). Root cause:
+`try_exec_returns_err_for_unknown` mutated/restored `$PATH` *without*
+the existing `with_path_lock` mutex that the `discover_*` tests use,
+so it raced them under the parallel runner. Wrapped it in
+`with_path_lock`; 5/5 consecutive full parallel runs green.
 
 ---
 
