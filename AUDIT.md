@@ -26,7 +26,6 @@ registry) are flat lookups — not flagged.
 |---|---|---|---|
 | DUP-1 | bindings/{js,python,php}/src/lib.rs | ~201 per-export macro stubs ×3 (incl. the eclipse / houses / `*_many` families) | DEFERRED — napi/pyo3/php proc-macros, per-module registration and native return shapes can't be unified by a plain crate; only a spec-driven codegen over 3 *published* bindings on the precision path removes it. Shared `FfiError`/`pos6`/`pos6_tuple` halves already shipped. = ARCH-10/DP-4 |
 | DUP-4 | bindings `revjul`/`revjul_hms` | 3 idiomatic return shapes (struct/tuple/map) | DECIDED — intentional per-language idioms downstream depends on; core call already shared. Normalizing = a published API break, not a dedupe |
-| DUP-7 | cli/src/cmd/render/{vedic,specialist,hellenistic,calendar_wheel,omer_grid,…}.rs | `palette_with_defaults(&[…],&vars)` + title-default repeated in ~8 builders | OPEN — a `palette!` macro/helper; bounded, byte-identical. (The 3 self-titling builders already use `palette_vars`; these 8 differ in key sets / inject title upstream — low value, byte-safe.) |
 
 DUP-5 (per-tradition wheel geometry) is N-A — distinct layout
 constants, not duplication; shared halves already factored.
@@ -110,8 +109,8 @@ No CI coverage gate.
 
 ## Recommended next
 
-1. **OPEN, bounded, byte-safe:** DUP-7 (`palette!` helper) · NV-1
-   (`#[non_exhaustive]` on `ParseError`/`CliError`).
+1. **OPEN, bounded, byte-safe:** NV-1 (`#[non_exhaustive]` on
+   `ParseError`/`CliError`).
 2. **Test debt:** unit-cover the 11–37% CLI orchestration modules via
    the `compute()` seam; raise `searches.rs` branch coverage; add a CI
    coverage floor.
