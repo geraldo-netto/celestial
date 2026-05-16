@@ -257,6 +257,8 @@ pub fn run(mut args: RenderArgs) -> Result<(), CliError> {
         return Ok(());
     }
 
+    args.validate()?;
+
     let file_vars = load_config(&mut args)?;
     let user_vars = apply_var_overrides(&args.vars, file_vars)?;
     let date_str = merge_date_and_time(&args.date, args.time.as_deref());

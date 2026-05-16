@@ -177,3 +177,83 @@ pub struct RenderArgs {
     #[arg(long)]
     pub print_schema: bool,
 }
+
+impl RenderArgs {
+    /// Range-check geographic inputs before any chart computation so a
+    /// bad `--lat`/`--lon` (or the bi/tri-wheel `--lat2`/`--lon2`)
+    /// fails early with a clear message instead of reaching core.
+    pub fn validate(&self) -> Result<(), crate::error::CliError> {
+        fn chk(name: &str, v: f64, lo: f64, hi: f64) -> Result<(), crate::error::CliError> {
+            if v.is_finite() && (lo..=hi).contains(&v) {
+                Ok(())
+            } else {
+                Err(crate::error::CliError::Parse(format!(
+                    "{name} out of range: {v} (expected {lo}..={hi})"
+                )))
+            }
+        }
+        chk("--lat", self.lat, -90.0, 90.0)?;
+        chk("--lon", self.lon, -180.0, 180.0)?;
+        if let Some(v) = self.lat2 {
+            chk("--lat2", v, -90.0, 90.0)?;
+        }
+        if let Some(v) = self.lon2 {
+            chk("--lon2", v, -180.0, 180.0)?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args() -> RenderArgs {
+        RenderArgs::default()
+    }
+
+    #[test]
+    fn validate_accepts_in_range() {
+        let mut a = args();
+        a.lat = -23.5;
+        a.lon = -46.6;
+        a.lat2 = Some(51.5);
+        a.lon2 = Some(-0.12);
+        assert!(a.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_accepts_zero_default() {
+        // calendar chart-type leaves lat/lon at the 0.0 default
+        assert!(args().validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_bad_lat() {
+        let mut a = args();
+        a.lat = 91.0;
+        let e = a.validate().unwrap_err().to_string();
+        assert!(e.contains("--lat"), "got: {e}");
+    }
+
+    #[test]
+    fn validate_rejects_bad_lon() {
+        let mut a = args();
+        a.lon = -200.0;
+        assert!(a.validate().is_err());
+    }
+
+    #[test]
+    fn validate_rejects_bad_lon2() {
+        let mut a = args();
+        a.lon2 = Some(360.0);
+        assert!(a.validate().is_err());
+    }
+
+    #[test]
+    fn validate_rejects_nan() {
+        let mut a = args();
+        a.lat = f64::NAN;
+        assert!(a.validate().is_err());
+    }
+}
