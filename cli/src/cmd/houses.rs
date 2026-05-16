@@ -99,3 +99,44 @@ pub fn run(args: HousesArgs) -> Result<(), CliError> {
     println!();
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base() -> HousesArgs {
+        HousesArgs {
+            date: "2451545.0".into(),
+            lat: -23.55,
+            lon: -46.63,
+            system: "placidus".into(),
+            json: false,
+        }
+    }
+
+    #[test]
+    fn run_text_ok() {
+        assert!(run(base()).is_ok());
+    }
+
+    #[test]
+    fn run_json_ok() {
+        let mut a = base();
+        a.json = true;
+        assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_koch_ok() {
+        let mut a = base();
+        a.system = "koch".into();
+        assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_bad_system_errs() {
+        let mut a = base();
+        a.system = "notasystem".into();
+        assert!(run(a).is_err());
+    }
+}

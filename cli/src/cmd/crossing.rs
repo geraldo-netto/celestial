@@ -75,3 +75,46 @@ pub fn run(args: CrossingArgs) -> Result<(), CliError> {
     println!();
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base() -> CrossingArgs {
+        CrossingArgs {
+            body: "sun".into(),
+            lon: 0.0,
+            from: "2451545.0".into(),
+            helio: false,
+            json: false,
+        }
+    }
+
+    #[test]
+    fn run_text_ok() {
+        assert!(run(base()).is_ok());
+    }
+
+    #[test]
+    fn run_json_ok() {
+        let mut a = base();
+        a.json = true;
+        assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_helio_ok() {
+        let mut a = base();
+        a.helio = true;
+        a.body = "mars".into();
+        a.lon = 120.0;
+        assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_bad_body_errs() {
+        let mut a = base();
+        a.body = "notabody".into();
+        assert!(run(a).is_err());
+    }
+}

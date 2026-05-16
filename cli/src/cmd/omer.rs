@@ -161,3 +161,59 @@ pub fn run(args: OmerArgs) -> Result<(), CliError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base() -> OmerArgs {
+        OmerArgs {
+            date: "2451545.0".into(),
+            all: false,
+            year: None,
+            json: false,
+        }
+    }
+
+    #[test]
+    fn run_text_ok() {
+        assert!(run(base()).is_ok());
+    }
+
+    #[test]
+    fn run_json_ok() {
+        let mut a = base();
+        a.json = true;
+        assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_all_ok() {
+        let mut a = base();
+        a.all = true;
+        assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_specific_year_ok() {
+        let mut a = base();
+        a.year = Some(5785);
+        a.all = true;
+        assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_in_omer_period_text_ok() {
+        let mut a = base();
+        a.date = "2000-05-15".into();
+        assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_in_omer_period_json_ok() {
+        let mut a = base();
+        a.date = "2000-05-15".into();
+        a.json = true;
+        assert!(run(a).is_ok());
+    }
+}

@@ -172,3 +172,33 @@ pub fn run_esbats(args: EsbatsArgs) -> Result<(), CliError> {
     println!();
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn run_sabbats_year_text_ok() {
+        assert!(run_sabbats(SabbatsArgs { year: Some(2000), next: false, json: false }).is_ok());
+    }
+
+    #[test]
+    fn run_sabbats_json_ok() {
+        assert!(run_sabbats(SabbatsArgs { year: Some(2000), next: false, json: true }).is_ok());
+    }
+
+    #[test]
+    fn run_sabbats_next_ok() {
+        assert!(run_sabbats(SabbatsArgs { year: None, next: true, json: false }).is_ok());
+    }
+
+    #[test]
+    fn run_esbats_year_ok() {
+        assert!(run_esbats(EsbatsArgs { year: Some(2000), next: false, json: false }).is_ok());
+    }
+
+    #[test]
+    fn run_esbats_next_json_ok() {
+        assert!(run_esbats(EsbatsArgs { year: None, next: true, json: true }).is_ok());
+    }
+}

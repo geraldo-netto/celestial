@@ -78,3 +78,44 @@ fn print_eclipse_result(label: &str, tret: &[f64], json: bool) -> Result<(), Cli
     println!();
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base() -> EclipseArgs {
+        EclipseArgs {
+            r#type: "solar".into(),
+            from: "2451545.0".into(),
+            backwards: false,
+            json: false,
+        }
+    }
+
+    #[test]
+    fn run_solar_text_ok() {
+        assert!(run(base()).is_ok());
+    }
+
+    #[test]
+    fn run_lunar_json_ok() {
+        let mut a = base();
+        a.r#type = "lunar".into();
+        a.json = true;
+        assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_backwards_ok() {
+        let mut a = base();
+        a.backwards = true;
+        assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_bad_type_errs() {
+        let mut a = base();
+        a.r#type = "bogus".into();
+        assert!(run(a).is_err());
+    }
+}
