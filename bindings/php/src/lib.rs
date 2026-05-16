@@ -41,20 +41,13 @@ use std::collections::HashMap;
 // ─── Error helper ─────────────────────────────────────────────────────────────
 
 fn to_php(e: celestial::Error) -> PhpException {
-    PhpException::default(e.to_string())
+    PhpException::default(celestial_ffi::FfiError::from(e).message())
 }
 
 /// Flatten a core position into the PHP `[lon, lat, dist, speed_lon,
 /// speed_lat, speed_dist]` array shape used by every `calc*` export.
 fn pos_vec(p: &celestial::PlanetPos) -> Vec<f64> {
-    vec![
-        p.lon,
-        p.lat,
-        p.dist,
-        p.speed_lon,
-        p.speed_lat,
-        p.speed_dist,
-    ]
+    celestial_ffi::pos6(p).to_vec()
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

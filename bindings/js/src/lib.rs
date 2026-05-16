@@ -10,7 +10,7 @@ use celestial_core as celestial;
 use napi_derive::napi;
 
 fn to_napi(e: celestial::Error) -> napi::Error {
-    napi::Error::from_reason(e.to_string())
+    napi::Error::from_reason(celestial_ffi::FfiError::from(e).message())
 }
 
 // ─── Returned object shapes ───────────────────────────────────────────────────

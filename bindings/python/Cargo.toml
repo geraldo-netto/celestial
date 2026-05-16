@@ -11,9 +11,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 celestial-core = { path = "../../core", default-features = false }
+celestial-ffi  = { path = "../ffi", default-features = false }
 pyo3          = { workspace = true }
 
 [features]
 default = ["timezone", "calendar-traditions"]
-timezone = ["celestial-core/timezone"]
-calendar-traditions = ["celestial-core/calendar-traditions"]
+timezone = ["celestial-core/timezone", "celestial-ffi/timezone"]
+calendar-traditions = ["celestial-core/calendar-traditions", "celestial-ffi/calendar-traditions"]

@@ -1,0 +1,20 @@
+[package]
+name        = "celestial-ffi"
+version.workspace = true
+edition     = "2021"
+description = "Language-neutral FFI facade over celestial-core (shared by the js/python/php bindings)"
+license     = "AGPL-3.0-or-later"
+authors     = ["geraldo-netto"]
+
+[lib]
+name = "celestial_ffi"
+path = "src/lib.rs"
+
+[dependencies]
+celestial-core = { path = "../../core", default-features = false }
+thiserror      = "1"
+
+[features]
+default = []
+timezone = ["celestial-core/timezone"]
+calendar-traditions = ["celestial-core/calendar-traditions"]

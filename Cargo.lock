@@ -101,7 +101,7 @@ dependencies = [
 
 [[package]]
 name = "celestial-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "assert_cmd",
  "celestial-core",
@@ -116,9 +116,17 @@ dependencies = [
 
 [[package]]
 name = "celestial-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "celestial-ffi"
+version = "0.2.0"
+dependencies = [
+ "celestial-core",
+ "thiserror",
 ]
 
 [[package]]
@@ -130,9 +138,10 @@ dependencies = [
 
 [[package]]
 name = "celestial-js"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "celestial-core",
+ "celestial-ffi",
  "napi",
  "napi-build",
  "napi-derive",
@@ -140,9 +149,10 @@ dependencies = [
 
 [[package]]
 name = "celestial-py"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "celestial-core",
+ "celestial-ffi",
  "pyo3",
 ]
 

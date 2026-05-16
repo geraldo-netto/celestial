@@ -17,7 +17,7 @@ use pyo3::IntoPyObjectExt;
 // ─── Error mapping ────────────────────────────────────────────────────────────
 
 fn to_py(e: celestial::Error) -> PyErr {
-    PyRuntimeError::new_err(e.to_string())
+    PyRuntimeError::new_err(celestial_ffi::FfiError::from(e).message())
 }
 
 // ─── Configuration ────────────────────────────────────────────────────────────
