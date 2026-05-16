@@ -19,7 +19,6 @@ No function in the workspace exceeds CC 10 — nothing open. Current peak is ~6�
 | DUP-3 | bindings/{js,python,php} houses exports | `houses`/`houses_ex`/`houses_ex2` ×3 | ~90 LOC | DEFERRED (subset of DUP-1) — marshalling is **not** even consistent across bindings (js trims trailing-zero cusps via a count/filter; py returns `cusps[1..]` raw), so no shared celestial-ffi helper is possible; the residual is the per-lang macro stub shell ×3 = same codegen-class as DUP-1/ARCH-10/DP-4 |
 | DUP-4 | bindings/{js,python,php} `revjul`/`revjul_hms` | same call, 3 return shapes (js `CalDate` struct / py tuple / php `HashMap`) | ~24 LOC | DECLINED — the differing shapes are **intentional per-language idioms** that downstream consumers depend on; the core `celestial::revjul[_hms]` call is already shared (1 line each). "Normalize the shape" = a published-binding API break (semver decision), not a byte-safe dedupe. Residual stub shell is DUP-1 codegen-class |
 | DUP-5 | cli/src/cmd/render/{calendar_wheel,indigenous,mesoamerican}.rs | wheel CX/CY/R geometry + palette-fetch per tradition | — | RESOLVED/N-A — on inspection the per-tradition layout consts hold **distinct values** (MW 350/300/200, LS 450/450/320, BAZI grid 160/280/60/70 …) = intentional per-tradition layout, not duplicated code; no shared `polar`/`wx` helper is repeated across tradition files. The genuinely-shared halves are already factored: preamble (`svg_common::svg_doc_open`/`panel_card`, d488454), palette (`palette_vars` 7ba7b26 / `SvgPalette`), object construction (typed contexts). Nothing extractable remains |
-| DUP-6 | core/src/functions/aspects.rs:119-270 | `match_aspect` / `_2` / `_3` / `_4` overloads re-implement the same diff/speed/factor/matched math (variants 1≡3, 2≡4) | ~60 LOC redundant | OPEN (HIGH) — collapse to one core fn taking a parametric orb spec; the variants become thin adapters (precision-sensitive: byte-verify aspect output) |
 | DUP-7 | cli/src/cmd/render/{vedic,specialist,hellenistic,chinese,mesoamerican,indigenous,calendar_wheel,omer_grid}.rs | `palette_with_defaults(&[…],&vars)` + `vars.entry("title").or_insert_with(…)` repeated in ~10 builders | ~70 LOC | OPEN — a `palette!(vars, title, [(k,d)…])` helper/macro; bounded, byte-identical (same strings) |
 
 ---
@@ -74,14 +73,41 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 | DP-2 | core `PlanetPos`, `jd/lat/lon: f64`, `hsys: u8` | primitive obsession; units stringly-documented | newtypes `JulianDay`/`Latitude`/`Longitude`/`HouseSystem` (in `celestial-ffi`) | DEFERRED — the compile-checked-units payoff only exists once the newtypes are threaded through `calc_ut`/`houses_ex`/… i.e. a core public-API rewrite on the exact precision compute path + every CLI/binding call site (Phase-4-class, can't atomic-verify). Unused wrapper types are net-zero clutter; a lat/lon-only CLI seam is marginal churn. Partial already shipped: `parse::{HouseSys,Tz,BodyId,DateJd}` FromStr newtypes (7bfa598). Own isolated effort with a precision soak |
 | DP-4 | bindings/{js,python,php}/src/lib.rs | 201×3 stubs + per-lang `PlanetPos`/error shim | codegen/macro `#[export(shape,langs)]` over `celestial-ffi` | DEFERRED with ARCH-10 (same item) — partial single-family macro is net-negative (DP-1 dynamic); only a full spec-driven codegen realizes it. Error-shim half already done via `FfiError` |
 | DP-6 | render/builtin_svg.rs + tradition renderers | hand-rolled SVG `push_str`/`write!` strings, untyped `vars[...]` | MiniJinja templates + parsed `Palette` struct | DEFERRED / partly done — the template-engine half **conflicts with the mandated byte-identical-vs-PDF/Diana precision gate**: moving renderers to `.tt` changes whitespace/attribute layout, so it cannot be done while the precision invariant holds (mutually exclusive — would need the gate relaxed). The `Palette` half is substantially realized via `svg_common::SvgPalette` (bg/accent/text trio, used by the vedic/etc renderers, commit d488454); the remaining ad-hoc `vars[...]` reads are per-renderer-distinct colour sets (omer 6 keys, specialist 12, …) — not shared duplication, so a generic getter is lateral (DP-1 dynamic) |
-| DP-7 | core/src/functions/aspects.rs:119-270 | `match_aspect{,_2,_3,_4}` overloads | parametric `OrbSpec` struct + one core matcher; variants become adapters | removes the DUP-6 redundant math; precision-sensitive (byte-verify aspect output) |
 | DP-11 | cli/src/cmd/{calc,moon,houses,chart}.rs | per-command ad-hoc `Row` struct + json/text branch | `OutputFormatter<T: Serialize>` (`.table()`/`.json()`) | DECLINED (evaluated) — each command's JSON keys and text-table columns are bespoke (calc body/lon/lat/dist/speed; moon phase/date; houses angle/cusp; chart nested planets/houses/aspects). A trait would still need a per-command typed result struct **and** per-command text layout; it only abstracts the 2-line `if json {} else {}` with no shared body — a leaky abstraction (DP-1 net-negative dynamic). Kept as a decided item so it is not re-flagged |
+
+---
+
+## 7. Test coverage
+
+`cargo llvm-cov` (0.8.5), workspace, **product code only** (excludes
+`fuzz/` harness 0% by-design and `xtask/` build tooling):
+
+| scope | region | line | fn |
+|---|---|---|---|
+| product total | **73.3%** | 72.6% | 60.1% |
+| `core/` engine (functions/, astronomy/) | ~80–99% per module | — | — |
+
+1255 `#[test]` total; 237 core-lib + 122 cli-lib + 20 integration files.
+Core compute is well covered (time 99%, panchanga 99.6%, utils 99%,
+houses 97%, most calendars 95–99%); precision paths are additionally
+regression-locked (PDF/Diana charts, PERF-1, perf2345).
+
+Low-coverage hotspots (not bugs — instrumentation/structure):
+
+| area | region | why |
+|---|---|---|
+| `bindings/{js,python}/src/lib.rs` | 0% | exercised only by the JS/Python language test harnesses, which `llvm-cov` doesn't instrument (not Rust unit tests) |
+| `cli/src/cmd/{crossing,eclipse,houses,omer,sabbats}.rs` | 0% | thin `run()` wrappers exercised by `assert_cmd` integration tests that spawn the binary as a separate process (uninstrumented) |
+| `cli/src/cmd/render/{config,registry,pipeline}.rs`, `cli/src/cmd/calendar.rs`, `cli/src/parse.rs` | 11–69% | CLI orchestration; partially covered. `compute()` seam (ARCH-11) + `RenderArgs::validate` (ARCH-13) now have unit tests |
+| `core/src/functions/{searches,phenomena,vedic,esbats,eclipses}.rs` | 81–89% | large search/branch surfaces; the hot precision paths are regression-locked, the gap is rare-edge branches |
+
+No coverage gate is enforced in CI. Raising CLI-command/`searches`
+branch coverage is the main test-debt item; the engine itself is solid.
 
 ---
 
 ## Recommended order
 
 1. **SEC-1..4 (HIGH)** — XML-escape user SVG values + char-boundary fix + `toml` upgrade. Small, contained, urgent.
-2. **DUP-6 / DP-7** — collapse the four `match_aspect` overloads to one parametric matcher (~60 LOC, HIGH; byte-verify aspect output).
-3. **DUP-7** — `palette!(vars, title, [(k,d)…])` helper across the ~10 render builders (bounded, byte-identical).
-4. **Deferred isolated efforts (own session + precision soak each):** ARCH-7 lib.rs de-glob · ARCH-8 render helper single-span moves · ARCH-10/DP-4 binding codegen · DP-2 unit newtypes · DP-6 SVG templates · PERF-1 analytic VSOP derivative.
+2. **Test debt** — cover the 0% CLI `run()` wrappers with in-process tests (now feasible via the `compute()` seam) + raise `searches.rs` branch coverage; consider a CI coverage floor.
+3. **Deferred isolated efforts (own session + precision soak each):** ARCH-7 lib.rs de-glob · ARCH-8 render helper single-span moves · ARCH-10/DP-4 binding codegen · DP-2 unit newtypes · DP-6 SVG templates · PERF-1 analytic VSOP derivative.
