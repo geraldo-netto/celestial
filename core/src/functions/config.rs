@@ -5,13 +5,47 @@ use crate::error::Result;
 
 use std::cell::Cell;
 
+/// All thread-local engine configuration in one typed record (DP-9):
+/// replaces the three separate `thread_local! { Cell<…> }` globals so a
+/// new setting is one field + one accessor, audited in one place.
+/// Values/defaults are byte-identical to the previous globals.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct EngineConfig {
+    /// Sidereal mode for pure-mode ayanamsa (default 0 = Fagan-Bradley).
+    sid_mode: i32,
+    /// Topocentric observer position `(lon°, lat°, alt_m)`.
+    topo: (f64, f64, f64),
+    /// User delta-T override in **days**, if set.
+    delta_t: Option<f64>,
+}
+
+const DEFAULT_CONFIG: EngineConfig = EngineConfig {
+    sid_mode: 0,
+    topo: (0.0, 0.0, 0.0),
+    delta_t: None,
+};
+
 thread_local! {
-    static CURRENT_SID_MODE: Cell<i32> = const { Cell::new(0) }; // default: Fagan-Bradley
+    static CONFIG: Cell<EngineConfig> = const { Cell::new(DEFAULT_CONFIG) };
+}
+
+/// Read the thread-local config.
+fn cfg() -> EngineConfig {
+    CONFIG.with(Cell::get)
+}
+
+/// Mutate one field of the thread-local config.
+fn cfg_update(f: impl FnOnce(&mut EngineConfig)) {
+    CONFIG.with(|c| {
+        let mut v = c.get();
+        f(&mut v);
+        c.set(v);
+    });
 }
 
 /// Returns the currently active sidereal mode (for pure-mode ayanamsa).
 pub(crate) fn current_sid_mode() -> i32 {
-    CURRENT_SID_MODE.with(std::cell::Cell::get)
+    cfg().sid_mode
 }
 
 /// Metadata about a currently open ephemeris file.
@@ -39,16 +73,10 @@ pub fn set_jpl_file(_fname: &str) -> Result<()> {
     Ok(())
 }
 
-thread_local! {
-    /// Observer position for topocentric calculations (lon°, lat°, alt_m).
-    static TOPO_POS: std::cell::Cell<(f64, f64, f64)> =
-        const { std::cell::Cell::new((0.0, 0.0, 0.0)) };
-}
-
 /// Returns the currently stored topocentric observer position `(lon°, lat°, alt_m)`.
 #[allow(dead_code)]
 pub(crate) fn current_topo() -> (f64, f64, f64) {
-    TOPO_POS.with(std::cell::Cell::get)
+    cfg().topo
 }
 
 /// Set the topocentric observer position.
@@ -56,21 +84,17 @@ pub(crate) fn current_topo() -> (f64, f64, f64) {
 /// Stored and used by `azalt` / `azalt_rev` when no explicit geopos is given.
 /// Has no effect on `calc_ut` (which computes geocentric positions only).
 pub fn set_topo(geolon: f64, geolat: f64, geoalt: f64) {
-    TOPO_POS.with(|p| p.set((geolon, geolat, geoalt)));
+    cfg_update(|c| c.topo = (geolon, geolat, geoalt));
 }
 
 /// Set the sidereal mode for ayanamsa calculations.
 pub fn set_sid_mode(sid_mode: SiderealMode, _t0: f64, _ayan_t0: f64) {
-    CURRENT_SID_MODE.with(|m| m.set(sid_mode.as_raw()));
-}
-
-thread_local! {
-    static DELTA_T_USERDEF: Cell<Option<f64>> = const { Cell::new(None) };
+    cfg_update(|c| c.sid_mode = sid_mode.as_raw());
 }
 
 /// Returns the user-defined delta T override (days), if set.
 pub(crate) fn user_delta_t() -> Option<f64> {
-    DELTA_T_USERDEF.with(std::cell::Cell::get)
+    cfg().delta_t
 }
 
 /// Override the automatic delta T calculation with a fixed value.
@@ -82,7 +106,7 @@ pub fn set_delta_t_userdef(dt: f64) {
     } else {
         None
     };
-    DELTA_T_USERDEF.with(|d| d.set(val));
+    cfg_update(|c| c.delta_t = val);
 }
 
 /// Set the tidal acceleration.
@@ -150,4 +174,36 @@ pub fn planet_name(body: Body) -> &'static str {
 /// Get current ephemeris file data.
 pub fn current_file_data(_ifno: i32) -> Option<CurrentFileData> {
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_defaults_match_legacy() {
+        // Fresh thread → defaults identical to the old per-global ones.
+        assert_eq!(current_sid_mode(), 0);
+        assert_eq!(current_topo(), (0.0, 0.0, 0.0));
+        assert_eq!(user_delta_t(), None);
+    }
+
+    #[test]
+    fn config_set_get_roundtrip_isolated_fields() {
+        // Each setter touches only its field; others keep prior values.
+        set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
+        assert_eq!(current_sid_mode(), 1);
+        assert_eq!(current_topo(), (0.0, 0.0, 0.0));
+
+        set_topo(12.5, -7.25, 100.0);
+        assert_eq!(current_topo(), (12.5, -7.25, 100.0));
+        assert_eq!(current_sid_mode(), 1); // unchanged
+
+        set_delta_t_userdef(86400.0); // 1 day in seconds → 1.0 day
+        assert_eq!(user_delta_t(), Some(1.0));
+
+        set_delta_t_userdef(f64::NAN); // clears
+        assert_eq!(user_delta_t(), None);
+        assert_eq!(current_topo(), (12.5, -7.25, 100.0)); // still set
+    }
 }
