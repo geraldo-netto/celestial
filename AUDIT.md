@@ -70,7 +70,7 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 | id | location | current | pattern | payoff |
 |---|---|---|---|---|
 | DP-1 | render/registry.rs | `CHART_REGISTRY` + 28 `dispatch_*` | DISMISSED on inspection — the wrappers are **not** near-identical: only `dispatch_natal` is the trivial shape; the other 27 have genuinely distinct bodies (return-JD computation, var inserts, bi/tri-wheel multi-date, per-family builders). Real shared code is only the ~5-line sig/`Ok(..into())` boilerplate (~140 LOC, not −400); a macro/trait there is closure indirection over a clear, debuggable hot-path adapter — net-negative. O(n) alias `.find()` over ~28 entries is not a real cost. |
-| DP-2 | core `PlanetPos`, `jd/lat/lon: f64`, `hsys: u8` | primitive obsession; units stringly-documented | newtypes `JulianDay`/`Latitude`/`Longitude`/`HouseSystem` (in `celestial-ffi`) | compile-checked units across CLI + bindings |
+| DP-2 | core `PlanetPos`, `jd/lat/lon: f64`, `hsys: u8` | primitive obsession; units stringly-documented | newtypes `JulianDay`/`Latitude`/`Longitude`/`HouseSystem` (in `celestial-ffi`) | DEFERRED — the compile-checked-units payoff only exists once the newtypes are threaded through `calc_ut`/`houses_ex`/… i.e. a core public-API rewrite on the exact precision compute path + every CLI/binding call site (Phase-4-class, can't atomic-verify). Unused wrapper types are net-zero clutter; a lat/lon-only CLI seam is marginal churn. Partial already shipped: `parse::{HouseSys,Tz,BodyId,DateJd}` FromStr newtypes (7bfa598). Own isolated effort with a precision soak |
 | DP-4 | bindings/{js,python,php}/src/lib.rs | 201×3 stubs + per-lang `PlanetPos`/error shim | codegen/macro `#[export(shape,langs)]` over `celestial-ffi` | DEFERRED with ARCH-10 (same item) — partial single-family macro is net-negative (DP-1 dynamic); only a full spec-driven codegen realizes it. Error-shim half already done via `FfiError` |
 | DP-6 | render/builtin_svg.rs + tradition renderers | hand-rolled SVG `push_str`/`write!` strings, untyped `vars[...]` | MiniJinja templates + parsed `Palette` struct | ~500 LOC → templates; per-tradition theming; checked at build |
 
@@ -80,5 +80,6 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 
 1. **SEC-1..4 (HIGH)** — XML-escape user SVG values + char-boundary fix + `toml` upgrade. Small, contained, urgent.
 2. **PERF-1** — heliocentric-speed VSOP triple-eval (only remaining HOT, precision-safe via analytic derivative or central reuse).
-3. **ARCH-8 / ARCH-11** — finish the render decomposition (helpers out, pure `compute` seam); cheap, unlocks testing.
-6. **ARCH-7** — lib.rs de-glob, as its own isolated effort with a dedicated precision soak.
+3. **ARCH-11** — extract a pure `compute(&RenderArgs)->Result<String,CliError>` seam; cheap, unlocks render-logic testing.
+4. **PERF-2..5** — post-bisection recompute reuse in `searches.rs` (WARM, precision-safe).
+5. **Deferred isolated efforts (own session + precision soak each):** ARCH-7 lib.rs de-glob · ARCH-8 render helper single-span moves · ARCH-10/DP-4 binding codegen · DP-2 unit newtypes · DP-6 SVG templates.
