@@ -14,7 +14,7 @@ No function in the workspace exceeds CC 10 — nothing open. Current peak is ~6�
 
 | id | location(s) | duplicated | size | status |
 |---|---|---|---|---|
-| DUP-1 | bindings/{js,python,php}/src/lib.rs | ~201 per-export macro stubs hand-mirrored ×3 | ~6k LOC | OPEN (structural) — napi/pyo3/php proc-macros + native return shapes can't be unified by a plain crate; only codegen/macro from one spec removes it (see DP-4) |
+| DUP-1 | bindings/{js,python,php}/src/lib.rs | ~201 per-export macro stubs hand-mirrored ×3 | ~6k LOC | DEFERRED — same item as ARCH-10/DP-4: napi/pyo3/php proc-macros + per-module registration + native return shapes can't be unified by a plain crate; the only real fix is a spec-driven codegen framework over 3 *published* bindings on the precision compute path (disproportionate to do atomically/verifiably; spec still enumerates all 201). Error-shim + `pos6` halves already shipped via `celestial-ffi` (8fbed69). Own isolated effort with a binding-test soak |
 | DUP-2 | bindings/{js,python,php} eclipse exports | ~15 eclipse stubs ×3 (sol/lun_eclipse_when*, _how, _where) | ~450 LOC | OPEN — per-lang result marshalling differs; codegen candidate |
 | DUP-3 | bindings/{js,python,php} houses exports | `houses`/`houses_ex`/`houses_ex2` ×3 | ~90 LOC | OPEN — codegen candidate |
 | DUP-4 | bindings/{js,python,php} `revjul`/`revjul_hms` | same call, 3 inconsistent return shapes (CalDate / tuple / map) | ~24 LOC | OPEN — normalize shape in `celestial-ffi`, then thin per-lang |
