@@ -1,16 +1,12 @@
 # Celestial — Code Audit
 
-Date: 2026-05-16 · Rescan: 2026-05-16 (post architecture/perf refactor, develop @ 8e0b071). One table per category; first column is a stable ID; `status` carries resolution where work has been done.
+Date: 2026-05-16 · Rescan: 2026-05-16 (post architecture/perf refactor, develop @ d8e4d11). One table per category; first column is a stable ID. Completed items are removed (not listed); only open / deferred / decided items remain.
 
 ---
 
 ## 1. Cyclomatic complexity
 
-| id | file:line | fn | est. CC | status |
-|---|---|---|---|---|
-| CX-0 | — | — | — | RESOLVED — no function in the workspace exceeds CC 10. The prior offenders (`render::run` ~22, `compute_aspects` ~16, `retrograde_station_ut` ~15, `years_diff` ~13, the calendar/vedic renderers) were broken up by the render split + helper extraction; current peak is ~6–7 (`searches::years_diff`, `pipeline::run`). |
-
-Note: many 11–15-arm `match` fns (houses/parse/registry dispatch) remain flat lookup tables — high arm count, no real path-risk; intentionally excluded.
+No function in the workspace exceeds CC 10 — nothing open. Current peak is ~6–7 (`searches::years_diff`, `pipeline::run`). Many 11–15-arm `match` fns (houses/parse/registry dispatch) are flat lookup tables: high arm count, no real path-risk; intentionally not flagged.
 
 ---
 
@@ -18,13 +14,11 @@ Note: many 11–15-arm `match` fns (houses/parse/registry dispatch) remain flat 
 
 | id | location(s) | duplicated | size | status |
 |---|---|---|---|---|
-| DUP-1 | bindings/{js,python,php}/src/lib.rs | ~201 per-export macro stubs hand-mirrored ×3 | ~6k LOC | OPEN (structural) — napi/pyo3/php proc-macros + native return shapes can't be unified by a plain crate; only a codegen/macro from one spec would remove it (see DP-4) |
+| DUP-1 | bindings/{js,python,php}/src/lib.rs | ~201 per-export macro stubs hand-mirrored ×3 | ~6k LOC | OPEN (structural) — napi/pyo3/php proc-macros + native return shapes can't be unified by a plain crate; only codegen/macro from one spec removes it (see DP-4) |
 | DUP-2 | bindings/{js,python,php} eclipse exports | ~15 eclipse stubs ×3 (sol/lun_eclipse_when*, _how, _where) | ~450 LOC | OPEN — per-lang result marshalling differs; codegen candidate |
 | DUP-3 | bindings/{js,python,php} houses exports | `houses`/`houses_ex`/`houses_ex2` ×3 | ~90 LOC | OPEN — codegen candidate |
 | DUP-4 | bindings/{js,python,php} `revjul`/`revjul_hms` | same call, 3 inconsistent return shapes (CalDate / tuple / map) | ~24 LOC | OPEN — normalize shape in `celestial-ffi`, then thin per-lang |
 | DUP-5 | cli/src/cmd/render/{calendar_wheel,indigenous,mesoamerican}.rs | wheel CX/CY/R geometry + palette-fetch + `json!()` preamble per tradition | ~180 LOC | LOW — partly intentional (per-tradition layout); a shared coords/palette helper would still cut ~half |
-
-Resolved since last audit: SVG preamble/panel-card (`svg_common`, d488454), sign/house-name lookups (6f5b780), PlanetPos unpack (21e2a31), the 3 error shims → `FfiError` + `pos6` (`celestial-ffi`, 8fbed69), CLI `Result<_,String>` → `CliError` (94e0598), parse scaffolding (7bfa598), render god-file split (b4262f9).
 
 ---
 
@@ -37,9 +31,9 @@ Resolved since last audit: SVG preamble/panel-card (`svg_common`, d488454), sign
 | PERF-3 | core/src/functions/searches.rs:411-412 | `next_aspect_cusp` re-runs `calc_ut` + `houses()` after convergence (already computed inside the last `diff_at`) | WARM | OPEN — reuse converged result |
 | PERF-4 | core/src/functions/searches.rs:149 | `bisect_retro_station` recomputes `pos_at` after the loop; the converged midpoint already holds `speed_lon` | WARM | OPEN — return the converged sample |
 | PERF-5 | core/src/functions/searches.rs:340-354 | `next_aspect_with2` runs two independent ±aspect scan loops over the same JD range from `jd_start` | WARM | OPEN — merge into one multi-target scan |
-| PERF-6 | core/src/astronomy/engine.rs:74,268 | `compute_speed` central-difference ±0.5 d | HOT | WONTFIX — forward/back diff would reduce precision; central diff already minimal 2-eval 2nd-order |
+| PERF-6 | core/src/astronomy/engine.rs:74,268 | `compute_speed` central-difference ±0.5 d | HOT | WONTFIX — forward/back diff would reduce precision; central diff already minimal 2-eval 2nd-order (kept so it is not re-flagged) |
 
-Resolved since last audit: analytic moon-phase derivative + single elongation reuse (5a79aa3), `chart.rs` `write!` buffers (5a79aa3), SPEED-flag strip in scan loops (f4b1203). Verified across all phases: `calc` + moon phases + vedic/meso/bazi SVG byte-identical to the 1986-05-30 PDF reference and Diana 1961-07-01 charts.
+Precision invariant for any fix here: `calc` + moon phases + vedic/meso/bazi SVG must stay byte-identical to the 1986-05-30 PDF reference and Diana 1961-07-01 charts.
 
 ---
 
@@ -56,7 +50,7 @@ Resolved since last audit: analytic moon-phase derivative + single elongation re
 | SEC-7 | MED | cli/src/parse.rs:169 | `offsets[0]` assumes non-empty after the tz match | guard `offsets.is_empty()` |
 | SEC-8 | LOW | core/src/functions/time.rs:92-103 | unbounded `f64 → i64 as` saturates silently on extreme JD | checked/`TryFrom` cast |
 
-Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `plugin.rs` execs via arg array (no shell). Code moved (render split) but every prior HIGH/MED is still present at the new locations above.
+Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `plugin.rs` execs via arg array (no shell).
 
 ---
 
@@ -64,17 +58,11 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 
 | id | area | problem | improvement | status |
 |---|---|---|---|---|
-| ARCH-1 | CLI error handling | `Result<_,String>` everywhere | one `thiserror CliError` | DONE — 94e0598 |
-| ARCH-2 | parse.rs | ad-hoc `Result<_,String>` parsers | `FromStr` newtypes + one `ParseError` | DONE — 7bfa598 |
-| ARCH-3 | core domain vs functions/ | shim/impl layer ambiguity | document facade/private contract | DONE — 6acfe12 |
-| ARCH-4 | cli render god-file | 3543-line `mod.rs` | split args/config/registry/pipeline | DONE — b4262f9 (mod.rs → ~2415) |
-| ARCH-5 | context build vs render | bare `(Value, fn)` tuple | typed `ChartContext` | DONE (bounded) — boundary newtype, 40a5c49 |
-| ARCH-6 | bindings shared seam | 3 hand-rolled error/marshal shims | `celestial-ffi` facade | DONE (bounded) — 8fbed69 |
 | ARCH-7 | core/src/lib.rs | 12 crate-root `pub use mod::*` globs flatten whole surface | curate explicit re-exports | DEFERRED — load-bearing for core internals (precision compute uses `crate::calc_ut` etc); faithful de-glob ≈ exhaustive ~280-symbol mirror over the precision path. Own isolated effort |
 | ARCH-8 | cli/src/cmd/render/mod.rs (~2415 LOC) | residual bulk: ~80 test fns + geometry/format/const/dignity helpers still inline | move geometry→`wheel.rs`, format→`format.rs`, tables→`const.rs`, dignity→`dignity.rs`; tests stay | OPEN |
-| ARCH-9 | per-tradition context typing | `ChartContext` typed only at the dispatch boundary; the 21 builders still compose raw `serde_json::Value` | per-tradition typed structs (`NatalContext`, `VedicContext`, …) impl `Serialize`+`Deref` | OPEN — the larger half of ARCH-5 |
+| ARCH-9 | per-tradition context typing | `ChartContext` typed only at the dispatch boundary; the 21 builders still compose raw `serde_json::Value` | per-tradition typed structs (`NatalContext`, `VedicContext`, …) impl `Serialize`+`Deref` | OPEN |
 | ARCH-10 | bindings 201×3 stubs | no codegen; every export hand-written per language | generate all 3 from one signature spec / macro (see DP-4) | OPEN |
-| ARCH-11 | testability | `pipeline::run` does IO + dispatch inline | extract pure `compute(&RenderArgs)->Result<String,CliError>`; `run` wraps IO | OPEN — not in the original 7-item batch |
+| ARCH-11 | testability | `pipeline::run` does IO + dispatch inline | extract pure `compute(&RenderArgs)->Result<String,CliError>`; `run` wraps IO | OPEN |
 
 ---
 
@@ -94,8 +82,8 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 ## Recommended order
 
 1. **SEC-1..4 (HIGH)** — XML-escape user SVG values + char-boundary fix + `toml` upgrade. Small, contained, urgent.
-2. **PERF-1** — heliocentric-speed VSOP triple-eval (only remaining HOT, big win, precision-safe via analytic derivative or central reuse).
+2. **PERF-1** — heliocentric-speed VSOP triple-eval (only remaining HOT, precision-safe via analytic derivative or central reuse).
 3. **ARCH-8 / ARCH-11** — finish the render decomposition (helpers out, pure `compute` seam); cheap, unlocks testing.
-4. **DP-4 / ARCH-10** — binding codegen: the single largest LOC reduction left (~3k), removes DUP-1/2/3.
-5. **ARCH-9 / DP-5** — per-tradition typed contexts (the larger half of the ChartContext work).
+4. **DP-4 / ARCH-10** — binding codegen: largest LOC reduction left (~3k), removes DUP-1/2/3.
+5. **ARCH-9 / DP-5** — per-tradition typed contexts.
 6. **ARCH-7** — lib.rs de-glob, as its own isolated effort with a dedicated precision soak.
