@@ -118,19 +118,19 @@ pub struct AspectMatch {
     pub matched: bool,
 }
 
-/// Check whether two longitudes make a given aspect within the given orb.
-/// `aspect` must be in `[0, 360)`.
-#[must_use]
-pub fn match_aspect(
+/// Shared aspect-match core (DP-7/DUP-6). `select_orb(speed)` returns
+/// the orb given the differential speed — constant for `match_aspect`,
+/// speed-dependent for `match_aspect3`. Arithmetic + op order are
+/// byte-identical to the four former hand-written copies.
+fn match_core(
     pos0: f64,
     speed0: f64,
     pos1: f64,
     speed1: f64,
     aspect: f64,
-    orb: f64,
+    select_orb: impl FnOnce(f64) -> f64,
 ) -> AspectMatch {
     let aspect = norm360(aspect);
-    let orb = orb.abs();
     let diff0 = diff_deg(pos1, pos0); // unsigned [0,360) = pos1-pos0
     if diff0 == aspect {
         return AspectMatch {
@@ -146,6 +146,7 @@ pub fn match_aspect(
     } else {
         speed0 - speed1
     };
+    let orb = select_orb(speed).abs();
     let factor = diff / orb;
     let matched = aspect - orb <= diff0 && diff0 <= aspect + orb;
     AspectMatch {
@@ -154,6 +155,37 @@ pub fn match_aspect(
         factor,
         matched,
     }
+}
+
+/// Pick the better ±aspect candidate: smaller |diff|, then (tie) the
+/// more-applying (smaller `speed`). Byte-identical to the former
+/// duplicated `*2`/`*4` tail.
+fn pick_closer(a0: AspectMatch, a1: AspectMatch) -> AspectMatch {
+    if a1.diff.abs() < a0.diff.abs() {
+        a1
+    } else if a0.diff.abs() < a1.diff.abs() {
+        a0
+    } else if a1.speed < a0.speed {
+        a1
+    } else {
+        a0
+    }
+}
+
+/// Check whether two longitudes make a given aspect within the given orb.
+/// `aspect` must be in `[0, 360)`.
+#[must_use]
+pub fn match_aspect(
+    pos0: f64,
+    speed0: f64,
+    pos1: f64,
+    speed1: f64,
+    aspect: f64,
+    orb: f64,
+) -> AspectMatch {
+    // former: `let orb = orb.abs()` then constant orb — match_core
+    // applies `.abs()` to the closure result, so this is identical.
+    match_core(pos0, speed0, pos1, speed1, aspect, |_| orb)
 }
 
 /// Like `match_aspect` but `aspect` in `[0, 180]` — tests both ±aspect.
@@ -172,16 +204,7 @@ pub fn match_aspect2(
         return a0;
     }
     let a1 = match_aspect(pos0, speed0, pos1, speed1, -asp, orb);
-    // Pick the one closer to exact
-    if a1.diff.abs() < a0.diff.abs() {
-        a1
-    } else if a0.diff.abs() < a1.diff.abs() {
-        a0
-    } else if a1.speed < a0.speed {
-        a1
-    } else {
-        a0
-    }
+    pick_closer(a0, a1)
 }
 
 /// Like `match_aspect` with separate applying / separating / stationary orbs.
@@ -197,37 +220,17 @@ pub fn match_aspect3(
     sep_orb: f64,
     def_orb: f64,
 ) -> AspectMatch {
-    let aspect = norm360(aspect);
-    let diff0 = diff_deg(pos1, pos0);
-    if diff0 == aspect {
-        return AspectMatch {
-            diff: 0.0,
-            speed: 0.0,
-            factor: 0.0,
-            matched: true,
-        };
-    }
-    let diff = diff0 - aspect;
-    let speed = if diff > 0.0 {
-        speed1 - speed0
-    } else {
-        speed0 - speed1
-    };
-    let orb = if speed < 0.0 {
-        app_orb.abs()
-    } else if speed > 0.0 {
-        sep_orb.abs()
-    } else {
-        def_orb.abs()
-    };
-    let factor = diff / orb;
-    let matched = aspect - orb <= diff0 && diff0 <= aspect + orb;
-    AspectMatch {
-        diff,
-        speed,
-        factor,
-        matched,
-    }
+    // former: orb chosen from speed sign, each branch `.abs()`-ed —
+    // match_core `.abs()`-es the closure result, so identical.
+    match_core(pos0, speed0, pos1, speed1, aspect, |speed| {
+        if speed < 0.0 {
+            app_orb
+        } else if speed > 0.0 {
+            sep_orb
+        } else {
+            def_orb
+        }
+    })
 }
 
 /// Like `match_aspect2` with separate applying / separating / stationary orbs.
@@ -249,15 +252,7 @@ pub fn match_aspect4(
         return a0;
     }
     let a1 = match_aspect3(pos0, speed0, pos1, speed1, -asp, app_orb, sep_orb, def_orb);
-    if a1.diff.abs() < a0.diff.abs() {
-        a1
-    } else if a0.diff.abs() < a1.diff.abs() {
-        a0
-    } else if a1.speed < a0.speed {
-        a1
-    } else {
-        a0
-    }
+    pick_closer(a0, a1)
 }
 
 /// Antiscion result.
