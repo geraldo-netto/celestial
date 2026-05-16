@@ -166,7 +166,13 @@ impl FromStr for Tz {
                             )
                     })
                     .collect();
-                let first = offsets[0];
+                // SEC-7: this arm only runs for a non-empty `matches`
+                // and `offsets` maps 1:1, so `[0]` is safe today — but
+                // make the non-empty requirement explicit rather than
+                // a latent panic if that invariant ever changes.
+                let Some(&first) = offsets.first() else {
+                    return Err(ParseError::Tz(format!("unknown timezone `{s}`")));
+                };
                 if offsets.iter().any(|o| (o - first).abs() > 1e-9) {
                     let opts: Vec<String> = matches
                         .iter()
