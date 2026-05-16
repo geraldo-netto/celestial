@@ -36,6 +36,19 @@ pub enum Lang {
     De,
 }
 
+/// 2-char POSIX/BCP-47 language prefix → [`Lang`]. The single edit
+/// point for `from_locale` short-form detection (DP-10): adding a
+/// language is one row here (plus the enum variant / `code` / `all`).
+/// `pt` maps to Brazilian Portuguese — the only Portuguese we ship;
+/// `pt_BR`/`pt-BR` are handled region-aware before this table.
+const LOCALE_PREFIXES: &[(&str, Lang)] = &[
+    ("en", Lang::En),
+    ("pt", Lang::PtBr),
+    ("es", Lang::Es),
+    ("it", Lang::It),
+    ("de", Lang::De),
+];
+
 impl Lang {
     /// All supported languages, in declaration order.
     pub const fn all() -> &'static [Lang] {
@@ -77,16 +90,13 @@ impl Lang {
         if lower.starts_with("pt_br") || lower.starts_with("pt-br") {
             return Some(Lang::PtBr);
         }
-        // Short form.
+        // Short form: 2-char language prefix → language, via the table
+        // below. Adding a language is one `LOCALE_PREFIXES` row.
         let two = lower.get(..2)?;
-        match two {
-            "en" => Some(Lang::En),
-            "pt" => Some(Lang::PtBr), // any Portuguese -> Brazilian (only variant we ship)
-            "es" => Some(Lang::Es),
-            "it" => Some(Lang::It),
-            "de" => Some(Lang::De),
-            _ => None,
-        }
+        LOCALE_PREFIXES
+            .iter()
+            .find(|(p, _)| *p == two)
+            .map(|&(_, lang)| lang)
     }
 
     /// Detect the active language from environment variables, falling back to
@@ -386,5 +396,44 @@ mod tests {
         let detected = Lang::detect();
         // Whatever the test runner's locale is, it must be one of ours.
         assert!(Lang::all().contains(&detected));
+    }
+
+    #[test]
+    fn from_locale_table_matches_legacy_behaviour() {
+        use Lang::*;
+        let cases: &[(&str, Option<Lang>)] = &[
+            ("en", Some(En)),
+            ("en_US", Some(En)),
+            ("en-US.UTF-8", Some(En)),
+            ("English_United States.1252", Some(En)),
+            ("pt", Some(PtBr)),
+            ("pt_PT", Some(PtBr)),
+            ("pt_BR", Some(PtBr)),
+            ("pt-BR", Some(PtBr)),
+            ("PT_br.UTF-8", Some(PtBr)),
+            ("es", Some(Es)),
+            ("es-ES", Some(Es)),
+            ("it_IT", Some(It)),
+            ("de", Some(De)),
+            ("de_DE.UTF-8", Some(De)),
+            ("", None),
+            ("C", None),
+            ("POSIX", None),
+            ("fr_FR", None),
+            ("zh", None),
+        ];
+        for &(input, want) in cases {
+            assert_eq!(Lang::from_locale(input), want, "locale {input:?}");
+        }
+    }
+
+    #[test]
+    fn locale_table_covers_every_non_default_lang() {
+        // Every language except the En fallback must be reachable via
+        // some prefix row (keeps the table and the enum in sync).
+        for &lang in Lang::all() {
+            let via_table = LOCALE_PREFIXES.iter().any(|&(_, l)| l == lang);
+            assert!(via_table, "{} unreachable via LOCALE_PREFIXES", lang.code());
+        }
     }
 }
