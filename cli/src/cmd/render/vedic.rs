@@ -184,17 +184,6 @@ pub fn build_ashtakavarga_context(
         json!({ "planet": name, "bindus": row.iter().map(|&b| json!(b)).collect::<Vec<_>>() })
     }).collect();
 
-    let palette = super::palette_with_defaults(
-        &[
-            ("bg_color", "#ffffff"),
-            ("border_color", "#5c3a00"),
-            ("text_color", "#2a1a00"),
-            ("planet_color", "#1a3a7a"),
-            ("title", "Ashtakavarga"),
-        ],
-        &vars,
-    );
-
     // ARCH-9/DP-5: typed context (field names == JSON keys).
     let ctx = AshtakavargaContext {
         date: jd_to_date_str(jd),
@@ -204,7 +193,16 @@ pub fn build_ashtakavarga_context(
         lon,
         ashtakavarga_rows: row_vals,
         sarvashtakavarga: totals.iter().map(|&b| json!(b)).collect(),
-        vars: Value::Object(palette.into_iter().collect()),
+        vars: super::palette_obj(
+            &vars,
+            &[
+                ("bg_color", "#ffffff"),
+                ("border_color", "#5c3a00"),
+                ("text_color", "#2a1a00"),
+                ("planet_color", "#1a3a7a"),
+                ("title", "Ashtakavarga"),
+            ],
+        ),
     };
     serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
 }
@@ -463,16 +461,6 @@ pub fn build_shadbala_context(
         }
     }
 
-    let palette = super::palette_with_defaults(
-        &[
-            ("bg_color", "#ffffff"),
-            ("border_color", "#5c3a00"),
-            ("text_color", "#2a1a00"),
-            ("planet_color", "#1a3a7a"),
-        ],
-        &vars,
-    );
-
     // ARCH-9/DP-5: typed context (field names == JSON keys).
     let ctx = ShadbalaContext {
         date: jd_to_date_str(jd),
@@ -481,7 +469,15 @@ pub fn build_shadbala_context(
         lat,
         lon,
         shadbala: rows,
-        vars: Value::Object(palette.into_iter().collect()),
+        vars: super::palette_obj(
+            &vars,
+            &[
+                ("bg_color", "#ffffff"),
+                ("border_color", "#5c3a00"),
+                ("text_color", "#2a1a00"),
+                ("planet_color", "#1a3a7a"),
+            ],
+        ),
     };
     serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
 }
@@ -744,18 +740,6 @@ pub fn build_vedic_context(
         })
         .collect();
 
-    let palette = super::palette_with_defaults(
-        &[
-            ("bg_color", "#ffffff"),
-            ("border_color", "#5c3a00"),
-            ("text_color", "#2a1a00"),
-            ("planet_color", "#1a3a7a"),
-            ("retro_color", "#a01030"),
-            ("asc_color", "#006030"),
-        ],
-        &vars,
-    );
-
     // ARCH-9/DP-5: typed context (field names == JSON keys).
     let ctx = VedicContext {
         date: jd_to_date_str(jd),
@@ -767,7 +751,17 @@ pub fn build_vedic_context(
         dashas,
         strengths,
         moon_sid_lon: (moon_sid_lon * 1e4).round() / 1e4,
-        vars: Value::Object(palette.into_iter().collect()),
+        vars: super::palette_obj(
+            &vars,
+            &[
+                ("bg_color", "#ffffff"),
+                ("border_color", "#5c3a00"),
+                ("text_color", "#2a1a00"),
+                ("planet_color", "#1a3a7a"),
+                ("retro_color", "#a01030"),
+                ("asc_color", "#006030"),
+            ],
+        ),
     };
     serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
 }

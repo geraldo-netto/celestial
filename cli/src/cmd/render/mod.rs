@@ -423,6 +423,17 @@ pub(super) fn palette_vars(
     Value::Object(palette_with_defaults(defaults, &user_vars).into_iter().collect())
 }
 
+/// DUP-7: `palette_with_defaults` + `Value::Object(… .collect())` in
+/// one call, for builders whose `title` is injected upstream (so they
+/// don't self-insert one like [`palette_vars`]). Byte-identical to the
+/// former two-step.
+pub(super) fn palette_obj(
+    vars: &std::collections::BTreeMap<String, String>,
+    defaults: &[(&str, &str)],
+) -> Value {
+    Value::Object(palette_with_defaults(defaults, vars).into_iter().collect())
+}
+
 // ─── Label collision avoidance ────────────────────────────────────────────────
 
 /// Compute non-overlapping wheel angles for planet degree labels.

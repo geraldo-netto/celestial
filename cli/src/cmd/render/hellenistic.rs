@@ -231,21 +231,19 @@ pub fn build_firdaria_context(
         })
         .collect();
 
-    let palette = super::palette_with_defaults(
-        &[
-            ("bg_color", "#ffffff"),
-            ("ring_color", "#1a1a2e"),
-            ("text_color", "#0d0d1e"),
-            ("planet_color", "#0d0d1e"),
-        ],
-        &vars,
-    );
-
     Ok(json!({
         "date": date_str, "jd": jd, "lat": lat, "lon": lon,
         "is_day": is_day,
         "firdaria": period_vals,
-        "vars": Value::Object(palette.into_iter().collect())}))
+        "vars": super::palette_obj(
+            &vars,
+            &[
+                ("bg_color", "#ffffff"),
+                ("ring_color", "#1a1a2e"),
+                ("text_color", "#0d0d1e"),
+                ("planet_color", "#0d0d1e"),
+            ],
+        )}))
 }
 
 pub fn render_firdaria_svg(ctx: &ChartContext) -> String {

@@ -69,18 +69,6 @@ pub fn build_dial_context(
         })
         .collect();
 
-    let palette = super::palette_with_defaults(
-        &[
-            ("bg_color", "#ffffff"),
-            ("ring_color", "#1a1a2e"),
-            ("planet_color", "#0d0d1e"),
-            ("retro_color", "#b01020"),
-            ("soft_color", "#1a50b0"),
-            ("text_color", "#0d0d1e"),
-        ],
-        &vars,
-    );
-
     // ARCH-9/DP-5: typed context (field names == JSON keys).
     let ctx = DialContext {
         date: jd_to_date_str(jd),
@@ -91,7 +79,17 @@ pub fn build_dial_context(
         asc: (asc * 1e4).round() / 1e4,
         planets: planet_entries,
         midpoints: mp_entries,
-        vars: Value::Object(palette.into_iter().collect()),
+        vars: super::palette_obj(
+            &vars,
+            &[
+                ("bg_color", "#ffffff"),
+                ("ring_color", "#1a1a2e"),
+                ("planet_color", "#0d0d1e"),
+                ("retro_color", "#b01020"),
+                ("soft_color", "#1a50b0"),
+                ("text_color", "#0d0d1e"),
+            ],
+        ),
     };
     serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
 }
@@ -223,7 +221,14 @@ pub fn build_triwheel_context(
     }
 
     let date_str = format!("Tri-wheel: {date1} / {date2} / {date3}");
-    let palette = super::palette_with_defaults(
+    let mut ctx = inner;
+    ctx["ring2_planets"] = Value::Array(ring2);
+    ctx["ring3_planets"] = Value::Array(ring3);
+    ctx["date2"] = json!(date2);
+    ctx["date3"] = json!(date3);
+    ctx["date"] = json!(date_str);
+    ctx["vars"] = super::palette_obj(
+        &vars,
         &[
             ("bg_color", "#ffffff"),
             ("ring_color", "#1a1a2e"),
@@ -233,16 +238,7 @@ pub fn build_triwheel_context(
             ("soft_color", "#1a50b0"),
             ("text_color", "#0d0d1e"),
         ],
-        &vars,
     );
-
-    let mut ctx = inner;
-    ctx["ring2_planets"] = Value::Array(ring2);
-    ctx["ring3_planets"] = Value::Array(ring3);
-    ctx["date2"] = json!(date2);
-    ctx["date3"] = json!(date3);
-    ctx["date"] = json!(date_str);
-    ctx["vars"] = Value::Object(palette.into_iter().collect());
     Ok(ctx)
 }
 
@@ -351,15 +347,6 @@ pub fn build_graphic_ephemeris_context(
         })
         .collect();
 
-    let palette = super::palette_with_defaults(
-        &[
-            ("bg_color", "#ffffff"),
-            ("ring_color", "#1a1a2e"),
-            ("text_color", "#0d0d1e"),
-        ],
-        &vars,
-    );
-
     // ARCH-9/DP-5: typed context (field names == JSON keys).
     let ctx = GraphicEphemerisContext {
         jd_start,
@@ -368,7 +355,14 @@ pub fn build_graphic_ephemeris_context(
         days,
         step,
         planet_series,
-        vars: Value::Object(palette.into_iter().collect()),
+        vars: super::palette_obj(
+            &vars,
+            &[
+                ("bg_color", "#ffffff"),
+                ("ring_color", "#1a1a2e"),
+                ("text_color", "#0d0d1e"),
+            ],
+        ),
     };
     serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
 }
@@ -598,17 +592,6 @@ pub fn build_local_space_context(
         }
     }
 
-    let palette = super::palette_with_defaults(
-        &[
-            ("bg_color", "#ffffff"),
-            ("ring_color", "#1a1a2e"),
-            ("planet_color", "#0d0d1e"),
-            ("retro_color", "#b01020"),
-            ("text_color", "#0d0d1e"),
-        ],
-        &vars,
-    );
-
     // ARCH-9/DP-5: typed context (field names == JSON keys).
     let ctx = LocalSpaceContext {
         date: jd_to_date_str(jd),
@@ -617,7 +600,16 @@ pub fn build_local_space_context(
         lat,
         lon,
         planets,
-        vars: Value::Object(palette.into_iter().collect()),
+        vars: super::palette_obj(
+            &vars,
+            &[
+                ("bg_color", "#ffffff"),
+                ("ring_color", "#1a1a2e"),
+                ("planet_color", "#0d0d1e"),
+                ("retro_color", "#b01020"),
+                ("text_color", "#0d0d1e"),
+            ],
+        ),
     };
     serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
 }
