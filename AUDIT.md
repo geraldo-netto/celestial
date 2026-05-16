@@ -83,10 +83,10 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 
 | scope | region | line | fn |
 |---|---|---|---|
-| product total | **73.3%** | 72.6% | 60.1% |
+| product total | **74.6%** | 74.2% | — |
 | `core/` engine (functions/, astronomy/) | ~80–99% per module | — | — |
 
-1255 `#[test]` total; 237 core-lib + 122 cli-lib + 20 integration files.
+~1278 `#[test]` total; 237 core-lib + 145 cli-lib + 20 integration files.
 Core compute is well covered (time 99%, panchanga 99.6%, utils 99%,
 houses 97%, most calendars 95–99%); precision paths are additionally
 regression-locked (PDF/Diana charts, PERF-1, perf2345).
@@ -96,12 +96,21 @@ Low-coverage hotspots (not bugs — instrumentation/structure):
 | area | region | why |
 |---|---|---|
 | `bindings/{js,python}/src/lib.rs` | 0% | exercised only by the JS/Python language test harnesses, which `llvm-cov` doesn't instrument (not Rust unit tests) |
-| `cli/src/cmd/{crossing,eclipse,houses,omer,sabbats}.rs` | 0% | thin `run()` wrappers exercised by `assert_cmd` integration tests that spawn the binary as a separate process (uninstrumented) |
+| `cli/src/cmd/{crossing,eclipse,houses,omer,sabbats}.rs` | ~~0%~~ → 77–97% | RESOLVED — in-process `run()` unit tests added (commit 1b5b427): crossing 88, eclipse 96, houses 97, omer 85, sabbats 77 |
 | `cli/src/cmd/render/{config,registry,pipeline}.rs`, `cli/src/cmd/calendar.rs`, `cli/src/parse.rs` | 11–69% | CLI orchestration; partially covered. `compute()` seam (ARCH-11) + `RenderArgs::validate` (ARCH-13) now have unit tests |
 | `core/src/functions/{searches,phenomena,vedic,esbats,eclipses}.rs` | 81–89% | large search/branch surfaces; the hot precision paths are regression-locked, the gap is rare-edge branches |
 
-No coverage gate is enforced in CI. Raising CLI-command/`searches`
-branch coverage is the main test-debt item; the engine itself is solid.
+No coverage gate is enforced in CI. Remaining test-debt: CLI
+render-orchestration (`config`/`registry`/`calendar` 11–37%) and
+`searches.rs` rare-edge branches; the engine itself is solid.
+
+**TEST-1 (flake)** — `cli plugin::tests` (e.g.
+`discover_deduplicates_by_name`, `try_exec_*`) pass isolated /
+`--test-threads=1` but fail under the full parallel run: the
+plugin-discovery tests mutate/read the process-global `$PATH`
+(`std::env::set_var`) without serialization, racing each other.
+Fix: a shared `env`-lock (or `serial_test`) around the PATH-touching
+tests. Pre-existing; orthogonal to the coverage work.
 
 ---
 
