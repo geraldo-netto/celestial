@@ -73,16 +73,16 @@ Notes: no `unsafe` in core/cli/bindings; FFI (napi/pyo3/ext-php-rs) clean; no co
 
 ## 5. Architecture
 
-| area | problem | improvement |
-|---|---|---|
-| cli/src/cmd/render/mod.rs (3541 LOC) | god file: args, config, tz, 28 dispatch wrappers, registry, template, schema, tests | split into `args.rs`/`config.rs`/`pipeline.rs`/`registry.rs`; thin facade |
-| CLI error handling | all `Result<_,String>` + `.map_err(e.to_string())`, loses typed core::Error | one `thiserror CliError` (`Parse/Config/Compute(#[from])/Io`); String only at `main` |
-| core domain vs functions/ | `moon.rs`/`houses.rs` are `pub use functions::*` shims; impl is `pub(crate)` | collapse shims or document `functions/` as canonical private layer |
-| core/src/lib.rs | 23 glob `pub use *::*` flatten whole API surface | curate explicit re-exports; lean on `prelude` |
-| bindings js/python/php | 3×~2.5k LOC mirror same ~150 fns + per-lang error shims | extract `celestial-ffi` facade crate; bindings = thin marshalling |
-| parse.rs | `parse_date/tz/body/hsys/sid_mode` → `Result<_,String>`, no shared error | `TryFrom`/`FromStr` on newtypes + one `ParseError` |
-| context build vs render | `dispatch_*` returns `(serde_json::Value, fn)`; schema implicit, test-enforced only | typed `ChartContext`; serialize to JSON only at template boundary |
-| testability | `run()` does IO inline; logic only via full CLI path | `build_output(args)->Result<String,CliError>` pure; IO stays in `run` |
+| area | problem | improvement | status |
+|---|---|---|---|
+| CLI error handling | all `Result<_,String>` + `.map_err(e.to_string())`, loses typed core::Error | one `thiserror CliError` (`Parse/Config/Compute(#[from])/Io`); String only at `main` | DONE — commit 94e0598 |
+| parse.rs | `parse_date/tz/body/hsys/sid_mode` → `Result<_,String>`, no shared error | `TryFrom`/`FromStr` on newtypes + one `ParseError` | DONE — commit 7bfa598 |
+| core domain vs functions/ | `moon.rs`/`houses.rs` are `pub use functions::*` shims; impl is `pub(crate)` | collapse shims or document `functions/` as canonical private layer | DONE — documented facade/private contract, commit 6acfe12 |
+| core/src/lib.rs | 23 glob `pub use *::*` flatten whole API surface | curate explicit re-exports; lean on `prelude` | DEFERRED — root globs are load-bearing for core's own internals (precision compute files use `crate::calc_ut` etc); faithful de-glob = exhaustive ~280-symbol mirror over the precision path for cleanliness-only gain. Own isolated effort. |
+| cli/src/cmd/render/mod.rs (3541 LOC) | god file: args, config, tz, 28 dispatch wrappers, registry, template, schema, tests | split into `args.rs`/`config.rs`/`pipeline.rs`/`registry.rs`; thin facade | OPEN — in progress |
+| context build vs render | `dispatch_*` returns `(serde_json::Value, fn)`; schema implicit, test-enforced only | typed `ChartContext`; serialize to JSON only at template boundary | OPEN |
+| bindings js/python/php | 3×~2.5k LOC mirror same ~150 fns + per-lang error shims | extract `celestial-ffi` facade crate; bindings = thin marshalling | OPEN |
+| testability | `run()` does IO inline; logic only via full CLI path | `build_output(args)->Result<String,CliError>` pure; IO stays in `run` | OPEN — not in the 7-item batch |
 
 ---
 
