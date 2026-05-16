@@ -392,3 +392,107 @@ impl FromStr for SidMode {
 pub fn parse_sid_mode(s: &str) -> Result<i32, ParseError> {
     SidMode::from_str(s).map(|m| m.0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_date_forms() {
+        assert!(parse_date("now").is_ok());
+        assert_eq!(parse_date("2451545.0").unwrap(), 2451545.0);
+        assert!(parse_date("1986-05-30").is_ok());
+        assert!(parse_date("1986-05-30 09:00").is_ok());
+        assert!(parse_date("1986-05-30 09:00:30").is_ok());
+        assert!(matches!(parse_date("not-a-date"), Err(ParseError::Date(_))));
+        assert!(parse_date("1986-13-99 09:00").is_ok()); // julday is lenient; no panic
+    }
+
+    #[test]
+    fn parse_tz_forms() {
+        assert_eq!(parse_tz_offset("UTC").unwrap(), 0.0);
+        assert_eq!(parse_tz_offset("Z").unwrap(), 0.0);
+        assert_eq!(parse_tz_offset("+05:30").unwrap(), 5.5);
+        assert_eq!(parse_tz_offset("-0300").unwrap(), -3.0);
+        assert_eq!(parse_tz_offset("UTC+01").unwrap(), 1.0);
+        assert!(parse_tz_offset("BRT").is_ok()); // known abbrev
+        assert!(matches!(parse_tz_offset("ZZZ"), Err(ParseError::Tz(_))));
+        assert!(parse_tz_offset("").is_err());
+        assert!(parse_tz_offset("+99:99").is_err()); // out of range
+        assert!(parse_tz_offset("x05").is_err()); // bad sign
+    }
+
+    #[test]
+    fn fmt_utc_offset_forms() {
+        assert_eq!(fmt_utc_offset(0.0), "UTC");
+        assert_eq!(fmt_utc_offset(-3.0), "UTC-03:00");
+        assert_eq!(fmt_utc_offset(5.5), "UTC+05:30");
+    }
+
+    #[test]
+    fn require_datetime_rules() {
+        assert!(require_datetime("now").is_ok());
+        assert!(require_datetime("2451545.0").is_ok());
+        assert!(require_datetime("1986-05-30 09:00").is_ok());
+        assert!(matches!(
+            require_datetime("1986-05-30"),
+            Err(ParseError::NeedsTime(_))
+        ));
+    }
+
+    #[test]
+    fn jd_to_str_roundtrip_shape() {
+        let s = jd_to_str(2446581.0);
+        assert!(s.ends_with(" UT") && s.contains('-') && s.contains(':'));
+    }
+
+    #[test]
+    fn parse_body_names_and_numbers() {
+        for n in [
+            "sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune",
+            "pluto", "node", "mean_node", "true_node", "chiron",
+        ] {
+            assert!(parse_body(n).is_ok(), "{n}");
+        }
+        assert_eq!(parse_body("7").unwrap(), 7);
+        assert!(matches!(parse_body("nope"), Err(ParseError::Body(_))));
+        assert!(!default_bodies().is_empty());
+        assert_eq!(body_name(celestial_core::body::Body::SUN), "Sun");
+    }
+
+    #[test]
+    fn parse_hsys_names_letters_bad() {
+        for n in [
+            "placidus", "koch", "equal", "whole", "porphyry", "regio", "campanus", "morinus",
+            "alcabitus", "axial",
+        ] {
+            assert!(parse_hsys(n).is_ok(), "{n}");
+        }
+        assert_eq!(parse_hsys("P").unwrap(), b'P');
+        assert!(matches!(
+            parse_hsys("unknownsystem"),
+            Err(ParseError::HouseSys(_))
+        ));
+        assert_eq!(hsys_name(b'A'), "Gauquelin");
+        assert!(!hsys_name(b'P').is_empty());
+    }
+
+    #[test]
+    fn parse_sid_mode_names_num_bad() {
+        for (n, v) in [
+            ("fagan", 0),
+            ("lahiri", 1),
+            ("deluce", 2),
+            ("raman", 3),
+            ("krishnamurti", 5),
+            ("sassanian", 11),
+        ] {
+            assert_eq!(parse_sid_mode(n).unwrap(), v, "{n}");
+        }
+        assert_eq!(parse_sid_mode("9").unwrap(), 9);
+        assert!(matches!(
+            parse_sid_mode("bogus"),
+            Err(ParseError::SidMode(_))
+        ));
+    }
+}
