@@ -79,9 +79,9 @@ Notes: no `unsafe` in core/cli/bindings; FFI (napi/pyo3/ext-php-rs) clean; no co
 | parse.rs | `parse_date/tz/body/hsys/sid_mode` → `Result<_,String>`, no shared error | `TryFrom`/`FromStr` on newtypes + one `ParseError` | DONE — commit 7bfa598 |
 | core domain vs functions/ | `moon.rs`/`houses.rs` are `pub use functions::*` shims; impl is `pub(crate)` | collapse shims or document `functions/` as canonical private layer | DONE — documented facade/private contract, commit 6acfe12 |
 | core/src/lib.rs | 23 glob `pub use *::*` flatten whole API surface | curate explicit re-exports; lean on `prelude` | DEFERRED — root globs are load-bearing for core's own internals (precision compute files use `crate::calc_ut` etc); faithful de-glob = exhaustive ~280-symbol mirror over the precision path for cleanliness-only gain. Own isolated effort. |
-| cli/src/cmd/render/mod.rs (3541 LOC) | god file: args, config, tz, 28 dispatch wrappers, registry, template, schema, tests | split into `args.rs`/`config.rs`/`pipeline.rs`/`registry.rs`; thin facade | OPEN — in progress |
-| context build vs render | `dispatch_*` returns `(serde_json::Value, fn)`; schema implicit, test-enforced only | typed `ChartContext`; serialize to JSON only at template boundary | OPEN |
-| bindings js/python/php | 3×~2.5k LOC mirror same ~150 fns + per-lang error shims | extract `celestial-ffi` facade crate; bindings = thin marshalling | OPEN |
+| cli/src/cmd/render/mod.rs (3541 LOC) | god file: args, config, tz, 28 dispatch wrappers, registry, template, schema, tests | split into `args.rs`/`config.rs`/`pipeline.rs`/`registry.rs`; thin facade | DONE — 4 concern modules + facade, mod.rs 3543→2415, commit b4262f9 |
+| context build vs render | `dispatch_*` returns `(serde_json::Value, fn)`; schema implicit, test-enforced only | typed `ChartContext`; serialize to JSON only at template boundary | DONE (bounded) — `ChartContext` newtype at the dispatch boundary; full per-tradition typed model left as larger follow-on, commit 40a5c49 |
+| bindings js/python/php | 3×~2.5k LOC mirror same ~150 fns + per-lang error shims | extract `celestial-ffi` facade crate; bindings = thin marshalling | DONE (bounded) — `celestial-ffi` crate: shared seam + `FfiError` + `pos6`; per-lang macro stubs inherently can't be shared, commit 8fbed69 |
 | testability | `run()` does IO inline; logic only via full CLI path | `build_output(args)->Result<String,CliError>` pure; IO stays in `run` | OPEN — not in the 7-item batch |
 
 ---
