@@ -1,5 +1,31 @@
 //! Output formatting utilities — tables, degree strings, JSON.
 
+/// Escape a string for safe inclusion in XML/SVG text **or**
+/// double-quoted attribute values (SEC-1/2): `&`, `<`, `>`, `"`, `'`.
+/// User-controlled values (`--var`, `--name`, TOML `[vars]`) flow into
+/// generated SVG; without this they can break out of a `<text>`
+/// element or an attribute and inject markup. Strings with none of
+/// these characters (e.g. the default titles, hex colours) are
+/// returned unchanged, so existing output is byte-identical.
+#[must_use]
+pub fn xml_escape(s: &str) -> String {
+    if !s.contains(['&', '<', '>', '"', '\'']) {
+        return s.to_owned();
+    }
+    let mut out = String::with_capacity(s.len() + 8);
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&apos;"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 // ─── Degree/longitude display ─────────────────────────────────────────────────
 
 const SIGNS: [&str; 12] = [

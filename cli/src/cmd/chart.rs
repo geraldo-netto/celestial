@@ -575,11 +575,13 @@ fn write_centre_metadata(s: &mut String, chart: &ChartData, name: &str) {
     );
 
     if !name.is_empty() {
+        // SEC-2: --name is user-controlled; escape before it enters
+        // the SVG <text> element.
         let _ = write!(
             s,
             "  <text x=\"{CX}\" y=\"{:.1}\" class=\"title\">{}</text>\n",
             CY - 18.0,
-            name
+            fmt::xml_escape(name)
         );
     }
     let _ = write!(

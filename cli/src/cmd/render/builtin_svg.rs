@@ -10,6 +10,12 @@ use serde_json::Value;
 
 use super::{spread_labels, wx, wy, CX, CY, RH, RI, RO, RP};
 
+/// First `n` **characters** of `s` (UTF-8-safe; never splits a
+/// multibyte char — SEC-3). Returns all of `s` if shorter than `n`.
+fn trunc_chars(s: &str, n: usize) -> &str {
+    s.char_indices().nth(n).map_or(s, |(i, _)| &s[..i])
+}
+
 const LABEL_R: f64 = RP + 26.0;
 const RH2: f64 = 16.0;
 
@@ -167,7 +173,13 @@ impl Layout {
 }
 
 fn write_header(s: &mut String, pal: &Palette, h: &ChartHeader, page_h: f64) {
-    let (bg, txt, ring, title) = (pal.bg, pal.txt, pal.ring, pal.title);
+    // SEC-1: user-controlled palette/title flow into SVG attrs + text;
+    // escape so a crafted `--var`/title can't break out. Plain colours
+    // and the default title are unchanged (byte-identical output).
+    let bg = crate::format::xml_escape(pal.bg);
+    let txt = crate::format::xml_escape(pal.txt);
+    let ring = crate::format::xml_escape(pal.ring);
+    let title = crate::format::xml_escape(pal.title);
     let _ = writeln!(
         s,
         r##"<?xml version="1.0" encoding="UTF-8"?>
@@ -660,9 +672,11 @@ fn write_aspect_legend_row(s: &mut String, pal: &Palette, asp: &Value, c3x: f64,
     let hard = asp["is_hard"].as_bool().unwrap_or(false);
     let col = if hard { pal.hard_c } else { pal.soft_c };
     let aind = if appl { "&#9650;app" } else { "&#9660;sep" };
-    let b1s = &b1[..b1.len().min(3)];
-    let b2s = &b2[..b2.len().min(3)];
-    let an4 = &aname[..aname.len().min(4)];
+    // SEC-3: take the first N *chars* (not bytes) — a byte slice can
+    // split a multibyte UTF-8 body/aspect name and panic.
+    let b1s = trunc_chars(b1, 3);
+    let b2s = trunc_chars(b2, 3);
+    let an4 = trunc_chars(aname, 4);
     emit_glyph(s, g1, c3x + 2.0, ry, 16.0, col);
     emit_glyph(s, g2, c3x + 18.0, ry, 16.0, col);
     let _ = writeln!(
