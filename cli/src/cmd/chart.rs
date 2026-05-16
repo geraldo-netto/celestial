@@ -8,6 +8,7 @@ use celestial_core::{
 };
 use clap::Args;
 use std::f64::consts::PI;
+use std::fmt::Write as _;
 
 // ─── CLI args ─────────────────────────────────────────────────────────────────
 
@@ -369,19 +370,21 @@ fn write_zodiac_ring(s: &mut String, asc: f64) {
         let span = (a2 - a1).rem_euclid(360.0);
         let large = if span > 180.0 { 1 } else { 0 };
         let color = sign_color(sign);
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <path d=\"M {ox1:.2} {oy1:.2} A {R_OUTER:.0} {R_OUTER:.0} 0 {large} 1 {ox2:.2} {oy2:.2} \
              L {ix2:.2} {iy2:.2} A {R_ZODIAC:.0} {R_ZODIAC:.0} 0 {large} 0 {ix1:.2} {iy1:.2} Z\" \
              fill=\"{color}\" fill-opacity=\"0.18\" stroke=\"{color}\" stroke-width=\"0.5\"/>\n"
-        ));
+        );
 
         let mid_a = ecl_to_svg_angle(lon_start + 15.0, asc);
         let r_text = (R_OUTER + R_ZODIAC) / 2.0;
         let (tx, ty) = polar(mid_a, r_text);
         let glyph = sign_glyph(sign);
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <text x=\"{tx:.2}\" y=\"{ty:.2}\" class=\"sign-glyph\" fill=\"{color}\">{glyph}</text>\n"
-        ));
+        );
     }
 }
 
@@ -397,10 +400,11 @@ fn write_zodiac_ticks(s: &mut String, asc: f64) {
         };
         let (x1, y1) = polar(a, R_OUTER);
         let (x2, y2) = polar(a, r_in);
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <line x1=\"{x1:.2}\" y1=\"{y1:.2}\" x2=\"{x2:.2}\" y2=\"{y2:.2}\" \
              stroke=\"{stroke}\" stroke-width=\"{sw}\"/>\n"
-        ));
+        );
     }
 }
 
@@ -419,10 +423,11 @@ fn write_house_cusps(s: &mut String, chart: &ChartData, asc: f64) {
         } else {
             ("#999", "0.8")
         };
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <line x1=\"{x1:.2}\" y1=\"{y1:.2}\" x2=\"{x2:.2}\" y2=\"{y2:.2}\" \
              stroke=\"{stroke}\" stroke-width=\"{sw}\"/>\n"
-        ));
+        );
     }
 }
 
@@ -435,9 +440,10 @@ fn write_house_numbers(s: &mut String, chart: &ChartData, asc: f64) {
         let mid_lon = c1 + span / 2.0;
         let a = ecl_to_svg_angle(mid_lon, asc);
         let (tx, ty) = polar(a, (R_HOUSE + R_INNER) / 2.0);
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <text x=\"{tx:.2}\" y=\"{ty:.2}\" class=\"house-num\">{i}</text>\n"
-        ));
+        );
     }
 }
 
@@ -459,10 +465,11 @@ fn write_aspects_section(s: &mut String, chart: &ChartData, asc: f64) {
         let (x2, y2) = polar(a2, R_INNER - 5.0);
         let color = aspect_color(asp.aspect);
         let opacity = 1.0 - (asp.orb / 8.0).min(0.85);
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <line x1=\"{x1:.2}\" y1=\"{y1:.2}\" x2=\"{x2:.2}\" y2=\"{y2:.2}\" \
              stroke=\"{color}\" stroke-width=\"1.2\" opacity=\"{opacity:.2}\"/>\n"
-        ));
+        );
     }
     s.push_str("  </g>\n");
 }
@@ -491,32 +498,36 @@ fn write_planets_section(s: &mut String, chart: &ChartData, asc: f64) {
 
         let (gx, gy) = polar(a, R_PLANET);
         let (dx, dy) = polar(base_a, R_ZODIAC - 6.0);
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <circle cx=\"{dx:.2}\" cy=\"{dy:.2}\" r=\"2.5\" fill=\"#333\"/>\n"
-        ));
+        );
 
         if (a - base_a).abs() > 1.0 {
             let (lx1, ly1) = polar(base_a, R_ZODIAC - 14.0);
             let (lx2, ly2) = polar(a, R_PLANET + 14.0);
-            s.push_str(&format!(
+            let _ = write!(
+                s,
                 "  <line x1=\"{lx1:.2}\" y1=\"{ly1:.2}\" x2=\"{lx2:.2}\" y2=\"{ly2:.2}\" \
                  stroke=\"#aaa\" stroke-width=\"0.6\"/>\n"
-            ));
+            );
         }
 
         let fill = if planet.retro { "#c0392b" } else { "#1a1a2e" };
         let retro = if planet.retro { " ℞" } else { "" };
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <text x=\"{gx:.2}\" y=\"{gy:.2}\" class=\"glyph\" fill=\"{fill}\">{}{retro}</text>\n",
             planet.glyph
-        ));
+        );
 
         let (sign, deg) = lon_to_sign(planet.lon);
         let deg_label = format!("{:.0}°{}", deg, sign_glyph(sign));
         let (lx, ly) = polar(a, R_PLANET - 18.0);
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <text x=\"{lx:.2}\" y=\"{ly:.2}\" class=\"degree\">{deg_label}</text>\n"
-        ));
+        );
     }
 }
 
@@ -529,9 +540,10 @@ fn write_angle_labels(s: &mut String, chart: &ChartData, asc: f64) {
     ] {
         let a = ecl_to_svg_angle(lon, asc);
         let (x, y) = polar(a, R_ZODIAC + 22.0);
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <text x=\"{x:.2}\" y=\"{y:.2}\" class=\"angle-lbl\" fill=\"#333\">{label}</text>\n"
-        ));
+        );
     }
 }
 
@@ -541,10 +553,11 @@ fn write_ring_borders(s: &mut String) {
         (R_ZODIAC, "#777", "1.2"),
         (R_INNER, "#aaa", "1.0"),
     ] {
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <circle cx=\"{CX}\" cy=\"{CY}\" r=\"{r}\" \
              fill=\"none\" stroke=\"{stroke}\" stroke-width=\"{sw}\"/>\n"
-        ));
+        );
     }
 }
 
@@ -561,25 +574,29 @@ fn write_centre_metadata(s: &mut String, chart: &ChartData, name: &str) {
     );
 
     if !name.is_empty() {
-        s.push_str(&format!(
+        let _ = write!(
+            s,
             "  <text x=\"{CX}\" y=\"{:.1}\" class=\"title\">{}</text>\n",
             CY - 18.0,
             name
-        ));
+        );
     }
-    s.push_str(&format!(
+    let _ = write!(
+        s,
         "  <text x=\"{CX}\" y=\"{:.1}\" class=\"subtitle\">{date_str}</text>\n",
         CY
-    ));
-    s.push_str(&format!(
+    );
+    let _ = write!(
+        s,
         "  <text x=\"{CX}\" y=\"{:.1}\" class=\"subtitle\">{loc_str}</text>\n",
         CY + 16.0
-    ));
-    s.push_str(&format!(
+    );
+    let _ = write!(
+        s,
         "  <text x=\"{CX}\" y=\"{:.1}\" class=\"subtitle\">{}</text>\n",
         CY + 32.0,
         parse::hsys_name(chart.hsys)
-    ));
+    );
 }
 
 // ─── Text table output ────────────────────────────────────────────────────────

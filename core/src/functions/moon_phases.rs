@@ -141,19 +141,27 @@ pub fn moon_elongation(jd: f64) -> Result<f64> {
     Ok((moon.lon - sun.lon).rem_euclid(360.0))
 }
 
-/// Signed distance of elongation from a target, in (−180°, +180°].
-fn signed_dist(jd: f64, target: f64) -> Result<f64> {
-    let e = moon_elongation(jd)?;
-    let d = e - target;
-    // Wrap to (−180, +180]
-    Ok(if d > 180.0 {
+/// Wrap a degree difference into (−180°, +180°].
+fn wrap_signed(d: f64) -> f64 {
+    if d > 180.0 {
         d - 360.0
     } else if d <= -180.0 {
         d + 360.0
     } else {
         d
-    })
+    }
 }
+
+/// Signed distance of elongation from a target, in (−180°, +180°].
+fn signed_dist(jd: f64, target: f64) -> Result<f64> {
+    Ok(wrap_signed(moon_elongation(jd)? - target))
+}
+
+/// Mean Moon–Sun elongation rate (°/day): 360° / mean synodic month
+/// (29.530588853 d). The elongation function is monotone increasing with
+/// this near-constant slope, so it is an excellent fixed Newton
+/// derivative — the root (f ≈ 0) is unchanged; only the step path is.
+const MEAN_ELONGATION_RATE: f64 = 360.0 / 29.530_588_853;
 
 /// Find the exact moment when the Moon–Sun elongation equals `target` degrees,
 /// bracketed in `[jd_lo, jd_hi]`.
@@ -161,25 +169,23 @@ fn signed_dist(jd: f64, target: f64) -> Result<f64> {
 /// Uses Newton's method (≈5 iterations) with bisection fallback.
 fn bisect_phase(jd_lo: f64, jd_hi: f64, target: f64) -> Result<f64> {
     let mut jd = (jd_lo + jd_hi) / 2.0;
-    let h = 0.01; // 0.01 d ≈ 14 min for numerical derivative
 
     for _ in 0..15 {
         let f = signed_dist(jd, target)?;
         if f.abs() < 1.0 / 3_600.0 {
             break; // sub-arcsecond
         }
-        let fp = (signed_dist(jd + h, target)? - signed_dist(jd - h, target)?) / (2.0 * h);
-        if fp.abs() < 0.1 {
-            break;
-        }
-        let step = (f / fp).clamp(-3.0, 3.0);
+        // Analytic derivative: elongation rises ≈12.19°/day. Avoids the
+        // two finite-difference elongation evaluations per iteration.
+        let step = (f / MEAN_ELONGATION_RATE).clamp(-3.0, 3.0);
         jd -= step;
         jd = jd.clamp(jd_lo - 0.5, jd_hi + 0.5);
     }
 
-    // Validate result
+    // Validate result — reuse the single elongation eval for both the
+    // reported value and the residual check.
     let e = moon_elongation(jd)?;
-    let residual = signed_dist(jd, target)?.abs();
+    let residual = wrap_signed(e - target).abs();
     if residual > 0.5 {
         return Err(Error::Calc(format!(
             "phase bisection did not converge: target={target:.1}° got e={e:.3}°"
