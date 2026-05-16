@@ -248,13 +248,41 @@ pub(crate) fn write_or_print(output: &str, path: Option<&PathBuf>) -> Result<(),
 }
 
 
-pub fn run(mut args: RenderArgs) -> Result<(), CliError> {
+/// Where a [`compute`] result should go. `Stdout` is the verbatim
+/// payload for the `--print-*` modes (always stdout, ignoring `--out`,
+/// as before); `Out` honours `--out` via `write_or_print`.
+/// Where a [`compute`] result should go. `Stdout` is the verbatim
+/// payload for the `--print-*` modes (always stdout, ignoring `--out`,
+/// as before); `Out` is the rendered chart, written via
+/// `write_or_print` honouring `--out`.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum RenderOutput {
+    Stdout(String),
+    Out {
+        body: String,
+        path: Option<PathBuf>,
+    },
+}
+
+/// Thin IO wrapper: compute the payload, then emit it.
+pub fn run(args: RenderArgs) -> Result<(), CliError> {
+    match compute(args)? {
+        RenderOutput::Stdout(s) => {
+            print!("{s}");
+            Ok(())
+        }
+        RenderOutput::Out { body, path } => write_or_print(&body, path.as_ref()),
+    }
+}
+
+/// Pure render pipeline: produces the output payload (no stdout, no
+/// file write) so it is unit-testable without a filesystem.
+pub(crate) fn compute(mut args: RenderArgs) -> Result<RenderOutput, CliError> {
     // --print-schema: dump the context schema and exit. This runs BEFORE any
     // chart computation so the user gets fast feedback while learning the
     // template format — no need for valid date/lat/lon args.
     if args.print_schema {
-        print!("{CONTEXT_SCHEMA}");
-        return Ok(());
+        return Ok(RenderOutput::Stdout(CONTEXT_SCHEMA.to_string()));
     }
 
     args.validate()?;
@@ -327,22 +355,25 @@ pub fn run(mut args: RenderArgs) -> Result<(), CliError> {
         obj.insert("date_local".into(), serde_json::Value::from(local));
     }
 
-    // --print-context: dump JSON context and exit
+    // --print-context: dump JSON context and exit (println! added a
+    // trailing newline — preserve it byte-for-byte).
     if args.print_context {
-        println!("{}", serde_json::to_string_pretty(&ctx).unwrap());
-        return Ok(());
+        let mut s = serde_json::to_string_pretty(&ctx).unwrap();
+        s.push('\n');
+        return Ok(RenderOutput::Stdout(s));
     }
 
     // --print-template: show the example MiniJinja template
     if args.print_template {
-        print!("{EXAMPLE_TEMPLATE}");
-        return Ok(());
+        return Ok(RenderOutput::Stdout(EXAMPLE_TEMPLATE.to_string()));
     }
 
     let ctx = ChartContext::from(ctx);
     let output = render_to_string(&ctx, render_fn, args.template.as_ref())?;
-    write_or_print(&output, args.out.as_ref())?;
-    Ok(())
+    Ok(RenderOutput::Out {
+        body: output,
+        path: args.out.clone(),
+    })
 }
 
 // ─── Example template (MiniJinja / Jinja2 syntax) ───────────────────────────────────
@@ -354,3 +385,73 @@ pub(crate) const EXAMPLE_TEMPLATE: &str = include_str!("../../../templates/examp
 /// onboarding (no chart computation required).
 pub(crate) const CONTEXT_SCHEMA: &str = include_str!("../../../templates/context_schema.txt");
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cmd::render::RenderArgs;
+
+    fn natal_args() -> RenderArgs {
+        let mut a = RenderArgs::default();
+        a.chart_type = "natal".to_string();
+        a.date = "1986-05-30 09:00".to_string();
+        a.timezone = Some("UTC".to_string());
+        a.lat = -23.5;
+        a.lon = -46.6;
+        a
+    }
+
+    #[test]
+    fn compute_natal_returns_svg_payload() {
+        match compute(natal_args()).expect("compute ok") {
+            RenderOutput::Out { body, path } => {
+                assert!(path.is_none());
+                assert!(body.contains("<svg"), "no svg in body");
+                assert!(body.contains("</svg>"), "svg not closed");
+            }
+            other => panic!("expected Out, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn compute_print_schema_is_stdout_verbatim() {
+        let mut a = natal_args();
+        a.print_schema = true;
+        assert_eq!(
+            compute(a).unwrap(),
+            RenderOutput::Stdout(CONTEXT_SCHEMA.to_string())
+        );
+    }
+
+    #[test]
+    fn compute_print_context_json_trailing_newline() {
+        let mut a = natal_args();
+        a.print_context = true;
+        match compute(a).unwrap() {
+            RenderOutput::Stdout(s) => {
+                assert!(s.ends_with('\n'), "println! newline must be preserved");
+                assert!(s.trim_start().starts_with('{'), "not JSON");
+            }
+            o => panic!("expected Stdout, got {o:?}"),
+        }
+    }
+
+    #[test]
+    fn compute_rejects_out_of_range_lat() {
+        let mut a = natal_args();
+        a.lat = 999.0;
+        assert!(compute(a).is_err());
+    }
+
+    #[test]
+    fn compute_out_carries_out_path() {
+        let mut a = natal_args();
+        a.out = Some(std::path::PathBuf::from("/tmp/celestial_test_unused.svg"));
+        match compute(a).unwrap() {
+            RenderOutput::Out { path, .. } => {
+                assert_eq!(path, Some(std::path::PathBuf::from("/tmp/celestial_test_unused.svg")));
+            }
+            o => panic!("expected Out, got {o:?}"),
+        }
+    }
+}
