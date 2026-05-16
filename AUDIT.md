@@ -59,7 +59,7 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 | id | area | problem | improvement | status |
 |---|---|---|---|---|
 | ARCH-7 | core/src/lib.rs | 12 crate-root `pub use mod::*` globs flatten whole surface | curate explicit re-exports | DEFERRED — load-bearing for core internals (precision compute uses `crate::calc_ut` etc); faithful de-glob ≈ exhaustive ~280-symbol mirror over the precision path. Own isolated effort |
-| ARCH-8 | cli/src/cmd/render/mod.rs (~2415 LOC) | residual bulk: ~80 test fns + geometry/format/const/dignity helpers still inline | move geometry→`wheel.rs`, format→`format.rs`, tables→`const.rs`, dignity→`dignity.rs`; tests stay | OPEN |
+| ARCH-8 | cli/src/cmd/render/mod.rs (~2415 LOC) | residual bulk: ~80 test fns + geometry/format/const/dignity helpers still inline | move geometry→`wheel.rs`, format→`format.rs`, tables→`const.rs`, dignity→`dignity.rs`; tests stay | DEFERRED — post-Phase-5 mod.rs is already a facade; the bulk is the test module. Safe extraction is many single-span-per-commit moves (a bulk multi-span pass corrupts line math); low architectural payoff vs risk to the precision-verified tree. Isolated effort. `dignity.rs` single-span move verified trivial — the viable unit of work |
 | ARCH-9 | per-tradition context typing | `ChartContext` typed only at the dispatch boundary; the 21 builders still compose raw `serde_json::Value` | per-tradition typed structs (`NatalContext`, `VedicContext`, …) impl `Serialize`+`Deref` | OPEN |
 | ARCH-10 | bindings 201×3 stubs | no codegen; every export hand-written per language | generate all 3 from one signature spec / macro (see DP-4) | OPEN |
 | ARCH-11 | testability | `pipeline::run` does IO + dispatch inline | extract pure `compute(&RenderArgs)->Result<String,CliError>`; `run` wraps IO | OPEN |
@@ -70,9 +70,8 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 
 | id | location | current | pattern | payoff |
 |---|---|---|---|---|
-| DP-1 | render/registry.rs:22-434 | `CHART_REGISTRY` + 28 near-identical `dispatch_*`; O(n) alias `.find()` | `trait ChartBuilder` impls or declarative macro from `(aliases,title,build,render)` | −~400 LOC; new type = 1 row; per-type metadata |
+| DP-1 | render/registry.rs | `CHART_REGISTRY` + 28 `dispatch_*` | DISMISSED on inspection — the wrappers are **not** near-identical: only `dispatch_natal` is the trivial shape; the other 27 have genuinely distinct bodies (return-JD computation, var inserts, bi/tri-wheel multi-date, per-family builders). Real shared code is only the ~5-line sig/`Ok(..into())` boilerplate (~140 LOC, not −400); a macro/trait there is closure indirection over a clear, debuggable hot-path adapter — net-negative. O(n) alias `.find()` over ~28 entries is not a real cost. |
 | DP-2 | core `PlanetPos`, `jd/lat/lon: f64`, `hsys: u8` | primitive obsession; units stringly-documented | newtypes `JulianDay`/`Latitude`/`Longitude`/`HouseSystem` (in `celestial-ffi`) | compile-checked units across CLI + bindings |
-| DP-3 | cli/src/cmd/render/args.rs | `chart_type: String`, `calendars: Vec<String>`, `hsys: char` parsed at runtime | clap `#[derive(ValueEnum)]` enums | invalid `--chart-type` fails at parse, help lists valid values |
 | DP-4 | bindings/{js,python,php}/src/lib.rs | 201×3 stubs + per-lang `PlanetPos`/error shim | codegen/macro `#[export(shape,langs)]` over `celestial-ffi` | ~3k LOC culled; one signature per export (realizes ARCH-10, DUP-1/2/3) |
 | DP-5 | render/context.rs:31-613 + tradition builders | `json!({...})` + `p["k"].as_f64().unwrap_or(0.0)` everywhere | typed builder structs + `ContextError` | template-field typos & missing data caught before render (realizes ARCH-9) |
 | DP-6 | render/builtin_svg.rs + tradition renderers | hand-rolled SVG `push_str`/`write!` strings, untyped `vars[...]` | MiniJinja templates + parsed `Palette` struct | ~500 LOC → templates; per-tradition theming; checked at build |
