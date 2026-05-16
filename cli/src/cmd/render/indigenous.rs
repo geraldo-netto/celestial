@@ -5,7 +5,7 @@ use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::calc_ut;
 use celestial_core::{egyptian_decan, medicine_wheel_totem};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::collections::BTreeMap;
 
 pub fn build_medicine_wheel_context(
@@ -34,17 +34,41 @@ pub fn build_medicine_wheel_context(
         &vars,
     );
 
-    Ok(json!({
-        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
-        "sun_lon":    (sun_pos.lon * 1e4).round() / 1e4,
-        "totem":      animal,
-        "element":    element,
-        "clan":       clan,
-        "season":     season,
-        "decan_idx":  decan_idx,
-        "decan_name": decan_name,
-        "decan_star": decan_star,
-        "vars": Value::Object(palette.into_iter().collect())}))
+    // ARCH-9/DP-5: typed context (field names == JSON keys).
+    let ctx = MedicineWheelContext {
+        date: date_str.to_string(),
+        jd,
+        lat,
+        lon,
+        sun_lon: (sun_pos.lon * 1e4).round() / 1e4,
+        totem: animal,
+        element,
+        clan,
+        season,
+        decan_idx,
+        decan_name,
+        decan_star,
+        vars: Value::Object(palette.into_iter().collect()),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed Medicine-Wheel context (ARCH-9/DP-5).
+#[derive(serde::Serialize)]
+struct MedicineWheelContext {
+    date: String,
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    sun_lon: f64,
+    totem: &'static str,
+    element: &'static str,
+    clan: &'static str,
+    season: &'static str,
+    decan_idx: usize,
+    decan_name: &'static str,
+    decan_star: &'static str,
+    vars: Value,
 }
 
 const MW_CX: f64 = 350.0;

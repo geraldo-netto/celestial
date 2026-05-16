@@ -78,18 +78,44 @@ pub fn build_bazi_context(
         &vars,
     );
 
-    Ok(json!({
-        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
-        "pillars":   pillar_vals,
-        "elements":  element_vals,
-        "solar_term_current":    ct_pinyin,
-        "solar_term_current_en": ct_english,
-        "solar_term_next":       nt_pinyin,
-        "solar_term_next_en":    nt_english,
-        "degrees_into_term":     (deg_into * 100.0).round() / 100.0,
-        "degrees_to_next":       (deg_to   * 100.0).round() / 100.0,
-        "sun_lon":    (sun_pos.lon * 1e4).round() / 1e4,
-        "vars": Value::Object(palette.into_iter().collect())}))
+    // ARCH-9/DP-5: typed top-level context (inner pillar/element arrays
+    // stay `Vec<Value>` so the serialized object is byte-identical).
+    let ctx = BaziContext {
+        date: date_str.to_string(),
+        jd,
+        lat,
+        lon,
+        pillars: pillar_vals,
+        elements: element_vals,
+        solar_term_current: ct_pinyin,
+        solar_term_current_en: ct_english,
+        solar_term_next: nt_pinyin,
+        solar_term_next_en: nt_english,
+        degrees_into_term: (deg_into * 100.0).round() / 100.0,
+        degrees_to_next: (deg_to * 100.0).round() / 100.0,
+        sun_lon: (sun_pos.lon * 1e4).round() / 1e4,
+        vars: Value::Object(palette.into_iter().collect()),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed Ba Zi context (ARCH-9/DP-5). Field names == JSON keys.
+#[derive(serde::Serialize)]
+struct BaziContext {
+    date: String,
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    pillars: Vec<Value>,
+    elements: Vec<Value>,
+    solar_term_current: &'static str,
+    solar_term_current_en: &'static str,
+    solar_term_next: &'static str,
+    solar_term_next_en: &'static str,
+    degrees_into_term: f64,
+    degrees_to_next: f64,
+    sun_lon: f64,
+    vars: Value,
 }
 
 const ELEM_COLORS: &[(&str, &str)] = &[
