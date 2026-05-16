@@ -80,6 +80,44 @@ pub struct RiseTransResult {
 
 // ─── Pure-Rust dispatch ───────────────────────────────────────────────────────
 
+/// The three rise/transit/set events, decoded from the public
+/// `event_type` bitflags (`CALC_RISE`=bit0, `CALC_SET`=bit1,
+/// `CALC_MTRANSIT`=bit2). Makes the previously stringly `(bool,bool,
+/// bool)` tuple match type-safe and unrepresentable-when-invalid;
+/// behaviour (and the `ev_byte` the astronomy layer expects) is
+/// unchanged — unknown/empty flags still fall back to `Rise`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RiseSetEvent {
+    Rise,
+    Transit,
+    Set,
+}
+
+impl RiseSetEvent {
+    fn from_bits(event_type: i32) -> Self {
+        match (
+            event_type & 0x01 != 0,
+            event_type & 0x02 != 0,
+            event_type & 0x04 != 0,
+        ) {
+            (true, false, false) => RiseSetEvent::Rise,
+            (false, false, true) => RiseSetEvent::Transit, // CALC_MTRANSIT (upper)
+            (false, true, false) => RiseSetEvent::Set,
+            _ => RiseSetEvent::Rise,
+        }
+    }
+
+    /// Event byte the astronomy layer expects: 0=Rise, 1=Transit, 2=Set
+    /// (matches the historical mapping in `cmd/render`).
+    fn ev_byte(self) -> u8 {
+        match self {
+            RiseSetEvent::Rise => 0,
+            RiseSetEvent::Transit => 1,
+            RiseSetEvent::Set => 2,
+        }
+    }
+}
+
 /// Find rise, transit or set time — pure-Rust engine.
 #[allow(clippy::too_many_arguments)]
 pub fn rise_trans(
@@ -92,19 +130,7 @@ pub fn rise_trans(
     _atpress: f64,
     _attemp: f64,
 ) -> Result<RiseTransResult> {
-    let event = (
-        event_type & 0x01 != 0,
-        event_type & 0x02 != 0,
-        event_type & 0x04 != 0,
-    );
-    // ev_byte matches mod.rs: 0=Rise, 1=Transit, 2=Set
-    // CALC_RISE=1(bit0), CALC_SET=2(bit1), CALC_MTRANSIT=4(bit2), CALC_ITRANSIT=8(bit3)
-    let ev_byte: u8 = match event {
-        (true, false, false) => 0, // CALC_RISE
-        (false, false, true) => 1, // CALC_MTRANSIT = upper transit
-        (false, true, false) => 2, // CALC_SET
-        _ => 0,
-    };
+    let ev_byte: u8 = RiseSetEvent::from_bits(event_type).ev_byte();
     let jd = match planet.as_raw() {
         0 => crate::astronomy::sun_rise_transit_set(jd_ut, geopos[1], geopos[0], ev_byte),
         1 => crate::astronomy::moon_rise_transit_set(jd_ut, geopos[1], geopos[0], ev_byte),
@@ -262,6 +288,26 @@ impl RiseTransOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rise_set_event_from_bits_matches_legacy_mapping() {
+        // CALC_RISE=1, CALC_SET=2, CALC_MTRANSIT=4
+        assert_eq!(RiseSetEvent::from_bits(1), RiseSetEvent::Rise);
+        assert_eq!(RiseSetEvent::from_bits(2), RiseSetEvent::Set);
+        assert_eq!(RiseSetEvent::from_bits(4), RiseSetEvent::Transit);
+        // unknown / empty / combined → Rise (legacy `_ => 0` fallback)
+        assert_eq!(RiseSetEvent::from_bits(0), RiseSetEvent::Rise);
+        assert_eq!(RiseSetEvent::from_bits(3), RiseSetEvent::Rise);
+        assert_eq!(RiseSetEvent::from_bits(8), RiseSetEvent::Rise);
+    }
+
+    #[test]
+    fn rise_set_event_ev_byte_unchanged() {
+        assert_eq!(RiseSetEvent::from_bits(1).ev_byte(), 0);
+        assert_eq!(RiseSetEvent::from_bits(2).ev_byte(), 2);
+        assert_eq!(RiseSetEvent::from_bits(4).ev_byte(), 1);
+        assert_eq!(RiseSetEvent::from_bits(99).ev_byte(), 0);
+    }
 
     /// `RiseTransOptions::horizon_height` is a fluent builder method — the
     /// value should round-trip through `.horizon_height(x)` and be observable
