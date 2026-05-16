@@ -271,16 +271,22 @@ mod tests {
 
     #[test]
     fn try_exec_returns_err_for_unknown() {
-        // A clearly non-existent subcommand must return Err (not panic).
-        let saved = std::env::var_os("PATH").unwrap_or_default();
-        std::env::set_var("PATH", ""); // ensure nothing on PATH
-        let result = try_exec("definitely_not_a_real_plugin_xyz", &[]);
-        std::env::set_var("PATH", &saved);
-        assert!(result.is_err(), "unknown plugin must return Err");
-        let msg = result.unwrap_err().to_string();
-        assert!(
-            msg.contains("definitely_not_a_real_plugin_xyz"),
-            "error message must name the subcommand"
-        );
+        // TEST-1: this test also mutates the process-global PATH, so it
+        // must take the same lock — without it, it raced the
+        // `discover_*` tests (clearing/restoring PATH mid-`discover`)
+        // and they failed intermittently under the parallel runner.
+        with_path_lock(|| {
+            // A clearly non-existent subcommand must return Err (not panic).
+            let saved = std::env::var_os("PATH").unwrap_or_default();
+            std::env::set_var("PATH", ""); // ensure nothing on PATH
+            let result = try_exec("definitely_not_a_real_plugin_xyz", &[]);
+            std::env::set_var("PATH", &saved);
+            assert!(result.is_err(), "unknown plugin must return Err");
+            let msg = result.unwrap_err().to_string();
+            assert!(
+                msg.contains("definitely_not_a_real_plugin_xyz"),
+                "error message must name the subcommand"
+            );
+        });
     }
 }
