@@ -266,6 +266,13 @@ pub fn sidtime0(jd_ut: f64, eps: f64, nut: f64) -> f64 {
 /// Compute the day of week (0 = Monday, …, 6 = Sunday).
 #[must_use]
 pub fn day_of_week(jd: f64) -> i32 {
+    // SEC-8: a non-finite / astronomically-absurd `jd` makes the
+    // `f64 as i64` cast saturate (NaN→0, ±Inf→i64::MIN/MAX) → a
+    // meaningless weekday. Bound it like `revjul` (panic-free
+    // sentinel); real dates (|jd| ≪ 1e10) are unaffected.
+    if !jd.is_finite() || jd.abs() > 1.0e10 {
+        return 0; // Monday sentinel
+    }
     // Zeller / JD mod 7: JD 0 = Monday
     ((jd + 0.5).floor() as i64).rem_euclid(7) as i32
 }
