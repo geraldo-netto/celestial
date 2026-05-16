@@ -1,6 +1,6 @@
 # Celestial — Code Audit
 
-Date: 2026-05-16 · Scope: Rust workspace (`core/`, `cli/`, `bindings/`, `xtask/`, `benches/`, `fuzz/`) — 143 files, ~68.5k LOC. Read-only analysis; no code changed.
+Date: 2026-05-16 · Scope: Rust workspace (`core/`, `cli/`, `bindings/`, `xtask/`, `benches/`, `fuzz/`) — 143 files, ~68.5k LOC. One table per category; `status` column carries resolution where work has been done.
 
 ---
 
@@ -25,49 +25,47 @@ Note: many 11–15-arm `match` fns (houses dispatch, parse, esbats, main subcomm
 
 ## 2. Code duplication — severity: MODERATE-HIGH
 
-| location(s) | duplicated | size | dedupe |
+| location(s) | duplicated | size | status |
 |---|---|---|---|
-| bindings/{python,php,js}/src/lib.rs | ~201-fn FFI surface hand-mirrored 3× | ~7.7k LOC | code-gen all 3 from one API spec/macro |
-| cli/src/cmd/render/{mesoamerican,chinese,indigenous,vedic,hellenistic,specialist,omer_grid,calendar_*}.rs | identical SVG preamble (xml/svg/rect/title/date) ×~17 | ~250 LOC | `svg_header(ctx,w,h)->(String,Palette)` |
-| cli/src/cmd/render/*.rs | panel-card `<rect>/<text>` blocks re-hand-written | dozens | `panel_card(s,x,y,w,h,heading,rows)` |
-| cli/src/cmd/{calc,moon,houses,...}.rs | `parse_date` + json/text output scaffold ×~10 | ~10–20 each | `run_with_jd` + `emit()` helper |
-| bindings */lib.rs `*_many` | verbatim copy of non-`many` sibling | ~6 pairs ×3 | generic `map_results` closure |
+| bindings/{python,php,js}/src/lib.rs | ~201-fn FFI surface hand-mirrored 3× | ~7.7k LOC | OPEN — code-gen all 3 from one API spec/macro (deferred: major architecture change, no-precision-loss rule) |
+| cli/src/cmd/render/* | SVG preamble + panel-card blocks | ~250 LOC | DONE — `svg_common::{svg_doc_open,SvgPalette,panel_card}` (commit d488454) |
+| core/cli sign-name / house-system lookups | repeated match tables | small | DONE — deduped (commit 6f5b780) |
+| bindings js/php `PlanetPos` unpack | repeated field unpack | small | DONE — deduped (commit 21e2a31) |
+| cli/src/cmd/{calc,houses,…}.rs | `parse_date`+emit scaffold ×~15 | ~10–20 each | DROPPED — only shared code is the already-shared `parse::parse_date` one-liner + a 2-line `println!(json…); Ok(())` tail; JSON bodies are per-command, 9/15 cmds have 2–12 divergent branches. `run_with_jd`/`emit` would be a leaky wrapper. |
+| bindings */lib.rs `*_many` | non-`many` sibling | 6 fns total | DROPPED — napi/pyo3/php macro + error-pipeline divergence makes a generic `map_results` impractical; per-lang extraction saves ~3 lines, adds indirection. |
 
-Core logic largely well-factored; duplication concentrated in tri-lingual bindings + render boilerplate.
+Core logic largely well-factored; remaining duplication concentrated in the tri-lingual FFI surface.
 
 ---
 
-## 3. Performance — severity: ONE SYSTEMIC HIGH-IMPACT BUG
+## 3. Performance
 
-| file:line | issue | impact | fix |
+| file:line | issue | impact | status |
 |---|---|---|---|
-| core/src/astronomy/engine.rs:74,268 | `compute_speed` recomputes jde±0.5 without reusing central | hot | share central-diff neighbors |
-| core/src/functions/moon_phases.rs:162-178 | `bisect_phase` Newton: ~6 calc_ut ×15 iters via finite-diff | hot | analytic ~12.19°/day derivative |
-| core/src/functions/moon_phases.rs:181 | post-loop recomputes elongation already known | warm | reuse computed value |
-| cli/src/cmd/chart.rs:389-462 | `push_str(&format!())` in 360°/sign/cusp/aspect loops | warm | `write!`/`writeln!` into buffer |
-| core/src/astronomy/planetary.rs:36-63 | `apparent_planet` ~4-5 heliocentric evals ×3 under SPEED scans | hot | cache Earth heliocentric per jde |
+| core/src/functions/moon_phases.rs:162-178 | `bisect_phase` Newton via per-iter finite-diff (4 calc_ut ×15) | hot | DONE — analytic mean elongation rate (≈12.19°/day); root unchanged (commit 5a79aa3) |
+| core/src/functions/moon_phases.rs:181 | post-loop recomputes elongation already known | warm | DONE — single post-loop eval reused for value + residual (commit 5a79aa3) |
+| cli/src/cmd/chart.rs:389-462 | `push_str(&format!())` in 360°/sign/cusp/aspect loops | warm | DONE — `write!` directly into buffer (commit 5a79aa3) |
+| core/src/astronomy/planetary.rs:36-63 | `apparent_planet` heliocentric evals ×3 under SPEED scans | hot | DONE — strip SPEED flag in scan loops (commit f4b1203) |
+| core/src/astronomy/engine.rs:74,268 | `compute_speed` central-difference ±0.5 d | hot | WONTFIX — "reuse central" = forward/backward diff (O(h) vs O(h²)), reduces speed precision; central diff is already the minimal 2-eval 2nd-order form |
+
+Verification: `calc` + all four next-phase outputs byte-identical before/after for the 1986-05-30 09:00 UT PDF reference chart and the Princess Diana 1961-07-01 18:45 UT chart; full workspace test suite green.
 
 ---
 
 ## 4. Security — severity: MODERATE (memory-safe, no `unsafe`, FFI clean)
 
-### HIGH — unescaped user input → SVG/script injection
-| file:line | issue | fix |
-|---|---|---|
-| cli/src/cmd/render/builtin_svg.rs:180 | `--var title`/TOML `[vars]` raw into SVG `<text>` | XML-escape all `vars` values |
-| cli/src/cmd/render/builtin_svg.rs:178-180 | palette strings raw into SVG attrs (attr breakout) | XML-attr-escape palette |
-| cli/src/cmd/chart.rs:567 | `--name` verbatim into `<text>` | XML-escape `name` |
-
-### MEDIUM
-| file:line | issue | fix |
-|---|---|---|
-| cli/Cargo.toml `toml = "=0.4.10"` | 2019 unmaintained TOML parser on untrusted `--config` | upgrade to `toml` 0.8.x |
-| cli/src/cmd/chart.rs:719 / render mod.rs:939 | `--out`/config `out=` no traversal/abs-path check → arbitrary write | reject `..`/abs or confine to base dir |
-| cli/src/cmd/render/mod.rs:911-923 | MiniJinja env no fuel/recursion sandbox on `--template` → DoS | set fuel limit, strict undefined |
-| cli/src/cmd/render/builtin_svg.rs:664 | `&aname[..len.min(4)]` non-char-boundary slice → panic | char-aware truncation |
-
-### LOW
-parse.rs:108 fragile `offsets[0]` (safe by arm order); time.rs:61-104 unbounded `f64→i64 as` saturates silently; fuzz/src/main.rs:52 `% (hi-lo)` panics if hi==lo (test-only).
+| severity | file:line | issue | fix |
+|---|---|---|---|
+| HIGH | cli/src/cmd/render/builtin_svg.rs:180 | `--var title`/TOML `[vars]` raw into SVG `<text>` | XML-escape all `vars` values |
+| HIGH | cli/src/cmd/render/builtin_svg.rs:178-180 | palette strings raw into SVG attrs (attr breakout) | XML-attr-escape palette |
+| HIGH | cli/src/cmd/chart.rs:567 | `--name` verbatim into `<text>` | XML-escape `name` |
+| MEDIUM | cli/Cargo.toml `toml = "=0.4.10"` | 2019 unmaintained TOML parser on untrusted `--config` | upgrade to `toml` 0.8.x |
+| MEDIUM | cli/src/cmd/chart.rs:719 / render mod.rs:939 | `--out`/config `out=` no traversal/abs-path check → arbitrary write | reject `..`/abs or confine to base dir |
+| MEDIUM | cli/src/cmd/render/mod.rs:911-923 | MiniJinja env no fuel/recursion sandbox on `--template` → DoS | set fuel limit, strict undefined |
+| MEDIUM | cli/src/cmd/render/builtin_svg.rs:664 | `&aname[..len.min(4)]` non-char-boundary slice → panic | char-aware truncation |
+| LOW | cli/src/parse.rs:108 | fragile `offsets[0]` (safe by arm order) | assert/restructure arm |
+| LOW | core/src/.../time.rs:61-104 | unbounded `f64→i64 as` saturates silently | checked/clamped cast |
+| LOW | fuzz/src/main.rs:52 | `% (hi-lo)` panics if hi==lo (test-only) | guard hi==lo |
 
 Notes: no `unsafe` in core/cli/bindings; FFI (napi/pyo3/ext-php-rs) clean; no command injection in plugin.rs (PATH exec, no shell); untrusted CLI parsing uses checked `parse()`.
 
@@ -105,5 +103,4 @@ Notes: no `unsafe` in core/cli/bindings; FFI (napi/pyo3/ext-php-rs) clean; no co
 ## Recommended order
 
 1. **HIGH security** — XML-escape user-controlled SVG values (small, urgent).
-2. **Perf** — strip SPEED flag in scan loops (big win, low risk).
-3. **Architecture** — split `render/mod.rs` + introduce `CliError`; unlocks registry-as-Strategy, typed `ChartContext`, testable `build_output` seam.
+2. **Architecture** — split `render/mod.rs` + introduce `CliError`; unlocks registry-as-Strategy, typed `ChartContext`, testable `build_output` seam.
