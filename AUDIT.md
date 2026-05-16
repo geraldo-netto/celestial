@@ -29,7 +29,7 @@ No function in the workspace exceeds CC 10 — nothing open. Current peak is ~6�
 
 | id | file:line | issue | impact | status |
 |---|---|---|---|---|
-| PERF-1 | core/src/astronomy/engine.rs:161 | heliocentric-speed path evaluates the full VSOP series 3× (jde, jde±0.5) when `FLG_SPEED` set on a heliocentric calc | HOT | OPEN — analytic d/dt VSOP, or reuse the central eval for a 1-day diff |
+| PERF-1 | core/src/astronomy/engine.rs:161 | heliocentric-speed path evaluates the full VSOP series 3× (jde, jde±0.5) when `FLG_SPEED` set on a heliocentric calc | HOT | WONTFIX-as-stated / analytic deferred — `h(jde)` is needed for the position; speed is an O(h²) central difference. "Reuse central → 1-day diff" = forward/back O(h) = speed precision loss (identical to PERF-6). The only precision-safe route is an analytic VSOP-series derivative — large, precision-sensitive, its own soak. Locked by a J2000 heliocentric-Mars regression test so a future derivative rewrite must reproduce it (commit forthcoming) |
 | PERF-2 | core/src/functions/searches.rs:316-318 | `next_aspect_with` recomputes `calc_ut(jd_ret, SPEED)` after the bisection already converged via `diff_at` | WARM | OPEN — stash the final bisection eval |
 | PERF-3 | core/src/functions/searches.rs:411-412 | `next_aspect_cusp` re-runs `calc_ut` + `houses()` after convergence (already computed inside the last `diff_at`) | WARM | OPEN — reuse converged result |
 | PERF-4 | core/src/functions/searches.rs:149 | `bisect_retro_station` recomputes `pos_at` after the loop; the converged midpoint already holds `speed_lon` | WARM | OPEN — return the converged sample |
@@ -89,7 +89,7 @@ Notes: no `unsafe` in core/cli/bindings/ffi; napi/pyo3/ext-php-rs FFI sound; `pl
 ## Recommended order
 
 1. **SEC-1..4 (HIGH)** — XML-escape user SVG values + char-boundary fix + `toml` upgrade. Small, contained, urgent.
-2. **PERF-1** — heliocentric-speed VSOP triple-eval (only remaining HOT, precision-safe via analytic derivative or central reuse).
+2. **PERF-1 analytic derivative** — only as its own precision-soak effort (reuse-central is a precision loss; regression-locked).
 3. **DUP-6 / DP-7** — collapse the four `match_aspect` overloads to one parametric matcher (~60 LOC, HIGH; byte-verify aspect output).
 4. **ARCH-11 + ARCH-13** — pure `compute()` seam + `RenderArgs::validate`; cheap, unlocks render-logic testing.
 5. **ARCH-12** — bindings depend only on `celestial-ffi` (finish the Phase-7 facade).

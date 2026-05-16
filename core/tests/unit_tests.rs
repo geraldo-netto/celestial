@@ -2723,3 +2723,33 @@ mod accuracy_references {
         );
     }
 }
+
+/// PERF-1 regression lock: `calc_heliocentric` does a 3× VSOP
+/// central-difference for speed. "Reuse central → forward diff" is
+/// O(h) (precision loss — WONTFIX, same as PERF-6); the only
+/// precision-safe optimization is an analytic VSOP-series derivative
+/// (large, own soak). This pins current heliocentric Mars
+/// position+speed at J2000 so any future derivative rewrite must
+/// reproduce it (tol 1e-6).
+#[test]
+fn perf1_heliocentric_mars_speed_regression_lock() {
+    use celestial_core::{calc_ut, Body, CalcFlags};
+    let p = calc_ut(
+        2451545.0,
+        Body::MARS,
+        CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC | CalcFlags::SPEED,
+    )
+    .unwrap();
+    let approx = |got: f64, want: f64, what: &str| {
+        assert!(
+            (got - want).abs() < 1e-6,
+            "{what}: got {got:.10}, want {want:.10}"
+        );
+    };
+    approx(p.lon, 359.4243858023, "lon");
+    approx(p.lat, -1.4276220730, "lat");
+    approx(p.dist, 1.3910075488, "dist");
+    approx(p.speed_lon, 0.6257091822, "speed_lon");
+    approx(p.speed_lat, 0.0129670887, "speed_lat");
+    approx(p.speed_dist, 0.0005168649, "speed_dist");
+}
