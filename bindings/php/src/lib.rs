@@ -44,6 +44,19 @@ fn to_php(e: celestial::Error) -> PhpException {
     PhpException::default(e.to_string())
 }
 
+/// Flatten a core position into the PHP `[lon, lat, dist, speed_lon,
+/// speed_lat, speed_dist]` array shape used by every `calc*` export.
+fn pos_vec(p: &celestial::PlanetPos) -> Vec<f64> {
+    vec![
+        p.lon,
+        p.lat,
+        p.dist,
+        p.speed_lon,
+        p.speed_lat,
+        p.speed_dist,
+    ]
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // Time & calendar
 // ══════════════════════════════════════════════════════════════════════════════
@@ -160,28 +173,14 @@ pub fn version() -> String {
 pub fn calc_ut(tjdut: f64, planet: i64, flags: i64) -> PhpResult<Vec<f64>> {
     let p =
         celestial::calc_ut(tjdut, Body(planet as i32), CalcFlags(flags as i32)).map_err(to_php)?;
-    Ok(vec![
-        p.lon,
-        p.lat,
-        p.dist,
-        p.speed_lon,
-        p.speed_lat,
-        p.speed_dist,
-    ])
+    Ok(pos_vec(&p))
 }
 
 /// Geocentric position using Terrestrial Time (ET/TT).
 #[php_function]
 pub fn calc(tjdet: f64, planet: i64, flags: i64) -> PhpResult<Vec<f64>> {
     let p = celestial::calc(tjdet, Body(planet as i32), CalcFlags(flags as i32)).map_err(to_php)?;
-    Ok(vec![
-        p.lon,
-        p.lat,
-        p.dist,
-        p.speed_lon,
-        p.speed_lat,
-        p.speed_dist,
-    ])
+    Ok(pos_vec(&p))
 }
 
 /// Nutation in longitude and obliquity (degrees) at a JDE (TT).
@@ -216,14 +215,7 @@ pub fn calc_many(tjdet: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<Vec
         .into_iter()
         .map(|r| {
             let p = r.map_err(to_php)?;
-            Ok(vec![
-                p.lon,
-                p.lat,
-                p.dist,
-                p.speed_lon,
-                p.speed_lat,
-                p.speed_dist,
-            ])
+            Ok(pos_vec(&p))
         })
         .collect()
 }
@@ -236,14 +228,7 @@ pub fn calc_ut_many(tjdut: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<
         .into_iter()
         .map(|r| {
             let p = r.map_err(to_php)?;
-            Ok(vec![
-                p.lon,
-                p.lat,
-                p.dist,
-                p.speed_lon,
-                p.speed_lat,
-                p.speed_dist,
-            ])
+            Ok(pos_vec(&p))
         })
         .collect()
 }
@@ -257,14 +242,7 @@ pub fn calc_pctr(tjdet: f64, planet: i64, center: i64, flags: i64) -> PhpResult<
         CalcFlags(flags as i32),
     )
     .map_err(to_php)?;
-    Ok(vec![
-        p.lon,
-        p.lat,
-        p.dist,
-        p.speed_lon,
-        p.speed_lat,
-        p.speed_dist,
-    ])
+    Ok(pos_vec(&p))
 }
 
 /// Fixed star position.

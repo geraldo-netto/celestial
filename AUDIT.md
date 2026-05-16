@@ -28,8 +28,6 @@ Note: many 11–15-arm `match` fns (houses dispatch, parse, esbats, main subcomm
 | location(s) | duplicated | size | dedupe |
 |---|---|---|---|
 | bindings/{python,php,js}/src/lib.rs | ~201-fn FFI surface hand-mirrored 3× | ~7.7k LOC | code-gen all 3 from one API spec/macro |
-| bindings/js/src/lib.rs | `PlanetPos { lon:.. }` field copy ×~12 | ~110 LOC | `impl From<Position> for PlanetPos` |
-| bindings/{python,php}/src/lib.rs | `Position`→tuple/vec unpack ×~10/lang | ~120 LOC | one `pos_to_vec/tuple()` helper |
 | cli/src/cmd/render/{mesoamerican,chinese,indigenous,vedic,hellenistic,specialist,omer_grid,calendar_*}.rs | identical SVG preamble (xml/svg/rect/title/date) ×~17 | ~250 LOC | `svg_header(ctx,w,h)->(String,Palette)` |
 | cli/src/cmd/render/*.rs | panel-card `<rect>/<text>` blocks re-hand-written | dozens | `panel_card(s,x,y,w,h,heading,rows)` |
 | cli/src/cmd/{calc,moon,houses,...}.rs | `parse_date` + json/text output scaffold ×~10 | ~10–20 each | `run_with_jd` + `emit()` helper |

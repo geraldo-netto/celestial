@@ -34,6 +34,20 @@ pub struct PlanetPos {
     pub ret_flags: i32,
 }
 
+impl From<celestial::PlanetPos> for PlanetPos {
+    fn from(p: celestial::PlanetPos) -> Self {
+        PlanetPos {
+            lon: p.lon,
+            lat: p.lat,
+            dist: p.dist,
+            speed_lon: p.speed_lon,
+            speed_lat: p.speed_lat,
+            speed_dist: p.speed_dist,
+            ret_flags: p.ret_flags,
+        }
+    }
+}
+
 /// Fixed star position.
 #[napi(object)]
 pub struct StarPos {
@@ -187,15 +201,7 @@ pub fn close() {
 #[napi]
 pub fn calc(tjdet: f64, planet: i32, flags: i32) -> napi::Result<PlanetPos> {
     celestial::calc(tjdet, Body::from_raw(planet), CalcFlags(flags))
-        .map(|p| PlanetPos {
-            lon: p.lon,
-            lat: p.lat,
-            dist: p.dist,
-            speed_lon: p.speed_lon,
-            speed_lat: p.speed_lat,
-            speed_dist: p.speed_dist,
-            ret_flags: p.ret_flags,
-        })
+        .map(PlanetPos::from)
         .map_err(to_napi)
 }
 
@@ -203,15 +209,7 @@ pub fn calc(tjdet: f64, planet: i32, flags: i32) -> napi::Result<PlanetPos> {
 #[napi(js_name = "calcUt")]
 pub fn calc_ut(tjdut: f64, planet: i32, flags: i32) -> napi::Result<PlanetPos> {
     celestial::calc_ut(tjdut, Body::from_raw(planet), CalcFlags(flags))
-        .map(|p| PlanetPos {
-            lon: p.lon,
-            lat: p.lat,
-            dist: p.dist,
-            speed_lon: p.speed_lon,
-            speed_lat: p.speed_lat,
-            speed_dist: p.speed_dist,
-            ret_flags: p.ret_flags,
-        })
+        .map(PlanetPos::from)
         .map_err(to_napi)
 }
 
@@ -244,15 +242,7 @@ pub fn calc_many(tjdet: f64, planets: Vec<i32>, flags: i32) -> napi::Result<Vec<
     celestial::calc_many(tjdet, &bodies, CalcFlags(flags))
         .into_iter()
         .map(|r| {
-            r.map(|p| PlanetPos {
-                lon: p.lon,
-                lat: p.lat,
-                dist: p.dist,
-                speed_lon: p.speed_lon,
-                speed_lat: p.speed_lat,
-                speed_dist: p.speed_dist,
-                ret_flags: p.ret_flags,
-            })
+            r.map(PlanetPos::from)
             .map_err(|e| napi::Error::from_reason(e.to_string()))
         })
         .collect()
@@ -265,15 +255,7 @@ pub fn calc_ut_many(tjdut: f64, planets: Vec<i32>, flags: i32) -> napi::Result<V
     celestial::calc_ut_many(tjdut, &bodies, CalcFlags(flags))
         .into_iter()
         .map(|r| {
-            r.map(|p| PlanetPos {
-                lon: p.lon,
-                lat: p.lat,
-                dist: p.dist,
-                speed_lon: p.speed_lon,
-                speed_lat: p.speed_lat,
-                speed_dist: p.speed_dist,
-                ret_flags: p.ret_flags,
-            })
+            r.map(PlanetPos::from)
             .map_err(|e| napi::Error::from_reason(e.to_string()))
         })
         .collect()
@@ -288,15 +270,7 @@ pub fn calc_pctr(tjdet: f64, planet: i32, center: i32, flags: i32) -> napi::Resu
         Body::from_raw(center),
         CalcFlags(flags),
     )
-    .map(|p| PlanetPos {
-        lon: p.lon,
-        lat: p.lat,
-        dist: p.dist,
-        speed_lon: p.speed_lon,
-        speed_lat: p.speed_lat,
-        speed_dist: p.speed_dist,
-        ret_flags: p.ret_flags,
-    })
+    .map(PlanetPos::from)
     .map_err(to_napi)
 }
 
