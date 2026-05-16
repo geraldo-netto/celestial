@@ -195,11 +195,31 @@ pub fn build_ashtakavarga_context(
         &vars,
     );
 
-    Ok(json!({
-        "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
-        "ashtakavarga_rows": row_vals,
-        "sarvashtakavarga": totals.iter().map(|&b| json!(b)).collect::<Vec<_>>(),
-        "vars": Value::Object(palette.into_iter().collect())}))
+    // ARCH-9/DP-5: typed context (field names == JSON keys).
+    let ctx = AshtakavargaContext {
+        date: jd_to_date_str(jd),
+        date_label: date_str.to_string(),
+        jd,
+        lat,
+        lon,
+        ashtakavarga_rows: row_vals,
+        sarvashtakavarga: totals.iter().map(|&b| json!(b)).collect(),
+        vars: Value::Object(palette.into_iter().collect()),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed ashtakavarga context (ARCH-9/DP-5).
+#[derive(serde::Serialize)]
+struct AshtakavargaContext {
+    date: String,
+    date_label: String,
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    ashtakavarga_rows: Vec<Value>,
+    sarvashtakavarga: Vec<Value>,
+    vars: Value,
 }
 
 const AV_LM: f64 = 80.0;
@@ -453,10 +473,29 @@ pub fn build_shadbala_context(
         &vars,
     );
 
-    Ok(json!({
-        "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
-        "shadbala": rows,
-        "vars": Value::Object(palette.into_iter().collect())}))
+    // ARCH-9/DP-5: typed context (field names == JSON keys).
+    let ctx = ShadbalaContext {
+        date: jd_to_date_str(jd),
+        date_label: date_str.to_string(),
+        jd,
+        lat,
+        lon,
+        shadbala: rows,
+        vars: Value::Object(palette.into_iter().collect()),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed shadbala context (ARCH-9/DP-5).
+#[derive(serde::Serialize)]
+struct ShadbalaContext {
+    date: String,
+    date_label: String,
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    shadbala: Vec<Value>,
+    vars: Value,
 }
 
 pub fn render_shadbala_svg(ctx: &ChartContext) -> String {
@@ -717,11 +756,35 @@ pub fn build_vedic_context(
         &vars,
     );
 
-    Ok(json!({
-        "date": jd_to_date_str(jd), "date_label": date_str, "jd": jd, "lat": lat, "lon": lon,
-        "planets": planets, "dashas": dashas, "strengths": strengths,
-        "moon_sid_lon": (moon_sid_lon * 1e4).round() / 1e4,
-        "vars": Value::Object(palette.into_iter().collect())}))
+    // ARCH-9/DP-5: typed context (field names == JSON keys).
+    let ctx = VedicContext {
+        date: jd_to_date_str(jd),
+        date_label: date_str.to_string(),
+        jd,
+        lat,
+        lon,
+        planets,
+        dashas,
+        strengths,
+        moon_sid_lon: (moon_sid_lon * 1e4).round() / 1e4,
+        vars: Value::Object(palette.into_iter().collect()),
+    };
+    serde_json::to_value(&ctx).map_err(|e| CliError::Msg(e.to_string()))
+}
+
+/// Typed Vedic (rasi/navamsa/dasha) context (ARCH-9/DP-5).
+#[derive(serde::Serialize)]
+struct VedicContext {
+    date: String,
+    date_label: String,
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    planets: Vec<Value>,
+    dashas: Vec<Value>,
+    strengths: Vec<Value>,
+    moon_sid_lon: f64,
+    vars: Value,
 }
 
 pub fn render_navamsa_svg(ctx: &ChartContext) -> String {
