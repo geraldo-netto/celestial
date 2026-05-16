@@ -41,7 +41,7 @@ static CLI_LOCK: Mutex<()> = Mutex::new(());
 /// message on any of: missing template, non-zero exit, missing output,
 /// non-SVG content.
 fn render_template(template_name: &str, out_name: &str, extra_args: &[&str]) -> Vec<u8> {
-    let _guard = CLI_LOCK.lock().expect("CLI_LOCK poisoned");
+    let _guard = CLI_LOCK.lock().unwrap_or_else(|e| e.into_inner());
 
     let tpl = templates_dir().join(template_name);
     assert!(
@@ -54,9 +54,25 @@ fn render_template(template_name: &str, out_name: &str, extra_args: &[&str]) -> 
     let out = std::env::temp_dir().join(out_name);
     let _ = fs::remove_file(&out);
 
+    // Natal/derived charts now require an explicit birth time + timezone.
+    // These template tests only assert SVG shape, so normalise any `--date`
+    // to carry a time and append a fixed UTC timezone.
+    let mut args: Vec<String> = extra_args.iter().map(|s| s.to_string()).collect();
+    if let Some(i) = args.iter().position(|a| a == "--date") {
+        if let Some(d) = args.get_mut(i + 1) {
+            if !d.contains(' ') && d.parse::<f64>().is_err() && d != "now" {
+                d.push_str(" 12:00");
+            }
+        }
+    }
+    if !args.iter().any(|a| a == "--tz" || a == "--timezone") {
+        args.push("--tz".into());
+        args.push("UTC".into());
+    }
+
     let mut cmd = Command::new(celestial_binary());
     cmd.arg("render")
-        .args(extra_args)
+        .args(&args)
         .arg("--template")
         .arg(&tpl)
         .arg("--out")

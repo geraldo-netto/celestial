@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Example MiniJinja (Jinja2) template for celestial render.
-     Available context: date, jd, lat, lon,
+     Available context: date (UT), date_local (input local time + offset),
+       timezone (e.g. "UTC-03:00"), jd, lat, lon,
        asc, mc, ic, dsc, asc_dms, mc_dms, ic_dms, dsc_dms,
        moon_phase_name, moon_illumination,
        planets list, signs list, houses list, aspects list,
@@ -26,7 +27,7 @@
   <text x="450" y="30" text-anchor="middle" font-size="16" font-weight="600"
         font-family="system-ui,sans-serif" fill="{{ vars.text_color }}">{{ vars.title }}</text>
   <text x="450" y="50" text-anchor="middle" font-size="10"
-        font-family="system-ui,sans-serif" fill="{{ vars.ring_color }}" opacity=".7">{{ date }} · JD {{ jd }}</text>
+        font-family="system-ui,sans-serif" fill="{{ vars.ring_color }}" opacity=".7">{% if timezone != "UTC" and date_local != date %}{{ date_local }} ({{ date }}){% else %}{{ date }}{% endif %} · JD {{ jd }}</text>
 
   <!-- sign spokes -->
   {% for s in signs  %}

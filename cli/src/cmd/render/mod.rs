@@ -79,9 +79,18 @@ pub struct RenderArgs {
     #[arg(long, default_value = "now")]
     pub date: String,
 
-    /// Time of day UT (HH:MM or HH:MM:SS) — merged with --date if --date has no time
+    /// Time of day (HH:MM or HH:MM:SS) in the --timezone — merged with --date
+    /// if --date has no time
     #[arg(long)]
     pub time: Option<String>,
+
+    /// Timezone of the --date/--time (the birth-place local time). Accepts a
+    /// numeric offset (`-03:00`, `+05:30`, `+0530`), `UTC`, or an unambiguous
+    /// abbreviation (`BRT`, `EST`, …). REQUIRED for natal/derived charts so
+    /// the local birth time is converted to UT correctly; omit only for
+    /// `--date now`, a raw Julian day, or `--chart-type calendar`.
+    #[arg(long = "timezone", visible_alias = "tz")]
+    pub timezone: Option<String>,
 
     /// Geographic latitude in decimal degrees (N positive)
     #[arg(long, default_value = "0.0")]
@@ -184,6 +193,7 @@ struct ConfigFile {
 #[derive(Debug, Default, serde::Deserialize)]
 struct RenderSection {
     date: Option<String>,
+    timezone: Option<String>,
     lat: Option<f64>,
     lon: Option<f64>,
     out: Option<PathBuf>,
@@ -646,6 +656,9 @@ fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, String>, String
         // Each line: "use the config value for this field if the user didn't
         // already specify one on the command line".
         override_if(&mut args.date, r.date, date_at_default);
+        if args.timezone.is_none() {
+            args.timezone = r.timezone;
+        }
         override_if(&mut args.lat, r.lat, lat_at_default);
         override_if(&mut args.lon, r.lon, lon_at_default);
         override_if(&mut args.hsys, r.hsys, hsys_at_default);
@@ -1513,15 +1526,65 @@ pub fn run(mut args: RenderArgs) -> Result<(), String> {
     let file_vars = load_config(&mut args)?;
     let user_vars = apply_var_overrides(&args.vars, file_vars)?;
     let date_str = merge_date_and_time(&args.date, args.time.as_deref());
-    let jd = crate::parse::parse_date(&date_str)?;
 
-    // Dispatch to the appropriate chart-type builder
     let chart_type = args.chart_type.to_lowercase();
     let chart_type = chart_type.trim();
 
+    // `--date` / `--time` are a *local* civil time at the birth place. Convert
+    // to UT using the mandatory `--timezone`. `now` and a bare Julian day are
+    // already unambiguous in UT, and `--chart-type calendar` only uses the
+    // date for its month, so those skip the requirement.
+    let trimmed = date_str.trim();
+    let is_now_or_jd =
+        trimmed.eq_ignore_ascii_case("now") || trimmed.parse::<f64>().is_ok();
+    // `tz_label` / `date_local` describe the *input* civil time so the chart
+    // can state it explicitly alongside the derived UT (`ctx["date"]`).
+    let (jd, tz_label, date_local) = if chart_type != "calendar" && !is_now_or_jd {
+        crate::parse::require_datetime(&date_str)?;
+        let tz = args.timezone.as_deref().ok_or_else(|| {
+            "missing --timezone: a birth time is a *local* time and must be \
+             converted to UT. Pass e.g. `--timezone -03:00` or `--tz BRT` \
+             (see the README timezone table)."
+                .to_string()
+        })?;
+        let offset = crate::parse::parse_tz_offset(tz)?;
+        let label = crate::parse::fmt_utc_offset(offset);
+        let local = format!("{} {label}", date_str.trim());
+        (
+            crate::parse::parse_date(&date_str)? - offset / 24.0,
+            label,
+            local,
+        )
+    } else {
+        (
+            crate::parse::parse_date(&date_str)?,
+            "UTC".to_string(),
+            String::new(),
+        )
+    };
+
+    // Dispatch to the appropriate chart-type builder
     let (mut ctx, render_fn) = dispatch_chart_type(chart_type, jd, &args, &user_vars)?;
 
     apply_universal_overlays(&mut ctx, jd, &args.calendars);
+
+    // Expose the input timezone + local civil time to templates and the
+    // built-in SVG. `date_local` falls back to the UT date when the input
+    // was `now`/JD (already unambiguous in UT).
+    if let Some(obj) = ctx.as_object_mut() {
+        let ut_date = obj
+            .get("date")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let local = if date_local.is_empty() {
+            ut_date
+        } else {
+            date_local
+        };
+        obj.insert("timezone".into(), serde_json::Value::from(tz_label));
+        obj.insert("date_local".into(), serde_json::Value::from(local));
+    }
 
     // --print-context: dump JSON context and exit
     if args.print_context {

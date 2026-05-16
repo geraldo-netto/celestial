@@ -59,6 +59,8 @@ struct Angles {
 /// obstructing the inner aspect cavity.
 struct ChartHeader<'a> {
     date: &'a str,
+    date_local: &'a str,
+    tz: &'a str,
     jd: f64,
     lat: f64,
     lon: f64,
@@ -80,6 +82,8 @@ pub(crate) fn render_builtin_svg(ctx: &Value) -> String {
     };
     let header = ChartHeader {
         date,
+        date_local: ctx["date_local"].as_str().unwrap_or(date),
+        tz: ctx["timezone"].as_str().unwrap_or("UTC"),
         jd,
         lat,
         lon,
@@ -196,14 +200,22 @@ fn write_header(s: &mut String, pal: &Palette, h: &ChartHeader, page_h: f64) {
 
 fn write_loc_line(s: &mut String, h: &ChartHeader) {
     let (date, jd, lat, lon) = (h.date, h.jd, h.lat, h.lon);
+    // State the input local time + its timezone explicitly, then the
+    // derived UT. When the input was already UT (`now`/JD) there is no
+    // separate local time, so show the UT date once.
+    let when = if h.tz == "UTC" || h.date_local == date {
+        date.to_string()
+    } else {
+        format!("{} ({date})", h.date_local)
+    };
     if lat == 0.0 && lon == 0.0 {
-        let _ = write!(s, "{date} · JD {jd:.4}");
+        let _ = write!(s, "{when} · JD {jd:.4}");
     } else {
         let ns = if lat >= 0.0 { "N" } else { "S" };
         let ew = if lon >= 0.0 { "E" } else { "W" };
         let _ = write!(
             s,
-            "{date} · {:.4}°{ns} {:.4}°{ew} · JD {jd:.4}",
+            "{when} · {:.4}°{ns} {:.4}°{ew} · JD {jd:.4}",
             lat.abs(),
             lon.abs()
         );

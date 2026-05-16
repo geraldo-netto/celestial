@@ -201,10 +201,15 @@ Produces SVG charts for 27 astrological chart types across eight traditions.
 ![Celestial Chart — Paris J2000.0](docs/example_chart.svg)
 
 ```bash
-# Built-in SVG chart (dark theme, full legend)
-celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
+# Natal chart — birth date, birth time, and the birth-place timezone
+celestial render --date "1986-05-30 09:00" --tz=-03:00 \
+  --lat=-23.55 --lon=-46.63 --out chart.svg
 
-# Override palette and title
+# Same, using a timezone abbreviation instead of a numeric offset
+celestial render --date "1986-05-30 09:00" --tz BRT \
+  --lat=-23.55 --lon=-46.63 --out chart.svg
+
+# Current sky — `now` is already UTC, so no --timezone is needed
 celestial render --date now --lat 48.85 --lon 2.35 \
   --var "title=My Chart" --var "bg_color=#1a1a2e" --out chart.svg
 
@@ -215,20 +220,92 @@ celestial render --config chart.toml --out chart.svg
 celestial render --print-template > my_chart.tmpl
 
 # Inspect all available template variables as JSON
-celestial render --date 2025-03-20 --print-context
+celestial render --date "2025-03-20 12:00" --tz UTC --print-context
 ```
+
+#### Date, time & timezone — read this before generating a natal chart
+
+A natal (or any birth-derived) chart is computed from the **exact instant of
+birth in Universal Time (UT/UTC)**. People know their birth time as a *local
+wall-clock* time at the birth place, not as UTC. Earlier versions silently
+treated the input as UTC — so a 09:00 birth in São Paulo (UTC−3) was placed
+three hours off, shifting the Ascendant and house cusps. To prevent this,
+`celestial render` now **requires** all three pieces for natal/derived charts:
+
+| Flag | Required for natal? | Meaning | Example |
+|---|---|---|---|
+| `--date` | yes | Birth **date and time** as local wall-clock time. Format `YYYY-MM-DD HH:MM[:SS]`. A bare `YYYY-MM-DD` is rejected (no birth time). | `--date "1986-05-30 09:00"` |
+| `--time` | optional | Time-of-day, merged into `--date` when `--date` carries no time. Same timezone as `--date`. | `--time 09:00` |
+| `--timezone` / `--tz` | yes | The UTC offset **of that local time at the birth place** (including the daylight-saving rule in force *on that date*). Numeric offset, `UTC`, or an unambiguous abbreviation. | `--tz=-03:00` · `--tz BRT` |
+
+The conversion applied is `UTC = local_time − offset`, i.e.
+`--date "1986-05-30 09:00" --tz=-03:00` is the instant **1986-05-30 12:00 UTC**.
+
+Exceptions that do **not** require `--timezone`:
+
+- `--date now` — already UTC.
+- a bare Julian-day number passed to `--date` — already UT.
+- `--chart-type calendar` — uses only the month, not a time.
+
+`--timezone` accepts:
+
+- **Numeric offsets** (recommended, unambiguous): `-03:00`, `+05:30`, `+0530`,
+  `-08`, `UTC+01:00`.
+- **`UTC`** / `GMT` / `Z` — zero offset.
+- **Abbreviations** resolved from a built-in 203-entry table. Abbreviations
+  that map to more than one offset (e.g. `CST`, `IST`, `AST`, `BST`, `CDT`,
+  `MST`, `PST`, `SST`, `GST`, `ECT`, `AMT`, `LHST`) are **rejected** — pass a
+  numeric offset for those.
+
+> **Daylight saving:** the offset is the one that was legally in effect at the
+> birth place *on the birth date*, not today's offset. When in doubt, look up
+> the historical offset for that exact date and pass it numerically.
+
+Common timezone offsets:
+
+| Offset | Abbr. | Region (example) |
+|---|---|---|
+| `-10:00` | HST | Hawaii |
+| `-09:00` | AKST | Alaska (standard) |
+| `-08:00` | — / PST¹ | US/Canada Pacific (standard) |
+| `-07:00` | MST¹ / PDT | US Mountain (std) / Pacific (DST) |
+| `-06:00` | CST¹ / MDT | US Central (std) / Mountain (DST) |
+| `-05:00` | EST / CDT¹ / ACT | US Eastern (std) / Central (DST) / Acre |
+| `-04:00` | EDT / AST¹ | US Eastern (DST) / Atlantic |
+| `-03:00` | BRT / ART / CLST | Brazil (Brasília), Argentina, Chile |
+| `-03:30` | NST | Newfoundland (standard) |
+| `+00:00` | UTC / GMT / WET | UK/Portugal (winter), Iceland |
+| `+01:00` | CET / BST¹ / WAT | Central Europe, UK (summer) |
+| `+02:00` | EET / CEST / SAST | Eastern Europe, South Africa |
+| `+03:00` | MSK / EAT / AST¹ | Moscow, East Africa, Arabia |
+| `+03:30` | IRST | Iran (standard) |
+| `+04:00` | GST¹ / GET | Gulf (UAE), Georgia |
+| `+05:00` | PKT / UZT | Pakistan, Uzbekistan |
+| `+05:30` | IST¹ | India, Sri Lanka |
+| `+05:45` | NPT | Nepal |
+| `+07:00` | ICT / WIB | Indochina, Western Indonesia |
+| `+08:00` | CST¹ / AWST / SGT | China, Western Australia, Singapore |
+| `+09:00` | JST / KST | Japan, Korea |
+| `+09:30` | ACST | Central Australia (standard) |
+| `+10:00` | AEST | Eastern Australia (standard) |
+| `+12:00` | NZST | New Zealand (standard) |
+
+¹ Ambiguous abbreviation — `celestial` rejects it and prints the conflicting
+offsets; supply the numeric offset shown above instead. The full 203-entry
+abbreviation table lives in `core/src/functions/timezone.rs`.
 
 `chart.toml` example:
 
 ```toml
 [render]
-date  = "2025-03-20"
-lat   = 48.8566
-lon   = 2.3522
-hsys  = "P"
+date     = "1986-05-30 09:00"  # local wall-clock birth time
+timezone = "-03:00"            # offset of that local time (BRT also works)
+lat      = -23.5505
+lon      = -46.6333
+hsys     = "P"
 
 [vars]
-title        = "Spring Equinox 2025"
+title        = "Natal Chart"
 bg_color     = "#0d1117"
 ring_color   = "#58a6ff"
 ```

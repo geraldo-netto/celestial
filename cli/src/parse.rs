@@ -57,6 +57,130 @@ pub fn parse_date(s: &str) -> Result<f64, String> {
     Ok(julday(year, month, day, hour, Calendar::Gregorian))
 }
 
+/// Parse a timezone specifier into a UTC offset in **hours, east-positive**.
+///
+/// Accepted forms (case-insensitive):
+/// - `UTC`, `GMT`, `Z`                         — offset 0
+/// - `+HH`, `-HH`, `+HH:MM`, `-HHMM`           — explicit numeric offset
+/// - `UTC+HH:MM`, `GMT-HH`                      — same, with prefix
+/// - a timezone abbreviation (`BRT`, `EST`, …) — resolved via the built-in
+///   203-entry table. Abbreviations that map to more than one offset
+///   (e.g. `CST`, `IST`, `AST`) are rejected — pass a numeric offset instead.
+///
+/// `Local = UTC + offset`, so the caller converts a local civil time to UT
+/// with `jd_utc = jd_local - offset / 24.0`.
+pub fn parse_tz_offset(s: &str) -> Result<f64, String> {
+    let t = s.trim();
+    if t.is_empty() {
+        return Err("empty timezone".into());
+    }
+    let up = t.to_ascii_uppercase();
+
+    // Bare zero-offset spellings.
+    if up == "UTC" || up == "GMT" || up == "Z" || up == "UT" {
+        return Ok(0.0);
+    }
+
+    // Numeric offset, optionally prefixed with UTC/GMT.
+    let numeric = up
+        .strip_prefix("UTC")
+        .or_else(|| up.strip_prefix("GMT"))
+        .unwrap_or(&up);
+    if numeric.starts_with('+') || numeric.starts_with('-') {
+        return parse_numeric_offset(numeric);
+    }
+
+    // Otherwise treat as an abbreviation; look it up in the built-in table.
+    let matches: Vec<_> = celestial_core::geo::TZ_TABLE
+        .iter()
+        .filter(|z| z.name.eq_ignore_ascii_case(t))
+        .collect();
+    match matches.as_slice() {
+        [] => Err(format!(
+            "unknown timezone `{s}` — use a numeric offset like `-03:00`, \
+             `UTC`, or a known abbreviation (see README timezone table)"
+        )),
+        _ => {
+            let offsets: Vec<f64> = matches
+                .iter()
+                .map(|z| parse_numeric_offset(&z.offset.to_ascii_uppercase()
+                    .replace("UTC", ""))
+                    .unwrap_or(z.hours as f64 + (z.minutes as f64) / 60.0 * z.hours.signum().max(1) as f64))
+                .collect();
+            let first = offsets[0];
+            if offsets.iter().any(|o| (o - first).abs() > 1e-9) {
+                let opts: Vec<String> = matches
+                    .iter()
+                    .map(|z| format!("{} = {} ({})", z.name, z.offset, z.desc))
+                    .collect();
+                return Err(format!(
+                    "ambiguous timezone `{s}` maps to multiple offsets:\n  {}\n\
+                     pass an explicit numeric offset instead, e.g. `--timezone -03:00`",
+                    opts.join("\n  ")
+                ));
+            }
+            Ok(first)
+        }
+    }
+}
+
+/// Parse a signed numeric offset: `+HH`, `-HH`, `+HH:MM`, `-HHMM`.
+fn parse_numeric_offset(s: &str) -> Result<f64, String> {
+    let s = s.trim();
+    let (sign, rest) = match s.as_bytes().first() {
+        Some(b'+') => (1.0, &s[1..]),
+        Some(b'-') => (-1.0, &s[1..]),
+        _ => return Err(format!("offset must start with + or -, got `{s}`")),
+    };
+    if rest.is_empty() {
+        return Err(format!("empty numeric offset `{s}`"));
+    }
+    let (hh, mm) = if let Some((h, m)) = rest.split_once(':') {
+        (h, m)
+    } else if rest.len() == 4 {
+        (&rest[..2], &rest[2..]) // HHMM
+    } else {
+        (rest, "0")
+    };
+    let h: f64 = hh
+        .parse()
+        .map_err(|_| format!("bad offset hours `{hh}`"))?;
+    let m: f64 = mm
+        .parse()
+        .map_err(|_| format!("bad offset minutes `{mm}`"))?;
+    if !(0.0..=14.0).contains(&h) || !(0.0..60.0).contains(&m) {
+        return Err(format!("offset out of range `{s}`"));
+    }
+    Ok(sign * (h + m / 60.0))
+}
+
+/// Format a UTC offset in hours (east-positive) as `UTC`, `UTC-03:00`, …
+pub fn fmt_utc_offset(offset_hours: f64) -> String {
+    if offset_hours.abs() < 1e-9 {
+        return "UTC".to_string();
+    }
+    let sign = if offset_hours < 0.0 { '-' } else { '+' };
+    let total_min = (offset_hours.abs() * 60.0).round() as i32;
+    format!("UTC{sign}{:02}:{:02}", total_min / 60, total_min % 60)
+}
+
+/// Ensure a date string carries an explicit time-of-day component.
+/// Returns `Ok` for `now` and bare JD floats (already unambiguous in UT).
+pub fn require_datetime(date_str: &str) -> Result<(), String> {
+    let s = date_str.trim();
+    if s.eq_ignore_ascii_case("now") || s.parse::<f64>().is_ok() {
+        return Ok(());
+    }
+    match s.split_once(' ') {
+        Some((_, t)) if t.trim().contains(':') => Ok(()),
+        _ => Err(format!(
+            "date `{date_str}` has no time-of-day — a natal chart needs the \
+             exact birth time. Pass it as `--date \"YYYY-MM-DD HH:MM\"` (or \
+             add `--time HH:MM`)"
+        )),
+    }
+}
+
 /// Format a Julian day as a `YYYY-MM-DD HH: MM UT` string.
 pub fn jd_to_str(jd: f64) -> String {
     let d = revjul(jd, Calendar::Gregorian);

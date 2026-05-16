@@ -20,13 +20,32 @@ static CLI_LOCK: Mutex<()> = Mutex::new(());
 
 /// Render a built-in natal SVG (no `--template`) and return its bytes.
 fn render_builtin(date: &str, lat: &str, lon: &str, out_name: &str) -> String {
-    let _guard = CLI_LOCK.lock().expect("CLI_LOCK poisoned");
+    let _guard = CLI_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let out: PathBuf = std::env::temp_dir().join(out_name);
     let _ = fs::remove_file(&out);
 
+    // Natal charts now require an explicit birth time + timezone. These
+    // geometry tests don't care about the instant, so pin a fixed UTC time.
+    let date = if date.contains(' ') {
+        date.to_string()
+    } else {
+        format!("{date} 12:00")
+    };
+
     let output = Command::new(celestial_binary())
         .args([
-            "render", "--chart-type", "natal", "--date", date, "--lat", lat, "--lon", lon, "--out",
+            "render",
+            "--chart-type",
+            "natal",
+            "--date",
+            &date,
+            "--tz",
+            "UTC",
+            "--lat",
+            lat,
+            "--lon",
+            lon,
+            "--out",
         ])
         .arg(&out)
         .output()

@@ -24,7 +24,10 @@ actual values for any given chart.
 ──────────────────────────────────────────────────────────────────────
 Top-level scalars
 ──────────────────────────────────────────────────────────────────────
-  date              string   Input date as parsed (e.g. "1990-05-15 14:30")
+  date              string   Date+time in UT (e.g. "1990-05-15 17:30 UT")
+  date_local        string   Input local civil time + offset
+                             (e.g. "1990-05-15 14:30 UTC-03:00")
+  timezone          string   Input UTC offset label ("UTC", "UTC-03:00")
   jd                number   Julian Day (UT)
   lat               number   Geographic latitude (degrees, +N / −S)
   lon               number   Geographic longitude (degrees, +E / −W)
