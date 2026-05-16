@@ -217,6 +217,13 @@ pub(crate) fn render_to_string(
     let tmpl_src = std::fs::read_to_string(tmpl_path)
         .map_err(|e| format!("cannot read template `{}`: {e}", tmpl_path.display()))?;
     let mut env = Environment::new();
+    // SEC-6: cap the VM instruction budget so a hostile/buggy
+    // `--template` (unbounded loop, runaway recursion) fails fast
+    // instead of hanging the process. 50M instructions is far above
+    // any legitimate chart template (the year-calendar — 365 days ×
+    // cells — is the heaviest and stays well under this); recursion is
+    // separately bounded by minijinja's default MAX_RECURSION.
+    env.set_fuel(Some(50_000_000));
     // SVG output is verbatim — disable HTML auto-escape that would mangle
     // attribute quotes.
     env.set_auto_escape_callback(|_| minijinja::AutoEscape::None);
