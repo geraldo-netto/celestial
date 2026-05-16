@@ -1,5 +1,11 @@
 //! Moon phases, illumination, esbats, Vesak, and sabbats.
 //!
+//! **Layering.** This module is the *canonical public facade* for the
+//! lunar/calendar domain. The implementation lives in the private
+//! [`crate::functions`] layer (`pub(crate)`); this module curates and
+//! re-exports the supported surface. Import from `celestial_core::moon`
+//! (or the crate root / `prelude`), never from `functions::` directly.
+//!
 //! # Examples
 //!
 //! ```

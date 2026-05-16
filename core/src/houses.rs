@@ -1,5 +1,12 @@
 //! House cusp systems — Placidus, Koch, Equal, Whole-sign, Regiomontanus, …
 //!
+//! **Layering.** This module is the *canonical public facade* for the
+//! house-systems domain. The implementation lives in the private
+//! [`crate::functions`] / [`crate::astronomy`] layers (`pub(crate)`);
+//! this module curates and re-exports the supported surface. Import
+//! from `celestial_core::houses` (or the crate root / `prelude`), never
+//! from `functions::` / `astronomy::` directly.
+//!
 //! # Examples
 //!
 //! ```
