@@ -1154,14 +1154,22 @@ fn find_fn_line(lines: &[&str], from: usize) -> Option<usize> {
     let mut j = from;
     while j < lines.len() {
         let l = lines[j].trim_start();
-        if l.starts_with("#[") {
+        // Skip the rest of the attribute stack + doc/blank lines so we
+        // land on the *item the attribute decorates*.
+        if l.starts_with("#[") || l.starts_with("//") || l.is_empty() {
             j += 1;
             continue;
         }
+        // The decorated item must itself be the fn. If it's a struct /
+        // impl / enum / const / type / mod (a `#[napi(object)]` struct,
+        // `impl From … { fn from }`, etc.), this attr is NOT a function
+        // export — bail so the caller skips it. Without this guard the
+        // scanner walked into a following `impl` block and mis-emitted
+        // its `fn from` as a binding export.
         if l.contains("fn ") {
             return Some(j);
         }
-        j += 1;
+        return None;
     }
     None
 }
