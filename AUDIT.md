@@ -13,9 +13,10 @@ kept so a rescan doesn't re-flag).
 | DEFERRED | real; needs an isolated session + precision soak |
 | DECIDED | WONTFIX / DECLINED / N-A with rationale |
 
-> No OPEN code findings. SEC-10 (SVG injection in specialist
-> renderers) was found and **fixed this cycle** — removed per the
-> completed-work policy. Only TEST-3 (CI coverage gate) remains OPEN.
+> **No OPEN findings.** SEC-10 (SVG injection in specialist
+> renderers) and TEST-3 (CI coverage floor) were both found and
+> **fixed this cycle** — removed per the completed-work policy. Only
+> DEFERRED / DECIDED items remain (each with rationale below).
 
 ---
 
@@ -124,18 +125,24 @@ source file is ≥80% region and line; lowest core modules (`searches`
 with hot paths regression-locked. 86 property suites + 21 cli_smoke +
 19 cli_coverage integration tests, all green.
 
+A CI coverage floor is enforced (TEST-3, done this cycle, removed per
+the completed-work policy): the `celestial-core` workflow merges
+tests + the fuzz harness and gates on `cargo llvm-cov report
+--fail-under-lines 80` over product code only (fuzz/xtask/binding-
+tests/generated tables excluded via `--ignore-filename-regex`).
+Current scoped TOTAL: 94.9% region / 94.5% line.
+
 | id | area | issue | status |
 |---|---|---|---|
 | TEST-2 | bindings/{js,python}/src/lib.rs | 0% — exercised only by the JS/Python language harnesses; `llvm-cov` cannot instrument them | DECIDED — not instrumentable, not a real gap; the only sub-80% product area |
-| TEST-3 | CI | no coverage gate | OPEN — bounded: add a ≥80%/file floor now that product clears it |
 
 ---
 
 ## Recommended next
 
-1. **TEST-3 (OPEN):** add a CI coverage floor (product is ≥80%/file,
-   ~95% overall — lock it in). The only OPEN finding.
-2. **Deferred isolated efforts (own session + precision soak each):**
+No OPEN findings. Remaining work is the long-horizon deferred set:
+
+1. **Deferred isolated efforts (own session + precision soak each):**
    ARCH-7 lib.rs de-glob · ARCH-8 render helper extraction ·
    ARCH-10/DP-4/DUP-1 binding codegen · DP-2 unit newtypes ·
    DP-6 SVG templates · PERF-1 analytic VSOP derivative.

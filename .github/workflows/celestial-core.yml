@@ -5,7 +5,7 @@
 #   lint           → cargo clippy -D correctness -D suspicious -D perf
 #   test           → cargo test --package celestial-core
 #   fuzz           → cargo run --manifest-path fuzz/Cargo.toml (84 property suites)
-#   coverage       → cargo llvm-cov --workspace --lcov  (uploads lcov.info)
+#   coverage       → tests+fuzz merged; lcov upload + product ≥80% line floor
 #   sonarqube      → needs coverage; downloads lcov.info, runs Sonar scan
 #   feature-matrix → cargo check across feature flag combinations
 
@@ -69,11 +69,21 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
-      - name: Generate workspace lcov report
-        # `--workspace` covers core + cli + bindings; SonarCloud excludes
-        # binding test dirs, fuzz/, and xtask/ via sonar-project.properties.
+      - name: Generate coverage + enforce product floor (TEST-3)
+        # The property harness is a `[[bin]]`, so `cargo llvm-cov
+        # --workspace` alone never runs it and understates true
+        # coverage. Collect tests + the fuzz harness into one profile,
+        # emit the full lcov (SonarCloud filters via
+        # sonar-project.properties), then gate on product code only —
+        # fuzz/xtask/binding-tests/generated tables are excluded from
+        # the floor, not the report.
         run: |
-          cargo llvm-cov --workspace --lcov --output-path lcov.info
+          cargo llvm-cov --no-report --workspace
+          cargo llvm-cov run --no-report --release \
+            --manifest-path fuzz/Cargo.toml --bin run_prop_tests
+          cargo llvm-cov report --lcov --output-path lcov.info
+          cargo llvm-cov report --fail-under-lines 80 \
+            --ignore-filename-regex '(fuzz/|xtask/|/tests/|bindings/|astronomy/vsop87\.rs)'
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
