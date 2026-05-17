@@ -211,7 +211,18 @@ pub fn karana_name(karana: u8) -> &'static str {
 /// Uses Lahiri (Chitrapaksha) ayanamsa for sidereal positions.
 #[must_use]
 pub fn panchanga(jd: f64) -> Panchanga {
-    // Save sidereal mode and set Lahiri
+    // DEC-1: compute under Lahiri, but the prior code only *set* the
+    // process-global sidereal mode and never restored it — leaking
+    // Lahiri into the caller's later `calc_ut`/`ayanamsa`. Save the
+    // previous mode and restore on scope exit (RAII → also on early
+    // return / panic). The Panchānga result is unchanged (still Lahiri).
+    struct SidModeGuard(i32);
+    impl Drop for SidModeGuard {
+        fn drop(&mut self) {
+            crate::set_sid_mode(crate::body::SiderealMode(self.0), 0.0, 0.0);
+        }
+    }
+    let _sid_guard = SidModeGuard(crate::functions::config::current_sid_mode());
     crate::set_sid_mode(crate::body::SiderealMode::LAHIRI, 0.0, 0.0);
     let flags = CalcFlags::BUILTIN | CalcFlags::SIDEREAL | CalcFlags::SPEED;
 
@@ -536,5 +547,30 @@ mod tests {
         let next = panchanga(jd0 + 1.0).tithi;
         let diff = (next as i32 - prev as i32).rem_euclid(30);
         assert!((0..=2).contains(&diff), "tithi step too large: {diff}");
+    }
+
+    /// DEC-1 regression: `panchanga` must NOT leak its internal Lahiri
+    /// sidereal mode into the process-global state — the caller's mode
+    /// must be exactly as it was before the call.
+    #[test]
+    fn panchanga_restores_caller_sidereal_mode() {
+        use crate::body::SiderealMode;
+        use crate::functions::config::current_sid_mode;
+
+        // Caller picks Raman; panchanga internally switches to Lahiri.
+        crate::set_sid_mode(SiderealMode::RAMAN, 0.0, 0.0);
+        assert_eq!(current_sid_mode(), SiderealMode::RAMAN.as_raw());
+        let p = panchanga(julday(2000, 1, 1, 12.0, crate::body::Calendar::Gregorian));
+        assert!(p.tithi >= 1 && p.tithi <= 30, "panchanga still valid");
+        assert_eq!(
+            current_sid_mode(),
+            SiderealMode::RAMAN.as_raw(),
+            "panchanga leaked its Lahiri mode into the caller"
+        );
+
+        // Also from the default (Fagan-Bradley = 0).
+        crate::set_sid_mode(SiderealMode::FAGAN_BRADLEY, 0.0, 0.0);
+        let _ = panchanga(julday(1986, 5, 30, 9.0, crate::body::Calendar::Gregorian));
+        assert_eq!(current_sid_mode(), SiderealMode::FAGAN_BRADLEY.as_raw());
     }
 }
