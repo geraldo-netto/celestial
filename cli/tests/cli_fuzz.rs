@@ -205,3 +205,131 @@ fn fuzz_hsys_name_for_all_codes() {
         assert!(!name.is_empty(), "hsys_name({code}) empty");
     }
 }
+
+// ─── Boundary / invalid-input matrix ─────────────────────────────────────────
+// Each parser must REJECT (Err) or saturate sanely — never panic — on the
+// classic abuse cases: oversize-for-type, wrong-sign, zero, empty, "null",
+// over-long strings, non-finite floats.
+
+#[test]
+fn boundary_numeric_overflow_and_sign() {
+    use celestial_cli::parse::{parse_body, parse_sid_mode};
+    // long value in an i32 parameter → Err, no panic/overflow
+    assert!(parse_body("99999999999999999999999999").is_err());
+    assert!(parse_body("-99999999999999999999999999").is_err());
+    assert!(parse_sid_mode("99999999999999999999999999").is_err());
+    // negative where a body index ≥0 is expected: parsed as i32, must not panic
+    let _ = parse_body("-1");
+    let _ = parse_body("-2147483648");
+    // i32::MIN/MAX exactly
+    let _ = parse_body(&i32::MAX.to_string());
+    let _ = parse_body(&i32::MIN.to_string());
+}
+
+#[test]
+fn boundary_zero_and_wrong_sign_fields() {
+    use celestial_cli::cmd::render::RenderArgs;
+    let mk = |lat: f64, lon: f64| {
+        let mut a = RenderArgs::default();
+        a.lat = lat;
+        a.lon = lon;
+        a
+    };
+    assert!(mk(0.0, 0.0).validate().is_ok()); // zero is valid for lat/lon
+    assert!(mk(-23.5, -46.6).validate().is_ok()); // negatives valid here
+    assert!(mk(91.0, 0.0).validate().is_err()); // positive over-range
+    assert!(mk(-91.0, 0.0).validate().is_err()); // negative over-range
+    assert!(mk(0.0, 181.0).validate().is_err());
+    assert!(mk(0.0, -181.0).validate().is_err());
+    assert!(mk(f64::NAN, 0.0).validate().is_err());
+    assert!(mk(f64::INFINITY, 0.0).validate().is_err());
+    assert!(mk(0.0, f64::NEG_INFINITY).validate().is_err());
+}
+
+#[test]
+fn boundary_empty_null_and_oversize_strings() {
+    use celestial_cli::format::xml_escape;
+    use celestial_cli::parse::{
+        parse_body, parse_date, parse_hsys, parse_sid_mode, parse_tz_offset, require_datetime,
+    };
+    for f in [
+        parse_date,
+        parse_tz_offset,
+    ] {
+        assert!(f("").is_err(), "empty string must Err");
+        assert!(f("null").is_err());
+        assert!(f("   ").is_err());
+    }
+    assert!(parse_body("").is_err());
+    assert!(parse_body("null").is_err());
+    assert!(parse_hsys("").is_err());
+    assert!(parse_sid_mode("").is_err());
+    assert!(require_datetime("").is_err());
+
+    // String far larger than any sane field — must Err, not panic/OOM-loop.
+    let huge = "x".repeat(1_000_000);
+    assert!(parse_body(&huge).is_err());
+    assert!(parse_date(&huge).is_err());
+    assert!(parse_tz_offset(&huge).is_err());
+    assert!(parse_hsys(&huge).is_err());
+    // xml_escape must handle a huge string with every special char.
+    let huge_special = "<&>\"'".repeat(200_000);
+    let esc = xml_escape(&huge_special);
+    assert!(esc.len() > huge_special.len() && !esc.contains('<'));
+
+    // Multibyte / NUL / control bytes embedded.
+    assert!(parse_body("日本語").is_err());
+    let _ = parse_date("2024-\u{0}5-30 09:00");
+    let _ = parse_tz_offset("\u{0}\u{0}\u{0}");
+}
+
+#[test]
+fn boundary_non_finite_and_extreme_floats() {
+    use celestial_cli::parse::{fmt_utc_offset, jd_to_str, parse_date};
+    // bare-float JD path: non-finite tokens parse via f64::from_str
+    let _ = parse_date("inf");
+    let _ = parse_date("-inf");
+    let _ = parse_date("NaN");
+    let _ = parse_date("1e308");
+    let _ = parse_date("-1e308");
+    // jd_to_str / fmt_utc_offset must never panic on extremes
+    for v in [
+        0.0_f64,
+        f64::MAX,
+        f64::MIN,
+        f64::INFINITY,
+        f64::NEG_INFINITY,
+        f64::NAN,
+        1.0e15,
+        -1.0e15,
+    ] {
+        let _ = jd_to_str(v);
+        let _ = fmt_utc_offset(v);
+    }
+}
+
+#[test]
+fn boundary_cmd_run_rejects_garbage_without_panic() {
+    use celestial_cli::cmd::{crossing::CrossingArgs, eclipse::EclipseArgs, houses::HousesArgs};
+    // Invalid/extreme args through the command entry points → Err, no panic.
+    let _ = celestial_cli::cmd::crossing::run(CrossingArgs {
+        body: "\u{0}".into(),
+        lon: f64::NAN,
+        from: "".into(),
+        helio: false,
+        json: false,
+    });
+    let _ = celestial_cli::cmd::eclipse::run(EclipseArgs {
+        r#type: "".into(),
+        from: "null".into(),
+        backwards: false,
+        json: true,
+    });
+    let _ = celestial_cli::cmd::houses::run(HousesArgs {
+        date: "x".repeat(100_000),
+        lat: 1.0e9,
+        lon: -1.0e9,
+        system: "".into(),
+        json: false,
+    });
+}
