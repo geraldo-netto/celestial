@@ -6,25 +6,28 @@
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
     almuten, annual_profection, arabic_parts_seven, ayanamsa, azalt, bahai_holy_days, calc,
-    calc_many, calc_ut, christian_feasts, christian_fixed_feasts, coord_transform,
-    coord_transform_with_speed, day_of_week, days_in_hebrew_year, decan_ruler, deg_to_cs, degsplit,
-    deltat, diff_deg_signed, distance_to_mc, easter_gregorian, easter_jd, easter_orthodox,
-    egyptian_decan, egyptian_terms_ruler, firdaria, format_coord, four_pillars, full_dignity,
-    gregorian_to_solar_hijri, haab, hebrew_month_days, hebrew_new_year_jd, hijri_from_jd,
-    hijri_month_days, hijri_month_start_jd, hijri_new_year_jd, houses, islamic_observances,
-    jewish_holidays, julday, lon_to_sign, long_to_navamsa, lun_occult_when_glob, lunar_return_jd,
-    mean_sidtime, medicine_wheel_totem, midpoint_table, monthly_profection, months_in_hebrew_year,
+    calc_many, calc_ut, centisec_to_deg_str, centisec_to_lonlat_str, centisec_to_time_str,
+    christian_feasts, christian_fixed_feasts, coord_transform, coord_transform_with_speed,
+    day_of_week, days_in_hebrew_year, decan_ruler, deg_to_cs, degsplit, deltat, diff_deg_signed,
+    distance_to_mc, easter_gregorian, easter_jd, easter_orthodox, egyptian_decan,
+    egyptian_terms_ruler, firdaria, format_coord, four_pillars, full_dignity, geo_to_dms,
+    gregorian_to_solar_hijri, haab, hebrew_month_days, hebrew_new_year_jd, helio_cross,
+    helio_cross_ut, hijri_from_jd, hijri_month_days, hijri_month_start_jd, hijri_new_year_jd,
+    house_system_char, house_system_id, houses, islamic_observances, jewish_holidays, julday,
+    lon_to_sign, long_to_navamsa, lun_occult_when_glob, lunar_return_jd, mean_sidtime,
+    medicine_wheel_totem, midpoint_table, monthly_profection, months_in_hebrew_year,
     moon_phase_angle, moon_phase_info, moon_phases_for_month, mooncross_back_ut, mooncross_node,
     mooncross_node_ut, mooncross_ut, naw_ruz_jd, next_aspect, next_aspect_with,
     next_full_moon_after, next_new_moon, next_retro, norm_cs, norm_deg, norm_rad, nowruz_jd,
-    nutation, ochchabala, omer_days, omer_period, omer_start_jd, panchanga, planet_conjunct_mc,
-    refrac, residential_strength, retrograde_station_ut, revjul, rise_trans,
-    secondary_progressions, set_sid_mode, set_topo, sidtime, sign_exaltation, sign_ingress_ut,
-    sign_ruler, sol_eclipse_when_glob, solar_arc_directions, solar_hijri_to_gregorian,
-    solar_return_jd, solar_term_position, solcross_back_ut, solcross_ut, split_deg, time_equ,
-    tonalpohualli, transit_to_degree, triplicity_rulers, true_obliquity, tzolkin, uposatha_days,
-    utc_time_zone, vesak_jd, vimshottari_dasha, xiuhpohualli, AspectOrbs, CalcOptions, EsbatName,
-    SabbatKind, UtcDate, CALC_MTRANSIT, CALC_RISE, CALC_SET, ECL_OCCULTATION, SIDM_LAHIRI,
+    nutation, ochchabala, omer_days, omer_period, omer_start_jd, panchanga, parse_coord,
+    planet_conjunct_mc, refrac, residential_strength, retrograde_station_ut, revjul, rise_trans,
+    secondary_progressions, set_sid_mode, set_topo, sidereal_mode_flag, sidereal_mode_id, sidtime,
+    sign_exaltation, sign_ingress_ut, sign_name, sign_ruler, sol_eclipse_when_glob,
+    solar_arc_directions, solar_hijri_to_gregorian, solar_return_jd, solar_term_position,
+    solcross_back_ut, solcross_ut, split_deg, time_equ, tonalpohualli, transit_to_degree,
+    triplicity_rulers, true_obliquity, tzolkin, uposatha_days, utc_time_zone, vesak_jd,
+    vimshottari_dasha, xiuhpohualli, AspectOrbs, CalcOptions, EsbatName, SabbatKind, UtcDate,
+    CALC_MTRANSIT, CALC_RISE, CALC_SET, ECL_OCCULTATION, SIDM_LAHIRI,
 };
 use std::f64::consts::TAU;
 
@@ -247,7 +250,10 @@ fn test_time(n: u32) -> Suite {
     s
 }
 
-const HOUSE_SYSTEMS: &[u8] = b"PKEOCRWXMBHT";
+// All 14 Swiss-Ephemeris house-system codes. `D` = Equal-from-MC and `G` =
+// Gauquelin sectors were previously absent, leaving `equal_mc`/`gauquelin`
+// uncovered.
+const HOUSE_SYSTEMS: &[u8] = b"PKEOCRWXMBHTDG";
 
 fn check_equal_house_spacing(s: &mut Suite, cusps: &[f64]) {
     for h in 1..cusps.len().saturating_sub(1) {
@@ -2956,6 +2962,8 @@ fn run_core_suites(n: u32) -> Vec<(&'static str, bool)> {
         ("vedic", test_swephelp_vedic(n).report()),
         ("datetime", test_swephelp_datetime(n).report()),
         ("tz_table", test_tz_table(n).report()),
+        ("helio_cross", test_helio_cross(n / 5).report()),
+        ("geoformat_full", test_geoformat_full(n).report()),
     ]
 }
 
@@ -3792,15 +3800,13 @@ fn check_calendar_and_sidereal_boundaries(s: &mut Suite) {
 fn check_angle_math_boundaries(s: &mut Suite) {
     for &x in &BOUNDARY_EXTREME_FLOATS {
         let d = norm_deg(x);
-        s.check(
-            !d.is_nan() || !x.is_finite(),
-            || format!("norm_deg({x}) → NaN from finite"),
-        );
+        s.check(!d.is_nan() || !x.is_finite(), || {
+            format!("norm_deg({x}) → NaN from finite")
+        });
         let r = norm_rad(x);
-        s.check(
-            !r.is_nan() || !x.is_finite(),
-            || format!("norm_rad({x}) → NaN from finite"),
-        );
+        s.check(!r.is_nan() || !x.is_finite(), || {
+            format!("norm_rad({x}) → NaN from finite")
+        });
         let _ = diff_deg_signed(x, -x);
         let _ = deg_to_cs(x);
         let _ = split_deg(x, 0);
@@ -3832,10 +3838,9 @@ fn check_julday_boundaries(s: &mut Suite) {
     for &(y, m, d, h) in date_corners {
         for cal in [Calendar::Julian, Calendar::Gregorian] {
             let r = catch_unwind(|| julday(y, m, d, h, cal));
-            s.check(
-                r.is_ok(),
-                || format!("julday({y},{m},{d},{h},{cal:?}) panicked"),
-            );
+            s.check(r.is_ok(), || {
+                format!("julday({y},{m},{d},{h},{cal:?}) panicked")
+            });
         }
     }
 }
@@ -3915,18 +3920,16 @@ fn check_ayanamsa_monotonic(s: &mut Suite) {
     for y in 1900..=2100 {
         let jd = 2_415_020.5 + (y - 1900) as f64 * 365.25;
         let ay = ayanamsa_ut(jd);
-        s.check(
-            ay.is_finite() && ay > prev,
-            || format!("Lahiri ayanamsa not monotonic at year {y}: {ay} vs prev {prev}"),
-        );
+        s.check(ay.is_finite() && ay > prev, || {
+            format!("Lahiri ayanamsa not monotonic at year {y}: {ay} vs prev {prev}")
+        });
         // Expected ~50.3" per year = 0.01397°/year (precession rate).
         // Allow generous bounds [0°/y, 0.05°/y] to avoid false positives.
         if prev > f64::NEG_INFINITY {
             let drift = ay - prev;
-            s.check(
-                (0.0..=0.05).contains(&drift),
-                || format!("Ayanamsa year-on-year drift {drift:.5}° at year {y}"),
-            );
+            s.check((0.0..=0.05).contains(&drift), || {
+                format!("Ayanamsa year-on-year drift {drift:.5}° at year {y}")
+            });
         }
         prev = ay;
     }
@@ -3942,12 +3945,17 @@ fn check_calendar_round_trip(s: &mut Suite) {
     for _ in 0..1000 {
         let jd = 2_400_000.5 + rng.range_f64(0.0, 80_000.0);
         let d = revjul(jd, Calendar::Gregorian);
-        let jd2 = julday(d.year, d.month as i32, d.day as i32, d.hour, Calendar::Gregorian);
-        let diff = (jd - jd2).abs();
-        s.check(
-            diff < 1e-6,
-            || format!("calendar round-trip jd={jd}: revjul→julday = {jd2}, diff {diff}"),
+        let jd2 = julday(
+            d.year,
+            d.month as i32,
+            d.day as i32,
+            d.hour,
+            Calendar::Gregorian,
         );
+        let diff = (jd - jd2).abs();
+        s.check(diff < 1e-6, || {
+            format!("calendar round-trip jd={jd}: revjul→julday = {jd2}, diff {diff}")
+        });
     }
 }
 
@@ -3969,10 +3977,9 @@ fn check_synodic_month_consistency(s: &mut Suite) {
         };
         if let Some(prev) = prev_nm {
             let dt = nm - prev;
-            s.check(
-                (28.5..=30.5).contains(&dt),
-                || format!("new moon #{i} synodic dt = {dt:.4} d, expected ≈ 29.53"),
-            );
+            s.check((28.5..=30.5).contains(&dt), || {
+                format!("new moon #{i} synodic dt = {dt:.4} d, expected ≈ 29.53")
+            });
         }
         prev_nm = Some(nm);
         jd = nm + 15.0; // advance well past the found new moon
@@ -3998,10 +4005,9 @@ fn check_ayanamsa_finite_and_normalized(s: &mut Suite) {
         for _ in 0..25 {
             let jd = 2_451_545.0 + rng.range_f64(-100_000.0, 100_000.0);
             let ay = ayanamsa_ut(jd);
-            s.check(
-                ay.is_finite() && (0.0..360.0).contains(&ay),
-                || format!("ayanamsa({mode:?}, jd={jd}) = {ay}"),
-            );
+            s.check(ay.is_finite() && (0.0..360.0).contains(&ay), || {
+                format!("ayanamsa({mode:?}, jd={jd}) = {ay}")
+            });
         }
     }
 }
@@ -4027,17 +4033,15 @@ fn check_house_systems_invariants(s: &mut Suite) {
                 continue;
             };
             for i in 1..=12 {
-                s.check(
-                    (0.0..360.0).contains(&h.cusps[i]),
-                    || format!("{} h{i} out of [0,360) at jd={jd}", sys as char),
-                );
+                s.check((0.0..360.0).contains(&h.cusps[i]), || {
+                    format!("{} h{i} out of [0,360) at jd={jd}", sys as char)
+                });
             }
             let opp = (h.cusps[1] + 180.0) % 360.0;
             let diff_7 = ((h.cusps[7] - opp + 540.0) % 360.0 - 180.0).abs();
-            s.check(
-                diff_7 < 1e-6,
-                || format!("{} h7 != h1+180° (diff {diff_7})", sys as char),
-            );
+            s.check(diff_7 < 1e-6, || {
+                format!("{} h7 != h1+180° (diff {diff_7})", sys as char)
+            });
         }
     }
 }
@@ -4066,22 +4070,21 @@ fn check_inner_planets_bounds(s: &mut Suite) {
                 s.passed += 1;
                 continue;
             };
-            s.check(
-                (0.0..360.0).contains(&pos.lon),
-                || format!("{body:?} lon {} out of range at jd={jd}", pos.lon),
-            );
-            s.check(
-                pos.lat.abs() < max_lat,
-                || format!("{body:?} |lat| {} > {max_lat} at jd={jd}", pos.lat),
-            );
-            s.check(
-                (dmin..=dmax).contains(&pos.dist),
-                || format!("{body:?} dist {} outside [{dmin}, {dmax}] at jd={jd}", pos.dist),
-            );
-            s.check(
-                pos.speed_lon.abs() < max_speed,
-                || format!("{body:?} speed {} > {max_speed} at jd={jd}", pos.speed_lon),
-            );
+            s.check((0.0..360.0).contains(&pos.lon), || {
+                format!("{body:?} lon {} out of range at jd={jd}", pos.lon)
+            });
+            s.check(pos.lat.abs() < max_lat, || {
+                format!("{body:?} |lat| {} > {max_lat} at jd={jd}", pos.lat)
+            });
+            s.check((dmin..=dmax).contains(&pos.dist), || {
+                format!(
+                    "{body:?} dist {} outside [{dmin}, {dmax}] at jd={jd}",
+                    pos.dist
+                )
+            });
+            s.check(pos.speed_lon.abs() < max_speed, || {
+                format!("{body:?} speed {} > {max_speed} at jd={jd}", pos.speed_lon)
+            });
         }
     }
 }
@@ -4126,10 +4129,9 @@ fn check_calendar_fns_no_panic(s: &mut Suite) {
         });
         s.check(r.is_ok(), || format!("calendar fns panicked at year {y}"));
         if let Ok((y2, m, d, _eo, _h)) = r {
-            s.check(
-                y == y2 && (3..=5).contains(&m) && d <= 31,
-                || format!("easter_gregorian({y}) → ({y2}, {m}, {d})"),
-            );
+            s.check(y == y2 && (3..=5).contains(&m) && d <= 31, || {
+                format!("easter_gregorian({y}) → ({y2}, {m}, {d})")
+            });
         }
     }
 }
@@ -4142,24 +4144,20 @@ fn check_maya_ranges(s: &mut Suite) {
         let jd = 1_500_000.0 + rng.range_f64(0.0, 730_000.0); // ~ -2000 to 0 CE-ish
         let (trec_t, sign_t, _, _) = tonalpohualli(jd);
         let (trec_z, sign_z, _, _) = tzolkin(jd);
-        s.check(
-            (1..=13).contains(&trec_t) && sign_t < 20,
-            || format!("tonalpohualli out of range at jd={jd}: ({trec_t}, {sign_t})"),
-        );
-        s.check(
-            trec_t == trec_z && sign_t == sign_z,
-            || format!("tonalpohualli != tzolkin (same cycle): jd={jd}"),
-        );
+        s.check((1..=13).contains(&trec_t) && sign_t < 20, || {
+            format!("tonalpohualli out of range at jd={jd}: ({trec_t}, {sign_t})")
+        });
+        s.check(trec_t == trec_z && sign_t == sign_z, || {
+            format!("tonalpohualli != tzolkin (same cycle): jd={jd}")
+        });
         let (month, day, _) = haab(jd);
-        s.check(
-            month < 19 && day < 20,
-            || format!("haab out of range at jd={jd}: ({month}, {day})"),
-        );
+        s.check(month < 19 && day < 20, || {
+            format!("haab out of range at jd={jd}: ({month}, {day})")
+        });
         let (b, k, t, u, kin) = maya_long_count(jd);
-        s.check(
-            b < 50 && k < 20 && t < 20 && u < 18 && kin < 20,
-            || format!("long_count out of range at jd={jd}: ({b}.{k}.{t}.{u}.{kin})"),
-        );
+        s.check(b < 50 && k < 20 && t < 20 && u < 18 && kin < 20, || {
+            format!("long_count out of range at jd={jd}: ({b}.{k}.{t}.{u}.{kin})")
+        });
     }
 }
 
@@ -4192,28 +4190,24 @@ fn check_outer_planet_physical_bounds(s: &mut Suite) {
             let r = std::panic::catch_unwind(|| calc_ut(jd, body, flags));
             match r {
                 Ok(Ok(pos)) => {
-                    s.check(
-                        (0.0..360.0).contains(&pos.lon),
-                        || format!("{body:?} lon {} out of [0,360) at jd {jd}", pos.lon),
-                    );
-                    s.check(
-                        pos.lat.abs() < max_lat,
-                        || format!("{body:?} lat {} exceeds ±{max_lat}° at jd {jd}", pos.lat),
-                    );
-                    s.check(
-                        (dmin..=dmax).contains(&pos.dist),
-                        || format!(
+                    s.check((0.0..360.0).contains(&pos.lon), || {
+                        format!("{body:?} lon {} out of [0,360) at jd {jd}", pos.lon)
+                    });
+                    s.check(pos.lat.abs() < max_lat, || {
+                        format!("{body:?} lat {} exceeds ±{max_lat}° at jd {jd}", pos.lat)
+                    });
+                    s.check((dmin..=dmax).contains(&pos.dist), || {
+                        format!(
                             "{body:?} dist {} outside [{dmin}, {dmax}] AU at jd {jd}",
                             pos.dist
-                        ),
-                    );
-                    s.check(
-                        pos.speed_lon.abs() < max_speed,
-                        || format!(
+                        )
+                    });
+                    s.check(pos.speed_lon.abs() < max_speed, || {
+                        format!(
                             "{body:?} speed {} exceeds ±{max_speed}°/d at jd {jd}",
                             pos.speed_lon
-                        ),
-                    );
+                        )
+                    });
                 }
                 Ok(Err(_)) => s.passed += 1, // Err is acceptable
                 Err(_) => s.check(false, || format!("{body:?} panicked at jd {jd}")),
@@ -4226,9 +4220,9 @@ fn check_solar_cycle_boundaries(s: &mut Suite) {
     use std::panic::catch_unwind;
     // Outside the numbered cycle window (1755..~2030) — must return None.
     let outside_jds = [
-        2_086_303.0,  // ~year 1000
-        2_341_973.0,  // 1700-01-01 — before cycle 1
-        2_488_069.0,  // 2100-01-01 — after cycle 25
+        2_086_303.0, // ~year 1000
+        2_341_973.0, // 1700-01-01 — before cycle 1
+        2_488_069.0, // 2100-01-01 — after cycle 25
         f64::NAN,
         f64::INFINITY,
         f64::NEG_INFINITY,
@@ -4237,10 +4231,7 @@ fn check_solar_cycle_boundaries(s: &mut Suite) {
     ];
     for &jd in &outside_jds {
         let r = catch_unwind(|| celestial_core::solar_cycle(jd));
-        s.check(
-            r.is_ok(),
-            || format!("solar_cycle({jd}) panicked"),
-        );
+        s.check(r.is_ok(), || format!("solar_cycle({jd}) panicked"));
         if let Ok(Some(_)) = r {
             // Some(_) inside out-of-range zone is only OK for finite JDs that
             // happen to land in the table; NaN/Inf must never yield Some.
@@ -4262,21 +4253,23 @@ fn check_solar_cycle_boundaries(s: &mut Suite) {
         let r = catch_unwind(|| celestial_core::solar_cycle(jd));
         match r {
             Ok(Some(info)) => {
-                s.check(
-                    (1..=25).contains(&info.cycle_num),
-                    || format!("cycle_num={} out of range at jd={jd}", info.cycle_num),
-                );
-                s.check(
-                    (0.0..=1.0).contains(&info.phase),
-                    || format!("phase={} out of [0,1] at jd={jd}", info.phase),
-                );
-                s.check(
-                    info.min_jd <= jd && jd < info.next_min_jd,
-                    || format!("jd={jd} outside cycle [{}, {})", info.min_jd, info.next_min_jd),
-                );
+                s.check((1..=25).contains(&info.cycle_num), || {
+                    format!("cycle_num={} out of range at jd={jd}", info.cycle_num)
+                });
+                s.check((0.0..=1.0).contains(&info.phase), || {
+                    format!("phase={} out of [0,1] at jd={jd}", info.phase)
+                });
+                s.check(info.min_jd <= jd && jd < info.next_min_jd, || {
+                    format!(
+                        "jd={jd} outside cycle [{}, {})",
+                        info.min_jd, info.next_min_jd
+                    )
+                });
             }
             Ok(None) => {
-                s.check(false, || format!("solar_cycle({jd}) returned None (expected Some)"));
+                s.check(false, || {
+                    format!("solar_cycle({jd}) returned None (expected Some)")
+                });
             }
             Err(_) => s.check(false, || format!("solar_cycle({jd}) panicked")),
         }
@@ -4284,10 +4277,7 @@ fn check_solar_cycle_boundaries(s: &mut Suite) {
     // grand_solar_epoch — must not panic for any input, including non-finite.
     for &jd in &outside_jds {
         let r = catch_unwind(|| celestial_core::grand_solar_epoch(jd));
-        s.check(
-            r.is_ok(),
-            || format!("grand_solar_epoch({jd}) panicked"),
-        );
+        s.check(r.is_ok(), || format!("grand_solar_epoch({jd}) panicked"));
     }
 }
 
@@ -4352,6 +4342,171 @@ fn test_solcross_back(n: u32) -> Suite {
         s.check((mback - mfwd).abs() < 30.0, || {
             format!("moon back={mback:.3} far from fwd={mfwd:.3}")
         });
+    }
+    s
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Coverage-expansion: heliocentric crossings + full geoformat surface.
+// Adds boundary inputs (0°, 360°, negative, wrap-around longitudes; ±90/±180
+// coordinates; out-of-range sign / sidereal / house codes).
+// ═══════════════════════════════════════════════════════════════════════════
+
+const HELIO_BODIES: [Body; 8] = [
+    Body::MERCURY,
+    Body::VENUS,
+    Body::MARS,
+    Body::JUPITER,
+    Body::SATURN,
+    Body::URANUS,
+    Body::NEPTUNE,
+    Body::PLUTO,
+];
+
+// Boundary longitudes plus a sentinel meaning "use the RNG value".
+const HELIO_X2: [f64; 6] = [0.0, 360.0, -30.0, 720.0, 180.0, f64::NAN];
+
+fn check_one_helio(s: &mut Suite, body: Body, x2: f64, jd: f64, dir: i32) {
+    let Ok(et) = helio_cross(body, x2, jd, CalcFlags::BUILTIN, dir) else {
+        s.passed += 1;
+        return;
+    };
+    s.check(et.is_finite(), || {
+        format!("helio_cross et NaN x2={x2} jd={jd}")
+    });
+    let Ok(ut) = helio_cross_ut(body, x2, jd, CalcFlags::BUILTIN, dir) else {
+        s.passed += 1;
+        return;
+    };
+    // `_ut` delegates to the ET form with identical args → identical result.
+    s.check((ut - et).abs() < 1e-9, || {
+        format!("helio_cross_ut {ut} != helio_cross {et}")
+    });
+}
+
+fn test_helio_cross(n: u32) -> Suite {
+    let mut s = Suite::new("helio_cross");
+    let mut rng = Xorshift64::new(0x4EC1_0550_C0FF_EE01);
+    for _ in 0..n {
+        let body = HELIO_BODIES[(rng.next_u64() % 8) as usize];
+        let pick = (rng.next_u64() % (HELIO_X2.len() as u64 + 1)) as usize;
+        let x2 = if pick < HELIO_X2.len() {
+            HELIO_X2[pick]
+        } else {
+            rng.range_f64(0.0, 360.0)
+        };
+        let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
+        let dir = if rng.next_u64() & 1 == 0 { 1 } else { -1 };
+        check_one_helio(&mut s, body, x2, jd, dir);
+    }
+    s
+}
+
+fn check_sign_name(s: &mut Suite) {
+    // Sweep well past the zodiac to hit both the valid arms and the
+    // out-of-range guard. Invariant: any returned name is non-empty.
+    for sign in -3..=15 {
+        if let Some(name) = sign_name(sign) {
+            s.check(!name.is_empty(), || format!("sign_name({sign}) empty"));
+        } else {
+            s.passed += 1;
+        }
+    }
+}
+
+fn check_house_codes(s: &mut Suite) {
+    // `house_system_id` only maps the classic 12 codes — `D`/`G` are valid
+    // for the houses engine but not this table, so don't require `Some`.
+    for &b in HOUSE_SYSTEMS {
+        if let Some(id) = house_system_id(b) {
+            s.check(house_system_char(id).is_some(), || {
+                format!("house_system_char({id}) = None for '{}'", b as char)
+            });
+        } else {
+            s.passed += 1;
+        }
+    }
+    s.check(house_system_id(b'!').is_none(), || {
+        "house_system_id('!') should be None".to_string()
+    });
+    let _ = house_system_char(-999); // exercise the out-of-range arm
+    s.passed += 1;
+}
+
+fn check_sidereal_codes(s: &mut Suite) {
+    // Exercise both the mapped arms and the out-of-range guards; no
+    // assumption about the exact id↔flag bijection.
+    for sidmode in -2..50 {
+        if let Some(flag) = sidereal_mode_flag(sidmode) {
+            let _ = sidereal_mode_id(flag);
+        }
+        s.passed += 1;
+    }
+    s.check(sidereal_mode_flag(99_999).is_none(), || {
+        "sidereal_mode_flag(99999) should be None".to_string()
+    });
+    let _ = sidereal_mode_id(-12345);
+    s.passed += 1;
+}
+
+const PARSE_COORD_CASES: [&str; 6] = ["", "garbage", "12n30", "0", "90.0", "-181.5"];
+
+fn check_coord_parse_format(s: &mut Suite, rng: &mut Xorshift64) {
+    for c in PARSE_COORD_CASES {
+        let _ = parse_coord(c); // must not panic on garbage/empty
+    }
+    let coords = [
+        -180.0,
+        -90.0,
+        0.0,
+        90.0,
+        180.0,
+        rng.range_f64(-180.0, 180.0),
+    ];
+    for &c in &coords {
+        let dms = geo_to_dms(c);
+        s.check(dms[0].abs() <= 180, || {
+            format!("geo_to_dms({c}) deg={} out of range", dms[0])
+        });
+        for is_lat in [true, false] {
+            if let Some(txt) = format_coord(c, is_lat) {
+                s.check(!txt.is_empty(), || format!("format_coord({c}) empty"));
+            } else {
+                s.passed += 1;
+            }
+        }
+    }
+    let _ = format_coord(f64::NAN, true); // exercise the non-finite arm
+    s.passed += 1;
+}
+
+fn check_centisec_strings(s: &mut Suite) {
+    let cases: [i32; 5] = [0, -1, 1, 360 * 360_000, i32::MAX / 2];
+    for t in cases {
+        let d = centisec_to_deg_str(t);
+        s.check(!d.is_empty(), || format!("centisec_to_deg_str({t}) empty"));
+        let ll = centisec_to_lonlat_str(t, 'E', 'W');
+        s.check(ll.contains('E') || ll.contains('W'), || {
+            format!("centisec_to_lonlat_str({t}) = {ll}")
+        });
+        for sup in [false, true] {
+            let ts = centisec_to_time_str(t, ':', sup);
+            s.check(!ts.is_empty(), || {
+                format!("centisec_to_time_str({t}, sup={sup}) empty")
+            });
+        }
+    }
+}
+
+fn test_geoformat_full(n: u32) -> Suite {
+    let mut s = Suite::new("geoformat_full");
+    let mut rng = Xorshift64::new(0x6E0F_0F4A_7C91_A3D5);
+    check_sign_name(&mut s);
+    check_house_codes(&mut s);
+    check_sidereal_codes(&mut s);
+    check_centisec_strings(&mut s);
+    for _ in 0..n {
+        check_coord_parse_format(&mut s, &mut rng);
     }
     s
 }
