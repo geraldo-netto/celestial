@@ -461,4 +461,179 @@ mod tests {
             o => panic!("expected Out, got {o:?}"),
         }
     }
+
+    /// Drive `compute()` across one alias of every chart family —
+    /// exercises `dispatch_chart_type` + each `dispatch_*` + the
+    /// per-tradition builders + render, raising registry/pipeline
+    /// coverage without spawning the binary.
+    #[test]
+    fn compute_covers_all_chart_families() {
+        let types = [
+            "natal", "cosmogram", "solar-return", "lunar-return", "biwheel",
+            "composite", "dial", "graphic-ephemeris", "local-space", "rasi",
+            "navamsa", "dasha", "north-indian", "ashtakavarga", "shadbala",
+            "hellenistic", "firdaria", "profection", "bazi", "mesoamerican",
+            "medicine-wheel", "wheel-of-year", "omer-grid", "calendar",
+        ];
+        for ct in types {
+            let mut a = natal_args();
+            a.chart_type = ct.to_string();
+            a.date2 = Some("1990-01-01".into());
+            a.date3 = Some("2000-06-15".into());
+            assert!(
+                matches!(compute(a), Ok(RenderOutput::Out { .. })),
+                "compute failed for chart-type `{ct}`"
+            );
+        }
+    }
+
+    #[test]
+    fn compute_progressed_solar_arc_triwheel_with_years() {
+        for ct in ["progressed", "solar-arc", "triwheel"] {
+            let mut a = natal_args();
+            a.chart_type = ct.to_string();
+            a.years = Some(35.5);
+            a.date2 = Some("1990-01-01".into());
+            a.date3 = Some("2000-06-15".into());
+            assert!(compute(a).is_ok(), "compute failed for `{ct}`");
+        }
+    }
+
+    #[test]
+    fn compute_unknown_chart_type_errs() {
+        let mut a = natal_args();
+        a.chart_type = "definitely-not-a-chart".into();
+        assert!(compute(a).is_err());
+    }
+
+    #[test]
+    fn compute_with_config_file_and_var_override() {
+        // config.rs: load_config (TOML [render]+[vars]), apply_var_overrides,
+        // merge_date_and_time, SEC-5 out guard.
+        let dir = std::env::temp_dir().join(format!("cel_cfgcov_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let cfg = dir.join("c.toml");
+        std::fs::write(
+            &cfg,
+            b"[render]\ndate = \"1986-05-30 09:00\"\ntimezone = \"UTC\"\nlat = -23.5\nlon = -46.6\nout = \"rel.svg\"\n[vars]\ntitle = \"Cfg\"\nring_color = \"#101010\"\n",
+        )
+        .unwrap();
+        let mut a = RenderArgs::default();
+        a.chart_type = "natal".into();
+        a.date = "now".into(); // clap-default sentinel so config `date` overrides
+        a.config = Some(cfg);
+        a.vars = vec!["ring_color=#abcdef".into()];
+        match compute(a) {
+            Ok(RenderOutput::Out { body, path }) => {
+                assert_eq!(path, Some(std::path::PathBuf::from("rel.svg")));
+                assert!(body.contains("#abcdef"), "--var override not applied");
+            }
+            o => panic!("expected Out, got {o:?}"),
+        }
+        let bad = dir.join("bad.toml");
+        std::fs::write(
+            &bad,
+            b"[render]\ndate = \"1986-05-30 09:00\"\ntimezone = \"UTC\"\nlat = 0\nlon = 0\nout = \"/tmp/evil.svg\"\n",
+        )
+        .unwrap();
+        let mut b = RenderArgs::default();
+        b.chart_type = "natal".into();
+        b.date = "now".into();
+        b.config = Some(bad);
+        assert!(compute(b).is_err(), "absolute config out must be rejected");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn compute_calendar_overlays() {
+        use super::args::CalendarKind;
+        let mut a = natal_args();
+        a.calendars = vec![
+            CalendarKind::Omer,
+            CalendarKind::Sabbats,
+            CalendarKind::Moon,
+            CalendarKind::Hebrew,
+            CalendarKind::GregorianYear,
+        ];
+        assert!(compute(a).is_ok());
+    }
+
+    #[test]
+    fn compute_config_error_and_override_paths() {
+        let dir = std::env::temp_dir().join(format!("cel_cfgerr_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+
+        // invalid TOML → load_config error branch
+        let bad = dir.join("broken.toml");
+        std::fs::write(&bad, b"[render\ndate =").unwrap();
+        let mut a = RenderArgs::default();
+        a.date = "now".into();
+        a.config = Some(bad);
+        assert!(compute(a).is_err(), "invalid TOML must error");
+
+        // config sets template + hsys (override_if template/hsys branches);
+        // missing template file → render error branch.
+        let cfg = dir.join("t.toml");
+        std::fs::write(
+            &cfg,
+            b"[render]\ndate = \"1986-05-30 09:00\"\ntimezone = \"UTC\"\nlat = 1.0\nlon = 2.0\nhsys = \"K\"\ntemplate = \"no_such.tt\"\n",
+        )
+        .unwrap();
+        let mut b = RenderArgs::default();
+        b.date = "now".into();
+        b.config = Some(cfg);
+        assert!(compute(b).is_err(), "missing template path must error");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn compute_config_vars_non_string_toml_types() {
+        // toml_value_to_string arms: Integer / Float / Boolean / other.
+        let dir = std::env::temp_dir().join(format!("cel_cfgty_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let cfg = dir.join("ty.toml");
+        std::fs::write(
+            &cfg,
+            b"[render]\ndate = \"1986-05-30 09:00\"\ntimezone = \"UTC\"\nlat = 0\nlon = 0\n\
+              [vars]\ntitle = \"T\"\nint_v = 7\nfloat_v = 1.5\nbool_v = true\narr_v = [1, 2]\n",
+        )
+        .unwrap();
+        let mut a = RenderArgs::default();
+        a.date = "now".into();
+        a.config = Some(cfg);
+        assert!(matches!(compute(a), Ok(RenderOutput::Out { .. })));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn compute_time_flag_merge() {
+        // merge_date_and_time: separate --date + --time.
+        let mut a = natal_args();
+        a.date = "1986-05-30".into();
+        a.time = Some("09:00".into());
+        assert!(compute(a).is_ok());
+    }
+
+    #[test]
+    fn compute_malformed_var_is_rejected() {
+        let mut a = natal_args();
+        a.vars = vec!["no_equals_sign".into()];
+        // apply_var_overrides should reject a `--var` without `=`.
+        assert!(compute(a).is_err());
+    }
+
+    #[test]
+    fn compute_now_and_jd_date_paths() {
+        // merge_date_and_time / require_datetime branches: bare JD + "now".
+        let mut a = natal_args();
+        a.date = "2451545.0".into();
+        a.timezone = None;
+        assert!(compute(a).is_ok());
+        let mut b = natal_args();
+        b.chart_type = "calendar".into();
+        b.date = "now".into();
+        b.timezone = None;
+        assert!(compute(b).is_ok());
+    }
 }

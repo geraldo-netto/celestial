@@ -569,3 +569,54 @@ fn run_nowruz(args: NowruzArgs) -> Result<(), CliError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn jewish_modes() {
+        assert!(run(CalendarArgs { tradition: Tradition::Jewish(JewishArgs { year: Some(2024), json: false }) }).is_ok());
+        assert!(run(CalendarArgs { tradition: Tradition::Jewish(JewishArgs { year: None, json: true }) }).is_ok());
+    }
+
+    #[test]
+    fn easter_modes() {
+        assert!(run(CalendarArgs { tradition: Tradition::Easter(EasterArgs { year: Some(2025), all: false, json: false }) }).is_ok());
+        assert!(run(CalendarArgs { tradition: Tradition::Easter(EasterArgs { year: Some(2025), all: true, json: true }) }).is_ok());
+    }
+
+    #[test]
+    fn islamic_modes() {
+        assert!(run(CalendarArgs { tradition: Tradition::Islamic(IslamicArgs { year: Some(2024), convert: None, json: false }) }).is_ok());
+        assert!(run(CalendarArgs { tradition: Tradition::Islamic(IslamicArgs { year: None, convert: Some("2024-01-01".into()), json: true }) }).is_ok());
+    }
+
+    #[test]
+    fn panchanga_modes() {
+        assert!(run(CalendarArgs { tradition: Tradition::Panchanga(PanchangaArgs { date: "2451545.0".into(), festivals: false, year: None, json: false }) }).is_ok());
+        assert!(run(CalendarArgs { tradition: Tradition::Panchanga(PanchangaArgs { date: "2451545.0".into(), festivals: true, year: Some(2024), json: true }) }).is_ok());
+    }
+
+    #[test]
+    fn vesak_modes() {
+        assert!(run(CalendarArgs { tradition: Tradition::Vesak(VesakArgs { year: Some(2024), uposatha: false, json: false }) }).is_ok());
+        assert!(run(CalendarArgs { tradition: Tradition::Vesak(VesakArgs { year: None, uposatha: true, json: true }) }).is_ok());
+    }
+
+    #[test]
+    fn nowruz_modes() {
+        assert!(run(CalendarArgs { tradition: Tradition::Nowruz(NowruzArgs { year: Some(2024), bahai: false, json: false }) }).is_ok());
+        assert!(run(CalendarArgs { tradition: Tradition::Nowruz(NowruzArgs { year: None, bahai: true, json: true }) }).is_ok());
+    }
+
+    #[test]
+    fn islamic_convert_bad_and_easter_all_text() {
+        let _ = run(CalendarArgs { tradition: Tradition::Islamic(IslamicArgs { year: None, convert: Some("not-a-date".into()), json: false }) });
+        assert!(run(CalendarArgs { tradition: Tradition::Easter(EasterArgs { year: None, all: true, json: false }) }).is_ok());
+        assert!(run(CalendarArgs { tradition: Tradition::Jewish(JewishArgs { year: Some(5785), json: false }) }).is_ok());
+        assert!(run(CalendarArgs { tradition: Tradition::Panchanga(PanchangaArgs { date: "1986-05-30 09:00".into(), festivals: true, year: None, json: false }) }).is_ok());
+        assert!(run(CalendarArgs { tradition: Tradition::Nowruz(NowruzArgs { year: Some(2025), bahai: true, json: false }) }).is_ok());
+        assert!(run(CalendarArgs { tradition: Tradition::Vesak(VesakArgs { year: Some(2025), uposatha: true, json: false }) }).is_ok());
+    }
+}
