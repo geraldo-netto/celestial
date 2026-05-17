@@ -66,13 +66,26 @@ byte-identical to the 1986-05-30 PDF reference and the Diana
 `unsafe`-free in core/cli/bindings/ffi source; FFI sound
 (napi/pyo3/ext-php-rs); `plugin.rs` execs via arg array (no shell);
 `cargo audit` clean (90 deps, 0 advisories; toml 0.8.23, minijinja
-2.19.0). SEC-1..SEC-9 fixes all re-verified present **— but the SEC-1
-fix's scope was incomplete:**
+2.19.0). SEC-1..SEC-9 fixes all re-verified present this rescan **— but
+SEC-10 (new, OPEN) shows the SEC-1/SEC-9 escaping scope was incomplete:**
 
-| id | sev | issue / fix | status |
+| id | sev | fix | commit |
+|---|---|---|---|
+| SEC-1/2 | HIGH | `format::xml_escape` on title/palette/`--name` | `0d15c20` |
+| SEC-3 | HIGH | UTF-8-safe `trunc_chars` | `0d15c20` |
+| SEC-4 | HIGH | `toml` 0.4.10 → 0.8.23 | `f710c34` |
+| SEC-5 | MED | config `out` confined (rel, no `..`) | `d014909` |
+| SEC-6 | MED | MiniJinja `fuel` cap (50M) | `0ce4060` |
+| SEC-7 | MED | `offsets.first()` guard | `95fa795` |
+| SEC-8 | LOW | `day_of_week` jd sentinel | `fbd486c` |
+| SEC-9 | HIGH | `xml_escape` in `svg_common::{svg_doc_open,panel_card}` (the SEC-1 fix had missed this shared path used by calendar_wheel/indigenous/mesoamerican) | `f857d98` |
+
+SEC-1..SEC-9 above re-verified present at the cited commits this rescan.
+New finding:
+
+| id | sev | issue | status |
 |---|---|---|---|
 | SEC-10 | HIGH | SVG injection in specialist/calendar renderers. SEC-1/SEC-9 escaping only ever covered `builtin_svg.rs` + `svg_common.rs`. User-controlled `ctx["vars"]["title"]` and palette colors (from `--var KEY=VALUE` / config `[vars]`) are written **raw** into SVG `<text>` bodies and `fill="…"` attributes — no `xml_escape` — in `calendar_wheel.rs:130`, `vedic.rs:64,264,532,862`, `omer_grid.rs:189`, `hellenistic.rs:177,251`, `chinese.rs`, `mesoamerican.rs`, `indigenous.rs`, `calendar_overlays.rs`, `specialist.rs`. `--var title='</text><script>…'` or `text_color='#000" onload="…'` breaks out. Stored-XSS when SVGs are generated from untrusted vars and served; self-XSS if always local. `config.rs` already treats config `vars` as untrusted (the SEC-5 rationale) → rated HIGH | **OPEN** — bounded: wrap each user-controlled `vars` string in `format::xml_escape` before interpolation (mirror `builtin_svg.rs:179`), or route specialists through a shared escaped-title helper / `svg_common`. byte-safe (escaping only changes attacker input) |
-| SEC-1..9 | — | xml_escape (titles/palette/--name + svg_common); UTF-8-safe trunc_chars; toml→0.8.23; config `out` confined (rel, no `..`); MiniJinja fuel 50M; `offsets.first()` guard; `day_of_week` jd sentinel; SEC-9 svg_common::{svg_doc_open,panel_card} | all re-verified present (commits 0d15c20·f710c34·d014909·0ce4060·95fa795·fbd486c·f857d98) |
 
 ## 5. Architecture / modularity / visibility
 
