@@ -66,22 +66,8 @@ byte-identical to the 1986-05-30 PDF reference and the Diana
 `unsafe`-free in core/cli/bindings/ffi source; FFI sound
 (napi/pyo3/ext-php-rs); `plugin.rs` execs via arg array (no shell);
 `cargo audit` clean (90 deps, 0 advisories; toml 0.8.23, minijinja
-2.19.0). SEC-1..SEC-9 fixes all re-verified present this rescan **— but
-SEC-10 (new, OPEN) shows the SEC-1/SEC-9 escaping scope was incomplete:**
-
-| id | sev | fix | commit |
-|---|---|---|---|
-| SEC-1/2 | HIGH | `format::xml_escape` on title/palette/`--name` | `0d15c20` |
-| SEC-3 | HIGH | UTF-8-safe `trunc_chars` | `0d15c20` |
-| SEC-4 | HIGH | `toml` 0.4.10 → 0.8.23 | `f710c34` |
-| SEC-5 | MED | config `out` confined (rel, no `..`) | `d014909` |
-| SEC-6 | MED | MiniJinja `fuel` cap (50M) | `0ce4060` |
-| SEC-7 | MED | `offsets.first()` guard | `95fa795` |
-| SEC-8 | LOW | `day_of_week` jd sentinel | `fbd486c` |
-| SEC-9 | HIGH | `xml_escape` in `svg_common::{svg_doc_open,panel_card}` (the SEC-1 fix had missed this shared path used by calendar_wheel/indigenous/mesoamerican) | `f857d98` |
-
-SEC-1..SEC-9 above re-verified present at the cited commits this rescan.
-New finding:
+2.19.0). SEC-1..SEC-9 fixed in prior cycles (removed per the
+completed-work policy). One OPEN finding this rescan:
 
 | id | sev | issue | status |
 |---|---|---|---|
@@ -98,13 +84,12 @@ sound. All public error/value enums `#[non_exhaustive]` (`core::Error`
 error.rs:18; `CliError` cli/error.rs:25; `ParseError` parse.rs:24;
 `CalendarKind` render/args.rs:14).
 
-Decoupling: DEC-1 (the `panchanga()` hidden-global sidereal-mode leak)
-is **fixed + regression-locked** — RAII `SidModeGuard` + `Drop` restore
-(panchanga.rs:219-226), test `panchanga_restores_caller_sidereal_mode`
-(panchanga.rs:556). DEC-2 (29 renderers read `ctx["field"]` stringly)
-DECLINED — typed contexts deliberately stop at the builder/serialize
-boundary; a field-enum across 29 renderers is the DP-1/DP-6
-net-negative dynamic. DEC-3 (renderer/builder fn-ptr → trait) = DP-1.
+Decoupling: well-decoupled (DEC-1 sidereal-mode leak fixed in a prior
+cycle — removed per the completed-work policy). DEC-2 (29 renderers
+read `ctx["field"]` stringly) DECLINED — typed contexts deliberately
+stop at the builder/serialize boundary; a field-enum across 29
+renderers is the DP-1/DP-6 net-negative dynamic. DEC-3
+(renderer/builder fn-ptr → trait) = DP-1.
 DEC-4 (xtask line-scan → `syn` AST) DEFERRED — offline tooling, now
 regression-tested; `syn` build-cost not warranted until binding churn.
 
@@ -127,29 +112,21 @@ regression-tested; `syn` build-cost not warranted until binding churn.
 
 ## 7. Test coverage
 
-`cargo llvm-cov` 0.8.5, **tests + the in-repo property/fuzz harness
-merged** (the prior framing "exclude fuzz/ 0%-by-design" was wrong:
-`run_prop_tests` is a `[[bin]]` so `cargo llvm-cov --workspace` never
-ran it — running it explicitly is what reveals true coverage).
+`cargo llvm-cov` 0.8.5, tests + the in-repo property/fuzz harness
+merged (`run_prop_tests` is a `[[bin]]`, so it must be run explicitly —
+`cargo llvm-cov --workspace` alone never ran it).
 
 Product code (core/src + cli/src, tests excluded) = **94.9% region /
-94.5% line** (core 94.1%/93.9%, cli 95.7%/95.1%). **Every core + cli
-source file is now ≥80% region and line** (was the prior 78.8%/78.3%
-headline). 86 property suites + 21 cli_smoke + 19 new `cli_coverage`
-integration tests, all green; precision paths additionally
-regression-locked. Suite is flake-free (TEST-1 plugin `$PATH` race
-fixed `d9b7b79`).
+94.5% line** (core 94.1%/93.9%, cli 95.7%/95.1%). Every core + cli
+source file is ≥80% region and line; lowest core modules (`searches`
+81, `phenomena` 82, `vedic` 83, `esbats` 82) are rare-edge branches
+with hot paths regression-locked. 86 property suites + 21 cli_smoke +
+19 cli_coverage integration tests, all green.
 
-Previously-flagged weak modules are resolved (now ≥80% region):
-`searches` 81 · `phenomena` 82 · `vedic` 83 · `esbats` 82 · `eclipses`
-89 — rare-edge branches only; hot paths regression-locked. CLI cmd +
-render-orchestration modules (formerly 11–69%) are 90–100%.
-
-| area | region | note |
-|---|---|---|
-| `bindings/{js,python}/src/lib.rs` | 0% | exercised only by the JS/Python language harnesses — `llvm-cov` cannot instrument them. The **only** remaining sub-80% product area, and not instrumentable, not a real gap |
-
-No CI coverage gate (the one remaining test-infra gap).
+| id | area | issue | status |
+|---|---|---|---|
+| TEST-2 | bindings/{js,python}/src/lib.rs | 0% — exercised only by the JS/Python language harnesses; `llvm-cov` cannot instrument them | DECIDED — not instrumentable, not a real gap; the only sub-80% product area |
+| TEST-3 | CI | no coverage gate | OPEN — bounded: add a ≥80%/file floor now that product clears it |
 
 ---
 
@@ -157,8 +134,9 @@ No CI coverage gate (the one remaining test-infra gap).
 
 1. **SEC-10 (HIGH, OPEN)** — escape user-controlled `vars`
    title/colors in the ~9 specialist/calendar renderers (mirror
-   `builtin_svg.rs:179`). The only OPEN code finding; byte-safe.
-2. **Test infra:** add a CI coverage floor (product is ≥80%/file,
+   `builtin_svg.rs:179`). Only OPEN finding with security impact;
+   byte-safe.
+2. **TEST-3 (OPEN):** add a CI coverage floor (product is ≥80%/file,
    ~95% overall — lock it in). Optionally **DP-1b** (declarative
    dispatch table for the ~15 uniform specialists — mechanical,
    byte-safe).
