@@ -51,7 +51,7 @@ byte-identical to the 1986-05-30 PDF reference and the Diana
 
 Clean — memory-safe, no `unsafe` in core/cli/bindings/ffi, FFI sound
 (napi/pyo3/ext-php-rs), `plugin.rs` execs via arg array (no shell). All
-eight previously-flagged items fixed and re-verified present:
+flagged items fixed and re-verified present:
 
 | id | sev | fix | commit |
 |---|---|---|---|
@@ -62,20 +62,22 @@ eight previously-flagged items fixed and re-verified present:
 | SEC-6 | MED | MiniJinja `fuel` cap (50M) | `0ce4060` |
 | SEC-7 | MED | `offsets.first()` guard | `95fa795` |
 | SEC-8 | LOW | `day_of_week` jd sentinel | `fbd486c` |
+| SEC-9 | HIGH | `xml_escape` in `svg_common::{svg_doc_open,panel_card}` (the SEC-1 fix had missed this shared path used by calendar_wheel/indigenous/mesoamerican) | `f857d98` |
 
 ## 5. Architecture / modularity / visibility
 
 Dependency direction is correct (core → celestial-ffi → bindings; cli →
 core+ffi). Render submodules use proper `pub(crate)`/`pub(super)`; no
 over-exposed internals; no god-module besides the (already-split)
-render tree. `core::Error` is `#[non_exhaustive]`.
+render tree. All public error/value enums are `#[non_exhaustive]`
+(`core::Error`; `ParseError`/`CliError` NV-1 `038eb8a`; `CalendarKind`
+NV-2 `f857d98`). No over-exposed internals.
 
 | id | area | issue | status |
 |---|---|---|---|
 | ARCH-7 | core/src/lib.rs | 12 crate-root `pub use mod::*` globs | DEFERRED — load-bearing for core's own internal `crate::` paths through the precision compute; faithful de-glob ≈ exhaustive ~280-symbol mirror. Isolated effort |
 | ARCH-8 | cli/src/cmd/render/mod.rs (~2.4k LOC) | residual = test module + wheel/format/tables/dignity helpers | DEFERRED — already a facade; safe extraction is many single-span-per-commit moves (bulk pass corrupts line math); low payoff vs precision-tree risk |
 | ARCH-10 | bindings 201×3 stubs | no codegen | DEFERRED — = DUP-1/DP-4 |
-| NV-1 | cli `ParseError` (parse.rs), `CliError` (error.rs) | not `#[non_exhaustive]` | OPEN (LOW) — internal-only today (converted early via `From`); add the attribute as cheap forward-proofing if either is ever surfaced through a binding |
 
 ## 6. Design pattern opportunities
 
@@ -112,11 +114,10 @@ config 92, pipeline 90, error 90, calendar 87) via in-process
 
 ## Recommended next
 
-1. **OPEN, bounded, byte-safe:** NV-1 (`#[non_exhaustive]` on
-   `ParseError`/`CliError`).
-2. **Test debt:** raise `searches.rs`/`phenomena.rs` rare-edge branch
+1. **Test debt:** raise `searches.rs`/`phenomena.rs` rare-edge branch
    coverage; add a CI coverage floor (CLI orchestration now ≥80%).
-3. **Deferred isolated efforts (own session + precision soak each):**
+   No OPEN code findings remain — only the items below.
+2. **Deferred isolated efforts (own session + precision soak each):**
    ARCH-7 lib.rs de-glob · ARCH-8 render helper extraction ·
    ARCH-10/DP-4/DUP-1 binding codegen · DP-2 unit newtypes ·
    DP-6 SVG templates · PERF-1 analytic VSOP derivative.
