@@ -234,183 +234,99 @@ pub(crate) fn dispatch_profection(
 // uniform `ChartBuilder` fn pointer. Each wrapper reads `args` for the params
 // its underlying builder needs.
 
-pub(crate) fn dispatch_dial(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "90° Midpoint Dial");
-    Ok((
-        specialist::build_dial_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
-        specialist::render_dial_svg,
-    ))
+// ── Uniform specialist dispatchers (DP-1b) ───────────────────────────────────
+//
+// The 15 dispatchers below were byte-for-byte identical except for
+// (title, builder fn, renderer fn) — only the wrapper layer was duplicated;
+// the `build_*_context` fns themselves stay heterogeneous. This macro keeps
+// each `pub(crate) fn dispatch_*` (so `CHART_REGISTRY` still names them) while
+// removing the copy-paste. Expansion is token-identical to the former hand-
+// written bodies → SVG output is unchanged (byte-identical precision gate).
+//
+// Shapes: `hsys` = builder takes `args.hsys`; `vedic <kind>` = the shared
+// `build_vedic_context(..,, kind)`; `novars` = no title, raw `user_vars`;
+// bare = `(jd, lat, lon, &date, v)`.
+macro_rules! specialist_dispatch {
+    ($fn:ident, $title:literal, hsys $build:path => $render:path) => {
+        pub(crate) fn $fn(
+            jd: f64,
+            args: &RenderArgs,
+            user_vars: &BTreeMap<String, String>,
+        ) -> Result<(ChartContext, ChartRenderer), CliError> {
+            let v = vars_with_title(user_vars, $title);
+            Ok((
+                $build(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
+                $render,
+            ))
+        }
+    };
+    ($fn:ident, $title:literal, vedic $kind:literal => $render:path) => {
+        pub(crate) fn $fn(
+            jd: f64,
+            args: &RenderArgs,
+            user_vars: &BTreeMap<String, String>,
+        ) -> Result<(ChartContext, ChartRenderer), CliError> {
+            let v = vars_with_title(user_vars, $title);
+            Ok((
+                vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, $kind)?.into(),
+                $render,
+            ))
+        }
+    };
+    ($fn:ident, novars $build:path => $render:path) => {
+        pub(crate) fn $fn(
+            jd: f64,
+            _args: &RenderArgs,
+            user_vars: &BTreeMap<String, String>,
+        ) -> Result<(ChartContext, ChartRenderer), CliError> {
+            Ok(($build(jd, user_vars.clone())?.into(), $render))
+        }
+    };
+    ($fn:ident, $title:literal, $build:path => $render:path) => {
+        pub(crate) fn $fn(
+            jd: f64,
+            args: &RenderArgs,
+            user_vars: &BTreeMap<String, String>,
+        ) -> Result<(ChartContext, ChartRenderer), CliError> {
+            let v = vars_with_title(user_vars, $title);
+            Ok((
+                $build(jd, args.lat, args.lon, &args.date, v)?.into(),
+                $render,
+            ))
+        }
+    };
 }
 
-pub(crate) fn dispatch_local_space(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Local Space");
-    Ok((
-        specialist::build_local_space_context(jd, args.lat, args.lon, &args.date, v)?.into(),
-        specialist::render_local_space_svg,
-    ))
-}
-
-pub(crate) fn dispatch_rasi(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Rasi Chart (South Indian)");
-    Ok((
-        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?.into(),
-        render_south_indian_svg,
-    ))
-}
-
-pub(crate) fn dispatch_navamsa(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Navamsa D9 Chart");
-    Ok((
-        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Navamsa")?.into(),
-        vedic::render_navamsa_svg,
-    ))
-}
-
-pub(crate) fn dispatch_dasha(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Vimshottari Dasha Timeline");
-    Ok((
-        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Dasha")?.into(),
-        vedic::render_dasha_svg,
-    ))
-}
-
-pub(crate) fn dispatch_north_indian(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "North Indian Chart");
-    Ok((
-        vedic::build_vedic_context(jd, args.lat, args.lon, &args.date, v, "Rasi")?.into(),
-        vedic::render_north_indian_svg,
-    ))
-}
-
-pub(crate) fn dispatch_ashtakavarga(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Ashtakavarga");
-    Ok((
-        vedic::build_ashtakavarga_context(jd, args.lat, args.lon, &args.date, v)?.into(),
-        vedic::render_ashtakavarga_svg,
-    ))
-}
-
-pub(crate) fn dispatch_shadbala(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Shadbala");
-    Ok((
-        vedic::build_shadbala_context(jd, args.lat, args.lon, &args.date, v)?.into(),
-        vedic::render_shadbala_svg,
-    ))
-}
-
-pub(crate) fn dispatch_hellenistic(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Hellenistic Chart");
-    Ok((
-        hellenistic::build_hellenistic_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
-        hellenistic::render_hellenistic_svg,
-    ))
-}
-
-pub(crate) fn dispatch_firdaria(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Firdaria Timeline");
-    Ok((
-        hellenistic::build_firdaria_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
-        hellenistic::render_firdaria_svg,
-    ))
-}
-
-pub(crate) fn dispatch_bazi(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Four Pillars (八字)");
-    Ok((
-        chinese::build_bazi_context(jd, args.lat, args.lon, &args.date, v)?.into(),
-        chinese::render_bazi_svg,
-    ))
-}
-
-pub(crate) fn dispatch_mesoamerican(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Mesoamerican Calendars");
-    Ok((
-        mesoamerican::build_mesoamerican_context(jd, args.lat, args.lon, &args.date, v)?.into(),
-        mesoamerican::render_mesoamerican_svg,
-    ))
-}
-
-pub(crate) fn dispatch_medicine_wheel(
-    jd: f64,
-    args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let v = vars_with_title(user_vars, "Medicine Wheel / Egyptian Decans");
-    Ok((
-        indigenous::build_medicine_wheel_context(jd, args.lat, args.lon, &args.date, v)?.into(),
-        indigenous::render_medicine_wheel_svg,
-    ))
-}
-
-pub(crate) fn dispatch_wheel_of_year(
-    jd: f64,
-    _args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    Ok((
-        calendar_wheel::build_sabbat_wheel_context(jd, user_vars.clone())?.into(),
-        calendar_wheel::render_sabbat_wheel_svg,
-    ))
-}
-
-pub(crate) fn dispatch_omer_grid(
-    jd: f64,
-    _args: &RenderArgs,
-    user_vars: &BTreeMap<String, String>,
-) -> Result<(ChartContext, ChartRenderer), CliError> {
-    Ok((
-        omer_grid::build_omer_grid_context(jd, user_vars.clone())?.into(),
-        omer_grid::render_omer_grid_svg,
-    ))
-}
+specialist_dispatch!(dispatch_dial, "90° Midpoint Dial",
+    hsys specialist::build_dial_context => specialist::render_dial_svg);
+specialist_dispatch!(dispatch_local_space, "Local Space",
+    specialist::build_local_space_context => specialist::render_local_space_svg);
+specialist_dispatch!(dispatch_rasi, "Rasi Chart (South Indian)",
+    vedic "Rasi" => render_south_indian_svg);
+specialist_dispatch!(dispatch_navamsa, "Navamsa D9 Chart",
+    vedic "Navamsa" => vedic::render_navamsa_svg);
+specialist_dispatch!(dispatch_dasha, "Vimshottari Dasha Timeline",
+    vedic "Dasha" => vedic::render_dasha_svg);
+specialist_dispatch!(dispatch_north_indian, "North Indian Chart",
+    vedic "Rasi" => vedic::render_north_indian_svg);
+specialist_dispatch!(dispatch_ashtakavarga, "Ashtakavarga",
+    vedic::build_ashtakavarga_context => vedic::render_ashtakavarga_svg);
+specialist_dispatch!(dispatch_shadbala, "Shadbala",
+    vedic::build_shadbala_context => vedic::render_shadbala_svg);
+specialist_dispatch!(dispatch_hellenistic, "Hellenistic Chart",
+    hsys hellenistic::build_hellenistic_context => hellenistic::render_hellenistic_svg);
+specialist_dispatch!(dispatch_firdaria, "Firdaria Timeline",
+    hsys hellenistic::build_firdaria_context => hellenistic::render_firdaria_svg);
+specialist_dispatch!(dispatch_bazi, "Four Pillars (八字)",
+    chinese::build_bazi_context => chinese::render_bazi_svg);
+specialist_dispatch!(dispatch_mesoamerican, "Mesoamerican Calendars",
+    mesoamerican::build_mesoamerican_context => mesoamerican::render_mesoamerican_svg);
+specialist_dispatch!(dispatch_medicine_wheel, "Medicine Wheel / Egyptian Decans",
+    indigenous::build_medicine_wheel_context => indigenous::render_medicine_wheel_svg);
+specialist_dispatch!(dispatch_wheel_of_year,
+    novars calendar_wheel::build_sabbat_wheel_context => calendar_wheel::render_sabbat_wheel_svg);
+specialist_dispatch!(dispatch_omer_grid,
+    novars omer_grid::build_omer_grid_context => omer_grid::render_omer_grid_svg);
 
 pub(crate) fn dispatch_calendar(
     jd: f64,
