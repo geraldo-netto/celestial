@@ -15,7 +15,13 @@ use celestial_core::{
 use std::str::FromStr;
 
 /// The single error type for every argument parser.
+///
+/// `#[non_exhaustive]` (NV-1): new parse-failure variants can be added
+/// without breaking external matchers (the bindings or downstream
+/// crates) — they must keep a `_` arm. Within this crate exhaustive
+/// matching still works.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum ParseError {
     /// Malformed date / Julian-day specifier.
     #[error("{0}")]

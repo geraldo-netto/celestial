@@ -17,7 +17,12 @@
 //! `Display` string.
 
 /// All errors surfaced by the `celestial` CLI.
+///
+/// `#[non_exhaustive]` (NV-1): future error categories can be added
+/// without breaking external matchers; `main` only ever needs the
+/// `Display` string. Within-crate exhaustive matching still works.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum CliError {
     /// Invalid command-line argument or value.
     #[error("{0}")]
