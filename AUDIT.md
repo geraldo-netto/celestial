@@ -104,7 +104,7 @@ regression-tested; `syn` build-cost not warranted until binding churn.
 
 | id | target | status |
 |---|---|---|
-| DP-1 | registry macro/table over `dispatch_*` | **RE-SCOPED.** The heterogeneous ~12 (`dispatch_solar_return`/`_lunar_return`/`_progressed`/`_solar_arc`/`_biwheel`/`_triwheel`/`_composite`/`_profection` — distinct return-jd / `--years` / date2 logic) stay **DISMISSED** (a macro there is closure indirection over a clear hot-path adapter). But a homogeneous ~15-fn cluster has emerged — `dispatch_{dial,local_space,rasi,navamsa,dasha,north_indian,ashtakavarga,shadbala,hellenistic,firdaria,bazi,mesoamerican,medicine_wheel}` (registry.rs:237-381, +`wheel_of_year`/`omer_grid`) — each an identical 10-line `vars_with_title → builder → renderer` shape where only (title literal, builder fn, renderer fn) vary. → **DP-1b OPEN** (narrow): one declarative table row per specialist; underlying `build_*_context` stay heterogeneous (dup is purely the wrapper layer; byte-safe — no compute change) |
+| DP-1 | registry macro/table over `dispatch_*` | DISMISSED — the heterogeneous ~12 (`dispatch_solar_return`/`_lunar_return`/`_progressed`/`_solar_arc`/`_biwheel`/`_triwheel`/`_composite`/`_ephemeris`/`_profection` — distinct return-jd / `--years` / date2 logic) stay hand-written; a macro there is closure indirection over a clear hot-path adapter. (The 15 *uniform* dispatchers — DP-1b — were collapsed into the `specialist_dispatch!` macro `059434f`; removed per the completed-work policy) |
 | DP-2 | `JulianDay`/`Latitude`/… unit newtypes | DEFERRED — payoff needs threading through `calc_ut`/`houses_ex` = core-API rewrite on the precision path. Parse-layer newtypes already shipped (`7bfa598`) |
 | DP-4 | binding codegen | DEFERRED — = ARCH-10/DUP-1 |
 | DP-6 | SVG → MiniJinja templates | DEFERRED — the template half **conflicts with the byte-identical precision gate** (changes whitespace/layout); the `Palette` half is already realized (`SvgPalette`/`palette_vars`) |
@@ -137,9 +137,7 @@ with hot paths regression-locked. 86 property suites + 21 cli_smoke +
    `builtin_svg.rs:179`). Only OPEN finding with security impact;
    byte-safe.
 2. **TEST-3 (OPEN):** add a CI coverage floor (product is ≥80%/file,
-   ~95% overall — lock it in). Optionally **DP-1b** (declarative
-   dispatch table for the ~15 uniform specialists — mechanical,
-   byte-safe).
+   ~95% overall — lock it in).
 3. **Deferred isolated efforts (own session + precision soak each):**
    ARCH-7 lib.rs de-glob · ARCH-8 render helper extraction ·
    ARCH-10/DP-4/DUP-1 binding codegen · DP-2 unit newtypes ·
