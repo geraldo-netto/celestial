@@ -90,8 +90,8 @@ render tree. `core::Error` is `#[non_exhaustive]`.
 ## 7. Test coverage
 
 `cargo llvm-cov` 0.8.5, product code only (excludes `fuzz/` 0%-by-design
-and `xtask/` tooling). Total **74.6% region / 74.2% line**;
-~1278 tests (237 core-lib + 145 cli-lib + 20 integration files). Test
+and `xtask/` tooling). Total **78.8% region / 78.3% line**;
+~1327 tests (237 core-lib + 194 cli-lib + 20 integration files). Test
 suite is flake-free (TEST-1 — plugin `$PATH` race — fixed `d9b7b79`).
 
 Core engine is strong (80–99% per module; time 99%, panchanga 99.6%,
@@ -99,11 +99,14 @@ utils 99%, houses 97%); precision paths additionally regression-locked.
 
 | area | region | note |
 |---|---|---|
-| `bindings/{js,python}/src/lib.rs` | 0% | exercised only by the JS/Python language harnesses — `llvm-cov` can't instrument them |
-| `cli/src/cmd/render/{config 11%,registry 29%,pipeline 66%}`, `error.rs 33%`, `calendar.rs 37%`, `parse.rs 68%`, `format.rs 69%` | 11–69% | CLI orchestration — the main remaining test-debt (the 5 calc/eclipse/houses/omer/sabbats wrappers are now 77–97%) |
+| `bindings/{js,python}/src/lib.rs` | 0% | exercised only by the JS/Python language harnesses — `llvm-cov` can't instrument them. The only remaining sub-80% product area |
 | `core/src/functions/{searches,phenomena,vedic,esbats,eclipses}.rs` | 81–89% | rare-edge branches; hot paths regression-locked |
 
-No CI coverage gate.
+All CLI command + render-orchestration modules previously flagged
+(config/registry/pipeline/error/calendar/parse/format, formerly
+11–69%) are now ≥80% region (format 100, parse 96, registry 93,
+config 92, pipeline 90, error 90, calendar 87) via in-process
+`run()`/`compute()` tests. No CI coverage gate.
 
 ---
 
@@ -111,9 +114,8 @@ No CI coverage gate.
 
 1. **OPEN, bounded, byte-safe:** NV-1 (`#[non_exhaustive]` on
    `ParseError`/`CliError`).
-2. **Test debt:** unit-cover the 11–37% CLI orchestration modules via
-   the `compute()` seam; raise `searches.rs` branch coverage; add a CI
-   coverage floor.
+2. **Test debt:** raise `searches.rs`/`phenomena.rs` rare-edge branch
+   coverage; add a CI coverage floor (CLI orchestration now ≥80%).
 3. **Deferred isolated efforts (own session + precision soak each):**
    ARCH-7 lib.rs de-glob · ARCH-8 render helper extraction ·
    ARCH-10/DP-4/DUP-1 binding codegen · DP-2 unit newtypes ·
