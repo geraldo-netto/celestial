@@ -11,6 +11,7 @@ use std::path::PathBuf;
 /// fails at parse time with the valid list, instead of being silently
 /// ignored deep in the overlay code.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+#[non_exhaustive] // NV-2: forward-stable across new calendar overlays
 pub enum CalendarKind {
     #[value(name = "gregorian")]
     Gregorian,

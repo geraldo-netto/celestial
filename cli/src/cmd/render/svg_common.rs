@@ -41,6 +41,10 @@ impl<'a> SvgPalette<'a> {
 /// the hand-written form used by the static-size renderers (no trailing
 /// newline — callers append their title/date lines directly).
 pub(super) fn svg_doc_open(w: u32, h: u32, bg: &str) -> String {
+    // SEC-9: `bg` is a user-controlled palette colour (--var/config);
+    // escape it as SEC-1 did for builtin_svg. Plain hex colours have no
+    // escapable chars → byte-identical output.
+    let bg = crate::format::xml_escape(bg);
     format!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
          <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {w} {h}\" \
@@ -65,6 +69,12 @@ pub(super) fn panel_card(
 ) {
     use std::fmt::Write;
     let cx = x + w / 2.0;
+    // SEC-9: stroke / heading_color are user-controlled palette colours
+    // and heading is rendered into <text>; escape all three (no-op for
+    // plain colours / tradition labels → byte-identical).
+    let stroke = crate::format::xml_escape(stroke);
+    let heading_color = crate::format::xml_escape(heading_color);
+    let heading = crate::format::xml_escape(heading);
     let _ = write!(
         s,
         "\n  <rect x=\"{x}\" y=\"{y}\" width=\"{w}\" height=\"{h}\" rx=\"6\" \
