@@ -71,7 +71,18 @@ core+ffi). Render submodules use proper `pub(crate)`/`pub(super)`; no
 over-exposed internals; no god-module besides the (already-split)
 render tree. All public error/value enums are `#[non_exhaustive]`
 (`core::Error`; `ParseError`/`CliError` NV-1 `038eb8a`; `CalendarKind`
-NV-2 `f857d98`). No over-exposed internals.
+NV-2 `f857d98`).
+
+Decoupling scan: the codebase is well-decoupled. DEC-1 (a real
+hidden-global-state leak — `panchanga()` left the process-global
+sidereal mode on Lahiri) is **fixed + regression-locked** (RAII
+restore, commit after this row). DEC-2 (the 29 renderers read
+`ctx["field"]` stringly) is DECLINED — typed contexts deliberately
+stop at the builder/serialize boundary; a field-enum across 29
+renderers is the DP-1/DP-6 net-negative dynamic, not byte-safe at
+scale. DEC-3 (renderer/builder fn-ptr → trait) = DP-1 (dismissed).
+DEC-4 (xtask line-scan → `syn` AST) DEFERRED — offline tooling, now
+regression-tested; `syn` build-cost not warranted until binding churn.
 
 | id | area | issue | status |
 |---|---|---|---|
