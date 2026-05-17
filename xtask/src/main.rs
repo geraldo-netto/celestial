@@ -1955,4 +1955,41 @@ pub struct RiseTrans {
         let structs = BTreeSet::new();
         assert_eq!(rust_type_to_ts_known("SomeStruct", &structs), "unknown");
     }
+
+    /// Regression: a `#[napi(object)]` struct followed by an
+    /// `impl From<…> for It { fn from(..) }` must NOT make the fn
+    /// scanner emit a bogus `from` export (the scanner used to walk
+    /// past the struct into the impl). A genuine `#[napi] pub fn`
+    /// nearby must still be captured.
+    #[test]
+    fn scan_skips_impl_from_after_napi_struct() {
+        let src = r#"
+#[napi(object)]
+pub struct PlanetPos {
+    pub lon: f64,
+}
+
+impl From<celestial::PlanetPos> for PlanetPos {
+    fn from(p: celestial::PlanetPos) -> Self {
+        PlanetPos { lon: p.lon }
+    }
+}
+
+/// real export
+#[napi]
+pub fn calc_ut(tjd: f64) -> f64 {
+    tjd
+}
+"#;
+        let fns = scan_decorated_fns(src, "napi");
+        let names: Vec<&str> = fns.iter().map(|e| e.name.as_str()).collect();
+        assert!(
+            !names.contains(&"from"),
+            "scanner must not emit impl-From `from` as an export, got {names:?}"
+        );
+        assert!(
+            names.contains(&"calc_ut"),
+            "a genuine #[napi] pub fn must still be captured, got {names:?}"
+        );
+    }
 }
