@@ -208,10 +208,12 @@ pub fn render_medicine_wheel_svg(ctx: &ChartContext) -> String {
         ctx, "#0a1a0a", "border_color", "#a0c040", "#d0e8a0",
     );
     let (bg, green, txt) = (pal.bg, pal.accent, pal.text);
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Medicine Wheel");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Medicine Wheel"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
     let totem = ctx["totem"].as_str().unwrap_or("?");
     let element = ctx["element"].as_str().unwrap_or("?");
@@ -223,12 +225,12 @@ pub fn render_medicine_wheel_svg(ctx: &ChartContext) -> String {
     let decan_idx = ctx["decan_idx"].as_u64().unwrap_or(0);
 
     let mut s = String::with_capacity(8 * 1024);
-    write_mw_header(&mut s, bg, green, txt, title, date);
+    write_mw_header(&mut s, &bg, &green, &txt, &title, date);
     write_mw_cardinals(&mut s);
     write_mw_totems(&mut s);
     write_mw_sun(&mut s, sun_lon);
-    write_mw_centre(&mut s, green, txt, totem, element, clan, season);
-    write_mw_decan(&mut s, txt, decan_idx, decan_name, decan_star);
+    write_mw_centre(&mut s, &green, &txt, totem, element, clan, season);
+    write_mw_decan(&mut s, &txt, decan_idx, decan_name, decan_star);
     let _ = writeln!(s, "</svg>");
     s
 }

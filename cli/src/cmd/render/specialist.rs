@@ -245,8 +245,8 @@ pub fn build_triwheel_context(
 pub fn render_triwheel_svg(ctx: &ChartContext) -> String {
     let mut s = render_builtin_svg(ctx);
 
-    let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
-    let retro_c = ctx["vars"]["retro_color"].as_str().unwrap_or("#b01020");
+    let ring = super::svg_common::esc_var(&ctx["vars"], "ring_color", "#1a1a2e");
+    let retro_c = super::svg_common::esc_var(&ctx["vars"], "retro_color", "#b01020");
 
     let ring2_col = "#0a6b3c"; // green for ring 2 (progressed)
     let ring3_col = "#6b0a3c"; // magenta for ring 3 (transits)
@@ -268,7 +268,7 @@ pub fn render_triwheel_svg(ctx: &ChartContext) -> String {
         let py = p["y"].as_f64().unwrap_or(0.0);
         let g = p["glyph"].as_str().unwrap_or("?");
         let ret = p["retro"].as_bool().unwrap_or(false);
-        let col = if ret { retro_c } else { ring2_col };
+        let col = if ret { retro_c.as_str() } else { ring2_col };
         let _ = writeln!(
             extra,
             r##"  <text x="{px:.2}" y="{py:.2}" font-size="12" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}" opacity=".85">{g}</text>"##
@@ -282,7 +282,7 @@ pub fn render_triwheel_svg(ctx: &ChartContext) -> String {
         let py = p["y"].as_f64().unwrap_or(0.0);
         let g = p["glyph"].as_str().unwrap_or("?");
         let ret = p["retro"].as_bool().unwrap_or(false);
-        let col = if ret { retro_c } else { ring3_col };
+        let col = if ret { retro_c.as_str() } else { ring3_col };
         let _ = writeln!(
             extra,
             r##"  <text x="{px:.2}" y="{py:.2}" font-size="11" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="{col}" opacity=".8">{g}</text>"##
@@ -396,9 +396,9 @@ const GE_SIGN_GLYPHS: [&str; 12] = [
 ];
 
 pub fn render_graphic_ephemeris_svg(ctx: &ChartContext) -> String {
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
-    let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
+    let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#fff");
+    let ring = super::svg_common::esc_var(&ctx["vars"], "ring_color", "#1a1a2e");
+    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#0d0d1e");
 
     let jd_start = ctx["jd_start"].as_f64().unwrap_or(0.0);
     let jd_end = ctx["jd_end"].as_f64().unwrap_or(0.0);
@@ -409,15 +409,17 @@ pub fn render_graphic_ephemeris_svg(ctx: &ChartContext) -> String {
         return String::new();
     }
 
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Graphic Ephemeris");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Graphic Ephemeris"),
+    );
 
     let mut s = String::with_capacity(64 * 1024);
     let total_h = GE_TM + GE_H + GE_BM + 40.0;
-    write_ge_header(&mut s, bg, txt, title, total_h);
-    write_ge_y_axis(&mut s, ring);
+    write_ge_header(&mut s, &bg, &txt, &title, total_h);
+    write_ge_y_axis(&mut s, &ring);
 
     let x_scale = GE_W / jd_span;
     let series = super::json_array(&ctx["planet_series"]);
@@ -425,7 +427,7 @@ pub fn render_graphic_ephemeris_svg(ctx: &ChartContext) -> String {
         write_ge_planet_series(&mut s, planet, pi, jd_points, jd_start, x_scale);
     }
 
-    write_ge_x_axis_labels(&mut s, ring, jd_start, jd_end, jd_span, x_scale);
+    write_ge_x_axis_labels(&mut s, &ring, jd_start, jd_end, jd_span, x_scale);
 
     let _ = writeln!(
         s,
@@ -748,28 +750,30 @@ fn write_ls_planet(s: &mut String, p: &Value, pfg: &str) {
 }
 
 pub fn render_local_space_svg(ctx: &ChartContext) -> String {
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
-    let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
-    let pfg = ctx["vars"]["planet_color"].as_str().unwrap_or("#0d0d1e");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Local Space");
+    let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#fff");
+    let ring = super::svg_common::esc_var(&ctx["vars"], "ring_color", "#1a1a2e");
+    let pfg = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#0d0d1e");
+    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#0d0d1e");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Local Space"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
     let lat = ctx["lat"].as_f64().unwrap_or(0.0);
     let lon_v = ctx["lon"].as_f64().unwrap_or(0.0);
 
     let mut s = String::with_capacity(32 * 1024);
-    write_ls_header(&mut s, bg, ring, txt, title, date, lat, lon_v);
-    write_ls_concentric_rings(&mut s, ring);
-    write_ls_cardinals(&mut s, ring);
+    write_ls_header(&mut s, &bg, &ring, &txt, &title, date, lat, lon_v);
+    write_ls_concentric_rings(&mut s, &ring);
+    write_ls_cardinals(&mut s, &ring);
     for deg in (0..360u32).step_by(10) {
-        write_ls_degree_tick(&mut s, ring, deg);
+        write_ls_degree_tick(&mut s, &ring, deg);
     }
     let planets = super::json_array(&ctx["planets"]);
     for p in planets {
-        write_ls_planet(&mut s, p, pfg);
+        write_ls_planet(&mut s, p, &pfg);
     }
     let _ = writeln!(s, "</svg>");
     s
@@ -778,13 +782,15 @@ pub fn render_local_space_svg(ctx: &ChartContext) -> String {
 /// Render a 90° midpoint dial SVG.
 pub fn render_dial_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
-    let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("90° Dial");
+    let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#fff");
+    let ring = super::svg_common::esc_var(&ctx["vars"], "ring_color", "#1a1a2e");
+    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#0d0d1e");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("90° Dial"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
     let planets = super::json_array(&ctx["planets"]);
 

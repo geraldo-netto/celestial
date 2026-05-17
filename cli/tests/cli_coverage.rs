@@ -219,6 +219,42 @@ fn render_mesoamerican_svg() {
     let _ = std::fs::remove_file(&out);
 }
 
+// ─── SEC-10: user `--var` title/colors must be XML-escaped ────────────────────
+
+#[test]
+fn render_specialist_var_injection_escaped() {
+    let mut out = std::env::temp_dir();
+    out.push("celestial_sec10_test.svg");
+    celestial()
+        .args([
+            "render",
+            "--chart-type",
+            "maya",
+            "--date",
+            "2025-03-20 12:00",
+            "--lat=19.43",
+            "--lon=-99.13",
+            "--tz=-06:00",
+            "--var",
+            "title=</text><script>alert(1)</script>",
+            "--out",
+            out.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+    let svg = std::fs::read_to_string(&out).expect("svg written");
+    let _ = std::fs::remove_file(&out);
+    // The raw injection must NOT appear; the escaped form must.
+    assert!(
+        !svg.contains("<script>alert(1)</script>"),
+        "SEC-10: unescaped injection reached SVG"
+    );
+    assert!(
+        svg.contains("&lt;script&gt;"),
+        "SEC-10: title not XML-escaped"
+    );
+}
+
 // ─── main.rs: top-level error / exit paths ────────────────────────────────────
 
 #[test]

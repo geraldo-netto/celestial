@@ -101,10 +101,12 @@ pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
         ctx, "#1a0a00", "border_color", "#d4a800", "#f0e0c0",
     );
     let (bg, gold, txt) = (pal.bg, pal.accent, pal.text);
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Mesoamerican");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Mesoamerican"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
 
     // Day sign glyphs (simple text representations)
@@ -120,7 +122,7 @@ pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
     let cr_hmonth = ctx["cr_haab_month"].as_str().unwrap_or("?");
     let sign_idx = ctx["tonal_sign_idx"].as_u64().unwrap_or(0);
 
-    let mut s = super::svg_common::svg_doc_open(700, 580, bg);
+    let mut s = super::svg_common::svg_doc_open(700, 580, &bg);
     s.reserve(8 * 1024);
     let _ = writeln!(
         s,
@@ -134,8 +136,8 @@ pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
     // Tonalpohualli panel (left)
     s.push_str("\n  <!-- Aztec Tonalpohualli -->");
     super::svg_common::panel_card(
-        &mut s, 20.0, 65.0, 310.0, 130.0, gold, ".6",
-        "Tonalpohualli (Aztec 260-day)", gold,
+        &mut s, 20.0, 65.0, 310.0, 130.0, &gold, ".6",
+        "Tonalpohualli (Aztec 260-day)", &gold,
     );
     let _ = writeln!(
         s,
@@ -154,8 +156,8 @@ pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
     // Xiuhpohualli panel (right)
     s.push_str("\n  <!-- Aztec Xiuhpohualli -->");
     super::svg_common::panel_card(
-        &mut s, 370.0, 65.0, 310.0, 130.0, gold, ".6",
-        "Xiuhpohualli (Aztec 365-day)", gold,
+        &mut s, 370.0, 65.0, 310.0, 130.0, &gold, ".6",
+        "Xiuhpohualli (Aztec 365-day)", &gold,
     );
     let _ = writeln!(
         s,
@@ -175,8 +177,8 @@ pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
     // Calendar Round (bottom centre)
     s.push_str("\n  <!-- Calendar Round (52-year cycle) -->");
     super::svg_common::panel_card(
-        &mut s, 150.0, 365.0, 400.0, 80.0, gold, ".5",
-        "Calendar Round (52-year cycle)", gold,
+        &mut s, 150.0, 365.0, 400.0, 80.0, &gold, ".5",
+        "Calendar Round (52-year cycle)", &gold,
     );
     let _ = writeln!(
         s,

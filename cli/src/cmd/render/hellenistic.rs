@@ -174,17 +174,17 @@ pub fn render_hellenistic_svg(ctx: &ChartContext) -> String {
     // We add an extra dignities legend section below the normal wheel.
     let mut s = render_builtin_svg(ctx);
 
-    let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
+    let ring = super::svg_common::esc_var(&ctx["vars"], "ring_color", "#1a1a2e");
+    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#0d0d1e");
     let is_day = ctx["is_day"].as_bool().unwrap_or(true);
 
     let planets = super::json_array(&ctx["planets"]);
 
     let ly = CY + RO + 260.0;
     let mut extra = String::new();
-    write_hell_table_header(&mut extra, ring, is_day, ly);
+    write_hell_table_header(&mut extra, &ring, is_day, ly);
     for (i, p) in planets.iter().enumerate() {
-        write_hell_planet_row(&mut extra, p, ly + 26.0 + i as f64 * 15.0, txt);
+        write_hell_planet_row(&mut extra, p, ly + 26.0 + i as f64 * 15.0, &txt);
     }
 
     if let Some(idx) = s.rfind("</svg>") {
@@ -248,13 +248,15 @@ pub fn build_firdaria_context(
 
 pub fn render_firdaria_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#fff");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
-    let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#1a1a2e");
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Firdaria");
+    let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#fff");
+    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#0d0d1e");
+    let ring = super::svg_common::esc_var(&ctx["vars"], "ring_color", "#1a1a2e");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Firdaria"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
     let is_day = ctx["is_day"].as_bool().unwrap_or(true);
     let jd_birth = ctx["jd"].as_f64().unwrap_or(0.0);
@@ -337,7 +339,7 @@ pub fn render_firdaria_svg(ctx: &ChartContext) -> String {
             jd_start,
             jd_end,
             span,
-            ring,
+            &ring,
             FIRD_COLORS,
             prev_major,
             (LM, TM, W, BH, BG),
@@ -454,7 +456,7 @@ pub fn render_profection_svg(ctx: &ChartContext) -> String {
     // Start from the natal wheel, add a profection marker
     let mut s = render_builtin_svg(ctx);
 
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#0d0d1e");
+    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#0d0d1e");
     let prof_house = ctx["profection_house"].as_u64().unwrap_or(1);
     let prof_lon = ctx["profection_lon"].as_f64().unwrap_or(0.0);
     let prof_lord = ctx["profection_lord"].as_str().unwrap_or("?");

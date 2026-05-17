@@ -13,9 +13,9 @@ kept so a rescan doesn't re-flag).
 | DEFERRED | real; needs an isolated session + precision soak |
 | DECIDED | WONTFIX / DECLINED / N-A with rationale |
 
-> This rescan opened **SEC-10 (HIGH)** — SVG injection in the
-> specialist/calendar renderers (the SEC-1/SEC-9 escaping never reached
-> them). It is the only OPEN code finding. See §4.
+> No OPEN code findings. SEC-10 (SVG injection in specialist
+> renderers) was found and **fixed this cycle** — removed per the
+> completed-work policy. Only TEST-3 (CI coverage gate) remains OPEN.
 
 ---
 
@@ -63,15 +63,16 @@ byte-identical to the 1986-05-30 PDF reference and the Diana
 
 ## 4. Security
 
-`unsafe`-free in core/cli/bindings/ffi source; FFI sound
+Clean. `unsafe`-free in core/cli/bindings/ffi source; FFI sound
 (napi/pyo3/ext-php-rs); `plugin.rs` execs via arg array (no shell);
 `cargo audit` clean (90 deps, 0 advisories; toml 0.8.23, minijinja
-2.19.0). SEC-1..SEC-9 fixed in prior cycles (removed per the
-completed-work policy). One OPEN finding this rescan:
-
-| id | sev | issue | status |
-|---|---|---|---|
-| SEC-10 | HIGH | SVG injection in specialist/calendar renderers. SEC-1/SEC-9 escaping only ever covered `builtin_svg.rs` + `svg_common.rs`. User-controlled `ctx["vars"]["title"]` and palette colors (from `--var KEY=VALUE` / config `[vars]`) are written **raw** into SVG `<text>` bodies and `fill="…"` attributes — no `xml_escape` — in `calendar_wheel.rs:130`, `vedic.rs:64,264,532,862`, `omer_grid.rs:189`, `hellenistic.rs:177,251`, `chinese.rs`, `mesoamerican.rs`, `indigenous.rs`, `calendar_overlays.rs`, `specialist.rs`. `--var title='</text><script>…'` or `text_color='#000" onload="…'` breaks out. Stored-XSS when SVGs are generated from untrusted vars and served; self-XSS if always local. `config.rs` already treats config `vars` as untrusted (the SEC-5 rationale) → rated HIGH | **OPEN** — bounded: wrap each user-controlled `vars` string in `format::xml_escape` before interpolation (mirror `builtin_svg.rs:179`), or route specialists through a shared escaped-title helper / `svg_common`. byte-safe (escaping only changes attacker input) |
+2.19.0). SEC-1..SEC-10 all fixed (removed per the completed-work
+policy). SEC-10 (this cycle): the SEC-1/SEC-9 SVG escaping never
+reached the 9 specialist/calendar renderers — fixed by escaping every
+user-controlled `ctx["vars"]` title/colour at the read boundary
+(`svg_common::esc_var` + escaped `SvgPalette`/`CalendarPalette`),
+byte-identical for non-malicious input, regression-locked
+(`cli_coverage::render_specialist_var_injection_escaped`).
 
 ## 5. Architecture / modularity / visibility
 
@@ -132,13 +133,9 @@ with hot paths regression-locked. 86 property suites + 21 cli_smoke +
 
 ## Recommended next
 
-1. **SEC-10 (HIGH, OPEN)** — escape user-controlled `vars`
-   title/colors in the ~9 specialist/calendar renderers (mirror
-   `builtin_svg.rs:179`). Only OPEN finding with security impact;
-   byte-safe.
-2. **TEST-3 (OPEN):** add a CI coverage floor (product is ≥80%/file,
-   ~95% overall — lock it in).
-3. **Deferred isolated efforts (own session + precision soak each):**
+1. **TEST-3 (OPEN):** add a CI coverage floor (product is ≥80%/file,
+   ~95% overall — lock it in). The only OPEN finding.
+2. **Deferred isolated efforts (own session + precision soak each):**
    ARCH-7 lib.rs de-glob · ARCH-8 render helper extraction ·
    ARCH-10/DP-4/DUP-1 binding codegen · DP-2 unit newtypes ·
    DP-6 SVG templates · PERF-1 analytic VSOP derivative.

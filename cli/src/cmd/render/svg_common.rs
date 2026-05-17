@@ -8,30 +8,39 @@
 
 use serde_json::Value;
 
-/// Background / accent / text colours pulled from `ctx["vars"]`, each
-/// with a per-tradition default. Replaces the repeated trio of
-/// `ctx["vars"]["…"].as_str().unwrap_or("…")` lookups.
-pub(super) struct SvgPalette<'a> {
-    pub bg: &'a str,
-    pub accent: &'a str,
-    pub text: &'a str,
+/// Read one `ctx["vars"]` colour/title string and XML-escape it
+/// (SEC-10: user-controlled `--var`/config values flow into SVG text
+/// and attributes in every specialist renderer; the SEC-1/SEC-9 fix
+/// never reached them). Plain hex colours and default titles have no
+/// escapable chars → byte-identical output for non-malicious input.
+pub(super) fn esc_var(vars: &Value, key: &str, default: &str) -> String {
+    crate::format::xml_escape(vars[key].as_str().unwrap_or(default))
 }
 
-impl<'a> SvgPalette<'a> {
+/// Background / accent / text colours pulled from `ctx["vars"]`, each
+/// with a per-tradition default, XML-escaped at the boundary (SEC-10).
+/// Replaces the repeated trio of `ctx["vars"]["…"].as_str()` lookups.
+pub(super) struct SvgPalette {
+    pub bg: String,
+    pub accent: String,
+    pub text: String,
+}
+
+impl SvgPalette {
     /// `accent_var` is the var key the tradition uses for its accent
     /// colour (`"border_color"` or `"accent_color"`).
     pub fn from_ctx(
-        ctx: &'a Value,
-        bg_default: &'a str,
+        ctx: &Value,
+        bg_default: &str,
         accent_var: &str,
-        accent_default: &'a str,
-        text_default: &'a str,
+        accent_default: &str,
+        text_default: &str,
     ) -> Self {
         let v = &ctx["vars"];
         SvgPalette {
-            bg: v["bg_color"].as_str().unwrap_or(bg_default),
-            accent: v[accent_var].as_str().unwrap_or(accent_default),
-            text: v["text_color"].as_str().unwrap_or(text_default),
+            bg: esc_var(v, "bg_color", bg_default),
+            accent: esc_var(v, accent_var, accent_default),
+            text: esc_var(v, "text_color", text_default),
         }
     }
 }

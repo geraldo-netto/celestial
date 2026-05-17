@@ -186,12 +186,13 @@ struct OmerGridContext {
 pub fn render_omer_grid_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#222");
-    let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#888");
-    let header = ctx["vars"]["header_color"].as_str().unwrap_or("#5c4a8a");
-    let lag = ctx["vars"]["lag_color"].as_str().unwrap_or("#c87f32");
-    let title = ctx["vars"]["title"].as_str().unwrap_or("Sefirat HaOmer");
+    let vars = &ctx["vars"];
+    let bg = super::svg_common::esc_var(vars, "bg_color", "#ffffff");
+    let txt = super::svg_common::esc_var(vars, "text_color", "#222");
+    let ring = super::svg_common::esc_var(vars, "ring_color", "#888");
+    let header = super::svg_common::esc_var(vars, "header_color", "#5c4a8a");
+    let lag = super::svg_common::esc_var(vars, "lag_color", "#c87f32");
+    let title = super::svg_common::esc_var(vars, "title", "Sefirat HaOmer");
 
     let vw = ctx["viewbox_w"].as_f64().unwrap_or(900.0);
     let vh = ctx["viewbox_h"].as_f64().unwrap_or(800.0);
@@ -251,7 +252,15 @@ pub fn render_omer_grid_svg(ctx: &ChartContext) -> String {
     // Cells
     if let Some(cells) = ctx["cells"].as_array() {
         for c in cells {
-            render_omer_cell(&mut s, c, OmerCellPalette { txt, ring, lag });
+            render_omer_cell(
+                &mut s,
+                c,
+                OmerCellPalette {
+                    txt: &txt,
+                    ring: &ring,
+                    lag: &lag,
+                },
+            );
         }
     }
 

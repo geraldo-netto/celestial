@@ -111,18 +111,19 @@ struct SabbatWheelContext {
 pub fn render_sabbat_wheel_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#222");
-    let ring = ctx["vars"]["ring_color"].as_str().unwrap_or("#888");
-    let quarter = ctx["vars"]["quarter_color"].as_str().unwrap_or("#b8860b");
-    let cross = ctx["vars"]["cross_color"].as_str().unwrap_or("#3d6b35");
-    let title = ctx["vars"]["title"].as_str().unwrap_or("Wheel of the Year");
+    let vars = &ctx["vars"];
+    let bg = super::svg_common::esc_var(vars, "bg_color", "#ffffff");
+    let txt = super::svg_common::esc_var(vars, "text_color", "#222");
+    let ring = super::svg_common::esc_var(vars, "ring_color", "#888");
+    let quarter = super::svg_common::esc_var(vars, "quarter_color", "#b8860b");
+    let cross = super::svg_common::esc_var(vars, "cross_color", "#3d6b35");
+    let title = super::svg_common::esc_var(vars, "title", "Wheel of the Year");
     let year = ctx["year"].as_i64().unwrap_or(0);
 
     let mut s = String::with_capacity(4096);
 
     // Header
-    s.push_str(&super::svg_common::svg_doc_open(900, 800, bg));
+    s.push_str(&super::svg_common::svg_doc_open(900, 800, &bg));
     let _ = write!(
         s,
         r#"
@@ -163,7 +164,7 @@ pub fn render_sabbat_wheel_svg(ctx: &ChartContext) -> String {
             let name = sb["name"].as_str().unwrap_or("?");
             let date = sb["date"].as_str().unwrap_or("");
             let is_quarter = sb["is_quarter_day"].as_bool().unwrap_or(false);
-            let colour = if is_quarter { quarter } else { cross };
+            let colour = if is_quarter { &quarter } else { &cross };
 
             let tx1 = sb["tick_x1"].as_f64().unwrap_or(0.0);
             let ty1 = sb["tick_y1"].as_f64().unwrap_or(0.0);

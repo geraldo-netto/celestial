@@ -506,7 +506,7 @@ pub fn annotate_gregorian_with_hebrew(gregorian: &mut Value, hebrew: &Value) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Render one day cell into the calendar SVG buffer.
-fn render_day_cell(s: &mut String, d: &Value, palette: &CalendarPalette<'_>) {
+fn render_day_cell(s: &mut String, d: &Value, palette: &CalendarPalette) {
     use std::fmt::Write;
 
     let x = d["cell_x"].as_f64().unwrap_or(0.0);
@@ -562,9 +562,9 @@ fn render_day_cell(s: &mut String, d: &Value, palette: &CalendarPalette<'_>) {
         let cx = x + w * 0.5;
         let cy = y + h - 22.0;
         let (badge, omer_color) = if is_lag {
-            (format!("Day {om} ★"), palette.lag)
+            (format!("Day {om} ★"), &palette.lag)
         } else {
-            (format!("Day {om}"), palette.accent)
+            (format!("Day {om}"), &palette.accent)
         };
         let _ = writeln!(
             s,
@@ -605,7 +605,7 @@ fn render_day_cell(s: &mut String, d: &Value, palette: &CalendarPalette<'_>) {
 }
 
 /// Helper for [`render_default_calendar_svg`]: render the bottom legend.
-fn render_legend(s: &mut String, ctx: &Value, palette: &CalendarPalette<'_>, gx: f64, vh: f64) {
+fn render_legend(s: &mut String, ctx: &Value, palette: &CalendarPalette, gx: f64, vh: f64) {
     use std::fmt::Write;
     let mut legend_parts = Vec::new();
     if !ctx["omer"].is_null() {
@@ -645,28 +645,29 @@ fn render_legend(s: &mut String, ctx: &Value, palette: &CalendarPalette<'_>, gx:
 
 /// Bundles the colour palette extracted from `ctx["vars"]` so we don't need to
 /// re-look-up each colour in every helper.
-struct CalendarPalette<'a> {
-    bg: &'a str,
-    txt: &'a str,
-    ring: &'a str,
-    accent: &'a str,
-    lag: &'a str,
-    sabbat: &'a str,
-    moon: &'a str,
-    title: &'a str,
+struct CalendarPalette {
+    bg: String,
+    txt: String,
+    ring: String,
+    accent: String,
+    lag: String,
+    sabbat: String,
+    moon: String,
+    title: String,
 }
 
-impl<'a> CalendarPalette<'a> {
-    fn from_ctx(ctx: &'a Value) -> Self {
+impl CalendarPalette {
+    fn from_ctx(ctx: &Value) -> Self {
+        let v = &ctx["vars"];
         Self {
-            bg: ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff"),
-            txt: ctx["vars"]["text_color"].as_str().unwrap_or("#222"),
-            ring: ctx["vars"]["ring_color"].as_str().unwrap_or("#888"),
-            accent: ctx["vars"]["accent_color"].as_str().unwrap_or("#5c4a8a"),
-            lag: ctx["vars"]["lag_color"].as_str().unwrap_or("#c87f32"),
-            sabbat: ctx["vars"]["sabbat_color"].as_str().unwrap_or("#3d6b35"),
-            moon: ctx["vars"]["moon_color"].as_str().unwrap_or("#3a4a6a"),
-            title: ctx["vars"]["title"].as_str().unwrap_or("Calendar"),
+            bg: super::svg_common::esc_var(v, "bg_color", "#ffffff"),
+            txt: super::svg_common::esc_var(v, "text_color", "#222"),
+            ring: super::svg_common::esc_var(v, "ring_color", "#888"),
+            accent: super::svg_common::esc_var(v, "accent_color", "#5c4a8a"),
+            lag: super::svg_common::esc_var(v, "lag_color", "#c87f32"),
+            sabbat: super::svg_common::esc_var(v, "sabbat_color", "#3d6b35"),
+            moon: super::svg_common::esc_var(v, "moon_color", "#3a4a6a"),
+            title: super::svg_common::esc_var(v, "title", "Calendar"),
         }
     }
 }

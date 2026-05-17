@@ -22,13 +22,15 @@ pub fn render_north_indian_svg(ctx: &ChartContext) -> String {
         ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
     );
     let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
-    let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
-    let retro = ctx["vars"]["retro_color"].as_str().unwrap_or("#a01030");
-    let _asc_c = ctx["vars"]["asc_color"].as_str().unwrap_or("#006030");
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("North Indian Chart");
+    let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#1a3a7a");
+    let retro = super::svg_common::esc_var(&ctx["vars"], "retro_color", "#a01030");
+    let _asc_c = super::svg_common::esc_var(&ctx["vars"], "asc_color", "#006030");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("North Indian Chart"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
 
     // North Indian: house 1 = ASC sign; house numbers rotate from ASC.
@@ -109,7 +111,7 @@ pub fn render_north_indian_svg(ctx: &ChartContext) -> String {
         let is_lagna = house0 == lagna_rasi;
 
         // House number label
-        let col = if is_lagna { _asc_c } else { border };
+        let col = if is_lagna { &_asc_c } else { &border };
         let _ = writeln!(
             s,
             r##"  <text x="{cx:.1}" y="{:.1}" font-size="9" font-weight="600" text-anchor="middle" fill="{col}" opacity=".8">{house_num}</text>"##,
@@ -129,7 +131,7 @@ pub fn render_north_indian_svg(ctx: &ChartContext) -> String {
         for (pi, plbl) in planets_here.iter().enumerate() {
             let py = cy + 16.0 + pi as f64 * 12.0;
             let is_r = plbl.contains('℞');
-            let c = if is_r { retro } else { pcol };
+            let c = if is_r { &retro } else { &pcol };
             let _ = writeln!(
                 s,
                 r##"  <text x="{cx:.1}" y="{py:.1}" font-size="9" text-anchor="middle" font-family="serif" fill="{c}">{plbl}</text>"##
@@ -362,11 +364,13 @@ pub fn render_ashtakavarga_svg(ctx: &ChartContext) -> String {
         ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
     );
     let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
-    let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Ashtakavarga");
+    let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#1a3a7a");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Ashtakavarga"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
 
     let rows = super::json_array(&ctx["ashtakavarga_rows"]);
@@ -377,14 +381,14 @@ pub fn render_ashtakavarga_svg(ctx: &ChartContext) -> String {
     let total_w = AV_LM + 12.0 * AV_CW + 20.0;
 
     let mut s = String::with_capacity(8 * 1024);
-    write_av_header(&mut s, bg, txt, title, date, total_w, total_h);
-    write_av_column_headers(&mut s, txt);
-    write_av_grid_lines(&mut s, border, n_rows);
+    write_av_header(&mut s, &bg, &txt, &title, date, total_w, total_h);
+    write_av_column_headers(&mut s, &txt);
+    write_av_grid_lines(&mut s, &border, n_rows);
     for (ri, row) in rows.iter().enumerate() {
-        write_av_planet_row(&mut s, row, ri, border, pcol, txt);
+        write_av_planet_row(&mut s, row, ri, &border, &pcol, &txt);
     }
     let ty = AV_TM + rows.len() as f64 * AV_RH;
-    write_av_totals_row(&mut s, totals, ty, border, txt);
+    write_av_totals_row(&mut s, totals, ty, &border, &txt);
     let _ = writeln!(s, "</svg>");
     s
 }
@@ -499,11 +503,13 @@ pub fn render_shadbala_svg(ctx: &ChartContext) -> String {
         ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
     );
     let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
-    let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Shadbala");
+    let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#1a3a7a");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Shadbala"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
 
     const COLS: &[(&str, f64)] = &[
@@ -575,9 +581,9 @@ pub fn render_shadbala_svg(ctx: &ChartContext) -> String {
                 tm: TM,
                 rh: RH,
                 cx,
-                pcol,
-                border,
-                txt,
+                pcol: &pcol,
+                border: &border,
+                txt: &txt,
                 cols: COLS,
             },
         );
@@ -808,13 +814,15 @@ pub fn render_navamsa_svg(ctx: &ChartContext) -> String {
 }
 
 pub fn render_dasha_svg(ctx: &ChartContext) -> String {
-    let bg = ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff");
-    let txt = ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00");
-    let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a");
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Dasha Timeline");
+    let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#ffffff");
+    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#2a1a00");
+    let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#1a3a7a");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Dasha Timeline"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
     let jd_birth = ctx["jd"].as_f64().unwrap_or(0.0);
 
@@ -901,7 +909,7 @@ pub fn render_dasha_svg(ctx: &ChartContext) -> String {
         let col = DASHA_COLORS
             .iter()
             .find(|(n, _)| *n == body)
-            .map_or(pcol, |(_, c)| *c);
+            .map_or(pcol.as_str(), |(_, c)| *c);
         let _ = writeln!(
             s,
             r##"  <rect x="{bx:.1}" y="{by:.1}" width="{bw:.1}" height="{BH}" rx="4" fill="{col}" opacity=".75"/>

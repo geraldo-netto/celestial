@@ -262,11 +262,13 @@ pub fn render_bazi_svg(ctx: &ChartContext) -> String {
         ctx, "#ffffff", "border_color", "#8b0000", "#1a0a00",
     );
     let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
-    let pcol = ctx["vars"]["planet_color"].as_str().unwrap_or("#2a1a60");
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Ba Zi");
+    let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#2a1a60");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Ba Zi"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
 
     let pillars = super::json_array(&ctx["pillars"]);
@@ -279,13 +281,17 @@ pub fn render_bazi_svg(ctx: &ChartContext) -> String {
     let total_w = 4.0_f64.mul_add(BAZI_CW, BAZI_OX * 2.0);
     let total_h = BAZI_OY + BAZI_CH + 200.0;
 
-    let pal = BaziPalette { bg, txt, border };
+    let pal = BaziPalette {
+        bg: &bg,
+        txt: &txt,
+        border: &border,
+    };
     let mut s = String::with_capacity(8 * 1024);
-    write_bazi_header(&mut s, &pal, title, date, total_w, total_h);
-    write_bazi_pillars(&mut s, pillars, border, txt);
+    write_bazi_header(&mut s, &pal, &title, date, total_w, total_h);
+    write_bazi_pillars(&mut s, pillars, &border, &txt);
 
     let ey = BAZI_OY + BAZI_CH + 18.0;
-    write_bazi_elements(&mut s, elements, ey, txt);
+    write_bazi_elements(&mut s, elements, ey, &txt);
 
     let sy = ey + 50.0;
     let _ = writeln!(
