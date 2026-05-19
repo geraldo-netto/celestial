@@ -52,7 +52,6 @@ DEC-1 RAII guard is one TLS read + one TLS write, zero loop cost).
 
 | id | site | status |
 |---|---|---|
-| PERF-1 | engine.rs heliocentric-speed 3× VSOP | WONTFIX-as-stated; only precision-safe route is an analytic VSOP derivative (own soak). Locked: `perf1_heliocentric_mars_speed_regression_lock` (core/tests/unit_tests.rs:2735) |
 | PERF-2/3 | searches.rs post-bisect `calc_ut`/`houses` | WONTFIX — scan strips SPEED (searches.rs:289/390/462, crossings.rs:170/313); the post-bisect full-flag eval at the converged jd is authoritative, not redundant. Locked: `perf2345_search_regression_lock` (unit_tests.rs:2769) |
 | PERF-4 | searches.rs `bisect_retro_station` | N-A — already reuses the last loop sample; no recompute exists |
 | PERF-5 | searches.rs `next_aspect_with2` dual scan | DECLINED — merge is a precision-sensitive rewrite for marginal gain |
@@ -140,5 +139,4 @@ Current scoped TOTAL: 94.9% region / 94.5% line.
 No OPEN findings. Remaining work is the long-horizon deferred set:
 
 1. **Deferred isolated efforts (own session + precision soak each):**
-   ARCH-10/DP-4/DUP-1 binding codegen ·
-   DP-6 SVG templates · PERF-1 analytic VSOP derivative.
+   ARCH-10/DP-4/DUP-1 binding codegen · DP-6 SVG templates.
