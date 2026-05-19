@@ -3059,3 +3059,84 @@ fn moon_phase_info_self_consistent() {
         );
     }
 }
+
+// ─── Coverage: published-reference eclipse / aspect / cusp / vislim ──────────
+
+#[test]
+fn solar_eclipse_2017_08_21_when_and_where() {
+    // NASA 5-Millennium canon: greatest eclipse 2017-08-21 18:25:32 TD
+    // ("Great American Eclipse"). The eclipse *time* is pinned tightly;
+    // the central-point locus is only sanity-checked — the built-in
+    // engine's eclipse-geography is a coarse approximation (documented:
+    // eclipse tolerances are generous, hot path regression-locked).
+    let start = julday(2017, 8, 21, 0.0, Calendar::Gregorian);
+    let e = sol_eclipse_when_glob(start, CalcFlags::BUILTIN, 0, false).unwrap();
+    let jmax = e.tret[0];
+    let want = julday(2017, 8, 21, 18.0 + 25.0 / 60.0, Calendar::Gregorian);
+    assert!((jmax - want).abs() < 0.05, "eclipse max jd {jmax}, want ~{want}");
+    let w = sol_eclipse_where(jmax, CalcFlags::BUILTIN).unwrap();
+    assert!(
+        w.geopos[1].is_finite() && (0.0..60.0).contains(&w.geopos[1]),
+        "central-point lat {} outside northern-hemisphere sanity band",
+        w.geopos[1]
+    );
+    let lon = ((w.geopos[0] + 540.0) % 360.0) - 180.0;
+    assert!(
+        (-130.0..-40.0).contains(&lon),
+        "central-point lon {lon} outside Americas sanity band"
+    );
+}
+
+#[test]
+fn next_aspect_with2_finds_2017_08_21_new_moon() {
+    // Sun–Moon conjunction = new moon; the 2017-08-21 new moon is
+    // 18:30 UT (same event as the eclipse above).
+    let start = julday(2017, 8, 10, 0.0, Calendar::Gregorian);
+    let r =
+        next_aspect_with2(Body::MOON, 0.0, Body::SUN, start, false, 40.0, CalcFlags::BUILTIN)
+            .expect("conjunction found");
+    let want = julday(2017, 8, 21, 18.5, Calendar::Gregorian);
+    assert!((r.jd - want).abs() < 0.15, "new-moon jd {}, want ~{want}", r.jd);
+    let sep = ((r.pos1[0] - r.pos2[0] + 540.0) % 360.0 - 180.0).abs();
+    assert!(sep < 0.1, "Sun–Moon separation at conjunction = {sep}°");
+}
+
+#[test]
+fn next_aspect_cusp2_geometry_self_consistent() {
+    use celestial_core::body::HouseSystem as H;
+    // Solver must return a jd where the body genuinely makes the aspect
+    // to the cusp — verified from its own returned pos + cusps.
+    let start = 2_451_545.0;
+    let r = next_aspect_cusp2(
+        Body::SUN,
+        0.0,
+        1,
+        start,
+        48.85,
+        2.35,
+        H(b'P'),
+        false,
+        CalcFlags::BUILTIN,
+    )
+    .expect("cusp aspect found");
+    let d = ((r.pos[0] - r.cusps[1] + 540.0) % 360.0 - 180.0).abs();
+    assert!(d < 0.05, "Sun vs ASC at converged jd = {d}° (want ~0)");
+    assert!(r.jd > start, "jd {} not forward of {start}", r.jd);
+}
+
+#[test]
+fn vis_limit_mag_runs_with_typical_params() {
+    let dgeo = [0.0, 40.0, 0.0];
+    let datm = [1013.25, 15.0, 40.0, 8.0];
+    let dobs = [36.0, 1.0, 1.0, 1.0, 0.0, 0.0];
+    let r = vis_limit_mag(
+        julday(2017, 1, 1, 2.0, Calendar::Gregorian),
+        dgeo,
+        datm,
+        dobs,
+        "venus",
+        0,
+    )
+    .unwrap();
+    assert!(r[0].is_finite(), "limiting magnitude not finite: {:?}", r);
+}
