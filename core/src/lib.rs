@@ -158,26 +158,32 @@ pub use constants::{
     WHITE_MOON, ZEUS
 };
 pub use geo::{
-    AzAlt, TZ_TABLE, TzAbbr, azalt, azalt_rev, centisec_to_deg_str, centisec_to_lonlat_str,
+    AzAlt, azalt, azalt_rev, centisec_to_deg_str, centisec_to_lonlat_str,
     centisec_to_time_str, coord_transform, coord_transform_with_speed, cs_round_sec,
     deg_to_cs, degsplit, diff_cs, diff_cs_signed, diff_deg, diff_deg_signed,
     diff_rad_signed, format_coord, geo_to_dms, house_system_char, house_system_id,
     midpoint_deg, midpoint_rad, norm_cs, norm_deg, norm_rad, parse_coord, refrac,
     refrac_extended, sidereal_mode_flag, sidereal_mode_id, sign_name, split_deg,
-    tz_abbr_find, wrap_signed_180
+    wrap_signed_180
 };
+#[cfg(feature = "timezone")]
+pub use geo::{TZ_TABLE, TzAbbr, tz_abbr_find};
 pub use houses::{
     HouseResult, HouseResultEx2, house_name, house_pos, houses, houses_armc,
     houses_armc_ex2, houses_ex, houses_ex2, houses_from_armc, mean_sidereal_time_deg,
     sidereal_time_deg
 };
 pub use moon::{
-    Esbat, EsbatName, MoonPhase, MoonPhaseInfo, PhaseEvent, PrincipalPhase, SYNODIC_MONTH,
-    Sabbat, SabbatKind, Uposatha, UposathaPhase, esbats_for_year, moon_elongation,
-    moon_illumination, moon_phase, moon_phase_angle, moon_phase_info, moon_phases_for_month,
-    next_esbat, next_first_quarter, next_full_moon, next_full_moon_after,
-    next_full_moon_phase, next_last_quarter, next_new_moon, next_new_moon_after,
-    next_principal_phase, next_sabbat, sabbat_jd, sabbats_for_year, uposatha_days, vesak_jd
+    MoonPhase, MoonPhaseInfo, PhaseEvent, PrincipalPhase, SYNODIC_MONTH,
+    moon_elongation, moon_illumination, moon_phase, moon_phase_angle, moon_phase_info,
+    moon_phases_for_month, next_first_quarter, next_full_moon_phase, next_last_quarter,
+    next_new_moon, next_principal_phase
+};
+#[cfg(feature = "calendar-traditions")]
+pub use moon::{
+    Esbat, EsbatName, Sabbat, SabbatKind, Uposatha, UposathaPhase, esbats_for_year,
+    next_esbat, next_full_moon, next_full_moon_after, next_new_moon_after, next_sabbat,
+    sabbat_jd, sabbats_for_year, uposatha_days, vesak_jd,
 };
 pub use motion::{
     EclipseHow, EclipseResult, EclipseResultAttr, EclipseWhere, MoonCrossNode,
