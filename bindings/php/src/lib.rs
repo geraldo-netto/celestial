@@ -32,6 +32,9 @@
 //! printf("Sun lon=%.4f° dist=%.6f AU\n", $sun[0], $sun[2]);
 //! ```
 
+use celestial::Longitude;
+use celestial::Latitude;
+use celestial::JulianDay;
 use celestial::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 
 use celestial_ffi as celestial;
@@ -165,14 +168,14 @@ pub fn version() -> String {
 #[php_function]
 pub fn calc_ut(tjdut: f64, planet: i64, flags: i64) -> PhpResult<Vec<f64>> {
     let p =
-        celestial::calc_ut(tjdut, Body(planet as i32), CalcFlags(flags as i32)).map_err(to_php)?;
+        celestial::calc_ut(JulianDay::new(tjdut), Body(planet as i32), CalcFlags(flags as i32)).map_err(to_php)?;
     Ok(pos_vec(&p))
 }
 
 /// Geocentric position using Terrestrial Time (ET/TT).
 #[php_function]
 pub fn calc(tjdet: f64, planet: i64, flags: i64) -> PhpResult<Vec<f64>> {
-    let p = celestial::calc(tjdet, Body(planet as i32), CalcFlags(flags as i32)).map_err(to_php)?;
+    let p = celestial::calc(JulianDay::new(tjdet), Body(planet as i32), CalcFlags(flags as i32)).map_err(to_php)?;
     Ok(pos_vec(&p))
 }
 
@@ -204,7 +207,7 @@ pub fn true_obliquity(jde: f64) -> f64 {
 #[php_function]
 pub fn calc_many(tjdet: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<Vec<f64>>> {
     let bodies: Vec<_> = planets.iter().map(|&p| Body(p as i32)).collect();
-    celestial::calc_many(tjdet, &bodies, CalcFlags(flags as i32))
+    celestial::calc_many(JulianDay::new(tjdet), &bodies, CalcFlags(flags as i32))
         .into_iter()
         .map(|r| {
             let p = r.map_err(to_php)?;
@@ -217,7 +220,7 @@ pub fn calc_many(tjdet: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<Vec
 #[php_function]
 pub fn calc_ut_many(tjdut: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<Vec<f64>>> {
     let bodies: Vec<_> = planets.iter().map(|&p| Body(p as i32)).collect();
-    celestial::calc_ut_many(tjdut, &bodies, CalcFlags(flags as i32))
+    celestial::calc_ut_many(JulianDay::new(tjdut), &bodies, CalcFlags(flags as i32))
         .into_iter()
         .map(|r| {
             let p = r.map_err(to_php)?;
@@ -229,7 +232,7 @@ pub fn calc_ut_many(tjdut: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<
 #[php_function]
 pub fn calc_pctr(tjdet: f64, planet: i64, center: i64, flags: i64) -> PhpResult<Vec<f64>> {
     let p = celestial::calc_pctr(
-        tjdet,
+        JulianDay::new(tjdet),
         Body(planet as i32),
         Body(center as i32),
         CalcFlags(flags as i32),
@@ -279,7 +282,7 @@ pub fn houses(
     geolon: f64,
     hsys: i64,
 ) -> PhpResult<HashMap<String, Vec<f64>>> {
-    let r = celestial::houses(jdut, geolat, geolon, HouseSystem(hsys as u8)).map_err(to_php)?;
+    let r = celestial::houses(JulianDay::new(jdut), Latitude::new(geolat), Longitude::new(geolon), HouseSystem(hsys as u8)).map_err(to_php)?;
     let mut m = HashMap::with_capacity(3);
     // cusps[0] is unused in SE convention; return cusps[1..=12] (12 real cusps)
     // ascmc[..8] is the SE standard (8 elements)
@@ -298,10 +301,10 @@ pub fn houses_ex(
     hsys: i64,
 ) -> PhpResult<HashMap<String, Vec<f64>>> {
     let r = celestial::houses_ex(
-        jdut,
+        JulianDay::new(jdut),
         CalcFlags(flags as i32),
-        geolat,
-        geolon,
+        Latitude::new(geolat),
+        Longitude::new(geolon),
         HouseSystem(hsys as u8),
     )
     .map_err(to_php)?;
@@ -1928,10 +1931,10 @@ pub fn house_name_str(hsys: i64) -> String {
 #[php_function]
 pub fn houses_ex2(tjdut: f64, lat: f64, lon: f64, hsys: i64, flags: i64) -> PhpResult<Vec<f64>> {
     celestial::houses_ex2(
-        tjdut,
+        JulianDay::new(tjdut),
         CalcFlags(flags as i32),
-        lat,
-        lon,
+        Latitude::new(lat),
+        Longitude::new(lon),
         HouseSystem(hsys as u8),
     )
     .map(|r| {
