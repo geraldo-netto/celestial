@@ -334,3 +334,58 @@ fn boundary_cmd_run_rejects_garbage_without_panic() {
         json: false,
     });
 }
+
+/// In-process exercise of command `run()` entry points on VALID input.
+/// The smoke/coverage suites invoke these via a spawned binary, which
+/// `cargo llvm-cov` cannot instrument; calling them in-process closes
+/// that blind spot for the success + both output (json/text) branches.
+#[test]
+fn cmd_run_inprocess_valid_paths() {
+    use celestial_cli::cmd;
+    for json in [false, true] {
+        assert!(cmd::calc::run(cmd::calc::CalcArgs {
+            date: "2000-01-01 12:00".into(),
+            body: Some("sun".into()),
+            sidereal: false,
+            mode: "lahiri".into(),
+            json,
+        })
+        .is_ok());
+        assert!(cmd::moon::run(cmd::moon::MoonArgs {
+            date: "2000-01-06 18:00".into(),
+            new: false,
+            first_quarter: false,
+            full: false,
+            last_quarter: false,
+            month: None,
+            json,
+        })
+        .is_ok());
+        assert!(cmd::jd::run(cmd::jd::JdArgs {
+            date: Some("2000-01-01 12:00".into()),
+            from_jd: None,
+            json,
+        })
+        .is_ok());
+        assert!(cmd::jd::run(cmd::jd::JdArgs {
+            date: None,
+            from_jd: Some(2_451_545.0),
+            json,
+        })
+        .is_ok());
+        assert!(cmd::omer::run(cmd::omer::OmerArgs {
+            date: "2024-04-25".into(),
+            all: true,
+            year: Some(2024),
+            json,
+        })
+        .is_ok());
+        assert!(cmd::phenomena::run(cmd::phenomena::PhenomenaArgs {
+            body: "venus".into(),
+            date: "2000-01-01".into(),
+            time: None,
+            json,
+        })
+        .is_ok());
+    }
+}
