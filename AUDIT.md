@@ -73,6 +73,11 @@ user-controlled `ctx["vars"]` title/colour at the read boundary
 (`svg_common::esc_var` + escaped `SvgPalette`/`CalendarPalette`),
 byte-identical for non-malicious input, regression-locked
 (`cli_coverage::render_specialist_var_injection_escaped`).
+SEC-10b (post-session rescan): `render_south_indian_svg` was a SEC-10
+gap — it lived in `mod.rs` at SEC-10 time and the ARCH-8 extraction
+copied the unescaped code into `south_indian.rs` verbatim. Fixed with
+the same `esc_var`/`xml_escape` pattern, regression-locked
+(`cli_coverage::render_south_indian_var_injection_escaped`, `9ef9085`).
 
 ## 5. Architecture / modularity / visibility
 
