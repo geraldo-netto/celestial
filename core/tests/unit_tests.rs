@@ -3140,3 +3140,50 @@ fn vis_limit_mag_runs_with_typical_params() {
     .unwrap();
     assert!(r[0].is_finite(), "limiting magnitude not finite: {:?}", r);
 }
+
+// ─── PERF-1 validation: analytic VSOP speed vs independent finite diff ───────
+// The analytic heliocentric derivative (PERF-1) is cross-checked against a
+// central finite difference of the heliocentric POSITION through the public
+// calc_ut API — an independent numerical method. Agreement confirms the
+// product-rule / sign / τ-scaling are correct and no precision was lost.
+
+#[test]
+fn perf1_analytic_speed_matches_finite_difference() {
+    let helio = CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC;
+    let speed = helio | CalcFlags::SPEED;
+    let h = 0.05_f64; // days
+    // Earth heliocentric is degenerate in the geocentric engine (excluded,
+    // same as helio_cross) — validate the other VSOP planets.
+    let bodies = [
+        Body::MERCURY,
+        Body::VENUS,
+        Body::MARS,
+        Body::JUPITER,
+        Body::SATURN,
+    ];
+    for &b in &bodies {
+        for &jd in &[2_451_545.0_f64, 2_451_545.0 + 1234.0, 2_451_545.0 - 4321.0] {
+            let p1 = calc_ut(JulianDay::new(jd), b, speed).unwrap();
+            let p0 = calc_ut(JulianDay::new(jd - h), b, helio).unwrap();
+            let p2 = calc_ut(JulianDay::new(jd + h), b, helio).unwrap();
+            let fd_lon = diff_deg_signed(p2.lon, p0.lon) / (2.0 * h);
+            let fd_lat = (p2.lat - p0.lat) / (2.0 * h);
+            let fd_dist = (p2.dist - p0.dist) / (2.0 * h);
+            assert!(
+                (p1.speed_lon - fd_lon).abs() < 1e-4,
+                "{b:?}@{jd}: analytic lon-speed {} vs fd {fd_lon}",
+                p1.speed_lon
+            );
+            assert!(
+                (p1.speed_lat - fd_lat).abs() < 1e-4,
+                "{b:?}@{jd}: analytic lat-speed {} vs fd {fd_lat}",
+                p1.speed_lat
+            );
+            assert!(
+                (p1.speed_dist - fd_dist).abs() < 1e-6,
+                "{b:?}@{jd}: analytic dist-speed {} vs fd {fd_dist}",
+                p1.speed_dist
+            );
+        }
+    }
+}
