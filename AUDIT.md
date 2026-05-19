@@ -134,14 +134,21 @@ Per-function hardening (this cycle): a per-source-function rescan
 (fwd/back/equal), `houses::equal_mc`+`gauquelin`,
 `crossings::helio_cross_ut`, `mooncross_node_ut`, `deltat_ex` (both
 branches), `easter_orthodox`, `moon_phase_info` (commits
-`3c3faec`/`adc9ee9`/`4fd1da9`). Ephemeris-search-fragile fns
-(`next_aspect_with2`/`cusp2`, `vis_limit_mag`, `sol_eclipse_where`,
-`esbats::bisect_fallback_full_moon`) are intentionally left — they
-need verified external event references, not self-consistency, and
-their hot paths are already regression-locked. CLI `cmd/*::run`
-cannot reach per-function 100% — exercised via spawned binary
-(`assert_cmd`), an llvm-cov blind spot (same dynamic as TEST-2);
-behavior is covered, instrumentation is not.
+`3c3faec`/`adc9ee9`/`4fd1da9`). The previously-deferred
+ephemeris-search fns were then covered with **published external
+references** (`588f3ee`): `sol_eclipse_when_glob` pinned to the NASA
+5-Millennium canon (2017-08-21, ±0.05 d), `next_aspect_with2` to the
+2017-08-21 new moon, `next_aspect_cusp2` self-validated from its own
+returned geometry, `vis_limit_mag` smoke. Only
+`esbats::bisect_fallback_full_moon` is left (reachable only on
+primary-solver failure — defensive, can't be triggered without
+breaking the solver). PERF-1's analytic VSOP derivative is
+independently cross-checked vs a finite difference of the
+heliocentric position (`92ada74`). CLI `cmd/{calc,moon,jd,omer,
+phenomena}::run` now also exercised **in-process** (`f9dd2ae`),
+closing the llvm-cov blind spot for their success + json/text
+branches; for the remaining spawn-only paths (same dynamic as
+TEST-2) behavior is covered, instrumentation is not.
 
 A CI coverage floor is enforced (TEST-3, done this cycle, removed per
 the completed-work policy): the `celestial-core` workflow merges
