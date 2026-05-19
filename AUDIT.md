@@ -36,7 +36,7 @@ helpers verified all ≤10.
 
 | id | location | issue | status |
 |---|---|---|---|
-| DUP-1 | bindings/{python,php,js}/src/lib.rs | hand-written per-export delegating stubs ×3 (python 201 `#[pyfunction]`, php 201 `#[php_function]`, js ~196 `#[napi]`) | DEFERRED — napi/pyo3/php proc-macros, per-module registration and native return shapes can't be unified by a plain crate; only spec-driven codegen over 3 *published* bindings on the precision path removes it. Shared `FfiError`/`pos6`/`pos6_tuple` halves still factored in `bindings/ffi/src/lib.rs` (consumed by py/php/js). = ARCH-10/DP-4 |
+| DUP-1 | bindings/{python,php,js}/src/lib.rs | hand-written per-export delegating stubs ×3 (python 201 `#[pyfunction]`, php 201 `#[php_function]`, js ~196 `#[napi]`) | DECIDED — measured: shared *input* half already factored in `bindings/ffi` (`FfiError`/`pos6`/`pos6_tuple`); the residual is the irreducible per-language *return* half. Same core fn → divergent native shapes (py tuple / php HashMap+Vec / js struct, e.g. js `houses` has a nonzero-cusp clamp py/php lack). Uniform-macroable subset is ~5 stubs (pos6 calc family), not ~140; the rest is ~25 canonical return-adapters + ~25–30% 1-off marshalling. Only a ~600–1000 LOC spec+3-emitter codegen removes it, regenerating 3 *published* APIs with **php unverifiable** (no harness, not llvm-cov instrumentable per TEST-2, not a workspace member). Precision-neutral but net-negative — declined. = ARCH-10/DP-4 |
 | DUP-4 | bindings `revjul`/`revjul_hms` | 3 idiomatic return shapes (struct/tuple/map) | DECIDED — intentional per-language idioms downstream depends on; core call already shared. Normalizing = a published API break, not a dedupe |
 | DUP-6 | cli/tests/cli_fuzz.rs:18 vs fuzz/src/main.rs:18 | `Xorshift64` PRNG (+`random_string`) copy-pasted across two test targets (self-documented at cli_fuzz.rs:16) | DECIDED — test-only, 2 copies in different crates/targets; a shared dev-dep crate is disproportionate to ~15 LOC. Below the dedupe bar |
 
@@ -96,7 +96,7 @@ regression-tested; `syn` build-cost not warranted until binding churn.
 
 | id | area | issue | status |
 |---|---|---|---|
-| ARCH-10 | bindings 201×3 stubs | no codegen | DEFERRED — = DUP-1/DP-4 |
+| ARCH-10 | bindings 201×3 stubs | no codegen | DECIDED — = DUP-1/DP-4 (measured net-negative; php unverifiable) |
 | VIS-1 | render/{specialist,hellenistic,vedic,pipeline}.rs | `build_*`/`render_*` are bare `pub fn` where siblings use `pub(super)` (e.g. mod.rs:486/1627/1890) — inconsistent | DECIDED — no real leak (parent submodules are private `mod`, unreachable outside `render`); cosmetic only |
 
 ## 6. Design pattern opportunities
@@ -104,7 +104,7 @@ regression-tested; `syn` build-cost not warranted until binding churn.
 | id | target | status |
 |---|---|---|
 | DP-1 | registry macro/table over `dispatch_*` | DISMISSED — the heterogeneous ~12 (`dispatch_solar_return`/`_lunar_return`/`_progressed`/`_solar_arc`/`_biwheel`/`_triwheel`/`_composite`/`_ephemeris`/`_profection` — distinct return-jd / `--years` / date2 logic) stay hand-written; a macro there is closure indirection over a clear hot-path adapter. (The 15 *uniform* dispatchers — DP-1b — were collapsed into the `specialist_dispatch!` macro `059434f`; removed per the completed-work policy) |
-| DP-4 | binding codegen | DEFERRED — = ARCH-10/DUP-1 |
+| DP-4 | binding codegen | DECIDED — = ARCH-10/DUP-1 |
 | DP-6 | SVG → MiniJinja templates | DECIDED — `Palette` half shipped (`SvgPalette`/`CalendarPalette`/`palette_vars`/`svg_common::esc_var`). Template half DECLINED: templating the 29 renderers changes whitespace/layout → breaks the byte-identical PDF/render gate (no precision-preserving path), and is the DP-1/DP-6 net-negative dynamic. Nothing byte-safe remains |
 | DP-11 | `OutputFormatter` over calc/moon/houses/chart | DECLINED — per-command JSON keys + text columns are bespoke; a trait abstracts only the 2-line json/text branch — leaky |
 
@@ -136,7 +136,8 @@ Current scoped TOTAL: 94.9% region / 94.5% line.
 
 ## Recommended next
 
-No OPEN findings. Remaining work is the long-horizon deferred set:
-
-1. **Deferred isolated efforts (own session + precision soak each):**
-   ARCH-10/DP-4/DUP-1 binding codegen.
+No OPEN findings. No DEFERRED items remain — the backlog
+(ARCH-7/8, DP-2, PERF-1) was cleared this cycle and the residual
+binding-codegen / SVG-template items were measured net-negative and
+recorded DECIDED. Only DECIDED rows remain (kept so a rescan does
+not re-flag).
