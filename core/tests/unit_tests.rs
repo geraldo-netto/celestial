@@ -3003,3 +3003,59 @@ fn mooncross_node_ut_within_draconic_month() {
         r.xlon
     );
 }
+
+// ─── Coverage tier-3/4: deltat_ex both branches ──────────────────────────────
+
+#[test]
+fn deltat_ex_global_and_userdef_branches() {
+    let f = CalcFlags::BUILTIN;
+    // Global polynomial path: ΔT(2000.0) ≈ 63.8 s (Espenak–Meeus).
+    let dt2000 = deltat_ex(2_451_545.0, f).unwrap();
+    assert!((55.0..72.0).contains(&dt2000), "ΔT(2000) = {dt2000}");
+    // ΔT(1900.0) ≈ −2.8 s.
+    let dt1900 = deltat_ex(2_415_020.5, f).unwrap();
+    assert!((-10.0..6.0).contains(&dt1900), "ΔT(1900) = {dt1900}");
+    // User-override early-return branch (config is thread-local).
+    set_delta_t_userdef(80.0);
+    let ov = deltat_ex(2_451_545.0, f).unwrap();
+    assert!((ov - 80.0).abs() < 1e-6, "userdef ΔT = {ov}, want 80");
+    set_delta_t_userdef(f64::NAN); // clear → restore global path on this thread
+    let restored = deltat_ex(2_451_545.0, f).unwrap();
+    assert!((restored - dt2000).abs() < 1e-9, "userdef not cleared");
+}
+
+// ─── Coverage tier-3/4: Orthodox Easter (Gregorian) known dates ──────────────
+
+#[test]
+fn easter_orthodox_known_years() {
+    // Published Gregorian-calendar Orthodox Pascha dates.
+    assert_eq!(easter_orthodox(2021), (2021, 5, 2));
+    assert_eq!(easter_orthodox(2023), (2023, 4, 16));
+    assert_eq!(easter_orthodox(2024), (2024, 5, 5));
+    assert_eq!(easter_orthodox(2025), (2025, 4, 20));
+}
+
+// ─── Coverage tier-3/4: moon_phase_info principal-phase closures ─────────────
+
+#[test]
+fn moon_phase_info_self_consistent() {
+    for jd in [2_451_545.0_f64, 2_451_559.0, 2_451_530.0] {
+        let mp = moon_phase_info(jd).unwrap();
+        assert!(
+            (0.0..=1.0).contains(&mp.illumination),
+            "illum {} at jd {jd}",
+            mp.illumination
+        );
+        assert!(
+            (0.0..360.0).contains(&mp.elongation),
+            "elong {} at jd {jd}",
+            mp.elongation
+        );
+        assert!(!mp.phase_name.is_empty());
+        assert!(
+            mp.prev_phase_jd <= jd && mp.prev_phase_jd.is_finite(),
+            "prev_phase_jd {} not <= {jd}",
+            mp.prev_phase_jd
+        );
+    }
+}
