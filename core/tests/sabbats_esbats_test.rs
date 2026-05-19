@@ -18,7 +18,7 @@ fn setup() {
 
 /// Helper: Sun's ecliptic longitude at a given JD.
 fn sun_lon(jd: f64) -> f64 {
-    calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap().lon
+    calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap().lon
 }
 
 /// Helper: Sun longitude difference (shortest arc, signed).
@@ -361,8 +361,8 @@ fn test_litha_1992_known_date() {
 
 /// Moon–Sun elongation at a given JD.
 fn moon_elongation(jd: f64) -> f64 {
-    let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
-    let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap();
     (moon.lon - sun.lon).rem_euclid(360.0)
 }
 

@@ -20,6 +20,7 @@
 //! assert!(p.nakshatra <= 26);
 //! ```
 
+use crate::units::JulianDay;
 use crate::body::{Body, CalcFlags, Calendar};
 use crate::calc_ut;
 
@@ -226,7 +227,7 @@ pub fn panchanga(jd: f64) -> Panchanga {
     crate::set_sid_mode(crate::body::SiderealMode::LAHIRI, 0.0, 0.0);
     let flags = CalcFlags::BUILTIN | CalcFlags::SIDEREAL | CalcFlags::SPEED;
 
-    let sun = calc_ut(jd, Body::SUN, flags).unwrap_or(crate::PlanetPos {
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, flags).unwrap_or(crate::PlanetPos {
         lon: 0.0,
         lat: 0.0,
         dist: 0.0,
@@ -235,7 +236,7 @@ pub fn panchanga(jd: f64) -> Panchanga {
         speed_dist: 0.0,
         ret_flags: 0,
     });
-    let moon = calc_ut(jd, Body::MOON, flags).unwrap_or(crate::PlanetPos {
+    let moon = calc_ut(JulianDay::new(jd), Body::MOON, flags).unwrap_or(crate::PlanetPos {
         lon: 0.0,
         lat: 0.0,
         dist: 0.0,

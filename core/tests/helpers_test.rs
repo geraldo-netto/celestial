@@ -389,7 +389,7 @@ fn test_next_aspect_fixed_point() {
     let r = r.unwrap();
     assert!(r.jd > JD, "jd must be after start");
     // Mars longitude at that JD should be ≈ 90°
-    let mars = calc_ut(r.jd, Body::MARS, CalcFlags::BUILTIN).unwrap();
+    let mars = calc_ut(JulianDay::new(r.jd), Body::MARS, CalcFlags::BUILTIN).unwrap();
     assert!((mars.lon - 90.0).abs() < 0.5, "mars_lon={}", mars.lon);
 }
 

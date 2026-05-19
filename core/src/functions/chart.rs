@@ -4,6 +4,7 @@
 //! generating aspect tables, secondary progressions, solar/lunar returns,
 //! solar arc directions, midpoints, Arabic parts, and planetary stations.
 
+use crate::units::JulianDay;
 use crate::body::{Body, CalcFlags, Calendar, HouseSystem};
 use crate::diff_deg_signed;
 use crate::error::{Error, Result};
@@ -81,7 +82,7 @@ pub const ALL_ASPECTS: &[f64] = &[
 /// let jd = 2_451_545.0;
 /// let bodies = [Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS, Body::MARS, Body::JUPITER, Body::SATURN];
 /// let positions: Vec<_> = bodies.iter().map(|&b| {
-///     let p = calc_ut(jd, b, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+///     let p = calc_ut(JulianDay::new(jd), b, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
 ///     (b, p.lon, p.speed_lon)
 /// }).collect();
 /// let aspects = calc_chart_aspects(&positions, MAJOR_ASPECTS, 8.0);
@@ -149,7 +150,7 @@ pub fn sign_ingress_ut(
     backward: bool,
 ) -> Result<(f64, u8)> {
     // Current position
-    let pos = calc_ut(jd_start, body, flags)?;
+    let pos = calc_ut(JulianDay::new(jd_start), body, flags)?;
     let current_sign = (pos.lon / 30.0).floor() as i32;
 
     // Next sign boundary
@@ -259,7 +260,7 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
     let flags_speed = flags | CalcFlags::SPEED;
 
     let speed_at =
-        |jd: f64| -> Option<f64> { calc_ut(jd, body, flags_speed).ok().map(|p| p.speed_lon) };
+        |jd: f64| -> Option<f64> { calc_ut(JulianDay::new(jd), body, flags_speed).ok().map(|p| p.speed_lon) };
 
     let window = body.retrograde_search_window();
 
@@ -320,8 +321,8 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
 /// use celestial_core::*;
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// let chart = houses(2_451_545.0, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
-/// let sun  = calc_ut(2_451_545.0, Body::SUN, CalcFlags::BUILTIN).unwrap();
-/// let moon = calc_ut(2_451_545.0, Body::MOON, CalcFlags::BUILTIN).unwrap();
+/// let sun  = calc_ut(JulianDay::new(2_451_545.0), Body::SUN, CalcFlags::BUILTIN).unwrap();
+/// let moon = calc_ut(JulianDay::new(2_451_545.0), Body::MOON, CalcFlags::BUILTIN).unwrap();
 /// let lot_of_fortune = arabic_part(chart.ascmc[0], moon.lon, sun.lon);
 /// ```
 #[inline]
@@ -352,13 +353,13 @@ pub struct ArabicPart {
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// let jd = 2_451_545.0;
 /// let chart = houses(jd, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
-/// let sun  = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
-/// let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).unwrap();
-/// let sat  = calc_ut(jd, Body::SATURN, CalcFlags::BUILTIN).unwrap();
-/// let mar  = calc_ut(jd, Body::MARS, CalcFlags::BUILTIN).unwrap();
-/// let jup  = calc_ut(jd, Body::JUPITER, CalcFlags::BUILTIN).unwrap();
-/// let mer  = calc_ut(jd, Body::MERCURY, CalcFlags::BUILTIN).unwrap();
-/// let ven  = calc_ut(jd, Body::VENUS, CalcFlags::BUILTIN).unwrap();
+/// let sun  = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
+/// let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap();
+/// let sat  = calc_ut(JulianDay::new(jd), Body::SATURN, CalcFlags::BUILTIN).unwrap();
+/// let mar  = calc_ut(JulianDay::new(jd), Body::MARS, CalcFlags::BUILTIN).unwrap();
+/// let jup  = calc_ut(JulianDay::new(jd), Body::JUPITER, CalcFlags::BUILTIN).unwrap();
+/// let mer  = calc_ut(JulianDay::new(jd), Body::MERCURY, CalcFlags::BUILTIN).unwrap();
+/// let ven  = calc_ut(JulianDay::new(jd), Body::VENUS, CalcFlags::BUILTIN).unwrap();
 /// let asc  = chart.ascmc[0];
 /// let is_day = planet_house_number(sun.lon, &chart.cusps) >= 7;
 /// let parts = arabic_parts_seven(asc, sun.lon, moon.lon, sat.lon, mar.lon,
@@ -469,7 +470,7 @@ pub fn secondary_progressions(
 
     let mut positions = Vec::with_capacity(bodies.len());
     for &body in bodies {
-        let pos = calc_ut(jd_progressed, body, flags)?;
+        let pos = calc_ut(JulianDay::new(jd_progressed), body, flags)?;
         positions.push((body, pos));
     }
     let prog_chart = houses(jd_progressed, lat, lon, hsys)?;
@@ -498,8 +499,8 @@ pub fn solar_arc_directions(
 ) -> Result<SolarArcResult> {
     // Progressed Sun position (using secondary progression timing)
     let jd_prog = jd_natal + years;
-    let prog_sun = calc_ut(jd_prog, Body::SUN, flags)?;
-    let natal_sun = calc_ut(jd_natal, Body::SUN, flags)?;
+    let prog_sun = calc_ut(JulianDay::new(jd_prog), Body::SUN, flags)?;
+    let natal_sun = calc_ut(JulianDay::new(jd_natal), Body::SUN, flags)?;
 
     // Solar arc = difference between progressed and natal Sun longitude
     let arc = (prog_sun.lon - natal_sun.lon).rem_euclid(360.0);
@@ -539,7 +540,7 @@ pub fn solar_arc_directions(
 /// ```
 pub fn solar_return_jd(jd_natal: f64, return_year: i32, flags: CalcFlags) -> Result<f64> {
     // Get natal Sun longitude
-    let natal_sun = calc_ut(jd_natal, Body::SUN, flags)?;
+    let natal_sun = calc_ut(JulianDay::new(jd_natal), Body::SUN, flags)?;
     let natal_lon = natal_sun.lon;
 
     // Start searching from ~Jan 1 of return_year
@@ -571,7 +572,7 @@ pub fn solar_return_jd(jd_natal: f64, return_year: i32, flags: CalcFlags) -> Res
 /// * `jd_start`   — start searching from this date
 /// * `flags`      — ephemeris flags
 pub fn lunar_return_jd(jd_natal: f64, jd_start: f64, flags: CalcFlags) -> Result<f64> {
-    let natal_moon = calc_ut(jd_natal, Body::MOON, flags)?;
+    let natal_moon = calc_ut(JulianDay::new(jd_natal), Body::MOON, flags)?;
     let natal_lon = natal_moon.lon;
 
     // Offset by 1 day to skip the natal chart itself if jd_start == jd_natal
@@ -966,7 +967,7 @@ pub const DASHA_SEQUENCE: &[(Body, f64)] = &[
 /// use celestial_core::*;
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// let jd_birth = 2_440_000.0;
-/// let moon_lon = calc_ut(jd_birth, Body::MOON, CalcFlags::BUILTIN | CalcFlags::SIDEREAL).unwrap().lon;
+/// let moon_lon = calc_ut(JulianDay::new(jd_birth), Body::MOON, CalcFlags::BUILTIN | CalcFlags::SIDEREAL).unwrap().lon;
 /// let dashas = vimshottari_dasha(jd_birth, moon_lon, 120.0);
 /// for d in &dashas {
 ///     println!("{}: {:.2} years", d.body.name(), d.years);

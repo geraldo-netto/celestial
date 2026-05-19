@@ -1,5 +1,6 @@
 //! `celestial calc` — geocentric planetary positions.
 
+use celestial_core::JulianDay;
 use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::{Body, CalcFlags, SiderealMode};
@@ -58,7 +59,7 @@ pub fn run(args: CalcArgs) -> Result<(), CliError> {
     }
     let mut rows = Vec::new();
     for body in &bodies {
-        let pos = calc_ut(jd, Body::from_raw(*body), flags)
+        let pos = calc_ut(JulianDay::new(jd), Body::from_raw(*body), flags)
             .map_err(|e| format!("{}: {e}", parse::body_name(Body::from_raw(*body))))?;
         rows.push(Row {
             name: parse::body_name(Body::from_raw(*body)).to_string(),

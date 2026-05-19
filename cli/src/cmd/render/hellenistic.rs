@@ -1,5 +1,6 @@
 //! Hellenistic chart builders — split from render.rs.
 
+use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
 use super::{build_context, jd_to_date_str, key_to_body, render_builtin_svg, wx, wy, CX, CY, RO};
@@ -213,7 +214,7 @@ pub fn build_firdaria_context(
         a
     };
 
-    let sun_pos = calc_ut(jd, Body::SUN, flags)?;
+    let sun_pos = calc_ut(JulianDay::new(jd), Body::SUN, flags)?;
     let is_day = is_day_chart(sun_pos.lon, &cusps_arr);
 
     let periods = firdaria(jd, is_day, 75.0);

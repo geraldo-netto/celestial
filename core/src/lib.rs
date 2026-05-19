@@ -8,8 +8,9 @@
 //! use celestial_core::body::{Body, CalcFlags};
 //! use celestial_core::time::jdnow;
 //! use celestial_core::position::calc_ut;
+//! use celestial_core::JulianDay;
 //!
-//! let sun = calc_ut(jdnow(), Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+//! let sun = calc_ut(JulianDay::new(jdnow()), Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
 //! println!("Sun lon = {:.4}°", sun.lon);
 //! ```
 //!
@@ -231,7 +232,7 @@ pub mod prelude {
     //! ```no_run
     //! use celestial_core::prelude::*;
     //!
-    //! let jd  = julday(2025, 3, 20, 9.0, Calendar::Gregorian);
+    //! let jd  = JulianDay::new(julday(2025, 3, 20, 9.0, Calendar::Gregorian));
     //! let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
     //! println!("Sun: {:.4}°", sun.lon);
     //! ```
@@ -251,6 +252,7 @@ pub mod prelude {
         CalcStrategy, PlanetPos,
     };
     pub use crate::time::{jdnow, julday, revjul, CalDate};
+    pub use crate::units::{Degrees, JulianDay, Latitude, Longitude};
 }
 
 // ── Implementation detail — not part of the public API ──────────────────────────

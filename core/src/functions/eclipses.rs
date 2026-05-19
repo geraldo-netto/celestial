@@ -1,5 +1,6 @@
 //! Eclipse and occultation search functions.
 
+use crate::units::JulianDay;
 use crate::astronomy::eclipses as ae;
 use crate::body::{Body, CalcFlags};
 use crate::error::{Error, Result};
@@ -230,8 +231,8 @@ fn ecl_to_eq(lon_deg: f64, lat_deg: f64, eps: f64) -> (f64, f64) {
 
 /// True angular separation (degrees) between Moon and `body` at given JD.
 fn moon_body_separation(jd: f64, body: Body) -> Option<f64> {
-    let moon = crate::calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).ok()?;
-    let planet = crate::calc_ut(jd, body, CalcFlags::BUILTIN).ok()?;
+    let moon = crate::calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).ok()?;
+    let planet = crate::calc_ut(JulianDay::new(jd), body, CalcFlags::BUILTIN).ok()?;
     let eps = crate::true_obliquity(jd).to_radians();
     let (ra_m, dec_m) = ecl_to_eq(moon.lon, moon.lat, eps);
     let (ra_p, dec_p) = ecl_to_eq(planet.lon, planet.lat, eps);
@@ -335,7 +336,7 @@ pub fn lun_occult_when_loc(
 
     // Compute Moon altitude at the occultation time from the given location
     let moon_alt = {
-        let moon = crate::calc_ut(jd_occ, Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
+        let moon = crate::calc_ut(JulianDay::new(jd_occ), Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
         // Hour angle = LST - RA (approximate: use geographic longitude for LST)
         let lst_deg = crate::sidtime(jd_occ) * 15.0 + geopos[0];
         let ha_deg = lst_deg - moon.lon; // rough HA using ecliptic lon ≈ RA

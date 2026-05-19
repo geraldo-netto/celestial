@@ -5,9 +5,10 @@
 //! ```
 //! use celestial_core::position::{calc_ut, CalcOptions, CalcStrategy};
 //! use celestial_core::body::{Body, CalcFlags};
+//! use celestial_core::JulianDay;
 //!
 //! // Single body
-//! let sun = calc_ut(2_451_545.0, Body::SUN, CalcFlags::BUILTIN).unwrap();
+//! let sun = calc_ut(JulianDay::new(2_451_545.0), Body::SUN, CalcFlags::BUILTIN).unwrap();
 //! println!("Sun lon = {:.4}°", sun.lon);
 //!
 //! // Multiple bodies with auto parallel strategy

@@ -8,7 +8,7 @@ mod bazi {
     #[test]
     fn four_pillars_returns_four() {
         let jd = 2_451_545.0;
-        let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
         let pillars = four_pillars(jd, 12.0, sun.lon);
         assert_eq!(pillars.len(), 4, "must return 4 pillars");
     }
@@ -16,7 +16,7 @@ mod bazi {
     #[test]
     fn pillars_stems_in_range() {
         let jd = 2_451_545.0;
-        let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
         let pillars = four_pillars(jd, 12.0, sun.lon);
         for p in &pillars {
             assert!(p.stem < 10, "stem {} >= 10", p.stem);
@@ -27,7 +27,7 @@ mod bazi {
     #[test]
     fn stem_element_is_one_of_five() {
         let jd = 2_451_545.0;
-        let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
         let pillars = four_pillars(jd, 12.0, sun.lon);
         let elements = ["Wood", "Fire", "Earth", "Metal", "Water"];
         for p in &pillars {
@@ -47,7 +47,7 @@ mod bazi {
     #[test]
     fn animal_is_one_of_twelve() {
         let jd = 2_451_545.0;
-        let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
         let pillars = four_pillars(jd, 12.0, sun.lon);
         let animals = [
             "Rat", "Ox", "Tiger", "Rabbit", "Dragon", "Snake", "Horse", "Goat", "Monkey",

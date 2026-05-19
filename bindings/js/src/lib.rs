@@ -5,6 +5,7 @@
 
 #![allow(clippy::too_many_arguments)]
 
+use celestial::JulianDay;
 use celestial::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_ffi as celestial;
 use napi_derive::napi;
@@ -200,7 +201,7 @@ pub fn close() {
 /// Calculate planetary positions (Ephemeris Time).
 #[napi]
 pub fn calc(tjdet: f64, planet: i32, flags: i32) -> napi::Result<PlanetPos> {
-    celestial::calc(tjdet, Body::from_raw(planet), CalcFlags(flags))
+    celestial::calc(JulianDay::new(tjdet), Body::from_raw(planet), CalcFlags(flags))
         .map(PlanetPos::from)
         .map_err(to_napi)
 }
@@ -208,7 +209,7 @@ pub fn calc(tjdet: f64, planet: i32, flags: i32) -> napi::Result<PlanetPos> {
 /// Calculate planetary positions (Universal Time).
 #[napi(js_name = "calcUt")]
 pub fn calc_ut(tjdut: f64, planet: i32, flags: i32) -> napi::Result<PlanetPos> {
-    celestial::calc_ut(tjdut, Body::from_raw(planet), CalcFlags(flags))
+    celestial::calc_ut(JulianDay::new(tjdut), Body::from_raw(planet), CalcFlags(flags))
         .map(PlanetPos::from)
         .map_err(to_napi)
 }
@@ -239,7 +240,7 @@ pub fn true_obliquity(jde: f64) -> f64 {
 #[napi(js_name = "calcMany")]
 pub fn calc_many(tjdet: f64, planets: Vec<i32>, flags: i32) -> napi::Result<Vec<PlanetPos>> {
     let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
-    celestial::calc_many(tjdet, &bodies, CalcFlags(flags))
+    celestial::calc_many(JulianDay::new(tjdet), &bodies, CalcFlags(flags))
         .into_iter()
         .map(|r| {
             r.map(PlanetPos::from)
@@ -252,7 +253,7 @@ pub fn calc_many(tjdet: f64, planets: Vec<i32>, flags: i32) -> napi::Result<Vec<
 #[napi(js_name = "calcUtMany")]
 pub fn calc_ut_many(tjdut: f64, planets: Vec<i32>, flags: i32) -> napi::Result<Vec<PlanetPos>> {
     let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
-    celestial::calc_ut_many(tjdut, &bodies, CalcFlags(flags))
+    celestial::calc_ut_many(JulianDay::new(tjdut), &bodies, CalcFlags(flags))
         .into_iter()
         .map(|r| {
             r.map(PlanetPos::from)
@@ -265,7 +266,7 @@ pub fn calc_ut_many(tjdut: f64, planets: Vec<i32>, flags: i32) -> napi::Result<V
 #[napi(js_name = "calcPctr")]
 pub fn calc_pctr(tjdet: f64, planet: i32, center: i32, flags: i32) -> napi::Result<PlanetPos> {
     celestial::calc_pctr(
-        tjdet,
+        JulianDay::new(tjdet),
         Body::from_raw(planet),
         Body::from_raw(center),
         CalcFlags(flags),

@@ -18,6 +18,7 @@
 //! ORDER-OF-MAGNITUDE sanity checks, not micro-precision pins. Specific
 //! precision pins live in `integration_tests.rs`.
 
+use celestial_core::JulianDay;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
     almuten, annual_profection, antiscion, azalt, ayanamsa_ut, best_time_method, calc, calc_ut,
@@ -75,7 +76,7 @@ fn diana_chart_planet_positions() {
         (Body::NEPTUNE, 218.62, 2.0),  // 8°37' Scorpio
     ];
     for &(body, expected, tol) in cases {
-        let pos = calc_ut(jd, body, FLG).unwrap();
+        let pos = calc_ut(JulianDay::new(jd), body, FLG).unwrap();
         assert_lon_within!(pos.lon, expected, tol, format!("Diana {body:?}"));
     }
 }
@@ -94,7 +95,7 @@ fn netto_chart_inner_planets() {
         (Body::MARS, 292.550, 0.1),
     ];
     for &(body, expected, tol) in cases {
-        let pos = calc_ut(jd, body, FLG).unwrap();
+        let pos = calc_ut(JulianDay::new(jd), body, FLG).unwrap();
         assert_lon_within!(pos.lon, expected, tol, format!("Netto {body:?}"));
     }
 }
@@ -103,7 +104,7 @@ fn netto_chart_inner_planets() {
 /// Apparent geocentric ecliptic longitude is ≈ 280.4°.
 #[test]
 fn sun_at_j2000_meeus() {
-    let pos = calc(2_451_545.0, Body::SUN, FLG).unwrap();
+    let pos = calc(JulianDay::new(2_451_545.0), Body::SUN, FLG).unwrap();
     assert_lon_within!(pos.lon, 280.4, 0.5, "Sun J2000 TT");
 }
 
@@ -131,7 +132,7 @@ fn chiron_multi_date_consistency() {
     ];
     for &(y, m, d, h, expected, tol) in cases {
         let jd = julday(y, m as i32, d as i32, h, Calendar::Gregorian);
-        let pos = calc_ut(jd, Body::CHIRON, FLG).unwrap();
+        let pos = calc_ut(JulianDay::new(jd), Body::CHIRON, FLG).unwrap();
         let diff = ((pos.lon - expected + 540.0) % 360.0 - 180.0).abs();
         assert!(
             diff < tol,
@@ -161,7 +162,7 @@ fn saturn_multi_date_consistency() {
     ];
     for &(y, m, d, h, expected, tol) in cases {
         let jd = julday(y, m as i32, d as i32, h, Calendar::Gregorian);
-        let pos = calc_ut(jd, Body::SATURN, FLG).unwrap();
+        let pos = calc_ut(JulianDay::new(jd), Body::SATURN, FLG).unwrap();
         let diff = ((pos.lon - expected + 540.0) % 360.0 - 180.0).abs();
         assert!(
             diff < tol,
@@ -180,7 +181,7 @@ fn saturn_physical_motion_bounds() {
     // Mid-2024: Saturn is in retrograde mid-year (apparent stationary
     // at June 2024). Daily motion in absolute value should be < 0.15°.
     let jd = julday(2024, 7, 1, 0.0, Calendar::Gregorian);
-    let pos = calc_ut(jd, Body::SATURN, FLG).unwrap();
+    let pos = calc_ut(JulianDay::new(jd), Body::SATURN, FLG).unwrap();
     assert!(
         pos.speed_lon.abs() < 0.15,
         "Saturn daily motion {:.4}°/d outside physical bounds (±0.15°/d)",
@@ -853,7 +854,7 @@ fn new_moon_2024_january() {
 #[test]
 fn sun_at_vernal_equinox_is_zero_lon() {
     let jd = julday(2024, 3, 20, 3.1, Calendar::Gregorian);
-    let pos = calc_ut(jd, Body::SUN, FLG).unwrap();
+    let pos = calc_ut(JulianDay::new(jd), Body::SUN, FLG).unwrap();
     let diff = ((pos.lon + 540.0) % 360.0 - 180.0).abs();
     assert!(
         diff < 0.1,
@@ -867,7 +868,7 @@ fn sun_at_vernal_equinox_is_zero_lon() {
 #[test]
 fn sun_at_winter_solstice_is_270_lon() {
     let jd = julday(2024, 12, 21, 9.35, Calendar::Gregorian);
-    let pos = calc_ut(jd, Body::SUN, FLG).unwrap();
+    let pos = calc_ut(JulianDay::new(jd), Body::SUN, FLG).unwrap();
     let diff = ((pos.lon - 270.0 + 540.0) % 360.0 - 180.0).abs();
     assert!(
         diff < 0.1,
@@ -1361,7 +1362,7 @@ fn sabbat_sun_longitudes_2024() {
             SabbatKind::Mabon => 180.0,
             SabbatKind::Samhain => 225.0,
         };
-        let sun = calc_ut(s.jd, Body::SUN, FLG).unwrap();
+        let sun = calc_ut(JulianDay::new(s.jd), Body::SUN, FLG).unwrap();
         let diff = ((sun.lon - expected_lon + 540.0) % 360.0 - 180.0).abs();
         assert!(
             diff < 0.5,
@@ -1635,7 +1636,7 @@ fn secondary_progression_30_years() {
     use celestial_core::body::{Body, HouseSystem};
     let jd_natal = julday(1985, 7, 14, 12.0, Calendar::Gregorian);
     let bodies = [Body::SUN, Body::MOON];
-    let natal_sun = calc_ut(jd_natal, Body::SUN, FLG).unwrap();
+    let natal_sun = calc_ut(JulianDay::new(jd_natal), Body::SUN, FLG).unwrap();
     let result = secondary_progressions(
         jd_natal, 30.0, &bodies, 0.0, 0.0, HouseSystem::PLACIDUS, FLG,
     );
@@ -1688,7 +1689,7 @@ fn sun_speed_always_positive() {
     let flg = CalcFlags::BUILTIN | CalcFlags::SPEED;
     for m in 1..=12 {
         let jd = julday(2024, m, 15, 0.0, Calendar::Gregorian);
-        let pos = calc_ut(jd, celestial_core::body::Body::SUN, flg).unwrap();
+        let pos = calc_ut(JulianDay::new(jd), celestial_core::body::Body::SUN, flg).unwrap();
         assert!(
             pos.speed_lon > 0.9 && pos.speed_lon < 1.05,
             "Sun speed at 2024-{m:02}-15: {} °/d, expected 0.9..1.05",
@@ -1707,7 +1708,7 @@ fn moon_speed_always_in_band() {
     let flg = CalcFlags::BUILTIN | CalcFlags::SPEED;
     for m in 1..=12 {
         let jd = julday(2024, m, 15, 0.0, Calendar::Gregorian);
-        let pos = calc_ut(jd, celestial_core::body::Body::MOON, flg).unwrap();
+        let pos = calc_ut(JulianDay::new(jd), celestial_core::body::Body::MOON, flg).unwrap();
         assert!(
             pos.speed_lon > 11.0 && pos.speed_lon < 15.5,
             "Moon speed at 2024-{m:02}-15: {} °/d, expected 11..15.5",
@@ -1724,7 +1725,7 @@ fn moon_speed_always_in_band() {
 #[test]
 fn mean_node_at_j2000() {
     let flg = CalcFlags::BUILTIN | CalcFlags::SPEED;
-    let pos = calc_ut(2_451_545.0, celestial_core::body::Body::MEAN_NODE, flg).unwrap();
+    let pos = calc_ut(JulianDay::new(2_451_545.0), celestial_core::body::Body::MEAN_NODE, flg).unwrap();
     assert_lon_within!(pos.lon, 125.045, 0.05, "Mean Node J2000");
     assert!(
         pos.speed_lon < 0.0,
@@ -1772,7 +1773,7 @@ fn arabic_part_lot_of_fortune() {
 #[test]
 fn pluto_at_1989_perihelion() {
     let jd = julday(1989, 9, 5, 0.0, Calendar::Gregorian);
-    let pos = calc_ut(jd, celestial_core::body::Body::PLUTO, FLG).unwrap();
+    let pos = calc_ut(JulianDay::new(jd), celestial_core::body::Body::PLUTO, FLG).unwrap();
     assert!(
         (28.0..=31.0).contains(&pos.dist),
         "Pluto distance at 1989 perihelion = {} AU, expected ≈ 29 AU",
@@ -1785,7 +1786,7 @@ fn pluto_at_1989_perihelion() {
 #[test]
 fn neptune_discovery_aquarius() {
     let jd = julday(1846, 9, 23, 0.0, Calendar::Gregorian);
-    let pos = calc_ut(jd, celestial_core::body::Body::NEPTUNE, FLG).unwrap();
+    let pos = calc_ut(JulianDay::new(jd), celestial_core::body::Body::NEPTUNE, FLG).unwrap();
     assert!(
         (300.0..330.0).contains(&pos.lon),
         "Neptune at 1846-09-23: lon = {}, expected Aquarius (300-330°)",
@@ -1802,7 +1803,7 @@ fn mercury_speed_within_extreme_range() {
     let flg = CalcFlags::BUILTIN | CalcFlags::SPEED;
     for m in 1..=12 {
         let jd = julday(2024, m, 15, 0.0, Calendar::Gregorian);
-        let pos = calc_ut(jd, celestial_core::body::Body::MERCURY, flg).unwrap();
+        let pos = calc_ut(JulianDay::new(jd), celestial_core::body::Body::MERCURY, flg).unwrap();
         assert!(
             (-2.5..=2.5).contains(&pos.speed_lon),
             "Mercury speed at 2024-{m:02}-15: {} °/d outside ±2.5",
@@ -1928,7 +1929,7 @@ fn gregorian_julian_1582_switch() {
 #[test]
 fn mars_at_2003_close_approach() {
     let jd = julday(2003, 8, 28, 0.0, Calendar::Gregorian);
-    let pos = calc_ut(jd, celestial_core::body::Body::MARS, FLG).unwrap();
+    let pos = calc_ut(JulianDay::new(jd), celestial_core::body::Body::MARS, FLG).unwrap();
     assert_lon_within!(pos.lon, 335.2, 0.5, "Mars 2003-08-28");
 }
 
@@ -1937,8 +1938,8 @@ fn mars_at_2003_close_approach() {
 #[test]
 fn venus_2012_transit_conjunct_sun() {
     let jd = julday(2012, 6, 6, 1.0, Calendar::Gregorian); // ~01:30 UT mid-transit
-    let venus = calc_ut(jd, celestial_core::body::Body::VENUS, FLG).unwrap();
-    let sun = calc_ut(jd, celestial_core::body::Body::SUN, FLG).unwrap();
+    let venus = calc_ut(JulianDay::new(jd), celestial_core::body::Body::VENUS, FLG).unwrap();
+    let sun = calc_ut(JulianDay::new(jd), celestial_core::body::Body::SUN, FLG).unwrap();
     let diff = ((venus.lon - sun.lon + 540.0) % 360.0 - 180.0).abs();
     assert!(
         diff < 1.0,
@@ -1953,7 +1954,7 @@ fn venus_2012_transit_conjunct_sun() {
 #[test]
 fn saturn_at_1986_april() {
     let jd = julday(1986, 4, 15, 0.0, Calendar::Gregorian);
-    let pos = calc_ut(jd, celestial_core::body::Body::SATURN, FLG).unwrap();
+    let pos = calc_ut(JulianDay::new(jd), celestial_core::body::Body::SATURN, FLG).unwrap();
     assert_lon_within!(pos.lon, 247.0, 3.0, "Saturn 1986-04-15");
 }
 
@@ -2384,8 +2385,8 @@ fn antiscion_involution() {
 #[test]
 fn jupiter_saturn_great_conjunction_2020() {
     let jd = julday(2020, 12, 21, 18.0, Calendar::Gregorian);
-    let jup = calc_ut(jd, Body::JUPITER, FLG).unwrap();
-    let sat = calc_ut(jd, Body::SATURN, FLG).unwrap();
+    let jup = calc_ut(JulianDay::new(jd), Body::JUPITER, FLG).unwrap();
+    let sat = calc_ut(JulianDay::new(jd), Body::SATURN, FLG).unwrap();
     assert_lon_within!(jup.lon, 300.48, 0.4, "Jupiter at Great Conjunction");
     assert_lon_within!(sat.lon, 300.58, 0.4, "Saturn at Great Conjunction");
     // Separation ≤ 0.3° (canonical is ~0.1°; current engine ~0.2°).
@@ -2405,8 +2406,8 @@ fn jupiter_saturn_great_conjunction_2020() {
 #[test]
 fn great_american_eclipse_2017() {
     let jd = julday(2017, 8, 21, 18.0 + 25.0 / 60.0, Calendar::Gregorian);
-    let sun = calc_ut(jd, Body::SUN, FLG).unwrap();
-    let moon = calc_ut(jd, Body::MOON, FLG).unwrap();
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, FLG).unwrap();
+    let moon = calc_ut(JulianDay::new(jd), Body::MOON, FLG).unwrap();
     assert_lon_within!(sun.lon, 148.88, 0.05, "Sun at 2017 eclipse");
     let sep = (moon.lon - sun.lon).abs();
     let sep_wrap = sep.min(360.0 - sep);
@@ -2424,8 +2425,8 @@ fn great_american_eclipse_2017() {
 #[test]
 fn mercury_transit_2019_inferior_conjunction() {
     let jd = julday(2019, 11, 11, 15.0 + 21.0 / 60.0, Calendar::Gregorian);
-    let sun = calc_ut(jd, Body::SUN, FLG).unwrap();
-    let merc = calc_ut(jd, Body::MERCURY, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, FLG).unwrap();
+    let merc = calc_ut(JulianDay::new(jd), Body::MERCURY, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
     assert_lon_within!(sun.lon, 228.93, 0.05, "Sun at Mercury transit");
     assert_lon_within!(merc.lon, 228.93, 0.1, "Mercury at transit");
     assert!(
@@ -2449,8 +2450,8 @@ fn mercury_transit_2019_inferior_conjunction() {
 #[test]
 fn longest_lunar_eclipse_2018_opposition() {
     let jd = julday(2018, 7, 27, 20.0 + 22.0 / 60.0, Calendar::Gregorian);
-    let sun = calc_ut(jd, Body::SUN, FLG).unwrap();
-    let moon = calc_ut(jd, Body::MOON, FLG).unwrap();
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, FLG).unwrap();
+    let moon = calc_ut(JulianDay::new(jd), Body::MOON, FLG).unwrap();
     assert_lon_within!(sun.lon, 124.75, 0.05, "Sun at 2018 lunar eclipse");
     let sep = ((moon.lon - sun.lon - 180.0 + 540.0) % 360.0 - 180.0).abs();
     assert!(
@@ -2467,8 +2468,8 @@ fn longest_lunar_eclipse_2018_opposition() {
 #[test]
 fn saturn_pluto_conjunction_2020() {
     let jd = julday(2020, 1, 12, 16.0 + 59.0 / 60.0, Calendar::Gregorian);
-    let sat = calc_ut(jd, Body::SATURN, FLG).unwrap();
-    let plu = calc_ut(jd, Body::PLUTO, FLG).unwrap();
+    let sat = calc_ut(JulianDay::new(jd), Body::SATURN, FLG).unwrap();
+    let plu = calc_ut(JulianDay::new(jd), Body::PLUTO, FLG).unwrap();
     assert_lon_within!(sat.lon, 292.77, 0.5, "Saturn at 2020 Saturn–Pluto conj");
     assert_lon_within!(plu.lon, 292.77, 0.5, "Pluto at 2020 Saturn–Pluto conj");
     // Both in Capricorn (270°–300°)

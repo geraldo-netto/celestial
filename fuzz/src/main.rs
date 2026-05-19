@@ -3,6 +3,7 @@
 //! Self-contained: uses a stdlib xorshift64 PRNG — no external crates needed.
 //! Run with: `cargo run --manifest-path fuzz/Cargo.toml`
 
+use celestial_core::JulianDay;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
     almuten, annual_profection, arabic_parts_seven, ayanamsa, azalt, bahai_holy_days, calc,
@@ -332,7 +333,7 @@ fn test_vsop87(n: u32) -> Suite {
         let pi = (rng.next_u64() % PLANETS.len() as u64) as usize;
         let (body, lo, hi) = PLANETS[pi];
 
-        let Ok(pos) = calc_ut(jde, body, CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC) else {
+        let Ok(pos) = calc_ut(JulianDay::new(jde), body, CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC) else {
             s.passed += 1;
             continue;
         };
@@ -364,7 +365,7 @@ fn test_moon(n: u32) -> Suite {
     for _ in 0..n {
         let jd_off = rng.range_f64(-365_250.0, 365_250.0);
         let jde = 2_451_545.0 + jd_off;
-        let Ok(pos) = calc_ut(jde, Body::MOON, CalcFlags::BUILTIN) else {
+        let Ok(pos) = calc_ut(JulianDay::new(jde), Body::MOON, CalcFlags::BUILTIN) else {
             s.passed += 1;
             continue;
         };
@@ -527,7 +528,7 @@ fn test_nodes(n: u32) -> Suite {
     for _ in 0..n {
         let jde = 2_451_545.0 + rng.range_f64(-73050.0, 73050.0); // ±200yr
         for &body in &[Body::MEAN_NODE, Body::TRUE_NODE, Body::CHIRON] {
-            if let Ok(p) = calc_ut(jde, body, CalcFlags::BUILTIN | CalcFlags::SPEED) {
+            if let Ok(p) = calc_ut(JulianDay::new(jde), body, CalcFlags::BUILTIN | CalcFlags::SPEED) {
                 s.check(p.lon >= 0.0 && p.lon < 360.0, || {
                     format!("body={body} lon={}", p.lon)
                 });
@@ -536,7 +537,7 @@ fn test_nodes(n: u32) -> Suite {
             }
         }
         // Mean node retrograde
-        if let Ok(p) = calc_ut(jde, Body::MEAN_NODE, CalcFlags::BUILTIN | CalcFlags::SPEED) {
+        if let Ok(p) = calc_ut(JulianDay::new(jde), Body::MEAN_NODE, CalcFlags::BUILTIN | CalcFlags::SPEED) {
             s.check(p.speed_lon < 0.0, || {
                 format!("Mean node not retrograde: {}", p.speed_lon)
             });
@@ -583,7 +584,7 @@ fn check_body_crossing(
     s.check(jd < jd_start + max_days, || {
         format!("{label} too far: {:.1}", jd - jd_start)
     });
-    let Ok(p) = calc_ut(jd, body, CalcFlags::BUILTIN) else {
+    let Ok(p) = calc_ut(JulianDay::new(jd), body, CalcFlags::BUILTIN) else {
         return;
     };
     let mut diff = (p.lon - target + 360.0).rem_euclid(360.0);
@@ -905,7 +906,7 @@ fn check_sabbat_chronology(s: &mut Suite, year: i32, sabbats: &[celestial_core::
 
 fn check_sabbat_solar_longitudes(s: &mut Suite, year: i32, sabbats: &[celestial_core::Sabbat]) {
     for sab in sabbats {
-        let sun = match calc_ut(sab.jd, Body::SUN, CalcFlags::BUILTIN) {
+        let sun = match calc_ut(JulianDay::new(sab.jd), Body::SUN, CalcFlags::BUILTIN) {
             Ok(p) => p,
             Err(_) => {
                 s.passed += 1;
@@ -1005,8 +1006,8 @@ fn check_full_moon_elongation_at(s: &mut Suite, jd_start: f64) {
     s.check(jd_fm >= jd_start, || {
         format!("full moon {jd_fm:.1} is before search start {jd_start:.1}")
     });
-    let sun = calc_ut(jd_fm, Body::SUN, CalcFlags::BUILTIN).ok();
-    let moon = calc_ut(jd_fm, Body::MOON, CalcFlags::BUILTIN).ok();
+    let sun = calc_ut(JulianDay::new(jd_fm), Body::SUN, CalcFlags::BUILTIN).ok();
+    let moon = calc_ut(JulianDay::new(jd_fm), Body::MOON, CalcFlags::BUILTIN).ok();
     let (Some(sun), Some(moon)) = (sun, moon) else {
         return;
     };
@@ -1075,8 +1076,8 @@ fn check_esbat_special_moons(s: &mut Suite, year: i32, esbats: &[celestial_core:
 
 fn check_esbat_elongations(s: &mut Suite, year: i32, esbats: &[celestial_core::Esbat]) {
     for e in esbats {
-        let sun = calc_ut(e.jd, Body::SUN, CalcFlags::BUILTIN).ok();
-        let moon = calc_ut(e.jd, Body::MOON, CalcFlags::BUILTIN).ok();
+        let sun = calc_ut(JulianDay::new(e.jd), Body::SUN, CalcFlags::BUILTIN).ok();
+        let moon = calc_ut(JulianDay::new(e.jd), Body::MOON, CalcFlags::BUILTIN).ok();
         let (Some(sun), Some(moon)) = (sun, moon) else {
             continue;
         };
@@ -1154,7 +1155,7 @@ fn test_calc_tt_precision(n: u32) -> Suite {
     let mut s = Suite::new("calc_tt_precision");
     let flags = CalcFlags::BUILTIN;
     // Meeus §47.a: Moon at JDE 2448724.5 (TT) → lon ≈ 133.167°
-    let moon_tt = calc(2_448_724.5, Body::MOON, flags);
+    let moon_tt = calc(JulianDay::new(2_448_724.5), Body::MOON, flags);
     match moon_tt {
         Ok(pos) => {
             s.check((pos.lon - 133.167).abs() < 0.5, || {
@@ -1166,7 +1167,7 @@ fn test_calc_tt_precision(n: u32) -> Suite {
         }
     }
     // Meeus §25.a: Sun at JDE 2448908.5 (TT) → lon ≈ 199.909°
-    let sun_tt = calc(2_448_908.5, Body::SUN, flags);
+    let sun_tt = calc(JulianDay::new(2_448_908.5), Body::SUN, flags);
     match sun_tt {
         Ok(pos) => {
             s.check((pos.lon - 199.909).abs() < 0.1, || {
@@ -1183,8 +1184,8 @@ fn test_calc_tt_precision(n: u32) -> Suite {
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         for &body in &[Body::SUN, Body::MOON] {
-            let tt_res = calc(jd, body, flags);
-            let ut_res = calc_ut(jd, body, flags);
+            let tt_res = calc(JulianDay::new(jd), body, flags);
+            let ut_res = calc_ut(JulianDay::new(jd), body, flags);
             // Both must either succeed or fail — never one of each for same args
             match (tt_res, ut_res) {
                 (Ok(tt), Ok(ut)) => {
@@ -1265,9 +1266,9 @@ fn test_calc_many_parallel(n: u32) -> Suite {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
 
         // calc_many must give identical results to sequential calc()
-        let par = calc_many(jd, &bodies, flags);
+        let par = calc_many(JulianDay::new(jd), &bodies, flags);
         for (i, &body) in bodies.iter().enumerate() {
-            let seq = calc(jd, body, flags);
+            let seq = calc(JulianDay::new(jd), body, flags);
             match (&par[i], &seq) {
                 (Ok(p), Ok(q)) => {
                     s.check((p.lon - q.lon).abs() < 1e-9, || {
@@ -1449,7 +1450,7 @@ fn test_progressions(n: u32) -> Suite {
         let nat_pos: Vec<(Body, f64)> = bodies
             .iter()
             .filter_map(|&b| {
-                calc(jd_natal, b, CalcFlags::BUILTIN)
+                calc(JulianDay::new(jd_natal), b, CalcFlags::BUILTIN)
                     .ok()
                     .map(|p| (b, p.lon))
             })
@@ -2030,7 +2031,7 @@ fn test_profections(n: u32) -> Suite {
 
 fn check_calc_options_single(s: &mut Suite, jd: f64, flags: CalcFlags) {
     let via_builder = CalcOptions::ut(jd, flags).body(Body::SUN).get();
-    let direct = calc_ut(jd, Body::SUN, flags);
+    let direct = calc_ut(JulianDay::new(jd), Body::SUN, flags);
     match (via_builder, direct) {
         (Ok(b), Ok(d)) => {
             s.check((b.lon - d.lon).abs() < 1e-9, || {
@@ -2058,7 +2059,7 @@ fn check_calc_options_multi(s: &mut Suite, jd: f64, flags: CalcFlags) {
         )
     });
     for (i, &body) in bodies.iter().enumerate() {
-        if let (Ok(m), Ok(d)) = (&multi[i], calc_ut(jd, body, flags)) {
+        if let (Ok(m), Ok(d)) = (&multi[i], calc_ut(JulianDay::new(jd), body, flags)) {
             s.check((m.lon - d.lon).abs() < 1e-9, || {
                 format!("CalcOptions multi body {i}: lon mismatch")
             });
@@ -2141,7 +2142,7 @@ fn test_secondary_progressions_midpoints(n: u32) -> Suite {
         // midpoint_table: all midpoints must be finite, in [0,360)
         let positions: Vec<(Body, f64)> = bodies
             .iter()
-            .filter_map(|&b| calc_ut(jd_natal, b, flags).ok().map(|p| (b, p.lon)))
+            .filter_map(|&b| calc_ut(JulianDay::new(jd_natal), b, flags).ok().map(|p| (b, p.lon)))
             .collect();
         if positions.len() >= 2 {
             let table = midpoint_table(&positions, 2.0);
@@ -2176,7 +2177,7 @@ fn test_local_space(n: u32) -> Suite {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
         let geopos = [lon, lat, 0.0_f64];
 
-        if let Ok(sun) = calc(jd, Body::SUN, flags) {
+        if let Ok(sun) = calc(JulianDay::new(jd), Body::SUN, flags) {
             let az = azalt(jd, 0, geopos, 0.0, 10.0, [sun.lon, sun.lat, sun.dist]);
             s.check(az.azimuth >= 0.0 && az.azimuth < 360.0, || {
                 format!("azimuth {:.4} outside [0,360)", az.azimuth)
@@ -3155,13 +3156,13 @@ fn test_calc_ut_many_consistency(n: u32) -> Suite {
     ];
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
-        let many = celestial_core::calc_ut_many(jd, &bodies, CalcFlags::BUILTIN);
+        let many = celestial_core::calc_ut_many(JulianDay::new(jd), &bodies, CalcFlags::BUILTIN);
         s.check(many.len() == bodies.len(), || {
             format!("calc_ut_many length: {}", many.len())
         });
         // First (Sun) should match a separate calc_ut call
         if let (Some(Ok(via_many)), Ok(via_one)) =
-            (many.first(), calc_ut(jd, Body::SUN, CalcFlags::BUILTIN))
+            (many.first(), calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN))
         {
             s.check((via_many.lon - via_one.lon).abs() < 1e-9, || {
                 format!(
@@ -3274,7 +3275,7 @@ fn test_calc_pctr_no_panic(n: u32) -> Suite {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
         let body = bodies[(rng.next_u64() as usize) % bodies.len()];
         let ctr = centers[(rng.next_u64() as usize) % centers.len()];
-        let _ = celestial_core::calc_pctr(jd, body, ctr, CalcFlags::BUILTIN);
+        let _ = celestial_core::calc_pctr(JulianDay::new(jd), body, ctr, CalcFlags::BUILTIN);
         s.passed += 1;
     }
     s
@@ -3379,7 +3380,7 @@ fn test_ancient_future_dates(n: u32) -> Suite {
         // Range: 5000 BCE to 5000 CE
         let jd = 625_674.0 + rng.range_f64(0.0, 3_652_500.0);
         let bi = (rng.next_u64() % bodies.len() as u64) as usize;
-        match calc_ut(jd, bodies[bi], CalcFlags::BUILTIN) {
+        match calc_ut(JulianDay::new(jd), bodies[bi], CalcFlags::BUILTIN) {
             Ok(p) => {
                 s.check(
                     p.lon.is_finite() && p.lat.is_finite() && p.dist.is_finite(),
@@ -3410,11 +3411,11 @@ fn test_equatorial_mode(n: u32) -> Suite {
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         let bi = (rng.next_u64() % bodies.len() as u64) as usize;
-        let Ok(geo) = calc_ut(jd, bodies[bi], CalcFlags::BUILTIN) else {
+        let Ok(geo) = calc_ut(JulianDay::new(jd), bodies[bi], CalcFlags::BUILTIN) else {
             s.passed += 1;
             continue;
         };
-        let Ok(eq) = calc_ut(jd, bodies[bi], CalcFlags::BUILTIN | CalcFlags::EQUATORIAL) else {
+        let Ok(eq) = calc_ut(JulianDay::new(jd), bodies[bi], CalcFlags::BUILTIN | CalcFlags::EQUATORIAL) else {
             s.passed += 1;
             continue;
         };
@@ -3442,11 +3443,11 @@ fn test_sidereal_all_modes(n: u32) -> Suite {
         let jd = 1_000_000.0 + rng.range_f64(0.0, 3_000_000.0);
         let mode = (rng.next_u64() % 36) as i32;
         set_sid_mode(SiderealMode(mode), 0.0, 0.0);
-        let Ok(sid) = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN | CalcFlags::SIDEREAL) else {
+        let Ok(sid) = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN | CalcFlags::SIDEREAL) else {
             s.passed += 1;
             continue;
         };
-        let Ok(trop) = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN) else {
+        let Ok(trop) = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN) else {
             s.passed += 1;
             continue;
         };
@@ -3653,11 +3654,11 @@ fn test_topocentric_parallax(n: u32) -> Suite {
         let alt = rng.range_f64(0.0, 5000.0);
 
         set_topo(lon, lat, alt);
-        let Ok(geo) = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN) else {
+        let Ok(geo) = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN) else {
             s.passed += 1;
             continue;
         };
-        let Ok(topo) = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC) else {
+        let Ok(topo) = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC) else {
             s.passed += 1;
             continue;
         };
@@ -3674,12 +3675,12 @@ fn test_topocentric_parallax(n: u32) -> Suite {
         });
 
         // Sun parallax is at most ~0.01°
-        let Ok(sun_geo) = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN) else {
+        let Ok(sun_geo) = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN) else {
             s.passed += 1;
             continue;
         };
         set_topo(lon, lat, alt);
-        let Ok(sun_topo) = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC)
+        let Ok(sun_topo) = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC)
         else {
             s.passed += 1;
             continue;
@@ -4066,7 +4067,7 @@ fn check_inner_planets_bounds(s: &mut Suite) {
     for &(body, max_lat, (dmin, dmax), max_speed) in bodies {
         for _ in 0..100 {
             let jd = 2_451_545.0 + rng.range_f64(-73_000.0, 73_000.0); // ±200 y
-            let Ok(pos) = calc_ut(jd, body, flags) else {
+            let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) else {
                 s.passed += 1;
                 continue;
             };
@@ -4187,7 +4188,7 @@ fn check_outer_planet_physical_bounds(s: &mut Suite) {
     for &(body, max_lat, (dmin, dmax), max_speed) in bodies {
         for _ in 0..50 {
             let jd = 2_451_545.0 + rng.range_f64(-73_000.0, 73_000.0); // ±200 y
-            let r = std::panic::catch_unwind(|| calc_ut(jd, body, flags));
+            let r = std::panic::catch_unwind(|| calc_ut(JulianDay::new(jd), body, flags));
             match r {
                 Ok(Ok(pos)) => {
                     s.check((0.0..360.0).contains(&pos.lon), || {

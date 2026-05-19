@@ -402,7 +402,7 @@ fn test_ayanamsa_names() {
 #[test]
 fn test_calc_ut_sun_pure() {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
-    let pos = calc_ut(2452275.5, Body::SUN, flags).unwrap();
+    let pos = calc_ut(JulianDay::new(2452275.5), Body::SUN, flags).unwrap();
     // Sun longitude ≈ 280.38° on 2002-01-01
     assert!((pos.lon - 280.38).abs() < 0.5, "Sun lon = {}", pos.lon);
     assert!(
@@ -420,7 +420,7 @@ fn test_calc_ut_sun_pure() {
 
 #[test]
 fn test_calc_ut_moon_pure() {
-    let pos = calc_ut(2452275.5, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let pos = calc_ut(JulianDay::new(2452275.5), Body::MOON, CalcFlags::BUILTIN).unwrap();
     assert!(pos.lon >= 0.0 && pos.lon < 360.0, "Moon lon = {}", pos.lon);
     // Moon distance ≈ 0.00257 AU
     assert!(
@@ -445,7 +445,7 @@ fn test_calc_ut_all_planets_finite() {
         Body::URANUS,
         Body::NEPTUNE,
     ] {
-        let r = calc_ut(jd, pl, flags);
+        let r = calc_ut(JulianDay::new(jd), pl, flags);
         assert!(r.is_ok(), "calc_ut failed for body {pl}: {r:?}");
         let p = r.unwrap();
         assert!(p.lon >= 0.0 && p.lon < 360.0, "body {pl} lon = {}", p.lon);
@@ -455,13 +455,13 @@ fn test_calc_ut_all_planets_finite() {
 
 #[test]
 fn test_calc_ut_unknown_body_errors() {
-    assert!(calc_ut(2451545.0, Body(99), CalcFlags::BUILTIN).is_err());
-    assert!(calc_ut(2451545.0, Body(-2), CalcFlags::BUILTIN).is_err());
+    assert!(calc_ut(JulianDay::new(2451545.0), Body(99), CalcFlags::BUILTIN).is_err());
+    assert!(calc_ut(JulianDay::new(2451545.0), Body(-2), CalcFlags::BUILTIN).is_err());
 }
 
 #[test]
 fn test_calc_ut_speed_nonzero() {
-    let pos = calc_ut(2451545.0, Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let pos = calc_ut(JulianDay::new(2451545.0), Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
     assert!(
         pos.speed_lon != 0.0,
         "Sun speed should be non-zero with CalcFlags::SPEED"
@@ -475,7 +475,7 @@ fn test_calc_ut_speed_nonzero() {
 
 #[test]
 fn test_calc_ut_no_speed_flag() {
-    let pos = calc_ut(2451545.0, Body::MARS, CalcFlags::BUILTIN).unwrap();
+    let pos = calc_ut(JulianDay::new(2451545.0), Body::MARS, CalcFlags::BUILTIN).unwrap();
     assert_eq!(
         pos.speed_lon, 0.0,
         "speed should be 0 without CalcFlags::SPEED"
@@ -610,7 +610,7 @@ fn test_close_is_safe() {
 fn test_calc_ut_sun_exact() {
     // C-library reference: lon=280.382968, diff=0.008° (27 arcsec) — VSOP87 vs SE
     setup();
-    let pos = calc_ut(2452275.5, Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let pos = calc_ut(JulianDay::new(2452275.5), Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
     // Updated for IAU 2000B nutation + IAU 2006 obliquity (more accurate)
     assert_approx!(pos.lon, 280.390_607_728_379_6);
     assert_approx!(pos.lat, 0.000_142_242_172_615_266);
@@ -626,8 +626,8 @@ fn test_calc_et_matches_ut_approx() {
     setup();
     let jd = 2452275.5;
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
-    let et_pos = calc(jd, Body::SUN, flags).unwrap();
-    let ut_pos = calc_ut(jd, Body::SUN, flags).unwrap();
+    let et_pos = calc(JulianDay::new(jd), Body::SUN, flags).unwrap();
+    let ut_pos = calc_ut(JulianDay::new(jd), Body::SUN, flags).unwrap();
     assert!(
         (et_pos.lon - ut_pos.lon).abs() < 0.002,
         "ET/UT lon diff {} exceeds 0.002°",
@@ -705,7 +705,7 @@ fn test_azalt_sun() {
     // C-library reference: azimuth=31.0005 (≈ our 30.9905, diff=0.010°)
     setup();
     let geopos = [12.1f64, 49.0, 330.0];
-    let pos = calc_ut(2454503.06, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let pos = calc_ut(JulianDay::new(2454503.06), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let az = azalt(
         2454503.06,
         0,
@@ -791,7 +791,7 @@ fn precision_search_root_finder_baselines() {
     let sr = solar_return_jd(j2000, 2001, f).unwrap();
     assert_approx_tol!(sr, 2452275.485449128, TOL);
 
-    let sun = calc_ut(solcross(0.0, jd_2002, f).unwrap(), Body::SUN, f).unwrap();
+    let sun = calc_ut(JulianDay::new(solcross(0.0, jd_2002, f).unwrap()), Body::SUN, f).unwrap();
     let lon_err = sun.lon.min(360.0 - sun.lon);
     assert!(
         lon_err < 1.0e-6,
@@ -951,7 +951,7 @@ fn precision_apparent_place_baselines_j2000_and_2024() {
     ];
 
     for (body, jd, lon_exp, lat_exp, dist_exp) in cases {
-        let r = calc(jd, body, f).unwrap();
+        let r = calc(JulianDay::new(jd), body, f).unwrap();
         assert_approx_tol!(r.lon, lon_exp, TOL);
         assert_approx_tol!(r.lat, lat_exp, TOL);
         assert_approx_tol!(r.dist, dist_exp, TOL);
@@ -1002,7 +1002,7 @@ fn precision_moon_meeus_47a() {
     // JDE = 2448724.5
     // Expected: lon = 133.167° (ecliptic, apparent)
     let jde = 2_448_724.5;
-    let r = calc(jde, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let r = calc(JulianDay::new(jde), Body::MOON, CalcFlags::BUILTIN).unwrap();
     assert!(
         (r.lon - 133.167).abs() < 0.5,
         "Moon lon 1992-04-12 = {:.3}°, expected ≈133.167°",
@@ -1028,7 +1028,7 @@ fn precision_sun_meeus_25a() {
     // JDE = 2448724.5, Sun true longitude ≈ 22.015°
     // Apparent longitude slightly different due to aberration/nutation
     let jde = 2_448_724.5;
-    let r = calc(jde, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let r = calc(JulianDay::new(jde), Body::SUN, CalcFlags::BUILTIN).unwrap();
     assert!(
         (r.lon - 22.015).abs() < 0.5,
         "Sun lon 1992-04-12 = {:.3}°, expected ≈22.015° (±0.5° model accuracy)",
@@ -1047,7 +1047,7 @@ fn precision_jupiter_meeus_33a() {
     // JDE ≈ 2448976.5
     // Expected heliocentric lon ≈ 175.7°, geocentric roughly similar
     let jde = 2_448_976.5;
-    let r = calc_ut(jde, Body::JUPITER, CalcFlags::BUILTIN).unwrap();
+    let r = calc_ut(JulianDay::new(jde), Body::JUPITER, CalcFlags::BUILTIN).unwrap();
     assert!(r.lon >= 0.0 && r.lon < 360.0);
     // Jupiter moved ~1°/month; position should be near 175-180° range
     assert!(
@@ -1177,9 +1177,9 @@ fn precision_topocentric_moon_parallax() {
     // Moon horizontal parallax at 1992-04-12: ≈57'
     // From Paris (lat=48.85°N): topocentric shift depends on hour angle
     let jde = 2_448_724.5;
-    let geo = calc(jde, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let geo = calc(JulianDay::new(jde), Body::MOON, CalcFlags::BUILTIN).unwrap();
     set_topo(2.35, 48.85, 35.0);
-    let topo = calc(jde, Body::MOON, CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC).unwrap();
+    let topo = calc(JulianDay::new(jde), Body::MOON, CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC).unwrap();
     set_topo(0.0, 0.0, 0.0);
     let shift = (topo.lon - geo.lon).abs();
     let shift = if shift > 180.0 { 360.0 - shift } else { shift };
@@ -1223,10 +1223,10 @@ fn solar_return_jd_lands_in_correct_year() {
         "Solar return 2025 JD {sr:.2} not in July 2025 window"
     );
     // Sun longitude at return should match natal Sun longitude
-    let natal_sun = calc_ut(JD_NATAL, Body::SUN, CalcFlags::BUILTIN)
+    let natal_sun = calc_ut(JulianDay::new(JD_NATAL), Body::SUN, CalcFlags::BUILTIN)
         .unwrap()
         .lon;
-    let ret_sun = calc_ut(sr, Body::SUN, CalcFlags::BUILTIN).unwrap().lon;
+    let ret_sun = calc_ut(JulianDay::new(sr), Body::SUN, CalcFlags::BUILTIN).unwrap().lon;
     assert!(
         (natal_sun - ret_sun)
             .abs()
@@ -1251,11 +1251,11 @@ fn solar_return_jd_consecutive_years_one_year_apart() {
 
 #[test]
 fn lunar_return_jd_moon_lon_matches() {
-    let natal_moon = calc_ut(JD_NATAL, Body::MOON, CalcFlags::BUILTIN)
+    let natal_moon = calc_ut(JulianDay::new(JD_NATAL), Body::MOON, CalcFlags::BUILTIN)
         .unwrap()
         .lon;
     let lr = lunar_return_jd(JD_NATAL, JD_2025, CalcFlags::BUILTIN).unwrap();
-    let ret_moon = calc_ut(lr, Body::MOON, CalcFlags::BUILTIN).unwrap().lon;
+    let ret_moon = calc_ut(JulianDay::new(lr), Body::MOON, CalcFlags::BUILTIN).unwrap().lon;
     let diff = (natal_moon - ret_moon)
         .abs()
         .min((natal_moon - ret_moon + 360.0).abs())
@@ -1354,7 +1354,7 @@ fn solar_arc_directions_sun_advances_one_degree_per_year() {
     let natal_pairs: Vec<(Body, f64)> = bodies
         .iter()
         .map(|&b| {
-            let p = calc_ut(JD_NATAL, b, CalcFlags::BUILTIN).unwrap();
+            let p = calc_ut(JulianDay::new(JD_NATAL), b, CalcFlags::BUILTIN).unwrap();
             (b, p.lon)
         })
         .collect();
@@ -1377,10 +1377,10 @@ fn solar_arc_directions_sun_advances_one_degree_per_year() {
 
 #[test]
 fn midpoint_table_sun_moon_included() {
-    let natal_sun = calc_ut(JD_NATAL, Body::SUN, CalcFlags::BUILTIN)
+    let natal_sun = calc_ut(JulianDay::new(JD_NATAL), Body::SUN, CalcFlags::BUILTIN)
         .unwrap()
         .lon;
-    let natal_moon = calc_ut(JD_NATAL, Body::MOON, CalcFlags::BUILTIN)
+    let natal_moon = calc_ut(JulianDay::new(JD_NATAL), Body::MOON, CalcFlags::BUILTIN)
         .unwrap()
         .lon;
     let positions = vec![
@@ -1421,7 +1421,7 @@ fn midpoint_table_zero_orb_returns_all_pairs() {
 
 #[test]
 fn full_dignity_real_chart_j2000() {
-    let sun = calc_ut(JD_J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(JD_J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let h = houses_ex(
         JD_J2000,
         CalcFlags::BUILTIN,
@@ -1456,7 +1456,7 @@ fn firdaria_real_chart_covers_75_years() {
         HouseSystem::PLACIDUS,
     )
     .unwrap();
-    let sun = calc_ut(JD_NATAL, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(JD_NATAL), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let is_day = is_day_chart(sun.lon, &h.cusps);
     let periods = firdaria(JD_NATAL, is_day, 75.0);
 
@@ -1499,7 +1499,7 @@ fn annual_profection_real_chart_age_39() {
 
 #[test]
 fn four_pillars_j2000_known_values() {
-    let sun = calc_ut(JD_J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(JD_J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let pillars = four_pillars(JD_J2000, 12.0, sun.lon);
     // J2000.0 = 2000-01-01 — Gengchen (庚辰) year, Wuzi month
     assert_eq!(
@@ -1522,7 +1522,7 @@ fn four_pillars_j2000_known_values() {
 
 #[test]
 fn four_pillars_hour_pillar_changes_every_2_hours() {
-    let sun = calc_ut(JD_J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(JD_J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
     // Hours 0 and 1 should share the same pillar (Rat hour = 23:00–01:00)
     let p0 = four_pillars(JD_J2000, 0.0, sun.lon);
     let p1 = four_pillars(JD_J2000, 1.0, sun.lon);
@@ -1596,7 +1596,7 @@ fn calendar_round_repeats_after_18980_days() {
 
 #[test]
 fn medicine_wheel_totem_j2000_sun() {
-    let sun = calc_ut(JD_J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(JD_J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
     // Sun at J2000 ≈ 280° (Capricorn) → Medicine Wheel: Snow Goose (300°-330°)
     // or Elk (270°-300°) — sun at ~280° is in Elk territory
     let (animal, element, clan, season) = medicine_wheel_totem(sun.lon);
@@ -1614,7 +1614,7 @@ fn medicine_wheel_totem_j2000_sun() {
 
 #[test]
 fn egyptian_decan_j2000_sun() {
-    let sun = calc_ut(JD_J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(JD_J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let (idx, name, star) = egyptian_decan(sun.lon);
     // Sun ~280° → decan 28 (0-indexed from 0°)
     assert_eq!(

@@ -1,5 +1,6 @@
 //! Specialist chart builders — split from render.rs.
 
+use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
 use super::{
@@ -41,7 +42,7 @@ pub fn build_dial_context(
     let asc = h.ascmc[0];
 
     for &(body, key, name, glyph) in bodies {
-        if let Ok(pos) = calc_ut(jd, body, flags) {
+        if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
             let dial_lon = pos.lon % 90.0; // compress to 0–90°
             positions.push((body, pos.lon));
             planet_entries.push(json!({
@@ -136,8 +137,8 @@ pub fn build_composite_context(
     // Composite planet longitudes: midpoint of each body pair
     let mut planets = Vec::with_capacity(BODIES.len());
     for &(body, key, name, glyph) in BODIES {
-        let p1 = calc_ut(jd1, body, flags).ok();
-        let p2 = calc_ut(jd2, body, flags).ok();
+        let p1 = calc_ut(JulianDay::new(jd1), body, flags).ok();
+        let p2 = calc_ut(JulianDay::new(jd2), body, flags).ok();
         if let (Some(pos1), Some(pos2)) = (p1, p2) {
             let comp_lon = midpoint_deg(pos1.lon, pos2.lon);
             let (sign_idx, _) = lon_to_sign(comp_lon);
@@ -208,7 +209,7 @@ pub fn build_triwheel_context(
 
     for &(body, key, name, glyph) in BODIES {
         for (jd_r, ring, r) in [(jd2, &mut ring2, R2), (jd3, &mut ring3, R3)] {
-            if let Ok(pos) = calc_ut(jd_r, body, flags) {
+            if let Ok(pos) = calc_ut(JulianDay::new(jd_r), body, flags) {
                 ring.push(json!({
                     "name": name, "key": key, "glyph": glyph,
                     "lon":  (pos.lon * 1e4).round() / 1e4,
@@ -328,7 +329,7 @@ pub fn build_graphic_ephemeris_context(
     while jd <= jd_end + 0.5 {
         jd_points.push((jd * 100.0).round() / 100.0);
         for (i, &(body, ..)) in BODIES.iter().enumerate() {
-            if let Ok(pos) = calc_ut(jd, body, flags) {
+            if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
                 series[i].push((pos.lon * 100.0).round() / 100.0);
             } else {
                 series[i].push(f64::NAN);
@@ -580,7 +581,7 @@ pub fn build_local_space_context(
 
     let mut planets = Vec::with_capacity(BODIES.len());
     for &(body, key, name, glyph) in BODIES {
-        if let Ok(pos) = calc_ut(jd, body, flags) {
+        if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
             // Convert to azimuth/altitude using azalt
             let az_result: AzAlt = azalt(jd, 0, geopos, 0.0, 10.0, [pos.lon, pos.lat, pos.dist]);
             let az = az_result.azimuth;

@@ -16,6 +16,7 @@
 //! assert!(jd > 2460000.0);
 //! ```
 
+use crate::units::JulianDay;
 use crate::body::{Body, CalcFlags, Calendar};
 use crate::norm_deg;
 use crate::{calc_ut, julday};
@@ -28,8 +29,8 @@ pub fn next_full_moon_after(jd_start: f64) -> f64 {
     // Step forward in ~1-day steps to find the lunation
     let mut jd = jd_start;
     let elongation = |jd: f64| -> f64 {
-        let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
-        let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
+        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
+        let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
         norm_deg(moon.lon - sun.lon)
     };
 
@@ -70,8 +71,8 @@ pub fn next_full_moon_after(jd_start: f64) -> f64 {
 #[must_use]
 pub fn next_new_moon_after(jd_start: f64) -> f64 {
     let elongation = |jd: f64| -> f64 {
-        let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
-        let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
+        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
+        let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
         norm_deg(moon.lon - sun.lon)
     };
 
@@ -186,8 +187,8 @@ fn elongation_distance(e: f64, target: f64) -> f64 {
 
 fn find_phase(jd_start: f64, target: f64) -> f64 {
     let elongation = |jd: f64| -> f64 {
-        let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
-        let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
+        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
+        let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
         norm_deg(moon.lon - sun.lon)
     };
 
@@ -220,8 +221,8 @@ fn find_phase(jd_start: f64, target: f64) -> f64 {
 #[must_use]
 pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
     let elongation_at = |jd: f64| -> f64 {
-        let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
-        let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
+        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
+        let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
         norm_deg(moon.lon - sun.lon)
     };
 

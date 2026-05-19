@@ -25,6 +25,7 @@
 //! assert!(illum < 0.15); // near new moon, low illumination
 //! ```
 
+use crate::units::JulianDay;
 use crate::body::{Body, CalcFlags, Calendar};
 use crate::calc_ut;
 use crate::error::{Error, Result};
@@ -136,8 +137,8 @@ pub struct PhaseEvent {
 
 /// Moon–Sun elongation in [0°, 360°) at the given Julian day.
 pub fn moon_elongation(jd: f64) -> Result<f64> {
-    let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN)?;
-    let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN)?;
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN)?;
+    let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN)?;
     Ok((moon.lon - sun.lon).rem_euclid(360.0))
 }
 

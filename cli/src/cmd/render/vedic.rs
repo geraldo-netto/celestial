@@ -1,5 +1,6 @@
 //! Vedic chart builders — split from render.rs.
 
+use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
 use super::{
@@ -175,7 +176,7 @@ pub fn build_ashtakavarga_context(
 
     let mut planet_rasis = [0usize; 7];
     for (i, &b) in planet_bodies.iter().enumerate() {
-        if let Ok(pos) = calc_ut(jd, b, flags) {
+        if let Ok(pos) = calc_ut(JulianDay::new(jd), b, flags) {
             planet_rasis[i] = (pos.lon / 30.0) as usize % 12;
         }
     }
@@ -420,7 +421,7 @@ pub fn build_shadbala_context(
 
     let mut rows: Vec<Value> = Vec::with_capacity(trad_bodies.len());
     for (i, &(body, raw, name)) in trad_bodies.iter().enumerate() {
-        if let Ok(pos) = calc_ut(jd, body, flags) {
+        if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
             // 1. Ochchabala: exaltation strength (0–60 shashtiamsas)
             let ochcha = ochchabala(raw, pos.lon).unwrap_or(0.0);
 
@@ -686,7 +687,7 @@ pub fn build_vedic_context(
     let mut planets: Vec<Value> = Vec::with_capacity(BODIES.len());
     let mut moon_sid_lon = 0.0_f64;
     for &(body, key, name, glyph) in BODIES {
-        if let Ok(pos) = calc_ut(jd, body, flags) {
+        if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
             let rasi = long_to_rasi(pos.lon);
             let navamsa = long_to_navamsa(pos.lon);
             let (nak, pada) = long_to_nakshatra(pos.lon);

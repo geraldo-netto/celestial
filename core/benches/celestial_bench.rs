@@ -4,6 +4,7 @@
 //! Run:  cargo bench --package celestial-core
 
 #![allow(unused_must_use)]
+use celestial_core::JulianDay;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem};
 use std::hint::black_box;
 use std::time::Instant;
@@ -132,7 +133,7 @@ fn bench_calc(all: &mut Vec<R>, f: CalcFlags) {
     ] {
         all.push(bench(&format!("calc::calc_ut_{name}"), 500, || {
             black_box(celestial_core::calc_ut(
-                black_box(J2000),
+                black_box(JulianDay::new(J2000)),
                 black_box(body),
                 black_box(f),
             ));
@@ -152,7 +153,7 @@ fn bench_calc(all: &mut Vec<R>, f: CalcFlags) {
             Body::PLUTO,
         ] {
             black_box(celestial_core::calc_ut(
-                black_box(J2000),
+                black_box(JulianDay::new(J2000)),
                 body,
                 black_box(f),
             ));

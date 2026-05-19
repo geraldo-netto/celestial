@@ -3,6 +3,7 @@
 //! Build with `maturin develop` (dev install) or `maturin build` (wheel).
 //! The module is exposed as `celestial_py`.
 
+use celestial::JulianDay;
 use celestial::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_ffi as celestial;
 use pyo3::exceptions::PyRuntimeError;
@@ -68,7 +69,7 @@ fn close() {
 #[pyfunction]
 #[pyo3(signature = (tjdet, planet, flags = 258))]
 fn calc(py: Python<'_>, tjdet: f64, planet: i32, flags: i32) -> PyResult<PyObject> {
-    let pos = celestial::calc(tjdet, Body::from_raw(planet), CalcFlags(flags)).map_err(to_py)?;
+    let pos = celestial::calc(JulianDay::new(tjdet), Body::from_raw(planet), CalcFlags(flags)).map_err(to_py)?;
     let xx = celestial_ffi::pos6_tuple(&pos);
     Ok((xx, pos.ret_flags).into_py_any(py).unwrap())
 }
@@ -77,7 +78,7 @@ fn calc(py: Python<'_>, tjdet: f64, planet: i32, flags: i32) -> PyResult<PyObjec
 #[pyfunction]
 #[pyo3(signature = (tjdut, planet, flags = 258))]
 fn calc_ut(py: Python<'_>, tjdut: f64, planet: i32, flags: i32) -> PyResult<PyObject> {
-    let pos = celestial::calc_ut(tjdut, Body::from_raw(planet), CalcFlags(flags)).map_err(to_py)?;
+    let pos = celestial::calc_ut(JulianDay::new(tjdut), Body::from_raw(planet), CalcFlags(flags)).map_err(to_py)?;
     let xx = celestial_ffi::pos6_tuple(&pos);
     Ok((xx, pos.ret_flags).into_py_any(py).unwrap())
 }
@@ -116,7 +117,7 @@ fn true_obliquity(jde: f64) -> f64 {
 #[pyo3(signature = (tjdet, planets, flags = 258))]
 fn calc_many(py: Python<'_>, tjdet: f64, planets: Vec<i32>, flags: i32) -> PyResult<PyObject> {
     let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
-    let results = celestial::calc_many(tjdet, &bodies, CalcFlags(flags));
+    let results = celestial::calc_many(JulianDay::new(tjdet), &bodies, CalcFlags(flags));
     let list: Vec<PyObject> = results
         .into_iter()
         .map(|r| {
@@ -133,7 +134,7 @@ fn calc_many(py: Python<'_>, tjdet: f64, planets: Vec<i32>, flags: i32) -> PyRes
 #[pyo3(signature = (tjdut, planets, flags = 258))]
 fn calc_ut_many(py: Python<'_>, tjdut: f64, planets: Vec<i32>, flags: i32) -> PyResult<PyObject> {
     let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
-    let results = celestial::calc_ut_many(tjdut, &bodies, CalcFlags(flags));
+    let results = celestial::calc_ut_many(JulianDay::new(tjdut), &bodies, CalcFlags(flags));
     let list: Vec<PyObject> = results
         .into_iter()
         .map(|r| {
@@ -156,7 +157,7 @@ fn calc_pctr(
     flags: i32,
 ) -> PyResult<PyObject> {
     let pos = celestial::calc_pctr(
-        tjdet,
+        JulianDay::new(tjdet),
         Body::from_raw(planet),
         Body::from_raw(center),
         CalcFlags(flags),

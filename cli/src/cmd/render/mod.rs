@@ -34,6 +34,8 @@
 //! ring_color   = "#1a1a2e"    dark navy for rings and labels
 //! ```
 
+#[cfg(test)]
+use celestial_core::JulianDay;
 use crate::error::CliError;
 use std::collections::BTreeMap;
 
@@ -1270,7 +1272,7 @@ mod tests_vedic {
         let jd = 2_451_545.0;
         use celestial_core::body::{Body, CalcFlags};
         let flags = CalcFlags::BUILTIN | CalcFlags(64); // sidereal
-        if let Ok(sun) = celestial_core::calc_ut(jd, Body::SUN, flags) {
+        if let Ok(sun) = celestial_core::calc_ut(JulianDay::new(jd), Body::SUN, flags) {
             let rasi = long_to_rasi(sun.lon);
             let navamsa = long_to_navamsa(sun.lon);
             // Can't assert they differ (they might coincide), but both must be valid

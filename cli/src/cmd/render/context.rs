@@ -5,6 +5,7 @@
 
 #![allow(clippy::too_many_arguments)]
 
+use celestial_core::JulianDay;
 use crate::error::CliError;
 use std::collections::BTreeMap;
 
@@ -134,7 +135,7 @@ fn build_planets(jd: f64, asc: f64) -> Vec<Value> {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut planets = Vec::with_capacity(BODIES.len() + 1);
     for &(body, key, name, glyph) in BODIES {
-        if let Ok(pos) = calc_ut(jd, body, flags) {
+        if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
             let (sign_idx, deg_in_sign) = lon_to_sign(pos.lon);
             let sign_full = zodiac_sign_name(sign_idx);
             let sign_short = &sign_full[..sign_full

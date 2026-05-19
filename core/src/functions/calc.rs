@@ -3,6 +3,7 @@
 use crate::astronomy::fixstars;
 use crate::body::{Body, CalcFlags};
 use crate::error::{Error, Result};
+use crate::units::JulianDay;
 
 // Types are defined once in types.rs and re-exported from lib.rs
 pub use crate::types::{FixStarPos, NodAps, OrbitalDistances, OrbitalElements, PlanetPos};
@@ -21,18 +22,19 @@ pub fn close() {}
 /// Use this when your Julian day is already in TT — e.g. Meeus examples,
 /// ephemeris file JDEs, or when you have manually applied ΔT.
 /// For wall-clock / UT input use [`calc_ut`] instead.
-pub fn calc(jd_et: f64, body: Body, flags: CalcFlags) -> Result<PlanetPos> {
-    crate::astronomy::calc_tt(jd_et, body.as_raw(), flags.as_raw())
+pub fn calc(jd_et: JulianDay, body: Body, flags: CalcFlags) -> Result<PlanetPos> {
+    crate::astronomy::calc_tt(jd_et.get(), body.as_raw(), flags.as_raw())
 }
 
 /// Geocentric position using Universal Time. Returns [`PlanetPos`].
-pub fn calc_ut(jd_ut: f64, body: Body, flags: CalcFlags) -> Result<PlanetPos> {
-    crate::astronomy::calc_ut(jd_ut, body.as_raw(), flags.as_raw())
+pub fn calc_ut(jd_ut: JulianDay, body: Body, flags: CalcFlags) -> Result<PlanetPos> {
+    crate::astronomy::calc_ut(jd_ut.get(), body.as_raw(), flags.as_raw())
 }
 
 /// Planetocentric position: body as seen from `center` instead of Earth.
-pub fn calc_pctr(jd_et: f64, body: Body, center: Body, flags: CalcFlags) -> Result<PlanetPos> {
+pub fn calc_pctr(jd_et: JulianDay, body: Body, center: Body, flags: CalcFlags) -> Result<PlanetPos> {
     use crate::astronomy::calc_ut as au;
+    let jd_et = jd_et.get();
     let body_pos =
         au(jd_et, body.as_raw(), flags.as_raw()).map_err(|e| Error::Calc(e.to_string()))?;
     let center_pos =
@@ -226,18 +228,19 @@ pub fn orbit_max_min_true_distance(
 /// # Example
 /// ```rust
 /// use celestial_core::body::{Body, CalcFlags};
-/// use celestial_core::calc_many;
+/// use celestial_core::{calc_many, JulianDay};
 /// let bodies = [Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS,
 ///               Body::MARS, Body::JUPITER, Body::SATURN, Body::URANUS,
 ///               Body::NEPTUNE, Body::PLUTO, Body::MEAN_NODE, Body::CHIRON];
-/// let results = calc_many(2451545.0, &bodies, CalcFlags::BUILTIN | CalcFlags::SPEED);
+/// let results = calc_many(JulianDay::new(2451545.0), &bodies, CalcFlags::BUILTIN | CalcFlags::SPEED);
 /// ```
 #[must_use]
 pub fn calc_many(
-    jd_et: f64,
+    jd_et: JulianDay,
     bodies: &[Body],
     flags: CalcFlags,
 ) -> Vec<crate::error::Result<PlanetPos>> {
+    let jd_et = jd_et.get();
     parallel_calc(bodies, move |body| {
         crate::astronomy::calc_tt(jd_et, body.as_raw(), flags.as_raw())
     })
@@ -248,10 +251,11 @@ pub fn calc_many(
 /// Same as [`calc_many`] but accepts Universal Time (auto-applies ΔT).
 #[must_use]
 pub fn calc_ut_many(
-    jd_ut: f64,
+    jd_ut: JulianDay,
     bodies: &[Body],
     flags: CalcFlags,
 ) -> Vec<crate::error::Result<PlanetPos>> {
+    let jd_ut = jd_ut.get();
     parallel_calc(bodies, move |body| {
         crate::astronomy::calc_ut(jd_ut, body.as_raw(), flags.as_raw())
     })
@@ -398,7 +402,7 @@ impl SingleCalc {
     /// Execute the calculation and return the result.
     pub fn get(self) -> Result<PlanetPos> {
         if self.opts.use_ut {
-            calc_ut(self.opts.jd, self.body, self.opts.flags)
+            calc_ut(JulianDay::new(self.opts.jd), self.body, self.opts.flags)
         } else {
             crate::astronomy::calc_tt(self.opts.jd, self.body.as_raw(), self.opts.flags.as_raw())
         }
@@ -425,16 +429,16 @@ impl<'a> MultiCalc<'a> {
 
         if use_parallel {
             if self.opts.use_ut {
-                calc_ut_many(self.opts.jd, self.bodies, self.opts.flags)
+                calc_ut_many(JulianDay::new(self.opts.jd), self.bodies, self.opts.flags)
             } else {
-                calc_many(self.opts.jd, self.bodies, self.opts.flags)
+                calc_many(JulianDay::new(self.opts.jd), self.bodies, self.opts.flags)
             }
         } else {
             // Sequential
             let jd = self.opts.jd;
             let flags = self.opts.flags;
             if self.opts.use_ut {
-                self.bodies.iter().map(|&b| calc_ut(jd, b, flags)).collect()
+                self.bodies.iter().map(|&b| calc_ut(JulianDay::new(jd), b, flags)).collect()
             } else {
                 self.bodies
                     .iter()

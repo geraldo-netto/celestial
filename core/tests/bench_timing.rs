@@ -43,22 +43,22 @@ fn bench_planet_positions() {
     ];
     for (body, name) in bodies {
         bench(name, N, || {
-            let _ = calc_ut(J2000, body, CalcFlags::BUILTIN);
+            let _ = calc_ut(JulianDay::new(J2000), body, CalcFlags::BUILTIN);
         });
     }
     bench("Mars + CalcFlags::SPEED", N, || {
-        let _ = calc_ut(J2000, Body::MARS, CalcFlags::BUILTIN | CalcFlags::SPEED);
+        let _ = calc_ut(JulianDay::new(J2000), Body::MARS, CalcFlags::BUILTIN | CalcFlags::SPEED);
     });
     bench("Mars + CalcFlags::HELIOCENTRIC", N, || {
         let _ = calc_ut(
-            J2000,
+            JulianDay::new(J2000),
             Body::MARS,
             CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC,
         );
     });
     set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
     bench("Moon + CalcFlags::SIDEREAL", N, || {
-        let _ = calc_ut(J2000, Body::MOON, CalcFlags::BUILTIN | CalcFlags::SIDEREAL);
+        let _ = calc_ut(JulianDay::new(J2000), Body::MOON, CalcFlags::BUILTIN | CalcFlags::SIDEREAL);
     });
 }
 
@@ -79,7 +79,7 @@ fn bench_full_chart() {
     ];
     bench("10 bodies at once", 1000, || {
         for &b in &bodies {
-            let _ = calc_ut(J2000, b, CalcFlags::BUILTIN);
+            let _ = calc_ut(JulianDay::new(J2000), b, CalcFlags::BUILTIN);
         }
     });
 }

@@ -1,5 +1,6 @@
 //! Iterative aspect and retrograde search functions.
 
+use crate::units::JulianDay;
 use crate::body::{Body, CalcFlags, HouseSystem};
 use crate::functions::houses::houses;
 
@@ -130,7 +131,7 @@ pub fn next_retro(
     let dir = if backward { -step } else { step };
     let flags_with_speed = flags | CalcFlags::SPEED;
 
-    let pos_at = |jd: f64| calc_ut(jd, body, flags_with_speed).ok();
+    let pos_at = |jd: f64| calc_ut(JulianDay::new(jd), body, flags_with_speed).ok();
 
     let mut jd = jd_start;
     let max_jd = jd_start + if stop_days > 0.0 { stop_days } else { 50_000.0 } * dir.signum();
@@ -195,7 +196,7 @@ pub fn next_aspect(
             return None;
         }
     }
-    let p = calc_ut(jd, body, flags).ok()?;
+    let p = calc_ut(JulianDay::new(jd), body, flags).ok()?;
     Some(AspectResult {
         jd,
         pos1: pos_to_arr(&p),
@@ -289,8 +290,8 @@ pub fn next_aspect_with(
     let scan_flags = flags & !(CalcFlags::SPEED | CalcFlags::SPEED3);
 
     let mut diff_at = |jd: f64| -> Option<f64> {
-        let p1 = calc_ut(jd, body, scan_flags).ok()?.lon;
-        let p2 = calc_ut(jd, other, scan_flags).ok()?.lon;
+        let p1 = calc_ut(JulianDay::new(jd), body, scan_flags).ok()?.lon;
+        let p2 = calc_ut(JulianDay::new(jd), other, scan_flags).ok()?.lon;
         Some(diff_deg_signed(p1 + aspect, p2))
     };
 
@@ -314,8 +315,8 @@ pub fn next_aspect_with(
         if d0 * d1 <= 0.0 && (d1 - d0).abs() < 180.0 {
             // Sign change → bisect on `diff_at` to find the crossing.
             let jd_ret = bisect_zero_fallible(jd - dir, jd, d0, 1e-8, 60, &mut diff_at)?;
-            let p1 = calc_ut(jd_ret, body, flags).ok()?;
-            let p2 = calc_ut(jd_ret, other, flags).ok()?;
+            let p1 = calc_ut(JulianDay::new(jd_ret), body, flags).ok()?;
+            let p2 = calc_ut(JulianDay::new(jd_ret), other, flags).ok()?;
             return Some(AspectResult {
                 jd: jd_ret,
                 pos1: pos_to_arr(&p1),
@@ -390,7 +391,7 @@ pub fn next_aspect_cusp(
     let scan_flags = flags & !(CalcFlags::SPEED | CalcFlags::SPEED3);
 
     let mut diff_at = |jd: f64| -> Option<f64> {
-        let p = calc_ut(jd, body, scan_flags).ok()?.lon;
+        let p = calc_ut(JulianDay::new(jd), body, scan_flags).ok()?.lon;
         let hr = houses(jd, lat, lon, hsys).ok()?;
         Some(diff_deg_signed(p + aspect, hr.cusps[cusp]))
     };
@@ -408,7 +409,7 @@ pub fn next_aspect_cusp(
         let d1 = diff_at(jd)?;
         if d0 * d1 <= 0.0 && (d1 - d0).abs() < 180.0 {
             let jd_ret = bisect_zero_fallible(jd - dir, jd, d0, 1e-8, 60, &mut diff_at)?;
-            let p = calc_ut(jd_ret, body, flags).ok()?;
+            let p = calc_ut(JulianDay::new(jd_ret), body, flags).ok()?;
             let hr = houses(jd_ret, lat, lon, hsys).ok()?;
             return Some(AspectCuspResult {
                 jd: jd_ret,
@@ -460,8 +461,8 @@ pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
     use crate::functions::calc::calc_ut;
     // Only `.lon` is used — no need to compute solar speed.
     let flags = flags & !(CalcFlags::SPEED | CalcFlags::SPEED3);
-    let sun1 = calc_ut(jd1, Body::SUN, flags)?.lon;
-    let sun2 = calc_ut(jd2, Body::SUN, flags)?.lon;
+    let sun1 = calc_ut(JulianDay::new(jd1), Body::SUN, flags)?.lon;
+    let sun2 = calc_ut(JulianDay::new(jd2), Body::SUN, flags)?.lon;
     let mut years = 0.0_f64;
 
     if jd1 < jd2 {
@@ -667,7 +668,7 @@ pub fn dsc_transit_ut(
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// let jd = 2_451_545.0;
 /// let chart = houses(jd, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
-/// let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+/// let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
 /// let house = planet_house_number(sun.lon, &chart.cusps);
 /// println!("Sun is in house {house}");
 /// ```
@@ -785,7 +786,7 @@ pub fn lower_meridian_transit_ut(
     let flags_pos = flags & !CalcFlags::SPEED;
 
     let ha_at = |jd: f64| -> f64 {
-        let pos = match crate::calc_ut(jd, body, flags_pos) {
+        let pos = match crate::calc_ut(JulianDay::new(jd), body, flags_pos) {
             Ok(p) => p,
             Err(_) => return 0.0, // treat as HA=0 if calc fails
         };

@@ -4,6 +4,7 @@
 //! (progressions, solar arc) or from two charts overlaid (biwheel).
 //! Extracted from `mod.rs` to group related logic.
 
+use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
 use std::collections::BTreeMap;
@@ -54,11 +55,11 @@ pub(super) fn build_solar_arc_context(
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut ctx = build_context(jd, lat, lon, date_str, hsys, user_vars)?;
     // Compute solar arc delta
-    let sun_natal = calc_ut(jd, Body::SUN, flags)?;
+    let sun_natal = calc_ut(JulianDay::new(jd), Body::SUN, flags)?;
     // Solar arc direction: 1 day = 1 year (secondary progression rate)
     // Progressed Sun is at birth + years days; arc = difference from natal Sun.
     let progressed_jd = jd + years; // 1 day per year
-    let sun_progressed = calc_ut(progressed_jd, Body::SUN, flags)?;
+    let sun_progressed = calc_ut(JulianDay::new(progressed_jd), Body::SUN, flags)?;
     let arc = (sun_progressed.lon - sun_natal.lon + 360.0) % 360.0;
     ctx["solar_arc_deg"] = serde_json::json!(arc);
     ctx["solar_arc_degrees"] = serde_json::json!(arc); // alias for test compat

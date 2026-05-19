@@ -1,5 +1,6 @@
 //! Astronomical phenomena, heliacal events, and Gauquelin sector calculations.
 
+use crate::units::JulianDay;
 use crate::body::{Body, CalcFlags};
 use crate::error::{Error, Result};
 
@@ -34,7 +35,7 @@ pub fn gauquelin_sector(
     _attemp: f64,
 ) -> Result<f64> {
     use crate::functions::calc::calc_ut;
-    let pos = calc_ut(jd_ut, body, flags)?;
+    let pos = calc_ut(JulianDay::new(jd_ut), body, flags)?;
     let lon_body = pos.lon;
     let lat_geo = geopos[1];
     let lon_geo = geopos[0];
@@ -110,9 +111,9 @@ fn pheno_impl(jd: f64, body: Body, _flags: CalcFlags) -> Result<[f64; 20]> {
     use crate::astronomy::phenomena;
     use crate::functions::calc::calc_ut;
     // Geocentric position of the body
-    let pos = calc_ut(jd, body, CalcFlags::BUILTIN)?;
+    let pos = calc_ut(JulianDay::new(jd), body, CalcFlags::BUILTIN)?;
     // Geocentric position of the Sun
-    let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN)?;
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN)?;
     // Heliocentric distance of the body ≈ distance from Sun
     // (simplified: use geocentric dist for outer planets, 1 AU for Sun)
     let dist_sun = if body == Body::SUN {

@@ -261,7 +261,7 @@ fn date_conversion_month_overflow() {
 fn azalt_rev_roundtrip_equatorial() {
     let jd = 2454503.06_f64;
     let geopos = [12.1_f64, 49.0, 330.0];
-    let pos = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let pos = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
     // Forward: ecliptic → horizontal
     let az = azalt(jd, 0, geopos, 1010.0, 15.0, [pos.lon, pos.lat, pos.dist]);
     // Inverse: horizontal → equatorial (flag=1)
@@ -284,7 +284,7 @@ fn azalt_rev_roundtrip_equatorial() {
 fn azalt_rev_roundtrip_ecliptic() {
     let jd = 2454503.06_f64;
     let geopos = [12.1_f64, 49.0, 330.0];
-    let pos = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let pos = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let az = azalt(jd, 0, geopos, 1010.0, 15.0, [pos.lon, pos.lat, pos.dist]);
     let back = azalt_rev(jd, 0, geopos, [az.azimuth, az.true_alt]);
     // Sun ecliptic longitude should round-trip to within ~0.05°
@@ -338,7 +338,7 @@ fn test_tt_to_ut() {
 fn test_heliocentric_mars() {
     use celestial_core::{calc_ut, Body, CalcFlags};
     let jd = 2451545.0;
-    let pos = calc_ut(jd, Body::MARS, CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC).unwrap();
+    let pos = calc_ut(JulianDay::new(jd), Body::MARS, CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC).unwrap();
     // Mars heliocentric distance: 1.38–1.67 AU
     assert!(
         pos.dist > 1.2 && pos.dist < 1.8,
@@ -460,7 +460,7 @@ fn houses_equator() {
 fn calc_ut_ancient_date() {
     // 1000 BCE = approx JD 1356001
     let jd_1000bce = 1_356_001.0;
-    let r = calc_ut(jd_1000bce, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let r = calc_ut(JulianDay::new(jd_1000bce), Body::SUN, CalcFlags::BUILTIN).unwrap();
     assert!(r.lon >= 0.0 && r.lon < 360.0);
     assert!(r.dist > 0.9 && r.dist < 1.1);
 }
@@ -469,7 +469,7 @@ fn calc_ut_ancient_date() {
 fn calc_ut_far_future() {
     // Year 3000 CE = approx JD 2816787
     let jd_3000 = 2_816_787.0;
-    let r = calc_ut(jd_3000, Body::JUPITER, CalcFlags::BUILTIN).unwrap();
+    let r = calc_ut(JulianDay::new(jd_3000), Body::JUPITER, CalcFlags::BUILTIN).unwrap();
     assert!(r.lon >= 0.0 && r.lon < 360.0);
     assert!(r.dist > 4.0 && r.dist < 6.0);
 }
@@ -496,8 +496,8 @@ fn julday_revjul_negative_year() {
 
 #[test]
 fn calc_ut_equatorial_flag() {
-    let geo = calc_ut(J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
-    let eq = calc_ut(J2000, Body::SUN, CalcFlags::BUILTIN | CalcFlags::EQUATORIAL).unwrap();
+    let geo = calc_ut(JulianDay::new(J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let eq = calc_ut(JulianDay::new(J2000), Body::SUN, CalcFlags::BUILTIN | CalcFlags::EQUATORIAL).unwrap();
     // Equatorial lon = RA, lat = Dec — should differ from ecliptic
     // RA is in [0,360), Dec is in (-90, 90)
     assert!(eq.lon >= 0.0 && eq.lon < 360.0);
@@ -511,7 +511,7 @@ fn calc_ut_equatorial_flag() {
 fn calc_ut_equatorial_speed() {
     // CalcFlags::EQUATORIAL + CalcFlags::SPEED should compute RA/Dec rates
     let r = calc_ut(
-        J2000,
+        JulianDay::new(J2000),
         Body::MOON,
         CalcFlags::BUILTIN | CalcFlags::EQUATORIAL | CalcFlags::SPEED,
     )
@@ -531,10 +531,10 @@ fn calc_ut_equatorial_speed() {
 #[test]
 fn set_topo_changes_moon_position() {
     // Topocentric Moon differs from geocentric by up to ~1° (parallax)
-    let geo = calc_ut(J2000, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let geo = calc_ut(JulianDay::new(J2000), Body::MOON, CalcFlags::BUILTIN).unwrap();
     set_topo(2.35, 48.85, 35.0); // Paris
     let topo = calc_ut(
-        J2000,
+        JulianDay::new(J2000),
         Body::MOON,
         CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC,
     )
@@ -831,9 +831,9 @@ fn orbital_elements_eccentricity_valid() {
 #[test]
 fn speed_matches_numerical_diff() {
     // Speed flag should match (pos[t+0.5] - pos[t-0.5]) / 1.0 within 10%
-    let with_speed = calc_ut(J2000, Body::MARS, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
-    let plus = calc_ut(J2000 + 0.5, Body::MARS, CalcFlags::BUILTIN).unwrap();
-    let minus = calc_ut(J2000 - 0.5, Body::MARS, CalcFlags::BUILTIN).unwrap();
+    let with_speed = calc_ut(JulianDay::new(J2000), Body::MARS, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let plus = calc_ut(JulianDay::new(J2000 + 0.5), Body::MARS, CalcFlags::BUILTIN).unwrap();
+    let minus = calc_ut(JulianDay::new(J2000 - 0.5), Body::MARS, CalcFlags::BUILTIN).unwrap();
     let numerical = {
         let raw = plus.lon - minus.lon;
         if raw > 180.0 {
@@ -871,16 +871,16 @@ fn nutation_longitude_under_20_arcsec() {
 
 #[test]
 fn topo_reset_returns_geocentric() {
-    let geo = calc_ut(J2000, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let geo = calc_ut(JulianDay::new(J2000), Body::MOON, CalcFlags::BUILTIN).unwrap();
     set_topo(139.69, 35.69, 40.0); // Tokyo
     let _topo = calc_ut(
-        J2000,
+        JulianDay::new(J2000),
         Body::MOON,
         CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC,
     )
     .unwrap();
     set_topo(0.0, 0.0, 0.0); // reset
-    let back = calc_ut(J2000, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let back = calc_ut(JulianDay::new(J2000), Body::MOON, CalcFlags::BUILTIN).unwrap();
     assert!(
         (geo.lon - back.lon).abs() < 1e-10,
         "position after topo reset: {:.10} vs {:.10}",
@@ -894,10 +894,10 @@ fn topo_reset_returns_geocentric() {
 #[test]
 fn match_aspect4_smoke() {
     // 4-body aspect — Sun/Moon/Mars/Jupiter
-    let sun = calc_ut(J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
-    let moon = calc_ut(J2000, Body::MOON, CalcFlags::BUILTIN).unwrap();
-    let _mar = calc_ut(J2000, Body::MARS, CalcFlags::BUILTIN).unwrap();
-    let _jup = calc_ut(J2000, Body::JUPITER, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let moon = calc_ut(JulianDay::new(J2000), Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let _mar = calc_ut(JulianDay::new(J2000), Body::MARS, CalcFlags::BUILTIN).unwrap();
+    let _jup = calc_ut(JulianDay::new(J2000), Body::JUPITER, CalcFlags::BUILTIN).unwrap();
     // match_aspect4: test 4-variant aspects for TWO bodies (pos0,speed0,pos1,speed1,aspect,app,sep,def)
     let r = match_aspect4(
         sun.lon,
@@ -1242,7 +1242,7 @@ mod calc_options_tests {
     #[test]
     fn single_body_ut_matches_calc_ut() {
         let via_builder = CalcOptions::ut(JD, FLAGS).body(Body::SUN).get().unwrap();
-        let direct = calc_ut(JD, Body::SUN, FLAGS).unwrap();
+        let direct = calc_ut(JulianDay::new(JD), Body::SUN, FLAGS).unwrap();
         assert!((via_builder.lon - direct.lon).abs() < 1e-9);
         assert!((via_builder.dist - direct.dist).abs() < 1e-12);
     }
@@ -1250,7 +1250,7 @@ mod calc_options_tests {
     #[test]
     fn single_body_tt_matches_calc_tt() {
         let via_builder = CalcOptions::tt(JD, FLAGS).body(Body::MOON).get().unwrap();
-        let direct = calc(JD, Body::MOON, FLAGS).unwrap();
+        let direct = calc(JulianDay::new(JD), Body::MOON, FLAGS).unwrap();
         assert!((via_builder.lon - direct.lon).abs() < 1e-9);
     }
 
@@ -1266,7 +1266,7 @@ mod calc_options_tests {
         let results = CalcOptions::ut(JD, FLAGS).bodies(&bodies).get_many();
         assert_eq!(results.len(), bodies.len());
         for (i, &body) in bodies.iter().enumerate() {
-            let direct = calc_ut(JD, body, FLAGS).unwrap();
+            let direct = calc_ut(JulianDay::new(JD), body, FLAGS).unwrap();
             let got = results[i].as_ref().unwrap();
             assert!(
                 (got.lon - direct.lon).abs() < 1e-9,
@@ -1505,7 +1505,7 @@ mod moon_and_calendar_tests {
             Body::VENUS,
             Body::MARS,
         ];
-        let results = calc_ut_many(JD, &bodies, CalcFlags::BUILTIN);
+        let results = calc_ut_many(JulianDay::new(JD), &bodies, CalcFlags::BUILTIN);
         assert_eq!(
             results.len(),
             bodies.len(),
@@ -1513,7 +1513,7 @@ mod moon_and_calendar_tests {
         );
 
         for (i, &body) in bodies.iter().enumerate() {
-            let direct = calc_ut(JD, body, CalcFlags::BUILTIN).unwrap();
+            let direct = calc_ut(JulianDay::new(JD), body, CalcFlags::BUILTIN).unwrap();
             let via_many = results[i].as_ref().unwrap();
             assert!(
                 (via_many.lon - direct.lon).abs() < 1e-9,
@@ -1527,7 +1527,7 @@ mod moon_and_calendar_tests {
     #[cfg(feature = "calendar-traditions")]
     #[test]
     fn calc_many_empty_returns_empty() {
-        let results = calc_ut_many(JD, &[], CalcFlags::BUILTIN);
+        let results = calc_ut_many(JulianDay::new(JD), &[], CalcFlags::BUILTIN);
         assert!(results.is_empty());
     }
 
@@ -2472,9 +2472,9 @@ mod calc_many_test {
     #[test]
     fn calc_many_matches_individual_calc() {
         let bodies = [Body::SUN, Body::MOON, Body::MERCURY];
-        let many = calc_many(JD, &bodies, CalcFlags::BUILTIN);
+        let many = calc_many(JulianDay::new(JD), &bodies, CalcFlags::BUILTIN);
         for (i, &body) in bodies.iter().enumerate() {
-            let single = calc(JD, body, CalcFlags::BUILTIN).unwrap();
+            let single = calc(JulianDay::new(JD), body, CalcFlags::BUILTIN).unwrap();
             let via = many[i].as_ref().unwrap();
             assert!(
                 (via.lon - single.lon).abs() < 1e-9,
@@ -2488,7 +2488,7 @@ mod calc_many_test {
     #[cfg(feature = "calendar-traditions")]
     #[test]
     fn calc_many_empty_slice() {
-        let result = calc_many(JD, &[], CalcFlags::BUILTIN);
+        let result = calc_many(JulianDay::new(JD), &[], CalcFlags::BUILTIN);
         assert!(result.is_empty(), "empty input should return empty Vec");
     }
 }
@@ -2584,8 +2584,8 @@ mod accuracy_references {
             6.0 + 54.0 / 60.0 + 25.0 / 3600.0,
             Calendar::Gregorian,
         );
-        let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
-        let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).unwrap();
+        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
+        let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap();
         // Unsigned elongation in [0, 360)
         let elong = (moon.lon - sun.lon).rem_euclid(360.0);
         // Distance from 180° (full moon = 180° exactly)
@@ -2618,7 +2618,7 @@ mod accuracy_references {
     #[test]
     fn moon_is_fastest_body() {
         let jd = 2451545.0;
-        let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+        let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
         for body in [
             Body::MERCURY,
             Body::VENUS,
@@ -2629,7 +2629,7 @@ mod accuracy_references {
             Body::NEPTUNE,
             Body::PLUTO,
         ] {
-            let p = calc_ut(jd, body, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+            let p = calc_ut(JulianDay::new(jd), body, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
             assert!(
                 moon.speed_lon.abs() > p.speed_lon.abs() * 5.0,
                 "Moon speed ({:.3}) should be >> body {:?} speed ({:.3})",
@@ -2735,7 +2735,7 @@ mod accuracy_references {
 fn perf1_heliocentric_mars_speed_regression_lock() {
     use celestial_core::{calc_ut, Body, CalcFlags};
     let p = calc_ut(
-        2451545.0,
+        JulianDay::new(2451545.0),
         Body::MARS,
         CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC | CalcFlags::SPEED,
     )

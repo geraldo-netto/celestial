@@ -87,7 +87,7 @@ fn test_fixstar_ut_equals_fixstar() {
 
 #[test]
 fn test_mean_node_in_range() {
-    let pos = calc_ut(JD, Body::MEAN_NODE, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let pos = calc_ut(JulianDay::new(JD), Body::MEAN_NODE, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
     assert!(
         pos.lon >= 0.0 && pos.lon < 360.0,
         "Mean node lon = {}",
@@ -105,7 +105,7 @@ fn test_mean_node_in_range() {
 
 #[test]
 fn test_true_node_in_range() {
-    let pos = calc_ut(JD, Body::TRUE_NODE, CalcFlags::BUILTIN).unwrap();
+    let pos = calc_ut(JulianDay::new(JD), Body::TRUE_NODE, CalcFlags::BUILTIN).unwrap();
     assert!(pos.lon >= 0.0 && pos.lon < 360.0);
     assert_eq!(pos.lat, 0.0);
 }
@@ -113,8 +113,8 @@ fn test_true_node_in_range() {
 #[test]
 fn test_mean_true_node_close() {
     // Mean and true node should be within a few degrees
-    let mn = calc_ut(JD, Body::MEAN_NODE, CalcFlags::BUILTIN).unwrap();
-    let tn = calc_ut(JD, Body::TRUE_NODE, CalcFlags::BUILTIN).unwrap();
+    let mn = calc_ut(JulianDay::new(JD), Body::MEAN_NODE, CalcFlags::BUILTIN).unwrap();
+    let tn = calc_ut(JulianDay::new(JD), Body::TRUE_NODE, CalcFlags::BUILTIN).unwrap();
     let diff = (mn.lon - tn.lon + 360.0).rem_euclid(360.0);
     let diff = if diff > 180.0 { 360.0 - diff } else { diff };
     assert!(diff < 3.0, "Mean/true node diff = {diff}°");
@@ -124,7 +124,7 @@ fn test_mean_true_node_close() {
 
 #[test]
 fn test_chiron_position() {
-    let pos = calc_ut(JD, Body::CHIRON, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let pos = calc_ut(JulianDay::new(JD), Body::CHIRON, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
     assert!(
         pos.lon >= 0.0 && pos.lon < 360.0,
         "Chiron lon = {}",
@@ -208,7 +208,7 @@ fn test_mars_orbital_distances() {
 
 #[test]
 fn test_calc_pctr_mars_from_jupiter() {
-    let r = calc_pctr(JD, Body::MARS, Body::JUPITER, CalcFlags::BUILTIN);
+    let r = calc_pctr(JulianDay::new(JD), Body::MARS, Body::JUPITER, CalcFlags::BUILTIN);
     assert!(r.is_ok(), "calc_pctr failed: {:?}", r.err());
 }
 
@@ -222,7 +222,7 @@ fn test_solcross_vernal_equinox() {
     assert!(jd > JD, "crossing must be after start");
     assert!(jd < JD + 120.0, "next equinox within 120 days");
     // Verify: Sun's longitude at jd should be near 0°
-    let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
     assert!(
         sun.lon < 2.0 || sun.lon > 358.0,
         "Sun lon at equinox = {}",
@@ -233,7 +233,7 @@ fn test_solcross_vernal_equinox() {
 #[test]
 fn test_solcross_summer_solstice() {
     let jd = solcross(90.0, JD, CalcFlags::BUILTIN).unwrap();
-    let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
     assert!(
         (sun.lon - 90.0).abs() < 1.0,
         "Sun lon at solstice = {}",
@@ -246,7 +246,7 @@ fn test_mooncross_finds_crossing() {
     // Moon moves ~13°/day — will cross any longitude within ~27 days
     let jd = mooncross(45.0, JD, CalcFlags::BUILTIN).unwrap();
     assert!(jd > JD && jd < JD + 30.0);
-    let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap();
     let diff = (moon.lon - 45.0 + 360.0).rem_euclid(360.0);
     let diff = if diff > 180.0 { 360.0 - diff } else { diff };
     assert!(
@@ -265,7 +265,7 @@ fn test_mooncross_node() {
         r.jd_cross - JD
     );
     // Verify Moon latitude ≈ 0 at crossing
-    let moon = calc_ut(r.jd_cross, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let moon = calc_ut(JulianDay::new(r.jd_cross), Body::MOON, CalcFlags::BUILTIN).unwrap();
     assert!(
         moon.lat.abs() < 0.5,
         "Moon lat at node crossing = {}",
@@ -691,7 +691,7 @@ fn mc_transit_sun_annual() {
         jd_transit < J2000 + 400.0,
         "Sun transits MC once/year, should be < 400d"
     );
-    let sun = calc_ut(jd_transit, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(jd_transit), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let chart = houses(NATAL_JD, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
     let natal_mc = chart.ascmc[1];
     let diff = (sun.lon - natal_mc)
@@ -728,7 +728,7 @@ fn mc_transit_moon_monthly() {
         jd_transit < J2000 + 32.0,
         "Moon transits MC ~monthly, should be < 32d"
     );
-    let moon = calc_ut(jd_transit, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let moon = calc_ut(JulianDay::new(jd_transit), Body::MOON, CalcFlags::BUILTIN).unwrap();
     let chart = houses(NATAL_JD, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
     let diff = (moon.lon - chart.ascmc[1])
         .abs()
@@ -761,7 +761,7 @@ fn mc_transit_mars_within_two_years() {
         jd_transit < J2000 + 750.0,
         "Mars transits natal MC within 750 days"
     );
-    let mars = calc_ut(jd_transit, Body::MARS, CalcFlags::BUILTIN).unwrap();
+    let mars = calc_ut(JulianDay::new(jd_transit), Body::MARS, CalcFlags::BUILTIN).unwrap();
     let chart = houses(NATAL_JD, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
     let diff = (mars.lon - chart.ascmc[1])
         .abs()
@@ -790,7 +790,7 @@ fn ic_transit_is_natal_mc_plus_180() {
         false,
     )
     .unwrap();
-    let sun = calc_ut(jd_ic, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(jd_ic), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let diff = (sun.lon - natal_ic)
         .abs()
         .min(360.0 - (sun.lon - natal_ic).abs());
@@ -832,8 +832,8 @@ fn asc_and_dsc_transits() {
         false,
     )
     .unwrap();
-    let sun_asc = calc_ut(jd_asc, Body::SUN, CalcFlags::BUILTIN).unwrap();
-    let sun_dsc = calc_ut(jd_dsc, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun_asc = calc_ut(JulianDay::new(jd_asc), Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun_dsc = calc_ut(JulianDay::new(jd_dsc), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let natal_asc = chart.ascmc[0];
     let natal_dsc = (natal_asc + 180.0).rem_euclid(360.0);
     let diff_asc = (sun_asc.lon - natal_asc)
@@ -909,7 +909,7 @@ fn transit_to_degree_sun_to_fixed_degree() {
         jd > J2000 && jd < J2000 + 200.0,
         "Sun reaches 90° within 6 months"
     );
-    let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
     assert!(
         (sun.lon - 90.0).abs() < 0.01,
         "Sun at Cancer solstice: {:.3}°",
@@ -921,7 +921,7 @@ fn transit_to_degree_sun_to_fixed_degree() {
 #[test]
 fn transit_to_degree_moon_to_full_moon_lon() {
     // Moon opposite Sun at J2000 (Sun ≈ 280°, so full moon ≈ Moon at 100°)
-    let sun = calc_ut(J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let full_moon_lon = (sun.lon + 180.0).rem_euclid(360.0);
     let jd =
         transit_to_degree(Body::MOON, full_moon_lon, J2000, CalcFlags::BUILTIN, false).unwrap();
@@ -1052,7 +1052,7 @@ fn chart_positions(jd: f64) -> Vec<(Body, f64, f64)> {
     ALL_PLANETS
         .iter()
         .map(|&b| {
-            let p = calc_ut(jd, b, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+            let p = calc_ut(JulianDay::new(jd), b, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
             (b, p.lon, p.speed_lon)
         })
         .collect()
@@ -1118,7 +1118,7 @@ fn sign_ingress_sun_within_35_days() {
     assert!(jd_ingress < J2000 + 35.0, "Sun changes sign within 35 days");
     assert!(sign <= 11, "sign number 0-11");
     // At ingress, Sun should be at exactly the sign boundary (multiple of 30°)
-    let sun = calc_ut(jd_ingress, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(jd_ingress), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let boundary = sign as f64 * 30.0;
     assert!(
         (sun.lon - boundary).abs() < 0.01,
@@ -1181,7 +1181,7 @@ fn retrograde_station_speed_crosses_zero() {
     let s = retrograde_station_ut(Body::MARS, J2000, CalcFlags::BUILTIN).unwrap();
     // At the retrograde station, speed should be ~0 and turning negative
     let spd_r = calc_ut(
-        s.retrograde,
+        JulianDay::new(s.retrograde),
         Body::MARS,
         CalcFlags::BUILTIN | CalcFlags::SPEED,
     )
@@ -1192,7 +1192,7 @@ fn retrograde_station_speed_crosses_zero() {
         "Speed at retrograde station: {spd_r:.5}°/day (expected ~0)"
     );
     // At direct station, speed should be ~0 and turning positive
-    let spd_d = calc_ut(s.direct, Body::MARS, CalcFlags::BUILTIN | CalcFlags::SPEED)
+    let spd_d = calc_ut(JulianDay::new(s.direct), Body::MARS, CalcFlags::BUILTIN | CalcFlags::SPEED)
         .unwrap()
         .speed_lon;
     assert!(
@@ -1208,8 +1208,8 @@ fn retrograde_station_speed_crosses_zero() {
 #[test]
 fn arabic_part_lot_of_fortune_range() {
     let chart = houses(J2000, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
-    let sun = calc_ut(J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
-    let moon = calc_ut(J2000, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let moon = calc_ut(JulianDay::new(J2000), Body::MOON, CalcFlags::BUILTIN).unwrap();
     let asc = chart.ascmc[0];
     let fortune = arabic_part(asc, moon.lon, sun.lon);
     assert!(
@@ -1226,13 +1226,13 @@ fn arabic_part_lot_of_fortune_range() {
 fn arabic_parts_seven_all_in_range() {
     let jd = J2000;
     let chart = houses(jd, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
-    let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
-    let moon = calc_ut(jd, Body::MOON, CalcFlags::BUILTIN).unwrap();
-    let sat = calc_ut(jd, Body::SATURN, CalcFlags::BUILTIN).unwrap();
-    let mar = calc_ut(jd, Body::MARS, CalcFlags::BUILTIN).unwrap();
-    let jup = calc_ut(jd, Body::JUPITER, CalcFlags::BUILTIN).unwrap();
-    let mer = calc_ut(jd, Body::MERCURY, CalcFlags::BUILTIN).unwrap();
-    let ven = calc_ut(jd, Body::VENUS, CalcFlags::BUILTIN).unwrap();
+    let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let sat = calc_ut(JulianDay::new(jd), Body::SATURN, CalcFlags::BUILTIN).unwrap();
+    let mar = calc_ut(JulianDay::new(jd), Body::MARS, CalcFlags::BUILTIN).unwrap();
+    let jup = calc_ut(JulianDay::new(jd), Body::JUPITER, CalcFlags::BUILTIN).unwrap();
+    let mer = calc_ut(JulianDay::new(jd), Body::MERCURY, CalcFlags::BUILTIN).unwrap();
+    let ven = calc_ut(JulianDay::new(jd), Body::VENUS, CalcFlags::BUILTIN).unwrap();
     let asc = chart.ascmc[0];
     let is_day = planet_house_number(sun.lon, &chart.cusps) >= 7;
     let parts = arabic_parts_seven(
@@ -1295,7 +1295,7 @@ fn secondary_progressions_returns_valid_positions() {
     assert!(chart.ascmc[0] >= 0.0 && chart.ascmc[0] < 360.0);
     let (_, sun_prog) = positions[0].clone();
     // Progressed Sun should be ~35° ahead of natal Sun (1°/year)
-    let natal_sun = calc_ut(J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let natal_sun = calc_ut(JulianDay::new(J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let advance = (sun_prog.lon - natal_sun.lon).rem_euclid(360.0);
     assert!(
         advance > 30.0 && advance < 40.0,
@@ -1314,7 +1314,7 @@ fn solar_arc_is_approximately_one_degree_per_year() {
     let natal_positions: Vec<(Body, f64)> = ALL_PLANETS
         .iter()
         .map(|&b| {
-            let p = calc_ut(J2000, b, CalcFlags::BUILTIN).unwrap();
+            let p = calc_ut(JulianDay::new(J2000), b, CalcFlags::BUILTIN).unwrap();
             (b, p.lon)
         })
         .collect();
@@ -1341,9 +1341,9 @@ fn solar_arc_is_approximately_one_degree_per_year() {
 
 #[test]
 fn solar_return_sun_matches_natal_lon() {
-    let natal_sun = calc_ut(J2000, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let natal_sun = calc_ut(JulianDay::new(J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let sr_jd = solar_return_jd(J2000, 2001, CalcFlags::BUILTIN).unwrap();
-    let return_sun = calc_ut(sr_jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+    let return_sun = calc_ut(JulianDay::new(sr_jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let diff = (return_sun.lon - natal_sun.lon)
         .abs()
         .min(360.0 - (return_sun.lon - natal_sun.lon).abs());
@@ -1361,9 +1361,9 @@ fn solar_return_sun_matches_natal_lon() {
 
 #[test]
 fn lunar_return_moon_matches_natal_lon() {
-    let natal_moon = calc_ut(J2000, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let natal_moon = calc_ut(JulianDay::new(J2000), Body::MOON, CalcFlags::BUILTIN).unwrap();
     let lr_jd = lunar_return_jd(J2000, J2000, CalcFlags::BUILTIN).unwrap();
-    let return_moon = calc_ut(lr_jd, Body::MOON, CalcFlags::BUILTIN).unwrap();
+    let return_moon = calc_ut(JulianDay::new(lr_jd), Body::MOON, CalcFlags::BUILTIN).unwrap();
     let diff = (return_moon.lon - natal_moon.lon)
         .abs()
         .min(360.0 - (return_moon.lon - natal_moon.lon).abs());
@@ -1402,7 +1402,7 @@ fn midpoint_table_all_valid() {
     let pos: Vec<(Body, f64)> = ALL_PLANETS
         .iter()
         .map(|&b| {
-            let p = calc_ut(J2000, b, CalcFlags::BUILTIN).unwrap();
+            let p = calc_ut(JulianDay::new(J2000), b, CalcFlags::BUILTIN).unwrap();
             (b, p.lon)
         })
         .collect();
@@ -1470,7 +1470,7 @@ fn monthly_profection_degree_in_range() {
 
 #[test]
 fn diagnostic_pluto_status() {
-    let r = calc_ut(J2000, Body::PLUTO, CalcFlags::BUILTIN);
+    let r = calc_ut(JulianDay::new(J2000), Body::PLUTO, CalcFlags::BUILTIN);
     match &r {
         Ok(p) => println!("  Pluto OK: lon={:.3}°, dist={:.4} AU", p.lon, p.dist),
         Err(e) => println!("  Pluto error: {e}"),
@@ -1482,7 +1482,7 @@ fn diagnostic_pluto_status() {
 #[test]
 fn pluto_position_sagittarius_j2000() {
     // Pluto was in Sagittarius around J2000, roughly 246-250°
-    let r = calc_ut(J2000, Body::PLUTO, CalcFlags::BUILTIN).unwrap();
+    let r = calc_ut(JulianDay::new(J2000), Body::PLUTO, CalcFlags::BUILTIN).unwrap();
     assert!(r.lon >= 0.0 && r.lon < 360.0, "lon={}", r.lon);
     assert!(r.dist > 28.0 && r.dist < 50.0, "dist={:.2} AU", r.dist);
     assert!(
@@ -1498,7 +1498,7 @@ fn pluto_position_sagittarius_j2000() {
 
 #[test]
 fn pluto_speed_with_flag() {
-    let r = calc_ut(J2000, Body::PLUTO, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let r = calc_ut(JulianDay::new(J2000), Body::PLUTO, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
     // Pluto moves ~0.04°/day
     assert!(
         r.speed_lon.abs() < 0.1,
@@ -1662,7 +1662,7 @@ fn vimshottari_total_cycle_is_120_years() {
 fn vimshottari_dasha_from_birth_valid() {
     // Set sidereal mode for Vedic dasha
     set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
-    let moon = calc_ut(J2000, Body::MOON, CalcFlags::BUILTIN | CalcFlags::SIDEREAL).unwrap();
+    let moon = calc_ut(JulianDay::new(J2000), Body::MOON, CalcFlags::BUILTIN | CalcFlags::SIDEREAL).unwrap();
     let dashas = vimshottari_dasha(J2000, moon.lon, 120.0);
     set_sid_mode(SiderealMode(0), 0.0, 0.0);
 
@@ -1764,7 +1764,7 @@ fn check_php_julday_calc(jd: f64) {
     let d = revjul(jd, Calendar::Gregorian);
     assert_eq!(d.year, 2002);
 
-    let p = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let p = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
     assert!((p.lon - 280.38).abs() < 0.1);
     assert!((p.dist - 0.9832).abs() < 0.005);
     assert!((p.speed_lon - 1.0).abs() < 0.1);

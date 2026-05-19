@@ -1,5 +1,6 @@
 //! Indigenous chart builders — split from render.rs.
 
+use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
@@ -17,7 +18,7 @@ pub fn build_medicine_wheel_context(
 ) -> Result<Value, CliError> {
     let flags = CalcFlags::BUILTIN;
 
-    let sun_pos = calc_ut(jd, Body::SUN, flags)?;
+    let sun_pos = calc_ut(JulianDay::new(jd), Body::SUN, flags)?;
     let (animal, element, clan, season) = medicine_wheel_totem(sun_pos.lon);
     let (decan_idx, decan_name, decan_star) = egyptian_decan(sun_pos.lon);
 

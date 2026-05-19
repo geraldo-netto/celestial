@@ -23,6 +23,7 @@
 //! Full moons are found by bisecting the Moon–Sun elongation function to the
 //! exact moment when elongation = 180°, accurate to within a few seconds.
 
+use crate::units::JulianDay;
 use crate::body::{Body, CalcFlags, Calendar};
 use crate::error::{Error, Result};
 
@@ -214,8 +215,8 @@ fn find_full_moon_after(jd_from: f64) -> Result<f64> {
 
 /// Moon–Sun elongation (degrees, [0, 360)) at Julian day `jd`.
 fn elongation(jd: f64) -> Result<f64> {
-    let sun = crate::calc_ut(jd, Body::SUN, CalcFlags::BUILTIN)?;
-    let moon = crate::calc_ut(jd, Body::MOON, CalcFlags::BUILTIN)?;
+    let sun = crate::calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN)?;
+    let moon = crate::calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN)?;
     Ok((moon.lon - sun.lon).rem_euclid(360.0))
 }
 

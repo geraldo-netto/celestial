@@ -1,5 +1,6 @@
 //! Chinese chart builders — split from render.rs.
 
+use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
@@ -17,7 +18,7 @@ pub fn build_bazi_context(
     let flags = CalcFlags::BUILTIN;
 
     // Compute Sun's ecliptic longitude for solar-term-based month pillar
-    let sun_pos = calc_ut(jd, Body::SUN, flags)?;
+    let sun_pos = calc_ut(JulianDay::new(jd), Body::SUN, flags)?;
 
     // Extract hour from fractional JD (JD starts at noon)
     let day_frac = (jd + 0.5).fract(); // fraction of day since midnight UT
