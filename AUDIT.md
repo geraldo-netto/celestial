@@ -153,9 +153,12 @@ TEST-2) behavior is covered, instrumentation is not.
 A CI coverage floor is enforced (TEST-3, done this cycle, removed per
 the completed-work policy): the `celestial-core` workflow merges
 tests + the fuzz harness and gates on `cargo llvm-cov report
---fail-under-lines 80` over product code only (fuzz/xtask/binding-
-tests/generated tables excluded via `--ignore-filename-regex`).
-Current scoped TOTAL: 94.9% region / 94.5% line.
+--fail-under-lines 80 --fail-under-functions 90` over product code
+only (fuzz/xtask/binding-tests/generated tables excluded via
+`--ignore-filename-regex`). The function floor (added this cycle to
+lock the per-function hardening above) sits well under the current
+94.7% but catches a meaningful regression. Current scoped TOTAL:
+95.3% region / 94.9% line / 94.7% function.
 
 | id | area | issue | status |
 |---|---|---|---|

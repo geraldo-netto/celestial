@@ -5,7 +5,7 @@
 #   lint           → cargo clippy -D correctness -D suspicious -D perf
 #   test           → cargo test --package celestial-core
 #   fuzz           → cargo run --manifest-path fuzz/Cargo.toml (84 property suites)
-#   coverage       → tests+fuzz merged; lcov upload + product ≥80% line floor
+#   coverage       → tests+fuzz merged; lcov upload + product ≥80% line / ≥90% function floor
 #   sonarqube      → needs coverage; downloads lcov.info, runs Sonar scan
 #   feature-matrix → cargo check across feature flag combinations
 
@@ -83,6 +83,7 @@ jobs:
             --manifest-path fuzz/Cargo.toml --bin run_prop_tests
           cargo llvm-cov report --lcov --output-path lcov.info
           cargo llvm-cov report --fail-under-lines 80 \
+            --fail-under-functions 90 \
             --ignore-filename-regex '(fuzz/|xtask/|/tests/|bindings/|astronomy/vsop87\.rs)'
 
       - name: Upload coverage artifact
