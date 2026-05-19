@@ -334,17 +334,26 @@ fn write_si_dashas(s: &mut String, ctx: &Value, dy: f64, total_w: f64, txt: &str
 
 pub(crate) fn render_south_indian_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
+    // SEC-10: every user-controlled `--var` value is XML-escaped before it
+    // reaches the SVG, identical to the vedic.rs renderers.
+    let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#ffffff");
+    let border = super::svg_common::esc_var(&ctx["vars"], "border_color", "#5c3a00");
+    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#2a1a00");
+    let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#1a3a7a");
+    let retro = super::svg_common::esc_var(&ctx["vars"], "retro_color", "#a01030");
     let pal = SiPalette {
-        bg: ctx["vars"]["bg_color"].as_str().unwrap_or("#ffffff"),
-        border: ctx["vars"]["border_color"].as_str().unwrap_or("#5c3a00"),
-        txt: ctx["vars"]["text_color"].as_str().unwrap_or("#2a1a00"),
-        pcol: ctx["vars"]["planet_color"].as_str().unwrap_or("#1a3a7a"),
-        retro: ctx["vars"]["retro_color"].as_str().unwrap_or("#a01030"),
+        bg: bg.as_str(),
+        border: border.as_str(),
+        txt: txt.as_str(),
+        pcol: pcol.as_str(),
+        retro: retro.as_str(),
     };
-    let title = ctx["vars"]
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Rasi Chart");
+    let title = crate::format::xml_escape(
+        ctx["vars"]
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Rasi Chart"),
+    );
     let date = ctx["date"].as_str().unwrap_or("");
 
     let planets = json_array(&ctx["planets"]);
@@ -353,7 +362,7 @@ pub(crate) fn render_south_indian_svg(ctx: &ChartContext) -> String {
     let mut s = String::with_capacity(16 * 1024);
     let total_h = 4.0_f64.mul_add(SI_CH, SI_OY) + 40.0;
     let total_w = 4.0_f64.mul_add(SI_CW, SI_OX * 2.0);
-    write_si_header(&mut s, &pal, title, date, total_w, total_h);
+    write_si_header(&mut s, &pal, &title, date, total_w, total_h);
     write_si_centre(&mut s, ctx, &pal);
     write_si_cells(&mut s, &rasi_planets, &pal);
     let dy = 4.0_f64.mul_add(SI_CH, SI_OY) + 10.0;

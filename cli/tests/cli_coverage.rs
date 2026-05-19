@@ -255,6 +255,39 @@ fn render_specialist_var_injection_escaped() {
     );
 }
 
+#[test]
+fn render_south_indian_var_injection_escaped() {
+    let mut out = std::env::temp_dir();
+    out.push("celestial_sec10_rasi_test.svg");
+    celestial()
+        .args([
+            "render",
+            "--chart-type",
+            "rasi",
+            "--date",
+            "2025-03-20 12:00",
+            "--lat=19.43",
+            "--lon=-99.13",
+            "--tz=-06:00",
+            "--var",
+            "title=</text><script>alert(1)</script>",
+            "--out",
+            out.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+    let svg = std::fs::read_to_string(&out).expect("svg written");
+    let _ = std::fs::remove_file(&out);
+    assert!(
+        !svg.contains("<script>alert(1)</script>"),
+        "SEC-10: unescaped injection reached South-Indian SVG"
+    );
+    assert!(
+        svg.contains("&lt;script&gt;"),
+        "SEC-10: South-Indian title not XML-escaped"
+    );
+}
+
 // ─── main.rs: top-level error / exit paths ────────────────────────────────────
 
 #[test]
