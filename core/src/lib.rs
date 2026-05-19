@@ -55,6 +55,7 @@ pub mod motion;
 pub mod position;
 pub mod solar;
 pub mod time;
+pub mod units;
 pub mod vedic;
 
 // ── Flat re-exports from domain modules ─────────────────────────────────────────
@@ -216,6 +217,9 @@ pub use vedic::{
 
 // ── Public types from types.rs ─────────────────────────────────────────────────
 pub use types::{FixStarPos, NodAps, OrbitalDistances, OrbitalElements, PlanetPos};
+
+// ── Unit newtypes (DP-2) ───────────────────────────────────────────────────────
+pub use units::{Degrees, JulianDay, Latitude, Longitude};
 
 // ── Error ──────────────────────────────────────────────────────────────────────
 pub use error::{Error, Result};
