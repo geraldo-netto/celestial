@@ -105,7 +105,6 @@ regression-tested; `syn` build-cost not warranted until binding churn.
 | id | target | status |
 |---|---|---|
 | DP-1 | registry macro/table over `dispatch_*` | DISMISSED — the heterogeneous ~12 (`dispatch_solar_return`/`_lunar_return`/`_progressed`/`_solar_arc`/`_biwheel`/`_triwheel`/`_composite`/`_ephemeris`/`_profection` — distinct return-jd / `--years` / date2 logic) stay hand-written; a macro there is closure indirection over a clear hot-path adapter. (The 15 *uniform* dispatchers — DP-1b — were collapsed into the `specialist_dispatch!` macro `059434f`; removed per the completed-work policy) |
-| DP-2 | `JulianDay`/`Latitude`/… unit newtypes | DEFERRED — payoff needs threading through `calc_ut`/`houses_ex` = core-API rewrite on the precision path. Parse-layer newtypes already shipped (`7bfa598`) |
 | DP-4 | binding codegen | DEFERRED — = ARCH-10/DUP-1 |
 | DP-6 | SVG → MiniJinja templates | DEFERRED — the template half **conflicts with the byte-identical precision gate** (changes whitespace/layout); the `Palette` half is already realized (`SvgPalette`/`palette_vars`) |
 | DP-11 | `OutputFormatter` over calc/moon/houses/chart | DECLINED — per-command JSON keys + text columns are bespoke; a trait abstracts only the 2-line json/text branch — leaky |
@@ -141,5 +140,5 @@ Current scoped TOTAL: 94.9% region / 94.5% line.
 No OPEN findings. Remaining work is the long-horizon deferred set:
 
 1. **Deferred isolated efforts (own session + precision soak each):**
-   ARCH-10/DP-4/DUP-1 binding codegen · DP-2 unit newtypes ·
+   ARCH-10/DP-4/DUP-1 binding codegen ·
    DP-6 SVG templates · PERF-1 analytic VSOP derivative.
