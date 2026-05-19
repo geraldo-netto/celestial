@@ -12,7 +12,7 @@ use crate::astronomy::{
     delta_t::ut_to_tt,
     flag,
     planetary::{apparent_moon, apparent_planet, apparent_sun},
-    vsop87::{heliocentric, Planet},
+    vsop87::{heliocentric, heliocentric_with_speed, Planet},
 };
 use crate::error::{Error, Result};
 use crate::types::PlanetPos;
@@ -154,21 +154,13 @@ fn calc_pluto(jde: f64, flags: i32) -> PlanetPos {
 
 fn calc_heliocentric(jde: f64, body_num: i32, flags: i32) -> Option<PlanetPos> {
     let vsop_planet = body_to_vsop(body_num)?;
-    let h = heliocentric(vsop_planet, jde);
+    let (h, (speed_lon, speed_lat, speed_dist)) = if flags as u32 & flag::FLG_SPEED != 0 {
+        heliocentric_with_speed(vsop_planet, jde)
+    } else {
+        (heliocentric(vsop_planet, jde), (0.0, 0.0, 0.0))
+    };
     let lon_deg = h.lon.to_degrees().rem_euclid(360.0);
     let lat_deg = h.lat.to_degrees();
-    let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
-        let h2 = heliocentric(vsop_planet, jde + 0.5);
-        let h0 = heliocentric(vsop_planet, jde - 0.5);
-        let sl = (h2.lon - h0.lon).to_degrees();
-        (
-            angle_speed(sl, 0.0),
-            (h2.lat - h0.lat).to_degrees(),
-            h2.rad - h0.rad,
-        )
-    } else {
-        (0.0, 0.0, 0.0)
-    };
     Some(PlanetPos {
         lon: lon_deg,
         lat: lat_deg,

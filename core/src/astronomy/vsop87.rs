@@ -8,7 +8,7 @@
 //! - Bretagnon & Francou, A&A 202 (1988) — original VSOP87
 //! - Meeus, "Astronomical Algorithms" 2nd ed., Chapters 32–36 — truncated series
 
-use crate::astronomy::constants::{julian_millennia, norm_rad};
+use crate::astronomy::constants::{julian_millennia, norm_rad, DAYS_PER_MILLENNIUM};
 
 /// A single VSOP87 series term: `A · cos(B + C·τ)`.
 #[derive(Clone, Copy)]
@@ -52,6 +52,36 @@ fn eval_vsop(series: &[&[Term]], tau: f64) -> f64 {
     acc * 10.0
 }
 
+/// d/dτ of a VSOP sub-series: `Σ A·cos(B+C·τ)` → `Σ −A·C·sin(B+C·τ)`.
+#[inline]
+fn eval_series_deriv(terms: &[Term], tau: f64) -> f64 {
+    terms
+        .iter()
+        .map(|&Term(a, b, c)| -a * c * c.mul_add(tau, b).sin())
+        .sum()
+}
+
+/// Value **and** analytic dV/dτ of a full VSOP variable.
+///
+/// `V(τ) = Σ_k τ^k · S_k(τ)` ⇒ `dV/dτ = Σ_k ( k·τ^{k-1}·S_k + τ^k·S_k′ )`.
+/// Both are scaled ×10 to match [`eval_vsop`] (the A×10⁻⁹ literal packing).
+/// `τ^{k-1}` is carried, never divided, so τ≈0 (near J2000) is exact.
+fn eval_vsop_with_deriv(series: &[&[Term]], tau: f64) -> (f64, f64) {
+    let mut val = 0.0_f64;
+    let mut der = 0.0_f64;
+    let mut tk = 1.0_f64; // τ^k
+    let mut tkm1 = 0.0_f64; // τ^{k-1} (0 for k=0; the k·… term vanishes anyway)
+    for (k, s) in series.iter().enumerate() {
+        let sk = eval_series(s, tau);
+        let skp = eval_series_deriv(s, tau);
+        val = tk.mul_add(sk, val);
+        der += (k as f64) * tkm1 * sk + tk * skp;
+        tkm1 = tk;
+        tk *= tau;
+    }
+    (val * 10.0, der * 10.0)
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /// Heliocentric ecliptic coordinates.
@@ -77,6 +107,35 @@ pub fn heliocentric(planet: Planet, jde: f64) -> HeliocentricPos {
     let lat = eval_vsop(b_series, tau);
     let rad = eval_vsop(r_series, tau);
     HeliocentricPos { lon, lat, rad }
+}
+
+/// Heliocentric position **and** analytic instantaneous speed.
+///
+/// `speed_lon`/`speed_lat` are deg/day, `speed_rad` is AU/day. The
+/// derivative is taken analytically from the same truncated VSOP
+/// series that produces the position — so it carries no
+/// finite-difference O(h²) truncation error (PERF-1: replaces the
+/// former ±0.5-day 3× series evaluation).
+#[must_use]
+pub fn heliocentric_with_speed(planet: Planet, jde: f64) -> (HeliocentricPos, (f64, f64, f64)) {
+    let tau = julian_millennia(jde);
+    let (l_series, b_series, r_series) = planet.series();
+    let (l, dl) = eval_vsop_with_deriv(l_series, tau);
+    let (b, db) = eval_vsop_with_deriv(b_series, tau);
+    let (r, dr) = eval_vsop_with_deriv(r_series, tau);
+    // dτ/dJDE = 1 / DAYS_PER_MILLENNIUM; lon/lat in rad → deg/day.
+    let per_day = 1.0 / DAYS_PER_MILLENNIUM;
+    let pos = HeliocentricPos {
+        lon: norm_rad(l),
+        lat: b,
+        rad: r,
+    };
+    let speed = (
+        (dl * per_day).to_degrees(),
+        (db * per_day).to_degrees(),
+        dr * per_day,
+    );
+    (pos, speed)
 }
 
 /// Planets supported by the VSOP87 engine.
