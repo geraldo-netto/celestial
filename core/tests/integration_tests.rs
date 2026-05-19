@@ -283,7 +283,7 @@ fn test_cotrans_poles() {
 
 #[test]
 fn test_houses_placidus_equator() {
-    let r = houses(2452275.499_255_786, 0.0, 0.0, HouseSystem::PLACIDUS).unwrap();
+    let r = houses(JulianDay::new(2452275.499_255_786), Latitude::new(0.0), Longitude::new(0.0), HouseSystem::PLACIDUS).unwrap();
     // 12 cusps indexed [1..=12], plus index 0 unused
     assert!(
         r.cusps[1] >= 0.0 && r.cusps[1] < 360.0,
@@ -301,7 +301,7 @@ fn test_houses_placidus_equator() {
 
 #[test]
 fn test_houses_equal_30_apart() {
-    let r = houses(2451545.0, 51.5, -0.1, HouseSystem::EQUAL).unwrap();
+    let r = houses(JulianDay::new(2451545.0), Latitude::new(51.5), Longitude::new(-0.1), HouseSystem::EQUAL).unwrap();
     for h in 1..12 {
         let diff = (r.cusps[h + 1] - r.cusps[h] + 360.0) % 360.0;
         assert!(
@@ -314,7 +314,7 @@ fn test_houses_equal_30_apart() {
 
 #[test]
 fn test_houses_whole_sign_on_boundary() {
-    let r = houses(2451545.0, 40.0, -74.0, HouseSystem::WHOLE_SIGN).unwrap();
+    let r = houses(JulianDay::new(2451545.0), Latitude::new(40.0), Longitude::new(-74.0), HouseSystem::WHOLE_SIGN).unwrap();
     for h in 1..=12 {
         assert!(
             r.cusps[h] % 30.0 < 0.001 || (r.cusps[h] % 30.0 - 30.0).abs() < 0.001,
@@ -338,7 +338,7 @@ fn test_houses_all_systems_valid_range() {
         HouseSystem(b'X'),
         HouseSystem(b'B'),
     ] {
-        let r = houses(2451545.0, 51.5, -0.1, sys).unwrap();
+        let r = houses(JulianDay::new(2451545.0), Latitude::new(51.5), Longitude::new(-0.1), sys).unwrap();
         for h in 1..=12 {
             assert!(
                 r.cusps[h] >= 0.0 && r.cusps[h] < 360.0,
@@ -1138,7 +1138,7 @@ fn precision_deltat_historical() {
 fn precision_houses_placidus_reference() {
     // ASC/MC/house cusps for a reference chart
     // 2000-01-01 12:00 UT, Paris (48.85°N, 2.35°E)
-    let r = houses(2_451_545.0, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
+    let r = houses(JulianDay::new(2_451_545.0), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
     // MC and ASC should be in roughly known positions for this time/place
     let mc = r.ascmc[1];
     let asc = r.ascmc[0];
@@ -1343,10 +1343,10 @@ fn secondary_progressions_returns_correct_body_count() {
 fn solar_arc_directions_sun_advances_one_degree_per_year() {
     let bodies = [Body::SUN, Body::MOON];
     let h_natal = houses_ex(
-        JD_NATAL,
+        JulianDay::new(JD_NATAL),
         CalcFlags::BUILTIN,
-        48.85,
-        2.35,
+        Latitude::new(48.85),
+        Longitude::new(2.35),
         HouseSystem::PLACIDUS,
     )
     .unwrap();
@@ -1423,10 +1423,10 @@ fn midpoint_table_zero_orb_returns_all_pairs() {
 fn full_dignity_real_chart_j2000() {
     let sun = calc_ut(JulianDay::new(JD_J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let h = houses_ex(
-        JD_J2000,
+        JulianDay::new(JD_J2000),
         CalcFlags::BUILTIN,
-        48.85,
-        2.35,
+        Latitude::new(48.85),
+        Longitude::new(2.35),
         HouseSystem::PLACIDUS,
     )
     .unwrap();
@@ -1449,10 +1449,10 @@ fn full_dignity_real_chart_j2000() {
 #[test]
 fn firdaria_real_chart_covers_75_years() {
     let h = houses_ex(
-        JD_NATAL,
+        JulianDay::new(JD_NATAL),
         CalcFlags::BUILTIN,
-        48.85,
-        2.35,
+        Latitude::new(48.85),
+        Longitude::new(2.35),
         HouseSystem::PLACIDUS,
     )
     .unwrap();
@@ -1477,10 +1477,10 @@ fn firdaria_real_chart_covers_75_years() {
 #[test]
 fn annual_profection_real_chart_age_39() {
     let h = houses_ex(
-        JD_NATAL,
+        JulianDay::new(JD_NATAL),
         CalcFlags::BUILTIN,
-        48.85,
-        2.35,
+        Latitude::new(48.85),
+        Longitude::new(2.35),
         HouseSystem::PLACIDUS,
     )
     .unwrap();

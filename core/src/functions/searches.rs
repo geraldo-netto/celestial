@@ -1,6 +1,6 @@
 //! Iterative aspect and retrograde search functions.
 
-use crate::units::JulianDay;
+use crate::units::{JulianDay, Latitude, Longitude};
 use crate::body::{Body, CalcFlags, HouseSystem};
 use crate::functions::houses::houses;
 
@@ -392,7 +392,7 @@ pub fn next_aspect_cusp(
 
     let mut diff_at = |jd: f64| -> Option<f64> {
         let p = calc_ut(JulianDay::new(jd), body, scan_flags).ok()?.lon;
-        let hr = houses(jd, lat, lon, hsys).ok()?;
+        let hr = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), hsys).ok()?;
         Some(diff_deg_signed(p + aspect, hr.cusps[cusp]))
     };
 
@@ -410,7 +410,7 @@ pub fn next_aspect_cusp(
         if d0 * d1 <= 0.0 && (d1 - d0).abs() < 180.0 {
             let jd_ret = bisect_zero_fallible(jd - dir, jd, d0, 1e-8, 60, &mut diff_at)?;
             let p = calc_ut(JulianDay::new(jd_ret), body, flags).ok()?;
-            let hr = houses(jd_ret, lat, lon, hsys).ok()?;
+            let hr = houses(JulianDay::new(jd_ret), Latitude::new(lat), Longitude::new(lon), hsys).ok()?;
             return Some(AspectCuspResult {
                 jd: jd_ret,
                 pos: pos_to_arr(&p),
@@ -593,7 +593,7 @@ pub fn mc_transit_ut(
     flags: CalcFlags,
     backward: bool,
 ) -> crate::Result<f64> {
-    let chart = crate::functions::houses::houses(jd_natal, lat, lon, hsys)
+    let chart = crate::functions::houses::houses(JulianDay::new(jd_natal), Latitude::new(lat), Longitude::new(lon), hsys)
         .map_err(|e| crate::Error::Calc(format!("mc_transit_ut: {e}")))?;
     let natal_mc = chart.ascmc[1]; // true MC
     transit_to_degree(body, natal_mc, jd_start, flags, backward)
@@ -613,7 +613,7 @@ pub fn ic_transit_ut(
     flags: CalcFlags,
     backward: bool,
 ) -> crate::Result<f64> {
-    let chart = crate::functions::houses::houses(jd_natal, lat, lon, hsys)
+    let chart = crate::functions::houses::houses(JulianDay::new(jd_natal), Latitude::new(lat), Longitude::new(lon), hsys)
         .map_err(|e| crate::Error::Calc(format!("ic_transit_ut: {e}")))?;
     let natal_ic = (chart.ascmc[1] + 180.0).rem_euclid(360.0);
     transit_to_degree(body, natal_ic, jd_start, flags, backward)
@@ -631,7 +631,7 @@ pub fn asc_transit_ut(
     flags: CalcFlags,
     backward: bool,
 ) -> crate::Result<f64> {
-    let chart = crate::functions::houses::houses(jd_natal, lat, lon, hsys)
+    let chart = crate::functions::houses::houses(JulianDay::new(jd_natal), Latitude::new(lat), Longitude::new(lon), hsys)
         .map_err(|e| crate::Error::Calc(format!("asc_transit_ut: {e}")))?;
     let natal_asc = chart.ascmc[0];
     transit_to_degree(body, natal_asc, jd_start, flags, backward)
@@ -651,7 +651,7 @@ pub fn dsc_transit_ut(
     flags: CalcFlags,
     backward: bool,
 ) -> crate::Result<f64> {
-    let chart = crate::functions::houses::houses(jd_natal, lat, lon, hsys)
+    let chart = crate::functions::houses::houses(JulianDay::new(jd_natal), Latitude::new(lat), Longitude::new(lon), hsys)
         .map_err(|e| crate::Error::Calc(format!("dsc_transit_ut: {e}")))?;
     let natal_dsc = (chart.ascmc[0] + 180.0).rem_euclid(360.0);
     transit_to_degree(body, natal_dsc, jd_start, flags, backward)
@@ -667,7 +667,7 @@ pub fn dsc_transit_ut(
 /// use celestial_core::*;
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// let jd = 2_451_545.0;
-/// let chart = houses(jd, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
+/// let chart = houses(JulianDay::new(jd), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
 /// let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
 /// let house = planet_house_number(sun.lon, &chart.cusps);
 /// println!("Sun is in house {house}");

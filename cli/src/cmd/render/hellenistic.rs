@@ -1,5 +1,7 @@
 //! Hellenistic chart builders — split from render.rs.
 
+use celestial_core::Longitude;
+use celestial_core::Latitude;
 use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
@@ -31,7 +33,7 @@ pub fn build_hellenistic_context(
     // Start from the standard context
     let mut ctx = build_context(jd, lat, lon, date_str, hsys, vars)?;
 
-    let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
+    let h = houses_ex(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
         ?;
     let cusps_arr: [f64; 13] = {
         let mut a = [0.0f64; 13];
@@ -207,7 +209,7 @@ pub fn build_firdaria_context(
     vars.entry("title".to_string())
         .or_insert_with(|| "Firdaria Timeline".to_string());
 
-    let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8))?;
+    let h = houses_ex(JulianDay::new(jd), flags, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))?;
     let cusps_arr: [f64; 13] = {
         let mut a = [0.0f64; 13];
         a.copy_from_slice(&h.cusps);
@@ -432,7 +434,7 @@ pub fn build_profection_context(
     vars.entry("title".to_string())
         .or_insert(format!("Annual Profection — Age {age}"));
 
-    let h = houses_ex(jd, flags, lat, lon, HouseSystem(hsys as u8))?;
+    let h = houses_ex(JulianDay::new(jd), flags, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))?;
     let cusps_arr: [f64; 13] = {
         let mut a = [0.0f64; 13];
         a.copy_from_slice(&h.cusps);

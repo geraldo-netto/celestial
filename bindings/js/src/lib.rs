@@ -5,6 +5,8 @@
 
 #![allow(clippy::too_many_arguments)]
 
+use celestial::Longitude;
+use celestial::Latitude;
 use celestial::JulianDay;
 use celestial::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_ffi as celestial;
@@ -310,7 +312,7 @@ pub fn fixstar_mag(star: String) -> napi::Result<f64> {
 /// Calculate house cusps (UT). `hsys` is the ASCII code of the house letter.
 #[napi]
 pub fn houses(tjdut: f64, lat: f64, lon: f64, hsys: u32) -> napi::Result<HouseResult> {
-    celestial::houses(tjdut, lat, lon, HouseSystem(hsys as u8))
+    celestial::houses(JulianDay::new(tjdut), Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
         .map(|r| {
             // SE stores cusps[0..=12]; index 0 is unused (ASC is in ascmc[0]).
             // Return only cusps[1..=12] (12 real house cusps).
@@ -339,10 +341,10 @@ pub fn houses_ex(
     flags: Option<i32>,
 ) -> napi::Result<HouseResult> {
     celestial::houses_ex(
-        tjdut,
+        JulianDay::new(tjdut),
         CalcFlags(flags.unwrap_or(0)),
-        lat,
-        lon,
+        Latitude::new(lat),
+        Longitude::new(lon),
         HouseSystem(hsys as u8),
     )
     .map(|r| HouseResult {
@@ -362,10 +364,10 @@ pub fn houses_ex2(
     flags: Option<i32>,
 ) -> napi::Result<HouseResultEx2> {
     celestial::houses_ex2(
-        tjdut,
+        JulianDay::new(tjdut),
         CalcFlags(flags.unwrap_or(0)),
-        lat,
-        lon,
+        Latitude::new(lat),
+        Longitude::new(lon),
         HouseSystem(hsys as u8),
     )
     .map(|r| HouseResultEx2 {

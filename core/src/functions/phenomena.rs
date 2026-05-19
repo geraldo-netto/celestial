@@ -1,6 +1,6 @@
 //! Astronomical phenomena, heliacal events, and Gauquelin sector calculations.
 
-use crate::units::JulianDay;
+use crate::units::{JulianDay, Latitude, Longitude};
 use crate::body::{Body, CalcFlags};
 use crate::error::{Error, Result};
 
@@ -41,7 +41,7 @@ pub fn gauquelin_sector(
     let lon_geo = geopos[0];
     // Compute houses to get ASC and MC
     use crate::body::HouseSystem;
-    let r = crate::functions::houses::houses(jd_ut, lat_geo, lon_geo, HouseSystem::PLACIDUS)?;
+    let r = crate::functions::houses::houses(JulianDay::new(jd_ut), Latitude::new(lat_geo), Longitude::new(lon_geo), HouseSystem::PLACIDUS)?;
     let asc = r.ascmc[0];
     // Angular distance from ASC in the diurnal direction
     let d = (lon_body - asc + 360.0).rem_euclid(360.0);

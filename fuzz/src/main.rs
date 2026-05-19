@@ -3,6 +3,8 @@
 //! Self-contained: uses a stdlib xorshift64 PRNG — no external crates needed.
 //! Run with: `cargo run --manifest-path fuzz/Cargo.toml`
 
+use celestial_core::Longitude;
+use celestial_core::Latitude;
 use celestial_core::JulianDay;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
@@ -284,7 +286,7 @@ fn test_houses(n: u32) -> Suite {
         let lon = rng.range_f64(-180.0, 180.0);
         let sys_i = (rng.next_u64() % HOUSE_SYSTEMS.len() as u64) as usize;
         let hsys = HouseSystem(HOUSE_SYSTEMS[sys_i]);
-        let Ok(r) = houses(jd, lat, lon, hsys) else {
+        let Ok(r) = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), hsys) else {
             continue;
         };
 
@@ -702,7 +704,7 @@ fn test_house_speeds(n: u32) -> Suite {
         let lat = rng.range_f64(-83.0, 83.0);
         let lon = rng.range_f64(-180.0, 180.0);
         let sys = SYSTEMS[(rng.next_u64() as usize) % SYSTEMS.len()];
-        if let Ok(r) = houses_ex2(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(sys)) {
+        if let Ok(r) = houses_ex2(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(sys)) {
             // All cusp speeds must be finite
             for (i, &sp) in r.cusp_speeds.iter().enumerate() {
                 s.check(sp.is_finite(), || {
@@ -3357,7 +3359,7 @@ fn test_polar_houses(n: u32) -> Suite {
         let lon = rng.range_f64(-180.0, 180.0);
         for &sys in b"PKEOCRWXMBHT" {
             // Must not panic — any result is acceptable
-            let _ = houses(jd, lat, lon, HouseSystem(sys));
+            let _ = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), HouseSystem(sys));
         }
         s.passed += 1;
     }
@@ -3607,7 +3609,7 @@ fn test_house_invariants(n: u32) -> Suite {
         let lat = rng.range_f64(-66.0, 66.0); // avoid polar failure zone
         let lon = rng.range_f64(-180.0, 180.0);
         for &sys in systems {
-            let Ok(r) = houses(jd, lat, lon, HouseSystem(sys)) else {
+            let Ok(r) = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), HouseSystem(sys)) else {
                 s.passed += 1;
                 continue;
             };
@@ -4029,7 +4031,7 @@ fn check_house_systems_invariants(s: &mut Suite) {
         let lat = rng.range_f64(-65.0, 65.0);
         let lon = rng.range_f64(-180.0, 180.0);
         for &sys in systems {
-            let Ok(h) = houses(jd, lat, lon, HouseSystem(sys)) else {
+            let Ok(h) = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), HouseSystem(sys)) else {
                 s.passed += 1;
                 continue;
             };
@@ -4105,7 +4107,7 @@ fn check_house_polar_invariants(s: &mut Suite) {
             rng.range_f64(-88.0, -70.0)
         };
         let lon = rng.range_f64(-180.0, 180.0);
-        let Ok(h) = houses(jd, lat, lon, HouseSystem(b'W')) else {
+        let Ok(h) = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), HouseSystem(b'W')) else {
             s.passed += 1;
             continue;
         };

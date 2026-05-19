@@ -433,7 +433,7 @@ fn test_phenomena() {
 #[test]
 fn houses_arctic_latitude() {
     // Placidus fails above ~66° — should return an error, not panic
-    let result = houses(J2000, 89.9, 0.0, HouseSystem::PLACIDUS);
+    let result = houses(JulianDay::new(J2000), Latitude::new(89.9), Longitude::new(0.0), HouseSystem::PLACIDUS);
     // Either Ok (fallback) or Err — must NOT panic
     let _ = result;
 }
@@ -442,15 +442,15 @@ fn houses_arctic_latitude() {
 fn houses_polar_all_systems() {
     // All house systems must not panic at lat=89.9°
     for &sys in b"PKEOCRWXMBHT" {
-        let _ = houses(J2000, 89.9, 2.35, HouseSystem(sys));
-        let _ = houses(J2000, -89.9, 2.35, HouseSystem(sys));
+        let _ = houses(JulianDay::new(J2000), Latitude::new(89.9), Longitude::new(2.35), HouseSystem(sys));
+        let _ = houses(JulianDay::new(J2000), Latitude::new(-89.9), Longitude::new(2.35), HouseSystem(sys));
     }
 }
 
 #[test]
 fn houses_equator() {
     // Equator: ASC = 90° or 270° for most systems
-    let r = houses(J2000, 0.0, 0.0, HouseSystem::PLACIDUS).unwrap();
+    let r = houses(JulianDay::new(J2000), Latitude::new(0.0), Longitude::new(0.0), HouseSystem::PLACIDUS).unwrap();
     assert!(r.ascmc[0] >= 0.0 && r.ascmc[0] < 360.0);
 }
 
@@ -679,13 +679,13 @@ fn refrac_extended_smoke() {
 
 #[test]
 fn houses_armc_ex2_smoke() {
-    let r = houses_armc_ex2(45.0, 48.85, 23.439, HouseSystem::PLACIDUS).unwrap();
+    let r = houses_armc_ex2(Degrees::new(45.0), Latitude::new(48.85), Degrees::new(23.439), HouseSystem::PLACIDUS).unwrap();
     assert!(r.cusps[1] >= 0.0 && r.cusps[1] < 360.0);
 }
 
 #[test]
 fn houses_ex_smoke() {
-    let r = houses_ex(J2000, CalcFlags::BUILTIN, 48.85, 2.35, HouseSystem::KOCH).unwrap();
+    let r = houses_ex(JulianDay::new(J2000), CalcFlags::BUILTIN, Latitude::new(48.85), Longitude::new(2.35), HouseSystem::KOCH).unwrap();
     assert!(r.cusps[1] >= 0.0 && r.cusps[1] < 360.0);
     assert!(r.cusps[10] >= 0.0 && r.cusps[10] < 360.0);
 }
@@ -784,7 +784,7 @@ fn mooncross_back_finds_previous_crossing() {
 #[test]
 fn houses_opposite_cusps_are_180_apart() {
     for &sys in b"PKEOCRWXMBHT" {
-        let r = houses(J2000, 48.85, 2.35, HouseSystem(sys)).unwrap();
+        let r = houses(JulianDay::new(J2000), Latitude::new(48.85), Longitude::new(2.35), HouseSystem(sys)).unwrap();
         for h in 1..=6 {
             let diff = (r.cusps[h] - r.cusps[h + 6]).rem_euclid(360.0);
             // diff should be 180° (opposite houses)
@@ -980,10 +980,10 @@ fn geoformat_cs2_functions() {
 #[test]
 fn houses_armc_matches_houses() {
     // houses_armc with explicit ARMC should match houses() result
-    let r = houses(J2000, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
+    let r = houses(JulianDay::new(J2000), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
     let armc = r.ascmc[2]; // index 2 is ARMC
     let eps = mean_obliquity(J2000);
-    let r2 = houses_armc(armc, 48.85, eps, HouseSystem::PLACIDUS).unwrap();
+    let r2 = houses_armc(Degrees::new(armc), Latitude::new(48.85), Degrees::new(eps), HouseSystem::PLACIDUS).unwrap();
     // Cusps should be very close (small rounding differences are OK)
     for h in 1..=12 {
         let diff = (r.cusps[h] - r2.cusps[h]).abs();

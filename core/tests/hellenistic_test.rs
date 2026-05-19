@@ -230,7 +230,7 @@ mod profections {
     #[test]
     fn annual_profection_age_0_is_house_1() {
         let jd = 2_451_545.0;
-        let h = houses(jd, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
+        let h = houses(JulianDay::new(jd), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
         let cusps: [f64; 13] = {
             let mut a = [0.0f64; 13];
             a.copy_from_slice(&h.cusps);
@@ -247,7 +247,7 @@ mod profections {
     #[test]
     fn annual_profection_age_12_returns_to_house_1() {
         let jd = 2_451_545.0;
-        let h = houses(jd, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
+        let h = houses(JulianDay::new(jd), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
         let cusps: [f64; 13] = {
             let mut a = [0.0f64; 13];
             a.copy_from_slice(&h.cusps);
@@ -261,7 +261,7 @@ mod profections {
     #[test]
     fn annual_profection_house_number_in_range() {
         let jd = 2_451_545.0;
-        let h = houses(jd, 0.0, 0.0, HouseSystem::PLACIDUS).unwrap();
+        let h = houses(JulianDay::new(jd), Latitude::new(0.0), Longitude::new(0.0), HouseSystem::PLACIDUS).unwrap();
         let cusps: [f64; 13] = {
             let mut a = [0.0f64; 13];
             a.copy_from_slice(&h.cusps);

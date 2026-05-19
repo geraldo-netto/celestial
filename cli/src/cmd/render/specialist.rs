@@ -1,5 +1,7 @@
 //! Specialist chart builders — split from render.rs.
 
+use celestial_core::Longitude;
+use celestial_core::Latitude;
 use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
@@ -37,7 +39,7 @@ pub fn build_dial_context(
     let mut positions: Vec<(Body, f64)> = Vec::with_capacity(bodies.len());
     let mut planet_entries: Vec<Value> = Vec::with_capacity(bodies.len());
 
-    let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
+    let h = houses_ex(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
         ?;
     let asc = h.ascmc[0];
 
@@ -125,9 +127,9 @@ pub fn build_composite_context(
     vars.entry("title".to_string())
         .or_insert_with(|| "Composite Chart".to_string());
 
-    let h1 = houses_ex(jd1, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
+    let h1 = houses_ex(JulianDay::new(jd1), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
         ?;
-    let h2 = houses_ex(jd2, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
+    let h2 = houses_ex(JulianDay::new(jd2), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
         ?;
     // Composite ASC: midpoint of the two ASCs
     let asc1 = h1.ascmc[0];

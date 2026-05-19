@@ -18,6 +18,8 @@
 //! ORDER-OF-MAGNITUDE sanity checks, not micro-precision pins. Specific
 //! precision pins live in `integration_tests.rs`.
 
+use celestial_core::Longitude;
+use celestial_core::Latitude;
 use celestial_core::JulianDay;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
@@ -895,7 +897,7 @@ fn quadrant_house_systems_invariants() {
     // don't preserve ASC/MC at h1/h10.
     let systems: &[u8] = b"PKORCB";
     for &sys in systems {
-        let h = celestial_core::houses(jd, lat, lon, HouseSystem(sys)).unwrap();
+        let h = celestial_core::houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), HouseSystem(sys)).unwrap();
         let asc = h.ascmc[0];
         let mc = h.ascmc[1];
         for i in 1..=12 {
@@ -924,7 +926,7 @@ fn quadrant_house_systems_invariants() {
 #[test]
 fn whole_sign_houses_30_apart() {
     let jd = julday(1986, 5, 30, 9.0, Calendar::Gregorian);
-    let h = celestial_core::houses(jd, -23.5333, -46.6333, HouseSystem(b'W')).unwrap();
+    let h = celestial_core::houses(JulianDay::new(jd), Latitude::new(-23.5333), Longitude::new(-46.6333), HouseSystem(b'W')).unwrap();
     let h1 = h.cusps[1];
     assert!(
         (h1 % 30.0).abs() < 0.001 || (h1 % 30.0 - 30.0).abs() < 0.001,
@@ -941,7 +943,7 @@ fn whole_sign_houses_30_apart() {
 #[test]
 fn equal_houses_30_apart_from_asc() {
     let jd = julday(1986, 5, 30, 9.0, Calendar::Gregorian);
-    let h = celestial_core::houses(jd, -23.5333, -46.6333, HouseSystem(b'E')).unwrap();
+    let h = celestial_core::houses(JulianDay::new(jd), Latitude::new(-23.5333), Longitude::new(-46.6333), HouseSystem(b'E')).unwrap();
     let asc = h.ascmc[0];
     for i in 1..=12 {
         let expected = (asc + 30.0 * (i - 1) as f64) % 360.0;
@@ -1855,7 +1857,7 @@ fn placidus_at_arctic_circle_no_panic() {
     use celestial_core::body::HouseSystem;
     let jd = julday(2024, 6, 21, 12.0, Calendar::Gregorian); // summer solstice
     for lat in [66.0_f64, 70.0, 80.0, 85.0] {
-        let result = celestial_core::houses(jd, lat, 0.0, HouseSystem::PLACIDUS);
+        let result = celestial_core::houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(0.0), HouseSystem::PLACIDUS);
         if let Ok(h) = result {
             for i in 1..=12 {
                 assert!(
@@ -1875,7 +1877,7 @@ fn whole_sign_at_poles() {
     use celestial_core::body::HouseSystem;
     let jd = julday(2024, 6, 21, 12.0, Calendar::Gregorian);
     for lat in [88.0_f64, -88.0] {
-        let h = celestial_core::houses(jd, lat, 0.0, HouseSystem(b'W')).unwrap();
+        let h = celestial_core::houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(0.0), HouseSystem(b'W')).unwrap();
         for i in 1..=12 {
             assert!(
                 h.cusps[i].is_finite() && (0.0..360.0).contains(&h.cusps[i]),
@@ -2491,7 +2493,7 @@ fn saturn_pluto_conjunction_2020() {
 fn diana_asc_mc_placidus_pin() {
     use celestial_core::houses;
     let jd = julday(1961, 7, 1, 18.75, Calendar::Gregorian);
-    let result = houses(jd, 52.83, 0.50, HouseSystem::PLACIDUS).unwrap();
+    let result = houses(JulianDay::new(jd), Latitude::new(52.83), Longitude::new(0.50), HouseSystem::PLACIDUS).unwrap();
     let asc = result.ascmc[0];
     let mc = result.ascmc[1];
     assert_lon_within!(asc, 258.40, 0.05, "Diana ASC");

@@ -5,6 +5,8 @@
 
 #![allow(clippy::too_many_arguments)]
 
+use celestial_core::Longitude;
+use celestial_core::Latitude;
 use celestial_core::JulianDay;
 use crate::error::CliError;
 use std::collections::BTreeMap;
@@ -30,7 +32,7 @@ pub(crate) fn build_context(
     hsys: char,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
-    let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(hsys as u8))
+    let h = houses_ex(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
         ?;
     let asc = h.ascmc[0];
     let mc = h.ascmc[1];

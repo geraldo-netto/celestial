@@ -97,7 +97,7 @@ fn bench_houses() {
     ];
     for &(sys, name) in systems {
         bench(name, N, || {
-            let _ = houses(J2000, 48.85, 2.35, sys);
+            let _ = houses(JulianDay::new(J2000), Latitude::new(48.85), Longitude::new(2.35), sys);
         });
     }
 }

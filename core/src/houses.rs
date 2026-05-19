@@ -12,9 +12,10 @@
 //! ```
 //! use celestial_core::houses::{houses_ex, houses};
 //! use celestial_core::body::{CalcFlags, HouseSystem};
+//! use celestial_core::{JulianDay, Latitude, Longitude};
 //!
-//! let h = houses_ex(2_451_545.0, CalcFlags::BUILTIN,
-//!                   48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
+//! let h = houses_ex(JulianDay::new(2_451_545.0), CalcFlags::BUILTIN,
+//!                   Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
 //! println!("ASC = {:.4}°  MC = {:.4}°", h.ascmc[0], h.ascmc[1]);
 //! ```
 

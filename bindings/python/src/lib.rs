@@ -3,6 +3,8 @@
 //! Build with `maturin develop` (dev install) or `maturin build` (wheel).
 //! The module is exposed as `celestial_py`.
 
+use celestial::Longitude;
+use celestial::Latitude;
 use celestial::JulianDay;
 use celestial::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_ffi as celestial;
@@ -223,7 +225,7 @@ fn fixstar2_mag(star: &str) -> PyResult<f64> {
 #[pyfunction]
 #[pyo3(signature = (tjdut, lat, lon, hsys = b'P'))]
 fn houses(py: Python<'_>, tjdut: f64, lat: f64, lon: f64, hsys: u8) -> PyResult<PyObject> {
-    let r = celestial::houses(tjdut, lat, lon, HouseSystem(hsys)).map_err(to_py)?;
+    let r = celestial::houses(JulianDay::new(tjdut), Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys)).map_err(to_py)?;
     // cusps[0] is unused in SE convention; return cusps[1..=12] (12 real cusps)
     // ascmc[0..8] is the SE standard (skip our extra IC/DSC at [8],[9])
     let cusps: Vec<f64> = r.cusps[1..].to_vec();
@@ -242,7 +244,7 @@ fn houses_ex(
     hsys: u8,
     flags: i32,
 ) -> PyResult<PyObject> {
-    let r = celestial::houses_ex(tjdut, CalcFlags(flags), lat, lon, HouseSystem(hsys))
+    let r = celestial::houses_ex(JulianDay::new(tjdut), CalcFlags(flags), Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys))
         .map_err(to_py)?;
     let cusps: Vec<f64> = r.cusps[1..].to_vec();
     let ascmc: Vec<f64> = r.ascmc[..8].to_vec();
@@ -260,7 +262,7 @@ fn houses_ex2(
     hsys: u8,
     flags: i32,
 ) -> PyResult<PyObject> {
-    let r = celestial::houses_ex2(tjdut, CalcFlags(flags), lat, lon, HouseSystem(hsys))
+    let r = celestial::houses_ex2(JulianDay::new(tjdut), CalcFlags(flags), Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys))
         .map_err(to_py)?;
     Ok((
         r.cusps[1..].to_vec(),

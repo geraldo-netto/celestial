@@ -366,7 +366,7 @@ fn test_house_pos_in_range() {
 #[test]
 fn test_house_pos_asc_cusp1() {
     // A point right on the Ascendant should be near house 1
-    let r_h = houses(JD, 48.0, 2.0, HouseSystem::PLACIDUS).unwrap();
+    let r_h = houses(JulianDay::new(JD), Latitude::new(48.0), Longitude::new(2.0), HouseSystem::PLACIDUS).unwrap();
     let asc = r_h.ascmc[0];
     let armc = r_h.ascmc[2];
     let h = house_pos(armc, 48.0, 23.4393, HouseSystem::PLACIDUS, [asc, 0.0]).unwrap();
@@ -377,7 +377,7 @@ fn test_house_pos_asc_cusp1() {
 
 #[test]
 fn test_houses_ex2_speeds_nonzero() {
-    let r = houses_ex2(JD, CalcFlags::BUILTIN, 48.0, 2.0, HouseSystem::PLACIDUS).unwrap();
+    let r = houses_ex2(JulianDay::new(JD), CalcFlags::BUILTIN, Latitude::new(48.0), Longitude::new(2.0), HouseSystem::PLACIDUS).unwrap();
     // ASC speed should be around 1°/4min = 360°/day at the equator, less at mid-latitudes
     let asc_speed = r.ascmc_speeds[0].abs();
     assert!(
@@ -692,7 +692,7 @@ fn mc_transit_sun_annual() {
         "Sun transits MC once/year, should be < 400d"
     );
     let sun = calc_ut(JulianDay::new(jd_transit), Body::SUN, CalcFlags::BUILTIN).unwrap();
-    let chart = houses(NATAL_JD, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
+    let chart = houses(JulianDay::new(NATAL_JD), Latitude::new(PARIS_LAT), Longitude::new(PARIS_LON), HouseSystem::PLACIDUS).unwrap();
     let natal_mc = chart.ascmc[1];
     let diff = (sun.lon - natal_mc)
         .abs()
@@ -729,7 +729,7 @@ fn mc_transit_moon_monthly() {
         "Moon transits MC ~monthly, should be < 32d"
     );
     let moon = calc_ut(JulianDay::new(jd_transit), Body::MOON, CalcFlags::BUILTIN).unwrap();
-    let chart = houses(NATAL_JD, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
+    let chart = houses(JulianDay::new(NATAL_JD), Latitude::new(PARIS_LAT), Longitude::new(PARIS_LON), HouseSystem::PLACIDUS).unwrap();
     let diff = (moon.lon - chart.ascmc[1])
         .abs()
         .min(360.0 - (moon.lon - chart.ascmc[1]).abs());
@@ -762,7 +762,7 @@ fn mc_transit_mars_within_two_years() {
         "Mars transits natal MC within 750 days"
     );
     let mars = calc_ut(JulianDay::new(jd_transit), Body::MARS, CalcFlags::BUILTIN).unwrap();
-    let chart = houses(NATAL_JD, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
+    let chart = houses(JulianDay::new(NATAL_JD), Latitude::new(PARIS_LAT), Longitude::new(PARIS_LON), HouseSystem::PLACIDUS).unwrap();
     let diff = (mars.lon - chart.ascmc[1])
         .abs()
         .min(360.0 - (mars.lon - chart.ascmc[1]).abs());
@@ -776,7 +776,7 @@ fn mc_transit_mars_within_two_years() {
 
 #[test]
 fn ic_transit_is_natal_mc_plus_180() {
-    let chart = houses(NATAL_JD, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
+    let chart = houses(JulianDay::new(NATAL_JD), Latitude::new(PARIS_LAT), Longitude::new(PARIS_LON), HouseSystem::PLACIDUS).unwrap();
     let natal_mc = chart.ascmc[1];
     let natal_ic = (natal_mc + 180.0).rem_euclid(360.0);
     let jd_ic = ic_transit_ut(
@@ -809,7 +809,7 @@ fn ic_transit_is_natal_mc_plus_180() {
 
 #[test]
 fn asc_and_dsc_transits() {
-    let chart = houses(NATAL_JD, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
+    let chart = houses(JulianDay::new(NATAL_JD), Latitude::new(PARIS_LAT), Longitude::new(PARIS_LON), HouseSystem::PLACIDUS).unwrap();
     let jd_asc = asc_transit_ut(
         Body::SUN,
         NATAL_JD,
@@ -1207,7 +1207,7 @@ fn retrograde_station_speed_crosses_zero() {
 
 #[test]
 fn arabic_part_lot_of_fortune_range() {
-    let chart = houses(J2000, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
+    let chart = houses(JulianDay::new(J2000), Latitude::new(PARIS_LAT), Longitude::new(PARIS_LON), HouseSystem::PLACIDUS).unwrap();
     let sun = calc_ut(JulianDay::new(J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let moon = calc_ut(JulianDay::new(J2000), Body::MOON, CalcFlags::BUILTIN).unwrap();
     let asc = chart.ascmc[0];
@@ -1225,7 +1225,7 @@ fn arabic_part_lot_of_fortune_range() {
 #[test]
 fn arabic_parts_seven_all_in_range() {
     let jd = J2000;
-    let chart = houses(jd, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
+    let chart = houses(JulianDay::new(jd), Latitude::new(PARIS_LAT), Longitude::new(PARIS_LON), HouseSystem::PLACIDUS).unwrap();
     let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
     let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap();
     let sat = calc_ut(JulianDay::new(jd), Body::SATURN, CalcFlags::BUILTIN).unwrap();
@@ -1318,7 +1318,7 @@ fn solar_arc_is_approximately_one_degree_per_year() {
             (b, p.lon)
         })
         .collect();
-    let natal_mc = houses(J2000, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS)
+    let natal_mc = houses(JulianDay::new(J2000), Latitude::new(PARIS_LAT), Longitude::new(PARIS_LON), HouseSystem::PLACIDUS)
         .unwrap()
         .ascmc[1];
     let (arc, directed, dir_mc) =
@@ -1443,7 +1443,7 @@ fn parallactic_angle_north_south_hemisphere_differ() {
 
 #[test]
 fn annual_profection_cycles_every_12_years() {
-    let chart = houses(J2000, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
+    let chart = houses(JulianDay::new(J2000), Latitude::new(PARIS_LAT), Longitude::new(PARIS_LON), HouseSystem::PLACIDUS).unwrap();
     let (h0, _) = annual_profection(&chart.cusps, 0);
     let (h12, _) = annual_profection(&chart.cusps, 12);
     let (h24, _) = annual_profection(&chart.cusps, 24);
@@ -1458,7 +1458,7 @@ fn annual_profection_cycles_every_12_years() {
 
 #[test]
 fn monthly_profection_degree_in_range() {
-    let chart = houses(J2000, PARIS_LAT, PARIS_LON, HouseSystem::PLACIDUS).unwrap();
+    let chart = houses(JulianDay::new(J2000), Latitude::new(PARIS_LAT), Longitude::new(PARIS_LON), HouseSystem::PLACIDUS).unwrap();
     for age in [0u32, 12, 25, 36, 47] {
         for month in 0u32..12 {
             let (h, deg) = monthly_profection(&chart.cusps, age, month);
@@ -1717,7 +1717,7 @@ fn houses_placidus_equator_asc_direction() {
     // Regression for ascendant() returning DSC instead of ASC.
     // At JD 2452275.499255786, lat=0, lon=0 the ASC should be ~191°
     // (confirmed against SE C library reference).
-    let h = houses(2_452_275.499_255_786, 0.0, 0.0, HouseSystem::PLACIDUS).unwrap();
+    let h = houses(JulianDay::new(2_452_275.499_255_786), Latitude::new(0.0), Longitude::new(0.0), HouseSystem::PLACIDUS).unwrap();
     let asc = h.ascmc[0];
     let mc = h.ascmc[1];
 
@@ -1774,7 +1774,7 @@ fn check_php_houses_ayanamsa(jd: f64) {
     use celestial_core::body::{HouseSystem, SiderealMode};
     use celestial_core::*;
 
-    let h = houses(jd, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
+    let h = houses(JulianDay::new(jd), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
     let cusps: Vec<f64> = h.cusps[1..].to_vec();
     let ascmc: Vec<f64> = h.ascmc[..8].to_vec();
     assert_eq!(cusps.len(), 12);

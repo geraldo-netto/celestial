@@ -4,6 +4,8 @@
 //! Run:  cargo bench --package celestial-core
 
 #![allow(unused_must_use)]
+use celestial_core::Longitude;
+use celestial_core::Latitude;
 use celestial_core::JulianDay;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem};
 use std::hint::black_box;
@@ -174,10 +176,10 @@ fn bench_houses(all: &mut Vec<R>, fb: CalcFlags) {
     ] {
         all.push(bench(&format!("houses::houses_ex_{name}"), 500, || {
             black_box(celestial_core::houses_ex(
-                black_box(J2000),
+                black_box(JulianDay::new(J2000)),
                 black_box(fb),
-                black_box(lat),
-                black_box(lon),
+                black_box(Latitude::new(lat)),
+                black_box(Longitude::new(lon)),
                 black_box(HouseSystem(code)),
             ));
         }));

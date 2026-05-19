@@ -2,6 +2,7 @@
 
 use crate::body::{CalcFlags, HouseSystem};
 use crate::error::Result;
+use crate::units::{Degrees, JulianDay, Latitude, Longitude};
 // Re-export the canonical types from the astronomy layer
 pub use crate::astronomy::houses::{HouseResult, HouseResultEx2};
 
@@ -18,21 +19,26 @@ pub fn house_name(hsys: HouseSystem) -> &'static str {
 // ─── Pure-Rust dispatch ───────────────────────────────────────────────────────
 
 /// Compute house cusps (UT) — pure-Rust engine.
-pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: HouseSystem) -> Result<HouseResult> {
+pub fn houses(
+    jd_ut: JulianDay,
+    geolat: Latitude,
+    geolon: Longitude,
+    hsys: HouseSystem,
+) -> Result<HouseResult> {
     Ok(crate::astronomy::houses(
-        jd_ut,
-        geolat,
-        geolon,
+        jd_ut.get(),
+        geolat.get(),
+        geolon.get(),
         hsys.as_raw(),
     ))
 }
 
 /// Compute house cusps with flags (UT) — pure-Rust engine.
 pub fn houses_ex(
-    _jd_ut: f64,
+    _jd_ut: JulianDay,
     _flags: CalcFlags,
-    geolat: f64,
-    geolon: f64,
+    geolat: Latitude,
+    geolon: Longitude,
     hsys: HouseSystem,
 ) -> Result<HouseResult> {
     houses(_jd_ut, geolat, geolon, hsys)
@@ -40,12 +46,15 @@ pub fn houses_ex(
 
 /// Compute house cusps and their diurnal speeds (deg/day) via numerical differentiation.
 pub fn houses_ex2(
-    jd_ut: f64,
+    jd_ut: JulianDay,
     _flags: CalcFlags,
-    geolat: f64,
-    geolon: f64,
+    geolat: Latitude,
+    geolon: Longitude,
     hsys: HouseSystem,
 ) -> Result<HouseResultEx2> {
+    let jd_ut = jd_ut.get();
+    let geolat = geolat.get();
+    let geolon = geolon.get();
     let h = 10.0 / 1440.0; // 10 minutes in days
     let r0 = crate::astronomy::houses(jd_ut - h, geolat, geolon, hsys.as_raw());
     let r1 = crate::astronomy::houses(jd_ut, geolat, geolon, hsys.as_raw());
@@ -74,20 +83,25 @@ pub fn houses_ex2(
 }
 
 /// Compute house cusps from ARMC — pure-Rust engine.
-pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: HouseSystem) -> Result<HouseResult> {
+pub fn houses_armc(
+    armc: Degrees,
+    geolat: Latitude,
+    eps: Degrees,
+    hsys: HouseSystem,
+) -> Result<HouseResult> {
     Ok(crate::astronomy::houses_armc(
-        armc,
-        geolat,
-        eps,
+        armc.get(),
+        geolat.get(),
+        eps.get(),
         hsys.as_raw(),
     ))
 }
 
 /// Compute house cusps and speeds from ARMC — pure-Rust (speeds return zeros).
 pub fn houses_armc_ex2(
-    armc: f64,
-    geolat: f64,
-    eps: f64,
+    armc: Degrees,
+    geolat: Latitude,
+    eps: Degrees,
     hsys: HouseSystem,
 ) -> Result<HouseResultEx2> {
     let r = houses_armc(armc, geolat, eps, hsys)?;

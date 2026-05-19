@@ -1,5 +1,7 @@
 //! Vedic chart builders — split from render.rs.
 
+use celestial_core::Longitude;
+use celestial_core::Latitude;
 use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
@@ -156,7 +158,7 @@ pub fn build_ashtakavarga_context(
     vars.entry("title".to_string())
         .or_insert_with(|| "Ashtakavarga".to_string());
 
-    let h = houses_ex(jd, CalcFlags::BUILTIN, lat, lon, HouseSystem(b'P'))
+    let h = houses_ex(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(b'P'))
         ?;
     let asc_lon = h.ascmc[0];
     let asc_rasi = (asc_lon % 360.0 / 30.0) as usize % 12;

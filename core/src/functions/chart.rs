@@ -4,7 +4,7 @@
 //! generating aspect tables, secondary progressions, solar/lunar returns,
 //! solar arc directions, midpoints, Arabic parts, and planetary stations.
 
-use crate::units::JulianDay;
+use crate::units::{JulianDay, Latitude, Longitude};
 use crate::body::{Body, CalcFlags, Calendar, HouseSystem};
 use crate::diff_deg_signed;
 use crate::error::{Error, Result};
@@ -320,7 +320,7 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
 /// ```no_run
 /// use celestial_core::*;
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
-/// let chart = houses(2_451_545.0, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
+/// let chart = houses(JulianDay::new(2_451_545.0), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
 /// let sun  = calc_ut(JulianDay::new(2_451_545.0), Body::SUN, CalcFlags::BUILTIN).unwrap();
 /// let moon = calc_ut(JulianDay::new(2_451_545.0), Body::MOON, CalcFlags::BUILTIN).unwrap();
 /// let lot_of_fortune = arabic_part(chart.ascmc[0], moon.lon, sun.lon);
@@ -352,7 +352,7 @@ pub struct ArabicPart {
 /// use celestial_core::*;
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// let jd = 2_451_545.0;
-/// let chart = houses(jd, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
+/// let chart = houses(JulianDay::new(jd), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
 /// let sun  = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
 /// let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap();
 /// let sat  = calc_ut(JulianDay::new(jd), Body::SATURN, CalcFlags::BUILTIN).unwrap();
@@ -473,7 +473,7 @@ pub fn secondary_progressions(
         let pos = calc_ut(JulianDay::new(jd_progressed), body, flags)?;
         positions.push((body, pos));
     }
-    let prog_chart = houses(jd_progressed, lat, lon, hsys)?;
+    let prog_chart = houses(JulianDay::new(jd_progressed), Latitude::new(lat), Longitude::new(lon), hsys)?;
     Ok((positions, prog_chart))
 }
 
@@ -688,7 +688,7 @@ pub fn parallactic_angle(ha_deg: f64, dec_deg: f64, lat_deg: f64) -> f64 {
 /// ```no_run
 /// use celestial_core::*;
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
-/// let chart = houses(2_440_000.0, 48.85, 2.35, HouseSystem::PLACIDUS).unwrap();
+/// let chart = houses(JulianDay::new(2_440_000.0), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
 /// let (house, degree) = annual_profection(&chart.cusps, 35); // age 35
 /// println!("Age 35 profection: house {house}, degree {degree:.2}°");
 /// ```
