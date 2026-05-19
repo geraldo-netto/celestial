@@ -97,7 +97,6 @@ regression-tested; `syn` build-cost not warranted until binding churn.
 
 | id | area | issue | status |
 |---|---|---|---|
-| ARCH-7 | core/src/lib.rs:65-77 | 12 crate-root `pub use mod::*` globs (`functions` correctly stays `pub(crate)`) | DEFERRED — load-bearing for core's own internal `crate::` paths through the precision compute; faithful de-glob ≈ exhaustive ~280-symbol mirror. Isolated effort |
 | ARCH-8 | cli/src/cmd/render/mod.rs | 2444 LOC total but **~63% is test code** (`mod tests` ~1023, `mod tests_vedic` ~525); non-test residual ≈ ~900 LOC of facade re-exports + wheel/SI/dignity helpers | DEFERRED — already a facade; safe extraction is many single-span-per-commit moves (bulk pass corrupts line math); low payoff vs precision-tree risk |
 | ARCH-10 | bindings 201×3 stubs | no codegen | DEFERRED — = DUP-1/DP-4 |
 | VIS-1 | render/{specialist,hellenistic,vedic,pipeline}.rs | `build_*`/`render_*` are bare `pub fn` where siblings use `pub(super)` (e.g. mod.rs:486/1627/1890) — inconsistent | DECIDED — no real leak (parent submodules are private `mod`, unreachable outside `render`); cosmetic only |
@@ -143,6 +142,6 @@ Current scoped TOTAL: 94.9% region / 94.5% line.
 No OPEN findings. Remaining work is the long-horizon deferred set:
 
 1. **Deferred isolated efforts (own session + precision soak each):**
-   ARCH-7 lib.rs de-glob · ARCH-8 render helper extraction ·
+   ARCH-8 render helper extraction ·
    ARCH-10/DP-4/DUP-1 binding codegen · DP-2 unit newtypes ·
    DP-6 SVG templates · PERF-1 analytic VSOP derivative.
