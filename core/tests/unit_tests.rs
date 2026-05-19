@@ -2801,3 +2801,121 @@ fn perf2345_search_regression_lock() {
     approx(r.jd, 2451596.02107659, "retro.jd");
     approx(r.pos[0], 347.1761286497, "retro.pos.lon");
 }
+
+// ─── Coverage: pure angle/lookup helpers (geoformat/utils) ───────────────────
+
+#[test]
+fn diff_deg_unsigned_reference() {
+    // norm_deg(p1 - p2), result in [0, 360)
+    let cases = [
+        (10.0, 350.0, 20.0),
+        (350.0, 10.0, 340.0),
+        (0.0, 0.0, 0.0),
+        (370.0, 10.0, 0.0),
+        (-5.0, 5.0, 350.0),
+    ];
+    for (a, b, want) in cases {
+        let got = diff_deg(a, b);
+        assert!(
+            (got - want).abs() < 1e-9,
+            "diff_deg({a},{b}) = {got}, want {want}"
+        );
+    }
+}
+
+#[test]
+fn diff_deg_signed_reference() {
+    // wrap_signed_180(norm_deg(p1) - norm_deg(p2)), result in (-180, 180]
+    let cases = [
+        (10.0, 350.0, 20.0),
+        (350.0, 10.0, -20.0),
+        (90.0, 0.0, 90.0),
+        (0.0, 90.0, -90.0),
+        (0.0, 180.0, 180.0),
+    ];
+    for (a, b, want) in cases {
+        let got = diff_deg_signed(a, b);
+        assert!(
+            (got - want).abs() < 1e-9,
+            "diff_deg_signed({a},{b}) = {got}, want {want}"
+        );
+    }
+}
+
+#[test]
+fn sidereal_mode_id_reference() {
+    assert_eq!(sidereal_mode_id(256), Some(0));
+    assert_eq!(sidereal_mode_id(255), Some(22));
+    assert_eq!(sidereal_mode_id(0), Some(1));
+    assert_eq!(sidereal_mode_id(20), Some(21));
+    assert_eq!(sidereal_mode_id(21), None);
+    assert_eq!(sidereal_mode_id(-1), None);
+    assert_eq!(sidereal_mode_id(1000), None);
+}
+
+// ─── Coverage: vedic sign_lord (all rulership arms) ──────────────────────────
+
+#[test]
+fn sign_lord_all_signs_reference() {
+    // sign → classical ruler planet id (Sun0 Moon1 Mer2 Ven3 Mar4 Jup5 Sat6)
+    let want = [
+        (0, 4), (7, 4),  // Aries/Scorpio → Mars
+        (1, 3), (6, 3),  // Taurus/Libra → Venus
+        (2, 2), (5, 2),  // Gemini/Virgo → Mercury
+        (3, 1),          // Cancer → Moon
+        (4, 0),          // Leo → Sun
+        (8, 5), (11, 5), // Sag/Pisces → Jupiter
+        (9, 6), (10, 6), // Cap/Aqu → Saturn
+    ];
+    for (sign, lord) in want {
+        assert_eq!(sign_lord(sign), Some(lord), "sign_lord({sign})");
+    }
+    assert_eq!(sign_lord(12), None);
+    assert_eq!(sign_lord(-1), None);
+}
+
+// ─── Coverage: HouseSystem::name (every variant arm) ─────────────────────────
+
+#[test]
+fn house_system_name_all_variants() {
+    use celestial_core::body::HouseSystem as H;
+    // Public house_name() dispatches through from_char → enum → name().
+    let cases = [
+        (b'P', "Placidus"),
+        (b'K', "Koch"),
+        (b'O', "Porphyrius"),
+        (b'R', "Regiomontanus"),
+        (b'C', "Campanus"),
+        (b'E', "Equal"),
+        (b'D', "Equal (MC)"),
+        (b'W', "Whole Sign"),
+        (b'X', "Meridian"),
+        (b'M', "Morinus"),
+        (b'B', "Alcabitius"),
+        (b'H', "Azimuthal"),
+        (b'T', "Topocentric"),
+        (b'G', "Gauquelin Sectors"),
+    ];
+    for (code, want) in cases {
+        assert_eq!(house_name(H(code)), want, "house_name({code})");
+    }
+}
+
+// ─── Coverage: years_diff forward / backward / equal branches ────────────────
+
+#[test]
+fn years_diff_three_branches_reference() {
+    let f = CalcFlags::BUILTIN;
+    let j = 2_451_545.0_f64; // J2000
+    // equal jd → exactly 0
+    assert_eq!(years_diff(j, j, f).unwrap(), 0.0);
+    // +1 tropical year forward ≈ +1.0
+    let one = years_diff(j, j + 365.2422, f).unwrap();
+    assert!((one - 1.0).abs() < 0.05, "forward 1yr = {one}");
+    // +2 years forward ≈ +2.0 (multi-iteration loop)
+    let two = years_diff(j, j + 730.4844, f).unwrap();
+    assert!((two - 2.0).abs() < 0.05, "forward 2yr = {two}");
+    // backward branch → negative
+    let back = years_diff(j + 365.2422, j, f).unwrap();
+    assert!((back + 1.0).abs() < 0.05, "backward 1yr = {back}");
+}
