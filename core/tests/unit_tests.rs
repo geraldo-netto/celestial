@@ -2919,3 +2919,87 @@ fn years_diff_three_branches_reference() {
     let back = years_diff(j + 365.2422, j, f).unwrap();
     assert!((back + 1.0).abs() < 0.05, "backward 1yr = {back}");
 }
+
+// ─── Coverage tier-2: house EqualMC / Gauquelin dispatch ─────────────────────
+
+#[test]
+fn equal_mc_cusps_are_30_apart() {
+    use celestial_core::body::HouseSystem as H;
+    // b'D' = Equal-from-MC: every cusp exactly 30° from the previous one.
+    let r = houses(
+        JulianDay::new(2_451_545.0),
+        Latitude::new(48.85),
+        Longitude::new(2.35),
+        H(b'D'),
+    )
+    .unwrap();
+    for h in 1..12 {
+        let step = diff_deg(r.cusps[h + 1], r.cusps[h]);
+        assert!(
+            (step - 30.0).abs() < 1e-6,
+            "EqualMC cusp {h}->{}: step {step}",
+            h + 1
+        );
+    }
+}
+
+#[test]
+fn gauquelin_dispatch_cusps_in_range() {
+    use celestial_core::body::HouseSystem as H;
+    let r = houses(
+        JulianDay::new(2_451_545.0),
+        Latitude::new(48.85),
+        Longitude::new(2.35),
+        H(b'G'),
+    )
+    .unwrap();
+    for h in 1..=12 {
+        let c = r.cusps[h];
+        assert!(c.is_finite() && (0.0..360.0).contains(&c), "cusp {h} = {c}");
+    }
+}
+
+// ─── Coverage tier-2: crossings (helio_cross_ut / mooncross_node_ut) ──────────
+
+#[test]
+fn helio_cross_ut_is_self_consistent() {
+    // Mars heliocentric longitude crosses 100° once per ~687-day orbit;
+    // at the returned jd the heliocentric lon must equal the target.
+    let target = 100.0_f64;
+    let r = helio_cross_ut(
+        Body::MARS,
+        target,
+        2_451_545.0,
+        CalcFlags::BUILTIN,
+        1,
+    )
+    .unwrap();
+    assert!(
+        r > 2_451_545.0 && r < 2_451_545.0 + 700.0,
+        "crossing jd {r} out of expected one-orbit window"
+    );
+    let pos = calc(
+        JulianDay::new(r),
+        Body::MARS,
+        CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC,
+    )
+    .unwrap();
+    let d = diff_deg_signed(pos.lon, target).abs();
+    assert!(d < 0.5, "Mars helio lon at crossing = {}, want {target}", pos.lon);
+}
+
+#[test]
+fn mooncross_node_ut_within_draconic_month() {
+    let jd0 = 2_451_545.0;
+    let r = mooncross_node_ut(jd0, CalcFlags::BUILTIN).unwrap();
+    assert!(
+        r.jd_cross > jd0 && r.jd_cross < jd0 + 28.0,
+        "node crossing jd {} not within one draconic month of {jd0}",
+        r.jd_cross
+    );
+    assert!(
+        r.xlon.is_finite() && (0.0..360.0).contains(&r.xlon),
+        "node crossing xlon = {}",
+        r.xlon
+    );
+}
