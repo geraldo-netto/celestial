@@ -126,6 +126,23 @@ source file is ≥80% region and line; lowest core modules (`searches`
 with hot paths regression-locked. 86 property suites + 21 cli_smoke +
 19 cli_coverage integration tests, all green.
 
+Per-function hardening (this cycle): a per-source-function rescan
+(merging instantiations) found genuinely thin functions *inside* the
+≥80% files. Reference-pinned tests added for the deterministic set —
+`geoformat::diff_deg`/`diff_deg_signed`/`sidereal_mode_id`,
+`vedic::sign_lord`, `house_name` (all 14 codes), `searches::years_diff`
+(fwd/back/equal), `houses::equal_mc`+`gauquelin`,
+`crossings::helio_cross_ut`, `mooncross_node_ut`, `deltat_ex` (both
+branches), `easter_orthodox`, `moon_phase_info` (commits
+`3c3faec`/`adc9ee9`/`4fd1da9`). Ephemeris-search-fragile fns
+(`next_aspect_with2`/`cusp2`, `vis_limit_mag`, `sol_eclipse_where`,
+`esbats::bisect_fallback_full_moon`) are intentionally left — they
+need verified external event references, not self-consistency, and
+their hot paths are already regression-locked. CLI `cmd/*::run`
+cannot reach per-function 100% — exercised via spawned binary
+(`assert_cmd`), an llvm-cov blind spot (same dynamic as TEST-2);
+behavior is covered, instrumentation is not.
+
 A CI coverage floor is enforced (TEST-3, done this cycle, removed per
 the completed-work policy): the `celestial-core` workflow merges
 tests + the fuzz harness and gates on `cargo llvm-cov report
