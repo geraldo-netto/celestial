@@ -230,10 +230,11 @@ fn boundary_numeric_overflow_and_sign() {
 fn boundary_zero_and_wrong_sign_fields() {
     use celestial_cli::cmd::render::RenderArgs;
     let mk = |lat: f64, lon: f64| {
-        let mut a = RenderArgs::default();
-        a.lat = lat;
-        a.lon = lon;
-        a
+        RenderArgs {
+            lat,
+            lon,
+            ..RenderArgs::default()
+        }
     };
     assert!(mk(0.0, 0.0).validate().is_ok()); // zero is valid for lat/lon
     assert!(mk(-23.5, -46.6).validate().is_ok()); // negatives valid here

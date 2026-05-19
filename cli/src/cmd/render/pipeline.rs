@@ -399,13 +399,14 @@ mod tests {
     use crate::cmd::render::RenderArgs;
 
     fn natal_args() -> RenderArgs {
-        let mut a = RenderArgs::default();
-        a.chart_type = "natal".to_string();
-        a.date = "1986-05-30 09:00".to_string();
-        a.timezone = Some("UTC".to_string());
-        a.lat = -23.5;
-        a.lon = -46.6;
-        a
+        RenderArgs {
+            chart_type: "natal".to_string(),
+            date: "1986-05-30 09:00".to_string(),
+            timezone: Some("UTC".to_string()),
+            lat: -23.5,
+            lon: -46.6,
+            ..RenderArgs::default()
+        }
     }
 
     #[test]
@@ -518,11 +519,14 @@ mod tests {
             b"[render]\ndate = \"1986-05-30 09:00\"\ntimezone = \"UTC\"\nlat = -23.5\nlon = -46.6\nout = \"rel.svg\"\n[vars]\ntitle = \"Cfg\"\nring_color = \"#101010\"\n",
         )
         .unwrap();
-        let mut a = RenderArgs::default();
-        a.chart_type = "natal".into();
-        a.date = "now".into(); // clap-default sentinel so config `date` overrides
-        a.config = Some(cfg);
-        a.vars = vec!["ring_color=#abcdef".into()];
+        // clap-default `date` sentinel so config `date` overrides
+        let a = RenderArgs {
+            chart_type: "natal".into(),
+            date: "now".into(),
+            config: Some(cfg),
+            vars: vec!["ring_color=#abcdef".into()],
+            ..RenderArgs::default()
+        };
         match compute(a) {
             Ok(RenderOutput::Out { body, path }) => {
                 assert_eq!(path, Some(std::path::PathBuf::from("rel.svg")));
@@ -536,10 +540,12 @@ mod tests {
             b"[render]\ndate = \"1986-05-30 09:00\"\ntimezone = \"UTC\"\nlat = 0\nlon = 0\nout = \"/tmp/evil.svg\"\n",
         )
         .unwrap();
-        let mut b = RenderArgs::default();
-        b.chart_type = "natal".into();
-        b.date = "now".into();
-        b.config = Some(bad);
+        let b = RenderArgs {
+            chart_type: "natal".into(),
+            date: "now".into(),
+            config: Some(bad),
+            ..RenderArgs::default()
+        };
         assert!(compute(b).is_err(), "absolute config out must be rejected");
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -566,9 +572,11 @@ mod tests {
         // invalid TOML → load_config error branch
         let bad = dir.join("broken.toml");
         std::fs::write(&bad, b"[render\ndate =").unwrap();
-        let mut a = RenderArgs::default();
-        a.date = "now".into();
-        a.config = Some(bad);
+        let a = RenderArgs {
+            date: "now".into(),
+            config: Some(bad),
+            ..RenderArgs::default()
+        };
         assert!(compute(a).is_err(), "invalid TOML must error");
 
         // config sets template + hsys (override_if template/hsys branches);
@@ -579,9 +587,11 @@ mod tests {
             b"[render]\ndate = \"1986-05-30 09:00\"\ntimezone = \"UTC\"\nlat = 1.0\nlon = 2.0\nhsys = \"K\"\ntemplate = \"no_such.tt\"\n",
         )
         .unwrap();
-        let mut b = RenderArgs::default();
-        b.date = "now".into();
-        b.config = Some(cfg);
+        let b = RenderArgs {
+            date: "now".into(),
+            config: Some(cfg),
+            ..RenderArgs::default()
+        };
         assert!(compute(b).is_err(), "missing template path must error");
 
         let _ = std::fs::remove_dir_all(&dir);
@@ -599,9 +609,11 @@ mod tests {
               [vars]\ntitle = \"T\"\nint_v = 7\nfloat_v = 1.5\nbool_v = true\narr_v = [1, 2]\n",
         )
         .unwrap();
-        let mut a = RenderArgs::default();
-        a.date = "now".into();
-        a.config = Some(cfg);
+        let a = RenderArgs {
+            date: "now".into(),
+            config: Some(cfg),
+            ..RenderArgs::default()
+        };
         assert!(matches!(compute(a), Ok(RenderOutput::Out { .. })));
         let _ = std::fs::remove_dir_all(&dir);
     }

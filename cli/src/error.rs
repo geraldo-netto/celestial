@@ -167,7 +167,7 @@ mod tests {
 
     fn question_io() -> CliResult<()> {
         let r: Result<(), std::io::Error> =
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "io via ?"));
+            Err(std::io::Error::other("io via ?"));
         r?;
         Ok(())
     }

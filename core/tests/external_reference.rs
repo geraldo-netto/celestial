@@ -256,7 +256,7 @@ fn delta_t_reference_values() {
 fn vernal_equinox_2024() {
     let jd_start = julday(2024, 1, 1, 0.0, Calendar::Gregorian);
     let jd = solcross_ut(0.0, jd_start, FLG).expect("solcross found");
-    let expected = 2_460_389.6295;
+    let expected = 2_460_389.629_5;
     assert!(
         (jd - expected).abs() < 0.01,
         "vernal equinox 2024: got {jd:.4}, expected {expected:.4}",
@@ -892,7 +892,7 @@ fn quadrant_house_systems_invariants() {
     // Quadrant systems (h1 = ASC, h10 = MC). Excludes Morinus (M) and
     // Meridian/Axial (X) which derive ALL cusps from ARMC equally and
     // don't preserve ASC/MC at h1/h10.
-    let systems: &[u8] = &[b'P', b'K', b'O', b'R', b'C', b'B'];
+    let systems: &[u8] = b"PKORCB";
     for &sys in systems {
         let h = celestial_core::houses(jd, lat, lon, HouseSystem(sys)).unwrap();
         let asc = h.ascmc[0];
@@ -1079,6 +1079,7 @@ fn almuten_at_leo_includes_sun() {
 ///   - 2024-04-01 → 2024-04-25 (Aries)
 ///   - 2024-08-04 → 2024-08-28 (Virgo)
 ///   - 2024-11-25 → 2024-12-15 (Sagittarius)
+///
 /// Searching from 2024-01-01 must find the first 2024 Mercury station
 /// near April 1, 2024.
 #[test]
