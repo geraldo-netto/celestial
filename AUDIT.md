@@ -19,8 +19,9 @@ IDs in the first column. Completed work is removed (not listed).
 
 > **This rescan found 16 OPEN; all 16 are now fixed** — **0 OPEN
 > remain** (DOC-1, the last, was backfilled in `f978115` and locked with
-> `#![warn(missing_docs)]`). Only DEFERRED (DUP-8) and DECIDED rows are
-> left. Fixed and removed: the recurring feature-gate wiring class struck a third time
+> `#![warn(missing_docs)]`). With DUP-8 also done (`e1531fe`), **no OPEN
+> or DEFERRED findings remain** — only DECIDED rows. Fixed and removed:
+> the recurring feature-gate wiring class struck a third time
 > in the language bindings (**WIRE-2**, commit `d6a3ead`) — the
 > structural root, a feature-matrix CI that only `cargo check`ed, was
 > closed by making it `cargo test` under `-D warnings` (**TEST-4/5**,
@@ -123,9 +124,16 @@ DUP-7 (year-axis ruler duplicated ~18 LOC across hellenistic + vedic
 timelines) was **fixed this cycle** (`64857cc`, extracted
 `svg_common::write_year_axis`, byte-identical) and removed.
 
+DUP-8 (inline SVG preamble repeated across ~13 renderers) was **fixed
+this cycle** (`e1531fe`): the skeleton now lives in the fragment file
+`fragments/svg_open.svg` (`include_str!`), composed through a single
+f64-dimensioned `svg_common::svg_doc_open` that fills `{w}/{h}/{bg}` by
+verbatim string replacement (no templating engine). Byte-identical,
+locked by the new 16-chart `svg_snapshot` golden test (`9a767c2`).
+builtin_svg stays inline (it injects glyph `<defs>` mid-preamble).
+
 | id | status | effort | description |
 |---|---|---|---|
-| DUP-8 | DEFERRED | S | Inline SVG preamble (`<?xml…><svg viewBox><rect bg/>`) repeated verbatim in ~8 renderers (`south_indian.rs:243`, `vedic.rs:65,265`, `omer_grid.rs:209`, `hellenistic.rs:304`, `specialist.rs:446,653`, `calendar_overlays.rs:690`, `chinese.rs:161`). `svg_common::svg_doc_open()` already dedupes it but only for `u32` dims; these use `f64` dims. An `f64` overload consolidates it — but `svg_common`'s own doc sanctions the split as intentional. Escaping is consistently applied across all copies (no verbatim-copy escaping bug). |
 | DUP-1 | DECIDED | L | bindings 201×3 per-export return-adapter stubs — shared *input* half already factored in `bindings/ffi`; residual is irreducible per-language *return* shapes (py tuple / php map / js struct). Only a ~600–1000 LOC spec+3-emitter codegen removes it, regenerating 3 *published* APIs with php unverifiable. Net-negative. = ARCH-10 / DP-4. |
 | DUP-4 | DECIDED | — | `revjul`/`revjul_hms` 3 return shapes — intentional per-language idioms; core call already shared. Normalizing = published API break. |
 | DUP-6 | DECIDED | S | `Xorshift64` PRNG copied across `cli_fuzz.rs:18` and `fuzz/src/main.rs:18` — test-only, 2 crates/targets, ~15 LOC; a shared dev-dep crate is disproportionate. |
@@ -242,13 +250,15 @@ separate findings.
 
 All 16 OPEN findings from this rescan were fixed and committed the same
 day (`785c61a`, `d6a3ead`, `d1df606`, `e6395b8`, `16f4894`, `7728fa2`,
-`0153c4f`, `64857cc`, `f978115`). **No OPEN findings remain.**
+`0153c4f`, `64857cc`, `f978115`), and the lone DEFERRED item (DUP-8) was
+then cleared too (`9a767c2` snapshot net + `e1531fe`). **No OPEN or
+DEFERRED findings remain** — only DECIDED rows.
 
 Re-verified clean after the full fix pass: workspace `clippy
 --all-targets --all-features -D warnings`, workspace tests, the core
 feature matrix ×4 under `-D warnings` (incl. `missing_docs`), rustdoc
-link + missing-docs lints, `cargo audit` (0 advisories), and both
-language-binding harnesses at runtime.
+link + missing-docs lints, `cargo audit` (0 advisories), both
+language-binding harnesses at runtime, and a new 16-chart SVG snapshot
+gate locking the specialist/vedic/calendar renderers byte-for-byte.
 
-Only **DUP-8** (DEFERRED — f64 SVG-preamble overload) and the DECIDED
-rows remain; the latter are kept so a rescan doesn't re-flag.
+The DECIDED rows are kept so a rescan doesn't re-flag them.
