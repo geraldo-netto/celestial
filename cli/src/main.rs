@@ -1,7 +1,7 @@
 //! `celestial` — command-line interface for the celestial astronomical engine.
 //!
-//! Built-in commands:  calc  houses  chart  render  moon  crossing  eclipse
-//!                     jd  sabbats  esbats  omer  calendar
+//! Built-in commands:  calc  houses  render  moon  crossing  eclipse
+//!                     jd  sabbats  esbats  omer  calendar  phenomena
 //!
 //! Plugin commands: any `celestial-<n>` executable on $PATH becomes a subcommand.
 //! Run `celestial --list-plugins` to see discovered plugins.
@@ -113,7 +113,6 @@ fn main() {
         "jd",
         "crossing",
         "eclipse",
-        "chart",
         "moon",
         "omer",
         "calendar",
