@@ -1,9 +1,9 @@
 # Celestial — Code Audit
 
 Rescan: **2026-05-22** (develop, full 16-category re-audit, parallel
-multi-agent sweep + per-claim verification; **fix pass applied same
-day**). One table per category; stable IDs in the first column.
-Completed work is removed (not listed).
+multi-agent sweep + per-claim verification; **fix pass + DOC-1 backfill
+applied same day, re-verified clean**). One table per category; stable
+IDs in the first column. Completed work is removed (not listed).
 
 | state | meaning |
 |---|---|
@@ -17,9 +17,10 @@ Completed work is removed (not listed).
 | M | isolated session (multi-file or needs a soak) |
 | L | large / cross-crate / published-API surface |
 
-> **This rescan found 16 OPEN; 15 were fixed the same day**, leaving
-> **1 OPEN** (DOC-1, a large doc-backfill) + 1 DEFERRED (DUP-8). Fixed
-> and removed: the recurring feature-gate wiring class struck a third time
+> **This rescan found 16 OPEN; all 16 are now fixed** — **0 OPEN
+> remain** (DOC-1, the last, was backfilled in `f978115` and locked with
+> `#![warn(missing_docs)]`). Only DEFERRED (DUP-8) and DECIDED rows are
+> left. Fixed and removed: the recurring feature-gate wiring class struck a third time
 > in the language bindings (**WIRE-2**, commit `d6a3ead`) — the
 > structural root, a feature-matrix CI that only `cargo check`ed, was
 > closed by making it `cargo test` under `-D warnings` (**TEST-4/5**,
@@ -27,9 +28,10 @@ Completed work is removed (not listed).
 > (**WIRE-3/DEAD-1/DOC-3**, `785c61a`); **PERF-7** doubled nutation
 > (`e6395b8`, byte-identical); **CC-2..CC-5** (`16f4894`);
 > **REL-1/SEC-11** binding `chunks_exact` (`7728fa2`); **DOC-2**
-> intra-doc links (`0153c4f`); and **DUP-7** year-axis dedupe
-> (`64857cc`). The only remaining OPEN is **DOC-1** — backfilling `///`
-> on 378 public items, its own session.
+> intra-doc links (`0153c4f`); **DUP-7** year-axis dedupe (`64857cc`);
+> and **DOC-1** — all 378 public items documented + `missing_docs`
+> lint (`f978115`). Both language bindings were re-validated at runtime
+> (python 250 pass, js harness + REL-1 malformed-input smoke).
 
 Category order: **correctness & safety** first (Security, Reliability,
 Wiring gaps), then **quality gates** (Test coverage, Complexity,
@@ -204,13 +206,18 @@ binding/test edges — WIRE-2, TEST-5). No tracked findings.
 
 ## 13. Documentation
 
+**core is fully documented.** DOC-1 (378 undocumented public items) was
+**fixed this cycle** (`f978115`): every public item carries a `///` doc,
+and `#![warn(missing_docs)]` now guards `core/src/lib.rs` — with the
+feature-matrix CI running `-D warnings` (TEST-4), a future undocumented
+public item fails the build. DOC-2 (14 broken/ambiguous intra-doc links,
+`0153c4f`) and DOC-3 (stale `main.rs:3` header, `785c61a`) were also
+fixed. rustdoc `-W missing_docs -W broken_intra_doc_links` is clean on
+core across all four feature combos.
+
 | id | status | effort | description |
 |---|---|---|---|
-| DOC-1 | OPEN | L | 378 public items lack `///` docs (rustdoc `-W missing_docs`, all-features): `constants.rs` 207, `functions/aspects.rs` 79, `body/mod.rs` 39, `eclipses.rs` 15, … No `#![warn(missing_docs)]`/`deny` anywhere in core or cli. |
-
-DOC-2 (14 broken/ambiguous intra-doc links) was **fixed this cycle**
-(`0153c4f`, rustdoc link-lints now clean) and DOC-3 (stale `main.rs:3`
-header) with the WIRE-3 cluster (`785c61a`) — both removed.
+| DOC-4 | DECIDED | M | `celestial-cli` has 34 undocumented `pub` items (rustdoc `-W missing_docs`). It is a **binary** crate; its `pub` surface exists only so the in-crate `main.rs` can use the lib — not a published library API (the published surfaces are `celestial-core` + the three bindings). `#![warn(missing_docs)]` is deliberately core-only. Not a real gap. |
 
 ## 14. Business patterns / DDD
 
@@ -233,13 +240,15 @@ separate findings.
 
 ## Recommended next
 
-15 of the 16 OPEN findings from this rescan were fixed and committed the
-same day (`785c61a`, `d6a3ead`, `d1df606`, `e6395b8`, `16f4894`,
-`7728fa2`, `0153c4f`, `64857cc`). **1 OPEN remains:**
+All 16 OPEN findings from this rescan were fixed and committed the same
+day (`785c61a`, `d6a3ead`, `d1df606`, `e6395b8`, `16f4894`, `7728fa2`,
+`0153c4f`, `64857cc`, `f978115`). **No OPEN findings remain.**
 
-1. **DOC-1** (L) — backfill `///` on the 378 undocumented public items
-   (mostly `constants.rs` + `functions/aspects.rs`), then add
-   `#![warn(missing_docs)]` to lock it. Its own session.
+Re-verified clean after the full fix pass: workspace `clippy
+--all-targets --all-features -D warnings`, workspace tests, the core
+feature matrix ×4 under `-D warnings` (incl. `missing_docs`), rustdoc
+link + missing-docs lints, `cargo audit` (0 advisories), and both
+language-binding harnesses at runtime.
 
-DEFERRED: **DUP-8** (f64 SVG-preamble overload). All DECIDED rows kept
-so a rescan doesn't re-flag.
+Only **DUP-8** (DEFERRED — f64 SVG-preamble overload) and the DECIDED
+rows remain; the latter are kept so a rescan doesn't re-flag.
