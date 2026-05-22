@@ -3026,6 +3026,7 @@ fn deltat_ex_global_and_userdef_branches() {
 
 // ─── Coverage tier-3/4: Orthodox Easter (Gregorian) known dates ──────────────
 
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn easter_orthodox_known_years() {
     // Published Gregorian-calendar Orthodox Pascha dates.

@@ -24,17 +24,24 @@ use celestial_core::JulianDay;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
     almuten, annual_profection, antiscion, azalt, ayanamsa_ut, best_time_method, calc, calc_ut,
-    calendar_round, christian_feasts, coord_transform, coptic_to_jd, day_of_week,
-    days_in_hebrew_year, decan_ruler, deltat, easter_gregorian, easter_jd, egyptian_terms_ruler,
-    esbats_for_year, fasli_nowruz_jd, firdaria, fixstar_mag, four_pillars, full_dignity, haab,
-    hebrew_new_year_jd, hijri_from_jd, hijri_month_days, hindu_festivals, is_coptic_leap_year,
-    is_day_chart, iso_week, jd_to_coptic, jewish_holidays, julday, long_to_nakshatra,
-    long_to_navamsa, long_to_rasi, losar_jd, lunar_return_jd, maya_long_count,
-    mean_sidereal_time_deg, midpoint_deg, naw_ruz_jd, next_first_quarter, next_new_moon, nowruz_jd,
-    nutation, panchanga, sabbats_for_year, same_sect, secondary_progressions,
+    calendar_round, coord_transform, day_of_week,
+    decan_ruler, deltat, egyptian_terms_ruler,
+    firdaria, fixstar_mag, four_pillars, full_dignity, haab,
+    hindu_festivals,
+    is_day_chart, iso_week, julday, long_to_nakshatra,
+    long_to_navamsa, long_to_rasi, lunar_return_jd, maya_long_count,
+    mean_sidereal_time_deg, midpoint_deg, next_first_quarter, next_new_moon,
+    nutation, panchanga, same_sect, secondary_progressions,
     set_sid_mode, sidereal_time_deg, sol_eclipse_when_glob, solar_arc_directions, solar_return_jd,
-    solcross_ut, tibetan_year_name, time_equ, tonalpohualli, triplicity_rulers, true_obliquity,
-    tzolkin, vesak_jd, vietnamese_month_start_jd, vimshottari_dasha, yallop_q, Dignity,
+    solcross_ut, time_equ, tonalpohualli, triplicity_rulers, true_obliquity,
+    tzolkin, vietnamese_month_start_jd, vimshottari_dasha, yallop_q, Dignity,
+};
+#[cfg(feature = "calendar-traditions")]
+use celestial_core::{
+    christian_feasts, coptic_to_jd, days_in_hebrew_year, easter_gregorian, easter_jd,
+    esbats_for_year, fasli_nowruz_jd, hebrew_new_year_jd, hijri_from_jd, hijri_month_days,
+    is_coptic_leap_year, jd_to_coptic, jewish_holidays, losar_jd, naw_ruz_jd, nowruz_jd,
+    sabbats_for_year, tibetan_year_name, vesak_jd,
 };
 
 const FLG: CalcFlags = CalcFlags::BUILTIN;
@@ -270,6 +277,7 @@ fn vernal_equinox_2024() {
 
 /// Easter Sunday dates from US Naval Observatory / multiple ecclesiastical
 /// computi — these are universally agreed historical / liturgical values.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn easter_gregorian_published_dates() {
     let cases: &[(i32, i32, u8, u8)] = &[
@@ -292,6 +300,7 @@ fn easter_gregorian_published_dates() {
 
 /// Hijri date conversion at known epochs (1 Muharram 1 AH = JD 1948439.5;
 /// 1 Muharram 1444 = 2022-07-30 ≈ JD 2459790.5).
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn hijri_known_dates() {
     // 2000-01-01 00:00 UT = JD 2451544.5; should be in Ramadan 1420 (year 1420).
@@ -652,6 +661,7 @@ fn annual_profection_house_cycle() {
 
 /// `easter_jd(year)` returns the Julian Day of Easter Sunday at 0h UT.
 /// For 2024 (March 31): JD = julday(2024, 3, 31, 0.0, Gregorian).
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn easter_jd_round_trips_with_julday() {
     let jd_easter = easter_jd(2024);
@@ -666,6 +676,7 @@ fn easter_jd_round_trips_with_julday() {
 
 /// Nowruz (Persian / Bahá'í New Year) is the moment of the vernal equinox.
 /// 2024 vernal equinox = 2024-03-20 03:06 UT ≈ JD 2460389.63.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn nowruz_2024_at_vernal_equinox() {
     let jd = nowruz_jd(2024);
@@ -681,6 +692,7 @@ fn nowruz_2024_at_vernal_equinox() {
 /// Yule (winter solstice in the Northern hemisphere): 2024-12-21.
 /// Sabbat positions are at sun longitudes: Yule 270°, Imbolc 315°, Ostara 0°,
 /// Beltane 45°, Litha 90°, Lughnasadh 135°, Mabon 180°, Samhain 225°.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn sabbats_2024_solstices_and_equinoxes() {
     let sabbats = sabbats_for_year(2024).unwrap();
@@ -695,6 +707,7 @@ fn sabbats_2024_solstices_and_equinoxes() {
 
 /// `esbats_for_year` returns ~12 named full moons per year (13 in some
 /// years). Each must fall inside the year.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn esbats_2024_count_and_year_bounds() {
     let esbats = esbats_for_year(2024).unwrap();
@@ -752,6 +765,7 @@ fn four_pillars_field_ranges_and_determinism() {
 /// 2024-10-03 in the Gregorian calendar (sunset 2024-10-02 by
 /// Hebrew convention; the calendar-day JD is the daytime portion).
 /// Per Hebcal / Maharil tables.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn hebrew_new_year_5785() {
     let jd = hebrew_new_year_jd(5785);
@@ -763,6 +777,7 @@ fn hebrew_new_year_5785() {
 }
 
 /// 5783 = 2022-09-26. 5784 = 2023-09-16. Sanity check ordering.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn hebrew_new_year_ordering() {
     let jd_5783 = hebrew_new_year_jd(5783);
@@ -786,6 +801,7 @@ fn hebrew_new_year_ordering() {
 
 /// Losar (Tibetan New Year) 2024 = 2024-02-10 (Year of the Wood Dragon).
 /// Per the Phugpa system tables published by Tibet House.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn tibetan_losar_2024() {
     let jd = losar_jd(2024).expect("losar found");
@@ -800,6 +816,7 @@ fn tibetan_losar_2024() {
 
 /// Fasli Nowruz 2024 ≈ vernal equinox 2024 = 2024-03-20 03:06 UT.
 /// (Fasli is locked to the astronomical equinox per 1906 reform.)
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn fasli_nowruz_2024_matches_equinox() {
     let jd = fasli_nowruz_jd(2024).expect("fasli nowruz");
@@ -815,6 +832,7 @@ fn fasli_nowruz_2024_matches_equinox() {
 /// Coptic Thout 1 of year 1740 AM = 2023-09-11 Gregorian. (Coptic year
 /// is 8 months ahead of Ethiopic for the same AM year, and runs from
 /// Aug-Sep to Aug-Sep Gregorian.) JD ≈ 2460199.5.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn coptic_to_jd_round_trip() {
     let jd = coptic_to_jd(1740, 1, 1);
@@ -990,6 +1008,7 @@ fn day_of_week_known_anchors() {
 /// Bahá'í Naw-Rúz is also the vernal equinox in Tehran civil time.
 /// BE 181 = 2024 (BE epoch is 1844-03-21). So Naw-Rúz BE 181 falls
 /// at the 2024 vernal equinox ≈ 2024-03-20.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn bahai_naw_ruz_181() {
     let jd = naw_ruz_jd(181);
@@ -1005,6 +1024,7 @@ fn bahai_naw_ruz_181() {
 /// Vesak (Buddha's birthday) is the full moon of Vaisakha in the
 /// Hindu calendar — typically the first full moon after the May
 /// solar ingress of Taurus. Vesak 2024 fell on 2024-05-23.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn vesak_2024() {
     let jd = vesak_jd(2024);
@@ -1136,6 +1156,7 @@ fn moon_phase_info_full_moon_illumination() {
 
 /// 1 Tishrei of any year is "Rosh Hashanah" (start of year). It must
 /// equal `hebrew_new_year_jd(year)` to within a day.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn rosh_hashanah_matches_new_year() {
     use celestial_core::jewish_holiday_jd;
@@ -1154,6 +1175,7 @@ fn rosh_hashanah_matches_new_year() {
 
 /// `sabbat_jd(year, kind)` for individual sabbat → must match the
 /// corresponding entry in `sabbats_for_year(year)`.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn sabbat_jd_matches_yearly_list() {
     use celestial_core::SabbatKind;
@@ -1305,6 +1327,7 @@ fn day_chart_classification() {
 // ─── Calendar-related anchors ───────────────────────────────────────────────
 
 /// Hebrew year lengths must be one of: 353, 354, 355, 383, 384, 385.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn hebrew_year_lengths_valid() {
     for y in 5780..=5790 {
@@ -1318,6 +1341,7 @@ fn hebrew_year_lengths_valid() {
 
 /// Hijri month lengths alternate 30/29 except for the 12th month in
 /// leap years.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn hijri_month_lengths_valid() {
     for m in 1..=12u8 {
@@ -1329,6 +1353,7 @@ fn hijri_month_lengths_valid() {
 }
 
 /// Coptic leap year rule: year mod 4 == 3.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn coptic_leap_year_rule() {
     for y in 1740..=1745 {
@@ -1349,6 +1374,7 @@ fn coptic_leap_year_rule() {
 ///   Lughnasadh:              135°
 ///   Mabon (autumn equinox):  180°
 ///   Samhain:                 225°
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn sabbat_sun_longitudes_2024() {
     let sabbats = sabbats_for_year(2024).unwrap();
@@ -1393,6 +1419,7 @@ fn hindu_festivals_2024_count() {
 
 /// Jewish holidays for Hebrew year 5785 — verify list non-empty and
 /// every JD in valid date range.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn jewish_holidays_5785_count() {
     let hols = jewish_holidays(5785);
@@ -1411,6 +1438,7 @@ fn jewish_holidays_5785_count() {
 // ─── Christian feasts ──────────────────────────────────────────────────────
 
 /// Christian moveable feasts in 2024 — non-empty, all in 2024.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn christian_feasts_2024_count() {
     let feasts = christian_feasts(2024);
@@ -1560,6 +1588,7 @@ fn best_time_method_bracketed() {
 /// Rabjung cycles are 60 years long. Within a cycle: year-in-cycle,
 /// element, gender, and animal repeat after 60 years. The Rabjung
 /// cycle NUMBER increments by 1.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn tibetan_year_name_60y_cycle() {
     let (rab1, yic1, el1, gen1, ani1) = tibetan_year_name(2024);
@@ -1818,6 +1847,7 @@ fn mercury_speed_within_extreme_range() {
 
 /// Omer count: 49 consecutive days from 2nd day of Pesach (16 Nisan)
 /// to the day before Shavuot. Lag Ba'Omer = day 33 of count.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn omer_days_count_is_49() {
     use celestial_core::omer_days;
@@ -1834,6 +1864,7 @@ fn omer_days_count_is_49() {
 }
 
 /// `omer_start_jd(year)` must equal `omer_days(year)[0].jd` exactly.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn omer_start_matches_first_day() {
     use celestial_core::{omer_days, omer_start_jd};
@@ -2017,6 +2048,7 @@ fn day_of_year_canonical() {
 /// Hebrew years have either 12 months (normal) or 13 months (leap,
 /// with Adar I + Adar II). The 19-year cycle has 7 leap years:
 /// 3, 6, 8, 11, 14, 17, 19.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn hebrew_months_per_year() {
     use celestial_core::months_in_hebrew_year;
@@ -2033,6 +2065,7 @@ fn hebrew_months_per_year() {
 
 /// Coptic months 1-12 each have 30 days; month 13 (Pi Kogi Enavot,
 /// "small month") has 5 days normally and 6 in leap years.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn coptic_month_lengths() {
     use celestial_core::coptic_month_days;
@@ -2053,6 +2086,7 @@ fn coptic_month_lengths() {
 
 /// Ethiopic Meskerem 1 of year 2017 EE = 2024-09-11 Gregorian.
 /// Round-trip via Ethiopic↔JD.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn ethiopic_round_trip_2017_ee() {
     use celestial_core::{ethiopic_to_jd, jd_to_ethiopic};
@@ -2071,6 +2105,7 @@ fn ethiopic_round_trip_2017_ee() {
 
 /// Bahá'í year has 19 months × 19 days + 4-5 Ayyám-i-Há intercalary
 /// days. `bahai_holy_days(year)` returns the 9-11 official holy days.
+#[cfg(feature = "calendar-traditions")]
 #[test]
 fn bahai_holy_days_count() {
     use celestial_core::{bahai_holy_days, jd_to_bahai};
