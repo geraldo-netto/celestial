@@ -94,3 +94,44 @@ pub(super) fn panel_card(
         ty = y + 17.0
     );
 }
+
+/// Year-axis gridlines for the horizontal timeline renderers (firdaria,
+/// vimśottarī daśā). Emits a 5-yearly `<line>`+`<text>` pair from the
+/// birth year to the end of `span`. Geometry (`lm`/`w`/`tm`/`axis_bottom`),
+/// `clamp_pad`, `color` and `font_size` differ per tradition; everything
+/// else was verbatim-duplicated (DUP-7).
+#[allow(clippy::too_many_arguments)]
+pub(super) fn write_year_axis(
+    s: &mut String,
+    jd_birth: f64,
+    jd_start: f64,
+    span: f64,
+    lm: f64,
+    w: f64,
+    tm: f64,
+    axis_bottom: f64,
+    clamp_pad: f64,
+    color: &str,
+    font_size: u32,
+) {
+    use std::fmt::Write;
+    let birth_year = {
+        let d = celestial_core::revjul(jd_birth, celestial_core::body::Calendar::Gregorian);
+        d.year as i32
+    };
+    let end_year = birth_year + (span / 365.25) as i32 + 1;
+    for yr in (birth_year..=end_year).step_by(5) {
+        let jd_yr =
+            celestial_core::julday(yr, 1, 1, 0.0, celestial_core::body::Calendar::Gregorian);
+        let x = lm + (jd_yr - jd_start) / span * w;
+        if !(lm - clamp_pad..=lm + w + clamp_pad).contains(&x) {
+            continue;
+        }
+        let _ = writeln!(
+            s,
+            r##"  <line x1="{x:.1}" y1="{tm:.1}" x2="{x:.1}" y2="{axis_bottom:.1}" stroke="{color}" stroke-width="0.5" opacity=".2"/>
+  <text x="{x:.1}" y="{:.1}" text-anchor="middle" font-size="{font_size}" fill="{color}" opacity=".5">{yr}</text>"##,
+            tm - 6.0
+        );
+    }
+}

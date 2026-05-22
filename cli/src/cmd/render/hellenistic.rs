@@ -312,26 +312,19 @@ pub fn render_firdaria_svg(ctx: &ChartContext) -> String {
     );
 
     // Year axis
-    let birth_year = {
-        let d = celestial_core::revjul(jd_birth, celestial_core::body::Calendar::Gregorian);
-        d.year as i32
-    };
-    let end_year = birth_year + (span / 365.25) as i32 + 1;
-    for yr in (birth_year..=end_year).step_by(5) {
-        let jd_yr =
-            celestial_core::julday(yr, 1, 1, 0.0, celestial_core::body::Calendar::Gregorian);
-        let x = LM + (jd_yr - jd_start) / span * W;
-        if !(LM - 5.0..=LM + W + 5.0).contains(&x) {
-            continue;
-        }
-        let _ = writeln!(
-            s,
-            r##"  <line x1="{x:.1}" y1="{TM:.1}" x2="{x:.1}" y2="{:.1}" stroke="{ring}" stroke-width="0.5" opacity=".2"/>
-  <text x="{x:.1}" y="{:.1}" text-anchor="middle" font-size="7" fill="{ring}" opacity=".5">{yr}</text>"##,
-            TM + n as f64 * (BH + BG),
-            TM - 6.0
-        );
-    }
+    super::svg_common::write_year_axis(
+        &mut s,
+        jd_birth,
+        jd_start,
+        span,
+        LM,
+        W,
+        TM,
+        TM + n as f64 * (BH + BG),
+        5.0,
+        &ring,
+        7,
+    );
 
     let mut prev_major = "";
     for (i, p) in periods.iter().take(n).enumerate() {
