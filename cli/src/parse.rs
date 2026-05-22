@@ -219,8 +219,10 @@ fn parse_numeric_offset(s: &str) -> Result<f64, ParseError> {
     }
     let (hh, mm) = if let Some((h, m)) = rest.split_once(':') {
         (h, m)
-    } else if rest.len() == 4 {
-        (&rest[..2], &rest[2..]) // HHMM
+    } else if rest.len() == 4 && rest.is_ascii() {
+        // HHMM. `is_ascii` guard: a non-ASCII char can be 4 bytes (e.g. an
+        // emoji), so a naive byte slice at index 2 would panic mid-codepoint.
+        (&rest[..2], &rest[2..])
     } else {
         (rest, "0")
     };
@@ -427,6 +429,10 @@ mod tests {
         assert!(parse_tz_offset("").is_err());
         assert!(parse_tz_offset("+99:99").is_err()); // out of range
         assert!(parse_tz_offset("x05").is_err()); // bad sign
+        // REL-3: a non-ASCII char after the sign is 4 bytes — must Err, not
+        // panic slicing mid-codepoint in the HHMM branch.
+        assert!(parse_tz_offset("+\u{1F600}").is_err()); // "+😀"
+        assert!(parse_tz_offset("-a£b").is_err()); // 4-byte mixed, non-ASCII
     }
 
     #[test]
