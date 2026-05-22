@@ -2,8 +2,10 @@
 
 Rescan: **2026-05-22** (develop, full 16-category re-audit, parallel
 multi-agent sweep + per-claim verification; **fix pass + DOC-1 backfill
-applied same day, re-verified clean**). One table per category; stable
-IDs in the first column. Completed work is removed (not listed).
+applied same day, re-verified clean**; a **second confirmation rescan**
+then scrutinised the session's own new code — found + fixed one latent
+panic, REL-3). One table per category; stable IDs in the first column.
+Completed work is removed (not listed).
 
 | state | meaning |
 |---|---|
@@ -32,7 +34,14 @@ IDs in the first column. Completed work is removed (not listed).
 > intra-doc links (`0153c4f`); **DUP-7** year-axis dedupe (`64857cc`);
 > and **DOC-1** — all 378 public items documented + `missing_docs`
 > lint (`f978115`). Both language bindings were re-validated at runtime
-> (python 250 pass, js harness + REL-1 malformed-input smoke).
+> (python 250 pass, js harness + REL-1 malformed-input smoke), and a
+> 27-chart SVG byte-snapshot gate was added (`9a767c2`, `553cdb8`).
+>
+> The confirmation rescan found the session's new code clean, plus one
+> pre-existing latent panic — **REL-3** (`--tz "+😀"` sliced a UTF-8
+> char mid-codepoint), **fixed** `26f6281`. It also recorded two small
+> DEFERRED test/cosmetic dedups (DUP-9, DUP-10) and one DECIDED
+> complexity note (CC-6). No OPEN findings remain.
 
 Category order: **correctness & safety** first (Security, Reliability,
 Wiring gaps), then **quality gates** (Test coverage, Complexity,
@@ -65,7 +74,12 @@ infallible; float→int casts saturate (Rust ≥1.45, no UB on NaN/±Inf);
 CLI `parse.rs` input is length-guarded; `plugin.rs` crosses no
 privilege boundary. The one real cluster — unchecked `chunks()`
 indexing on attacker-controlled binding input (REL-1) — was **fixed
-this cycle** (`7728fa2`, `chunks_exact`) and removed.
+this cycle** (`7728fa2`, `chunks_exact`) and removed. The confirmation
+rescan then found **REL-3**: `parse_numeric_offset` (`parse.rs`) sliced
+`&rest[..2]` whenever `rest.len() == 4` (bytes), so a 4-byte non-ASCII
+`--tz` value (`"+😀"`) panicked mid-codepoint — reachable from CLI
+input. **Fixed** `26f6281` (`rest.is_ascii()` guard → graceful
+`ParseError`; regression cases added). Removed per completed-work policy.
 
 | id | status | effort | description |
 |---|---|---|---|
@@ -116,6 +130,7 @@ flat-match rewrite) and removed. Invariant restored.
 
 | id | status | effort | description |
 |---|---|---|---|
+| CC-6 | DECIDED | S | `calendar_overlays.rs:509 render_day_cell` sits at exactly CC 10 (lag/sabbat fill + 5 `if let Some` field probes + 2 nested badge probes) — **compliant**, but zero headroom: the next cell decoration would breach the cap. Not a violation today; noted so a rescan doesn't re-flag. If extended, split the moon-glyph + omer-badge blocks into `write_*` helpers. |
 | CC-1 | DECIDED | — | `cli_fuzz.rs:250 boundary_…strings`; `parse.rs:418 parse_tz_forms` (test mod) — clippy `cognitive_complexity` 16/12 but pure `assert!`/`matches!` macro expansion; real cyclomatic ≤3. Lint is `nursery`/disabled. No logic to split. |
 
 ## 6. Code duplication
@@ -134,6 +149,8 @@ builtin_svg stays inline (it injects glyph `<defs>` mid-preamble).
 
 | id | status | effort | description |
 |---|---|---|---|
+| DUP-9 | DEFERRED | S | `cli/tests/svg_snapshot.rs` and `cli/tests/natal_builtin_render.rs` duplicate the CLI-spawn harness (`celestial_binary()`, `static CLI_LOCK: Mutex<()>`, near-identical render fn). Separate integration-test crates → share via a `cli/tests/common/mod.rs` (`mod common`). Test-only, precision-neutral; same below-the-bar character as DUP-6. |
+| DUP-10 | DEFERRED | S | Several specialist renderers pull the `bg`/`ring`/`text` colour trio as 3 separate `esc_var` calls instead of `SvgPalette::from_ctx` (which exists for exactly this, taking the accent var name): `specialist.rs:402-404,754-757,786-788`; `south_indian.rs:338-342`. Consolidation is byte-identical (same escaped strings). Cosmetic. |
 | DUP-1 | DECIDED | L | bindings 201×3 per-export return-adapter stubs — shared *input* half already factored in `bindings/ffi`; residual is irreducible per-language *return* shapes (py tuple / php map / js struct). Only a ~600–1000 LOC spec+3-emitter codegen removes it, regenerating 3 *published* APIs with php unverifiable. Net-negative. = ARCH-10 / DP-4. |
 | DUP-4 | DECIDED | — | `revjul`/`revjul_hms` 3 return shapes — intentional per-language idioms; core call already shared. Normalizing = published API break. |
 | DUP-6 | DECIDED | S | `Xorshift64` PRNG copied across `cli_fuzz.rs:18` and `fuzz/src/main.rs:18` — test-only, 2 crates/targets, ~15 LOC; a shared dev-dep crate is disproportionate. |
@@ -248,17 +265,26 @@ separate findings.
 
 ## Recommended next
 
-All 16 OPEN findings from this rescan were fixed and committed the same
-day (`785c61a`, `d6a3ead`, `d1df606`, `e6395b8`, `16f4894`, `7728fa2`,
-`0153c4f`, `64857cc`, `f978115`), and the lone DEFERRED item (DUP-8) was
-then cleared too (`9a767c2` snapshot net + `e1531fe`). **No OPEN or
-DEFERRED findings remain** — only DECIDED rows.
+All 16 OPEN findings from the main rescan were fixed and committed the
+same day (`785c61a`, `d6a3ead`, `d1df606`, `e6395b8`, `16f4894`,
+`7728fa2`, `0153c4f`, `64857cc`, `f978115`), the lone DEFERRED item
+(DUP-8) was cleared (`9a767c2` snapshot net + `e1531fe`), and the
+confirmation rescan's one real finding (REL-3, a CLI `--tz` panic) was
+fixed (`26f6281`). **No OPEN findings remain.**
+
+Two **DEFERRED** items are left, both small and precision-neutral —
+take them when convenient, not urgent:
+- **DUP-9** (S) — share the CLI-spawn test harness between `svg_snapshot`
+  and `natal_builtin_render` via `cli/tests/common/`.
+- **DUP-10** (S) — fold the 3-`esc_var` colour trios in the specialist
+  renderers into `SvgPalette::from_ctx`.
 
 Re-verified clean after the full fix pass: workspace `clippy
 --all-targets --all-features -D warnings`, workspace tests, the core
 feature matrix ×4 under `-D warnings` (incl. `missing_docs`), rustdoc
 link + missing-docs lints, `cargo audit` (0 advisories), both
-language-binding harnesses at runtime, and a new 16-chart SVG snapshot
-gate locking the specialist/vedic/calendar renderers byte-for-byte.
+language-binding harnesses at runtime, and a new **27-chart SVG snapshot
+gate** (`553cdb8`) locking every registered chart type byte-for-byte
+(time-dependent inputs pinned, `1e8ad40`).
 
 The DECIDED rows are kept so a rescan doesn't re-flag them.
