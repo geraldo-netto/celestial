@@ -1,12 +1,13 @@
-//! Byte-identical snapshot tests for the specialist / vedic / calendar SVG
-//! renderers (the ones outside the natal-wheel gate in
-//! `natal_builtin_render.rs`).
+//! Byte-identical snapshot tests for every `render --chart-type` SVG.
 //!
-//! These lock the exact rendered bytes for a fixed birth input so the DUP-8
-//! preamble refactor — and any future renderer tweak — cannot silently
-//! change output. Goldens live in `tests/fixtures/svg/<type>.svg`; regenerate
-//! them by rendering each type with the args below if an intentional change
-//! is made.
+//! These lock the exact rendered bytes for a fixed birth input so renderer
+//! refactors (e.g. the DUP-8 preamble extraction) cannot silently change
+//! output. The natal-wheel *geometry* is additionally asserted in
+//! `natal_builtin_render.rs`; this file is the full-byte gate for the whole
+//! chart-type registry — wheel family + specialist/vedic/calendar.
+//!
+//! Goldens live in `tests/fixtures/svg/<type>.svg`. To regenerate after an
+//! intentional change, render each type with the args in `SNAPSHOTS` below.
 
 use std::fs;
 use std::path::Path;
@@ -19,49 +20,67 @@ fn celestial_binary() -> &'static Path {
 
 static CLI_LOCK: Mutex<()> = Mutex::new(());
 
-/// Chart types whose renderers carry an inline SVG preamble (DUP-8 sites).
-const SNAPSHOT_TYPES: &[&str] = &[
-    "dial",
-    "local-space",
-    "rasi",
-    "navamsa",
-    "dasha",
-    "north-indian",
-    "ashtakavarga",
-    "shadbala",
-    "hellenistic",
-    "firdaria",
-    "bazi",
-    "mesoamerican",
-    "medicine-wheel",
-    "wheel-of-year",
-    "omer-grid",
-    "calendar",
+/// `(chart_type, extra_args)` — every registered chart type. Most need only
+/// the common birth args; a few require an extra flag (return span, second
+/// or third ring date).
+const SNAPSHOTS: &[(&str, &[&str])] = &[
+    // ── Wheel family ──
+    ("natal", &[]),
+    ("cosmogram", &[]),
+    ("solar-return", &[]),
+    ("lunar-return", &[]),
+    ("progressed", &["--years", "30"]),
+    ("solar-arc", &["--years", "30"]),
+    ("biwheel", &["--date2", "1990-07-01 12:00"]),
+    ("composite", &["--date2", "1990-07-01 12:00"]),
+    (
+        "triwheel",
+        &["--date2", "1990-07-01 12:00", "--date3", "2000-01-01 12:00"],
+    ),
+    ("ephemeris", &[]),
+    ("profection", &[]),
+    // ── Specialist / vedic / calendar ──
+    ("dial", &[]),
+    ("local-space", &[]),
+    ("rasi", &[]),
+    ("navamsa", &[]),
+    ("dasha", &[]),
+    ("north-indian", &[]),
+    ("ashtakavarga", &[]),
+    ("shadbala", &[]),
+    ("hellenistic", &[]),
+    ("firdaria", &[]),
+    ("bazi", &[]),
+    ("mesoamerican", &[]),
+    ("medicine-wheel", &[]),
+    ("wheel-of-year", &[]),
+    ("omer-grid", &[]),
+    ("calendar", &[]),
 ];
 
 /// Render one chart type for the canonical 1986-05-30 reference birth and
 /// return the SVG bytes as a string.
-fn render(chart_type: &str) -> String {
+fn render(chart_type: &str, extra: &[&str]) -> String {
     let _guard = CLI_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let out = std::env::temp_dir().join(format!("celestial_snap_{chart_type}.svg"));
     let _ = fs::remove_file(&out);
 
-    let output = Command::new(celestial_binary())
-        .args([
-            "render",
-            "--chart-type",
-            chart_type,
-            "--date",
-            "1986-05-30 09:00",
-            "--tz",
-            "UTC",
-            "--lat=-23.55",
-            "--lon=-46.63",
-            "--out",
-        ])
-        .arg(&out)
-        .output()
-        .expect("failed to spawn celestial");
+    let mut cmd = Command::new(celestial_binary());
+    cmd.args([
+        "render",
+        "--chart-type",
+        chart_type,
+        "--date",
+        "1986-05-30 09:00",
+        "--tz",
+        "UTC",
+        "--lat=-23.55",
+        "--lon=-46.63",
+    ]);
+    cmd.args(extra);
+    cmd.arg("--out").arg(&out);
+
+    let output = cmd.output().expect("failed to spawn celestial");
     assert!(
         output.status.success(),
         "render {chart_type} failed.\nstderr: {}",
@@ -72,8 +91,8 @@ fn render(chart_type: &str) -> String {
 
 #[test]
 fn svg_renderers_byte_identical_to_golden() {
-    for &chart_type in SNAPSHOT_TYPES {
-        let got = render(chart_type);
+    for &(chart_type, extra) in SNAPSHOTS {
+        let got = render(chart_type, extra);
         let golden = format!(
             "{}/tests/fixtures/svg/{chart_type}.svg",
             env!("CARGO_MANIFEST_DIR")
