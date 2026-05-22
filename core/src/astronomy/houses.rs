@@ -769,7 +769,9 @@ pub fn sidereal_time_deg(jd_ut: f64) -> f64 {
     let gmst = mean_sidereal_time_deg(jd_ut);
     // Equation of the equinoxes: dpsi * cos(eps)
     let nut = crate::astronomy::nutation::nutation(jd_ut);
-    let eps = crate::astronomy::nutation::true_obliquity(jd_ut);
+    // PERF-7: reuse `nut` instead of re-running the 77-term series inside
+    // true_obliquity. Byte-identical: true_obliquity == mean_obliquity + deps/3600.
+    let eps = crate::astronomy::nutation::mean_obliquity(jd_ut) + nut.deps / 3600.0;
     let eq_eq = nut.dpsi / 3600.0 * eps.to_radians().cos(); // arcsec → degrees
     norm_deg(gmst + eq_eq)
 }

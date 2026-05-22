@@ -11,7 +11,7 @@
 use crate::astronomy::{
     constants::{julian_centuries, norm_deg, to_deg, to_rad, LIGHT_SPEED_AU_DAY},
     moon::lunar_position,
-    nutation::{nutation, true_obliquity},
+    nutation::{mean_obliquity, nutation},
     vsop87::{heliocentric, Planet},
 };
 
@@ -86,7 +86,10 @@ pub fn apparent_planet(planet: Planet, jde: f64) -> GeocentricPos {
     let lat_deg = to_deg(lat_ab);
 
     // Convert to equatorial
-    let eps = true_obliquity(jde);
+    // PERF-7: reuse the nutation already computed above instead of letting
+    // true_obliquity recompute the same 77-term series. Byte-identical:
+    // true_obliquity(jde) == mean_obliquity(jde) + nut.deps / 3600.0.
+    let eps = mean_obliquity(jde) + nut.deps / 3600.0;
     let (ra, dec) = ecl_to_equ(lon_deg, lat_deg, eps);
 
     GeocentricPos {
@@ -125,7 +128,10 @@ pub fn apparent_sun(jde: f64) -> GeocentricPos {
     let lon_deg = norm_deg(to_deg(lon_ab));
     let lat_deg = to_deg(lat_ab);
 
-    let eps = true_obliquity(jde);
+    // PERF-7: reuse the nutation already computed above instead of letting
+    // true_obliquity recompute the same 77-term series. Byte-identical:
+    // true_obliquity(jde) == mean_obliquity(jde) + nut.deps / 3600.0.
+    let eps = mean_obliquity(jde) + nut.deps / 3600.0;
     let (ra, dec) = ecl_to_equ(lon_deg, lat_deg, eps);
 
     GeocentricPos {
@@ -147,7 +153,10 @@ pub fn apparent_moon(jde: f64) -> GeocentricPos {
     let lat_deg = to_deg(lunar.lat);
     let dist_au = lunar.dist_km / 149_597_870.7;
 
-    let eps = true_obliquity(jde);
+    // PERF-7: reuse the nutation already computed above instead of letting
+    // true_obliquity recompute the same 77-term series. Byte-identical:
+    // true_obliquity(jde) == mean_obliquity(jde) + nut.deps / 3600.0.
+    let eps = mean_obliquity(jde) + nut.deps / 3600.0;
     let (ra, dec) = ecl_to_equ(lon_deg, lat_deg, eps);
 
     GeocentricPos {
