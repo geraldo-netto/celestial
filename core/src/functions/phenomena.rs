@@ -7,7 +7,7 @@ use crate::error::{Error, Result};
 // ─── Phenomena ────────────────────────────────────────────────────────────────
 
 /// Compute planetary phenomena.
-/// Returns attr[20]: [phase_angle, phase_frac, elongation, ang_diam, magnitude, …]
+/// Returns `attr[20]`: `[phase_angle, phase_frac, elongation, ang_diam, magnitude, …]`
 pub fn pheno(jd_et: f64, body: Body, flags: CalcFlags) -> Result<[f64; 20]> {
     pheno_impl(jd_et, body, flags)
 }

@@ -389,7 +389,7 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
 /// Key Hindu festival dates for the given Gregorian year.
 ///
 /// Iterates day-by-day through the year, matching each day's Panchānga against
-/// the [`FESTIVAL_RULES`] table. Returns festivals in the order they occur.
+/// the `FESTIVAL_RULES` table. Returns festivals in the order they occur.
 #[must_use]
 pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
     use crate::julday;

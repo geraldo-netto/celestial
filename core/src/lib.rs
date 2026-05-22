@@ -22,7 +22,7 @@
 //! | [`constants`] | Numeric constants (body indices, flags, sidereal modes) |
 //! | [`position`] | `calc_ut`, `calc_many`, `CalcOptions`, fixed stars, ayanamsa |
 //! | [`time`] | Julian day, UTC, calendar conversion |
-//! | [`houses`] | House cusp systems |
+//! | [`houses`](mod@houses) | House cusp systems |
 //! | [`motion`] | Crossings, rise/set/transit, eclipses, `RiseTransOptions`, `SearchOptions` |
 //! | [`moon`] | Phase, illumination, principal phases, esbats, sabbats |
 //! | [`chart`] | Aspects, `AspectOrbs`, progressions, returns, Arabic parts, traditions |

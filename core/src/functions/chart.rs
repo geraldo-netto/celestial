@@ -241,7 +241,7 @@ where
 /// find the exact zero-crossing. Returns the JDs of both stations as a
 /// [`Stations`] struct (retrograde-onset and direct-onset).
 ///
-/// Uses [`bisect_zero`] internally for the sign-crossing refinement.
+/// Uses `bisect_zero` internally for the sign-crossing refinement.
 ///
 /// # Search window
 /// The function gives up after a planet-specific window:
@@ -774,13 +774,13 @@ const ASPECT_BASE_ORBS: &[(i32, f64)] = &[
 /// * Narrower for social planets (Jupiter/Saturn): weight 1.0
 /// * Tightest for outer planets, asteroids, nodes, Chiron: weight 0.75
 ///
-/// The per-aspect base orb comes from [`ASPECT_BASE_ORBS`] — major aspects
+/// The per-aspect base orb comes from the `ASPECT_BASE_ORBS` table — major aspects
 /// (conjunction, opposition) get 10°, sextile and square 6–8°, minor aspects
 /// 2–3°. The returned orb is `base * average_weight / 1.75` so a luminary
 /// pair gets the full base orb and other pairs scale proportionally.
 ///
-/// Callers who need custom orb rules should use [`calc_chart_aspects_with_orb`]
-/// instead.
+/// Callers who need custom orb rules should pass an explicit orb to
+/// [`calc_chart_aspects`] instead.
 #[must_use]
 pub fn default_orb(body1: Body, body2: Body, aspect: f64) -> f64 {
     let w = (body1.orb_weight() + body2.orb_weight()) / 2.0;

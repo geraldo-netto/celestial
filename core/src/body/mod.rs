@@ -100,7 +100,7 @@ impl Body {
     /// Approximate mean-motion window (days) for retrograde / sign-ingress
     /// searches. Faster bodies use shorter windows; outer planets need years.
     ///
-    /// Used by [`crate::functions::chart::next_retro`] and
+    /// Used by [`crate::functions::chart::retrograde_station_ut`] and
     /// [`crate::functions::chart::sign_ingress_ut`].
     #[must_use]
     pub fn retrograde_search_window(self) -> f64 {
@@ -207,7 +207,7 @@ impl std::fmt::Display for Body {
 
 // ── CalcFlags ─────────────────────────────────────────────────────────────────
 
-/// Bitmask flags controlling how [`position::calc_ut`] computes a position.
+/// Bitmask flags controlling how [`calc_ut`](crate::calc_ut) computes a position.
 ///
 /// Combine with `|`:
 /// ```
@@ -359,7 +359,7 @@ impl HouseSystem {
     /// Human-readable name of this house system (e.g. `"Placidus"`, `"Koch"`).
     ///
     /// Returns `"Unknown"` for non-standard bytes. For a complete listing
-    /// see [`crate::functions::geoformat::HOUSE_SYSTEMS`].
+    /// see the `HOUSE_SYSTEMS` table in `functions::geoformat`.
     #[must_use]
     pub fn name(self) -> &'static str {
         match self.0 {

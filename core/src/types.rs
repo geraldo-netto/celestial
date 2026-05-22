@@ -5,7 +5,7 @@
 
 /// Geocentric apparent position and velocity of a body.
 ///
-/// Coordinates are ecliptic (degrees) unless [`FLG_EQUATORIAL`] is set, in
+/// Coordinates are ecliptic (degrees) unless [`CalcFlags::EQUATORIAL`](crate::CalcFlags::EQUATORIAL) is set, in
 /// which case they are equatorial (RA / Dec).  Distance is in AU.
 #[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct PlanetPos {
