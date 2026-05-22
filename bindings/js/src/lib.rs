@@ -2245,7 +2245,7 @@ pub fn solar_arc_directions(
 ) -> napi::Result<Vec<f64>> {
     use celestial::{Body, CalcFlags};
     let pos: Vec<(Body, f64)> = natal_positions
-        .chunks(2)
+        .chunks_exact(2)
         .map(|c| (Body(c[0] as i32), c[1]))
         .collect();
     let (arc, directed, mc_arc) =
@@ -2267,7 +2267,7 @@ pub fn midpoint_table(
 ) -> Vec<Vec<f64>> {
     use celestial::Body;
     let pos: Vec<(Body, f64)> = positions
-        .chunks(2)
+        .chunks_exact(2)
         .map(|c| (Body(c[0] as i32), c[1]))
         .collect();
     celestial::midpoint_table(&pos, orb)
@@ -2284,7 +2284,7 @@ pub fn calc_chart_aspects(
 ) -> Vec<Vec<f64>> {
     use celestial::Body;
     let pos: Vec<(Body, f64, f64)> = positions
-        .chunks(3)
+        .chunks_exact(3)
         .map(|c| (Body(c[0] as i32), c[1], c[2]))
         .collect();
     celestial::calc_chart_aspects(&pos, &aspects, orb)
@@ -2308,7 +2308,7 @@ pub fn calc_chart_aspects_auto(
 ) -> Vec<Vec<f64>> {
     use celestial::Body;
     let pos: Vec<(Body, f64, f64)> = positions
-        .chunks(3)
+        .chunks_exact(3)
         .map(|c| (Body(c[0] as i32), c[1], c[2]))
         .collect();
     celestial::calc_chart_aspects_auto(&pos, &aspects)
