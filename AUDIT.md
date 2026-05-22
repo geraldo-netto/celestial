@@ -17,17 +17,19 @@ Completed work is removed (not listed).
 | M | isolated session (multi-file or needs a soak) |
 | L | large / cross-crate / published-API surface |
 
-> **This rescan found 16 OPEN; 13 were fixed the same day**, leaving
-> **3 OPEN** (DUP-7, DOC-1, DOC-2) + 1 DEFERRED (DUP-8). Fixed and
-> removed: the recurring feature-gate wiring class struck a third time
+> **This rescan found 16 OPEN; 15 were fixed the same day**, leaving
+> **1 OPEN** (DOC-1, a large doc-backfill) + 1 DEFERRED (DUP-8). Fixed
+> and removed: the recurring feature-gate wiring class struck a third time
 > in the language bindings (**WIRE-2**, commit `d6a3ead`) — the
 > structural root, a feature-matrix CI that only `cargo check`ed, was
 > closed by making it `cargo test` under `-D warnings` (**TEST-4/5**,
 > `d1df606`); the phantom `chart` subcommand + 816-LOC orphan
 > (**WIRE-3/DEAD-1/DOC-3**, `785c61a`); **PERF-7** doubled nutation
-> (`e6395b8`, byte-identical); **CC-2..CC-5** (`16f4894`); and
-> **REL-1/SEC-11** binding `chunks_exact` (`7728fa2`). Remaining OPEN
-> are documentation-weight (DOC-1/2) + one small dedupe (DUP-7).
+> (`e6395b8`, byte-identical); **CC-2..CC-5** (`16f4894`);
+> **REL-1/SEC-11** binding `chunks_exact` (`7728fa2`); **DOC-2**
+> intra-doc links (`0153c4f`); and **DUP-7** year-axis dedupe
+> (`64857cc`). The only remaining OPEN is **DOC-1** — backfilling `///`
+> on 378 public items, its own session.
 
 Category order: **correctness & safety** first (Security, Reliability,
 Wiring gaps), then **quality gates** (Test coverage, Complexity,
@@ -115,9 +117,12 @@ flat-match rewrite) and removed. Invariant restored.
 
 ## 6. Code duplication
 
+DUP-7 (year-axis ruler duplicated ~18 LOC across hellenistic + vedic
+timelines) was **fixed this cycle** (`64857cc`, extracted
+`svg_common::write_year_axis`, byte-identical) and removed.
+
 | id | status | effort | description |
 |---|---|---|---|
-| DUP-7 | OPEN | M | Year-axis ruler block duplicated ~18 LOC: `hellenistic.rs:315-334` vs `vedic.rs:879-898` — same `birth_year..=end_year`, `.step_by(5)` loop, `julday`+x mapping, range-clamp `continue`, gridline `<line>`+`<text>` emit; diffs are only clamp bounds / colour var / font-size. Extract `write_year_axis(s, colour, font, clamp, …)`. |
 | DUP-8 | DEFERRED | S | Inline SVG preamble (`<?xml…><svg viewBox><rect bg/>`) repeated verbatim in ~8 renderers (`south_indian.rs:243`, `vedic.rs:65,265`, `omer_grid.rs:209`, `hellenistic.rs:304`, `specialist.rs:446,653`, `calendar_overlays.rs:690`, `chinese.rs:161`). `svg_common::svg_doc_open()` already dedupes it but only for `u32` dims; these use `f64` dims. An `f64` overload consolidates it — but `svg_common`'s own doc sanctions the split as intentional. Escaping is consistently applied across all copies (no verbatim-copy escaping bug). |
 | DUP-1 | DECIDED | L | bindings 201×3 per-export return-adapter stubs — shared *input* half already factored in `bindings/ffi`; residual is irreducible per-language *return* shapes (py tuple / php map / js struct). Only a ~600–1000 LOC spec+3-emitter codegen removes it, regenerating 3 *published* APIs with php unverifiable. Net-negative. = ARCH-10 / DP-4. |
 | DUP-4 | DECIDED | — | `revjul`/`revjul_hms` 3 return shapes — intentional per-language idioms; core call already shared. Normalizing = published API break. |
@@ -202,10 +207,10 @@ binding/test edges — WIRE-2, TEST-5). No tracked findings.
 | id | status | effort | description |
 |---|---|---|---|
 | DOC-1 | OPEN | L | 378 public items lack `///` docs (rustdoc `-W missing_docs`, all-features): `constants.rs` 207, `functions/aspects.rs` 79, `body/mod.rs` 39, `eclipses.rs` 15, … No `#![warn(missing_docs)]`/`deny` anywhere in core or cli. |
-| DOC-2 | OPEN | S | Broken/ambiguous intra-doc links in core: `lib.rs:25` `[\`houses\`]` ambiguous (fn vs module); unresolved `FLG_EQUATORIAL`, `position::calc_ut`, `calc_chart_aspects_with_orb`, `astronomy::delta_t_for_year`; several public-doc links point to private items (`FESTIVAL_RULES`, `bisect_zero`, `ASPECT_BASE_ORBS`) → render broken on docs.rs. |
 
-DOC-3 (stale `main.rs:3` doc header listing the removed `chart` builtin)
-was **fixed this cycle** (`785c61a`, WIRE-3 cluster) and removed.
+DOC-2 (14 broken/ambiguous intra-doc links) was **fixed this cycle**
+(`0153c4f`, rustdoc link-lints now clean) and DOC-3 (stale `main.rs:3`
+header) with the WIRE-3 cluster (`785c61a`) — both removed.
 
 ## 14. Business patterns / DDD
 
@@ -228,19 +233,13 @@ separate findings.
 
 ## Recommended next
 
-The 13 high-value OPEN findings from this rescan (WIRE-2, WIRE-3,
-DEAD-1, DOC-3, TEST-4, TEST-5, PERF-7, CC-2..CC-5, REL-1, SEC-11) were
-fixed and committed the same day (`785c61a`, `d6a3ead`, `d1df606`,
-`e6395b8`, `16f4894`, `7728fa2`). **3 OPEN remain**, all bounded and
-byte-safe:
+15 of the 16 OPEN findings from this rescan were fixed and committed the
+same day (`785c61a`, `d6a3ead`, `d1df606`, `e6395b8`, `16f4894`,
+`7728fa2`, `0153c4f`, `64857cc`). **1 OPEN remains:**
 
-1. **DOC-2** (S) — fix the broken/ambiguous intra-doc links so docs.rs
-   renders clean; add `#![warn(missing_docs)]` to surface DOC-1 churn.
-2. **DUP-7** (S/M) — extract a `write_year_axis` helper shared by the
-   hellenistic + vedic year-axis ruler (~18 LOC dup). Keep SVG output
-   byte-identical (regression-locked).
-3. **DOC-1** (L) — backfill `///` on the 378 undocumented public items;
-   its own session (mostly `constants.rs` + `functions/aspects.rs`).
+1. **DOC-1** (L) — backfill `///` on the 378 undocumented public items
+   (mostly `constants.rs` + `functions/aspects.rs`), then add
+   `#![warn(missing_docs)]` to lock it. Its own session.
 
 DEFERRED: **DUP-8** (f64 SVG-preamble overload). All DECIDED rows kept
 so a rescan doesn't re-flag.
