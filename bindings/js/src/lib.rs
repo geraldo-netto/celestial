@@ -1397,6 +1397,7 @@ pub struct OmerDay {
 }
 
 /// Return the Omer day for a given Julian day, or null if outside the Omer period.
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "omerFromJd")]
 pub fn omer_from_jd(jd: f64) -> Option<OmerDay> {
     celestial::omer_from_jd(jd).map(|d| OmerDay {
@@ -1412,18 +1413,21 @@ pub fn omer_from_jd(jd: f64) -> Option<OmerDay> {
 }
 
 /// Julian day of a specific Omer day (1–49) in the given Hebrew year.
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "omerDayJd")]
 pub fn omer_day_jd(hebrew_year: i32, day: u32) -> Option<f64> {
     celestial::omer_day_jd(hebrew_year, day as u8)
 }
 
 /// Julian day of the first day of the Omer for the given Hebrew year.
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "omerStartJd")]
 pub fn omer_start_jd(hebrew_year: i32) -> f64 {
     celestial::omer_start_jd(hebrew_year)
 }
 
 /// All 49 Omer days for the given Hebrew year.
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "omerDays")]
 pub fn omer_days(hebrew_year: i32) -> Vec<OmerDay> {
     celestial::omer_days(hebrew_year)
@@ -1449,6 +1453,7 @@ pub struct OmerPeriod {
     pub hebrew_year: i32,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "omerPeriod")]
 pub fn omer_period(jd: f64) -> OmerPeriod {
     let p = celestial::omer_period(jd);
@@ -1460,6 +1465,7 @@ pub fn omer_period(jd: f64) -> OmerPeriod {
 }
 
 /// Full declaration string for the given Omer day (1–49).
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "omerDeclaration")]
 pub fn omer_declaration(day: u32) -> String {
     celestial::omer_declaration(day as u8)
@@ -1479,6 +1485,7 @@ pub struct JewishHoliday {
     pub category: String,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "jewishHolidays")]
 pub fn jewish_holidays(hebrew_year: i32) -> Vec<JewishHoliday> {
     celestial::jewish_holidays(hebrew_year)
@@ -1496,11 +1503,13 @@ pub fn jewish_holidays(hebrew_year: i32) -> Vec<JewishHoliday> {
         .collect()
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "jewishHolidayJd")]
 pub fn jewish_holiday_jd(hebrew_year: i32, name: String) -> Option<f64> {
     celestial::jewish_holiday_jd(hebrew_year, &name)
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "hebrewYearFromJd")]
 pub fn hebrew_year_from_jd(jd: f64) -> i32 {
     celestial::hebrew_year_from_jd(jd)
@@ -1513,6 +1522,7 @@ pub struct HebrewDate {
     pub day: u32,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "jdToHebrewDate")]
 pub fn jd_to_hebrew_date(jd: f64) -> HebrewDate {
     let (y, m, d) = celestial::jd_to_hebrew_date(jd);
@@ -1532,6 +1542,7 @@ pub struct CalendarDate {
     pub day: u32,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "easterGregorian")]
 pub fn easter_gregorian(year: i32) -> CalendarDate {
     let (y, m, d) = celestial::easter_gregorian(year);
@@ -1542,6 +1553,7 @@ pub fn easter_gregorian(year: i32) -> CalendarDate {
     }
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "easterOrthodox")]
 pub fn easter_orthodox(year: i32) -> CalendarDate {
     let (y, m, d) = celestial::easter_orthodox(year);
@@ -1552,11 +1564,13 @@ pub fn easter_orthodox(year: i32) -> CalendarDate {
     }
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "easterJd")]
 pub fn easter_jd(year: i32) -> f64 {
     celestial::easter_jd(year)
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "easterOrthodoxJd")]
 pub fn easter_orthodox_jd(year: i32) -> f64 {
     celestial::easter_orthodox_jd(year)
@@ -1572,6 +1586,7 @@ pub struct ChristianFeast {
     pub day: u32,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "christianFeasts")]
 pub fn christian_feasts(year: i32) -> Vec<ChristianFeast> {
     celestial::christian_feasts(year)
@@ -1587,6 +1602,7 @@ pub fn christian_feasts(year: i32) -> Vec<ChristianFeast> {
         .collect()
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "christianFixedFeasts")]
 pub fn christian_fixed_feasts(year: i32) -> Vec<ChristianFeast> {
     celestial::christian_fixed_feasts(year)
@@ -1611,6 +1627,7 @@ pub struct HijriDate {
     pub day: u32,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "hijriFromJd")]
 pub fn hijri_from_jd(jd: f64) -> HijriDate {
     let (y, m, d) = celestial::hijri_from_jd(jd);
@@ -1621,11 +1638,13 @@ pub fn hijri_from_jd(jd: f64) -> HijriDate {
     }
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "hijriToJd")]
 pub fn hijri_to_jd(year: i32, month: u32, day: u32) -> f64 {
     celestial::hijri_to_jd(year, month as u8, day as u8)
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "hijriMonthName")]
 pub fn hijri_month_name(month: u32) -> String {
     celestial::hijri_month_name(month as u8).to_string()
@@ -1641,6 +1660,7 @@ pub struct IslamicObservance {
     pub days: u32,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "islamicObservances")]
 pub fn islamic_observances(hijri_year: i32) -> Vec<IslamicObservance> {
     celestial::islamic_observances(hijri_year)
@@ -1662,6 +1682,7 @@ pub struct HijriYears {
     pub year2: i32,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "gregorianToHijriYears")]
 pub fn gregorian_to_hijri_years(gregorian_year: i32) -> HijriYears {
     let (y1, y2) = celestial::gregorian_to_hijri_years(gregorian_year);
@@ -1735,6 +1756,7 @@ pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
 
 // ─── Buddhist observances ─────────────────────────────────────────────────────
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "vesakJd")]
 pub fn vesak_jd(year: i32) -> f64 {
     celestial::vesak_jd(year)
@@ -1747,6 +1769,7 @@ pub struct Uposatha {
     pub elongation: f64,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "uposathaDays")]
 pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
     celestial::uposatha_days(year)
@@ -1761,16 +1784,19 @@ pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
 
 // ─── Nowruz & Bahá'í calendar ─────────────────────────────────────────────────
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "nowruzJd")]
 pub fn nowruz_jd(year: i32) -> f64 {
     celestial::nowruz_jd(year)
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "gregorianToSolarHijri")]
 pub fn gregorian_to_solar_hijri(year: i32) -> i32 {
     celestial::gregorian_to_solar_hijri(year)
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "nawRuzJd")]
 pub fn naw_ruz_jd(bahai_year: i32) -> f64 {
     celestial::naw_ruz_jd(bahai_year)
@@ -1784,6 +1810,7 @@ pub struct BahaiDate {
     pub month_name: String,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "jdToBahai")]
 pub fn jd_to_bahai(jd: f64) -> BahaiDate {
     let b = celestial::jd_to_bahai(jd);
@@ -1804,6 +1831,7 @@ pub struct BahaiHolyDay {
     pub jd: f64,
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "bahaiHolyDays")]
 pub fn bahai_holy_days(bahai_year: i32) -> Vec<BahaiHolyDay> {
     celestial::bahai_holy_days(bahai_year)
@@ -2123,6 +2151,7 @@ pub fn triplicity_rulers(lon: f64) -> Vec<i32> {
 
 // ── Sabbats & Esbats ──────────────────────────────────────────────────────────
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "sabbatsForYear")]
 pub fn sabbats_for_year(year: i32) -> napi::Result<Vec<Vec<f64>>> {
     // Returns [[kind_index, jd], ...] — name accessible via sabbat_jd/kind
@@ -2131,6 +2160,7 @@ pub fn sabbats_for_year(year: i32) -> napi::Result<Vec<Vec<f64>>> {
     Ok(sabbats.iter().map(|s| vec![s.jd]).collect())
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "sabbatJd")]
 pub fn sabbat_jd(year: i32, kind: u8) -> napi::Result<f64> {
     use celestial::SabbatKind;
@@ -2150,6 +2180,7 @@ pub fn sabbat_jd(year: i32, kind: u8) -> napi::Result<f64> {
     celestial::sabbat_jd(year, *k).map_err(|e| napi::Error::from_reason(e.to_string()))
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "nextSabbat")]
 pub fn next_sabbat(jd_from: f64) -> napi::Result<Vec<f64>> {
     // Returns [jd] — name is available via the kind index
@@ -2157,6 +2188,7 @@ pub fn next_sabbat(jd_from: f64) -> napi::Result<Vec<f64>> {
     Ok(vec![s.jd])
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "esbatsForYear")]
 pub fn esbats_for_year(year: i32) -> napi::Result<Vec<f64>> {
     // Returns [jd, jd, ...] — one per esbat
@@ -2165,6 +2197,7 @@ pub fn esbats_for_year(year: i32) -> napi::Result<Vec<f64>> {
     Ok(esbats.iter().map(|e| e.jd).collect())
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "nextEsbat")]
 pub fn next_esbat(jd_from: f64) -> napi::Result<f64> {
     celestial::next_esbat(jd_from)
@@ -2464,11 +2497,13 @@ pub fn get_ayanamsa_name(sid_mode: i32) -> String {
     celestial::ayanamsa_name(sid_mode).to_string()
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "nextFullMoon")]
 pub fn next_full_moon(jd_start: f64) -> f64 {
     celestial::next_full_moon_after(jd_start)
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "nextSabbatName")]
 pub fn next_sabbat_name(jd_from: f64) -> napi::Result<String> {
     celestial::next_sabbat(jd_from)

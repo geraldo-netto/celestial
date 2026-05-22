@@ -564,6 +564,7 @@ pub fn refrac(altitude: f64, pressure_mb: f64, temp_c: f64, calc_flag: i64) -> f
 ///
 /// @param int $year  Gregorian year
 /// @return array     Array of ["name" => string, "jd" => float, "solar_lon" => float]
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn sabbats_for_year(year: i64) -> PhpResult<Vec<HashMap<String, f64>>> {
     let sabbats = celestial::sabbats_for_year(year as i32).map_err(to_php)?;
@@ -586,6 +587,7 @@ pub fn sabbats_for_year(year: i64) -> PhpResult<Vec<HashMap<String, f64>>> {
 /// @param string $kind      Sabbat name: "Yule", "Imbolc", "Ostara", "Beltane",
 ///                                       "Litha", "Lughnasadh", "Mabon", "Samhain"
 /// @return float            Julian day (UT)
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn sabbat_jd(year: i64, kind: String) -> PhpResult<f64> {
     use celestial::SabbatKind;
@@ -609,6 +611,7 @@ pub fn sabbat_jd(year: i64, kind: String) -> PhpResult<f64> {
 ///
 /// @param int $year  Gregorian year
 /// @return array     Array of ["display_name" => string, "jd" => float]
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn esbats_for_year(year: i64) -> PhpResult<Vec<HashMap<String, f64>>> {
     let esbats = celestial::esbats_for_year(year as i32).map_err(to_php)?;
@@ -979,6 +982,7 @@ pub fn vimshottari_dasha(jd_birth: f64, moon_lon_sidereal: f64, years_ahead: f64
 /// @return array|null  ["day"=>int, "week"=>int, "day_of_week"=>int,
 ///                      "week_sefirah"=>string, "day_sefirah"=>string,
 ///                      "hebrew_text"=>string, "is_lag_baomer"=>bool, "jd"=>float]
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn omer_from_jd(jd: f64) -> Option<HashMap<String, String>> {
     celestial::omer_from_jd(jd).map(|d| {
@@ -996,12 +1000,14 @@ pub fn omer_from_jd(jd: f64) -> Option<HashMap<String, String>> {
 }
 
 /// Julian day of a specific Omer day (1–49) in the given Hebrew year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn omer_day_jd(hebrew_year: i64, day: i64) -> Option<f64> {
     celestial::omer_day_jd(hebrew_year as i32, day as u8)
 }
 
 /// Julian day of the first Omer day (16 Nisan nightfall) for the given Hebrew year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn omer_start_jd(hebrew_year: i64) -> f64 {
     celestial::omer_start_jd(hebrew_year as i32)
@@ -1010,6 +1016,7 @@ pub fn omer_start_jd(hebrew_year: i64) -> f64 {
 /// All 49 Omer days for the given Hebrew year.
 ///
 /// Returns an array of arrays, each with the same keys as omer_from_jd.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn omer_days(hebrew_year: i64) -> Vec<HashMap<String, String>> {
     celestial::omer_days(hebrew_year as i32)
@@ -1030,6 +1037,7 @@ pub fn omer_days(hebrew_year: i64) -> Vec<HashMap<String, String>> {
 }
 
 /// Full Hebrew declaration and Sefirot annotation for the given Omer day (1–49).
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn omer_declaration(day: i64) -> String {
     celestial::omer_declaration(day as u8)
@@ -1038,6 +1046,7 @@ pub fn omer_declaration(day: i64) -> String {
 /// Omer period (start_jd, end_jd, hebrew_year) containing the given JD.
 ///
 /// @return array  ["start_jd"=>float, "end_jd"=>float, "hebrew_year"=>int]
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn omer_period(jd: f64) -> HashMap<String, String> {
     let p = celestial::omer_period(jd);
@@ -1051,6 +1060,7 @@ pub fn omer_period(jd: f64) -> HashMap<String, String> {
 // ─── Jewish holidays ─────────────────────────────────────────────────────────
 
 /// All major Jewish holidays for the given Hebrew year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn jewish_holidays(hebrew_year: i64) -> Vec<HashMap<String, String>> {
     celestial::jewish_holidays(hebrew_year as i32)
@@ -1071,18 +1081,21 @@ pub fn jewish_holidays(hebrew_year: i64) -> Vec<HashMap<String, String>> {
 }
 
 /// JD of a named Jewish holiday in the given Hebrew year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn jewish_holiday_jd(hebrew_year: i64, name: String) -> Option<f64> {
     celestial::jewish_holiday_jd(hebrew_year as i32, &name)
 }
 
 /// Hebrew year for a given JD.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn hebrew_year_from_jd(jd: f64) -> i64 {
     celestial::hebrew_year_from_jd(jd) as i64
 }
 
 /// Convert JD to Hebrew date. Returns ["year"=>int, "month"=>int, "day"=>int].
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn jd_to_hebrew_date(jd: f64) -> HashMap<String, String> {
     let (y, m, d) = celestial::jd_to_hebrew_date(jd);
@@ -1096,6 +1109,7 @@ pub fn jd_to_hebrew_date(jd: f64) -> HashMap<String, String> {
 // ─── Easter & Christian calendar ─────────────────────────────────────────────
 
 /// Gregorian Easter. Returns ["year"=>int, "month"=>int, "day"=>int].
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn easter_gregorian(year: i64) -> HashMap<String, String> {
     let (y, m, d) = celestial::easter_gregorian(year as i32);
@@ -1107,6 +1121,7 @@ pub fn easter_gregorian(year: i64) -> HashMap<String, String> {
 }
 
 /// Orthodox Easter (Gregorian calendar).
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn easter_orthodox(year: i64) -> HashMap<String, String> {
     let (y, m, d) = celestial::easter_orthodox(year as i32);
@@ -1118,18 +1133,21 @@ pub fn easter_orthodox(year: i64) -> HashMap<String, String> {
 }
 
 /// JD of Western Easter.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn easter_jd(year: i64) -> f64 {
     celestial::easter_jd(year as i32)
 }
 
 /// JD of Orthodox Easter.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn easter_orthodox_jd(year: i64) -> f64 {
     celestial::easter_orthodox_jd(year as i32)
 }
 
 /// Western moveable Christian feasts for the year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn christian_feasts(year: i64) -> Vec<HashMap<String, String>> {
     celestial::christian_feasts(year as i32)
@@ -1147,6 +1165,7 @@ pub fn christian_feasts(year: i64) -> Vec<HashMap<String, String>> {
 }
 
 /// Fixed (non-moveable) Christian feasts for the year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn christian_fixed_feasts(year: i64) -> Vec<HashMap<String, String>> {
     celestial::christian_fixed_feasts(year as i32)
@@ -1165,6 +1184,7 @@ pub fn christian_fixed_feasts(year: i64) -> Vec<HashMap<String, String>> {
 // ─── Islamic calendar ─────────────────────────────────────────────────────────
 
 /// Convert JD to Hijri date. Returns ["year", "month", "day"].
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn hijri_from_jd(jd: f64) -> HashMap<String, String> {
     let (y, m, d) = celestial::hijri_from_jd(jd);
@@ -1176,18 +1196,21 @@ pub fn hijri_from_jd(jd: f64) -> HashMap<String, String> {
 }
 
 /// Convert Hijri date to JD.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn hijri_to_jd(year: i64, month: i64, day: i64) -> f64 {
     celestial::hijri_to_jd(year as i32, month as u8, day as u8)
 }
 
 /// Hijri month name (1–12).
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn hijri_month_name(month: i64) -> String {
     celestial::hijri_month_name(month as u8).to_string()
 }
 
 /// All Islamic observances for the given Hijri year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn islamic_observances(hijri_year: i64) -> Vec<HashMap<String, String>> {
     celestial::islamic_observances(hijri_year as i32)
@@ -1251,12 +1274,14 @@ pub fn hindu_festivals(gregorian_year: i64) -> Vec<HashMap<String, String>> {
 // ─── Buddhist observances ─────────────────────────────────────────────────────
 
 /// JD of Vesak for the given Gregorian year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn vesak_jd(year: i64) -> f64 {
     celestial::vesak_jd(year as i32)
 }
 
 /// All Uposatha days in the given Gregorian year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn uposatha_days(year: i64) -> Vec<HashMap<String, String>> {
     celestial::uposatha_days(year as i32)
@@ -1274,24 +1299,28 @@ pub fn uposatha_days(year: i64) -> Vec<HashMap<String, String>> {
 // ─── Nowruz & Bahá'í calendar ─────────────────────────────────────────────────
 
 /// JD of Nowruz (vernal equinox / Persian New Year).
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn nowruz_jd(year: i64) -> f64 {
     celestial::nowruz_jd(year as i32)
 }
 
 /// Gregorian year → Solar Hijri (Persian) year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn gregorian_to_solar_hijri(year: i64) -> i64 {
     celestial::gregorian_to_solar_hijri(year as i32) as i64
 }
 
 /// JD of Naw-Rúz (Bahá'í New Year) for the given Bahá'í year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn naw_ruz_jd(bahai_year: i64) -> f64 {
     celestial::naw_ruz_jd(bahai_year as i32)
 }
 
 /// Convert JD to Bahá'í date. Returns ["year", "month", "day", "month_name"].
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn jd_to_bahai(jd: f64) -> HashMap<String, String> {
     let b = celestial::jd_to_bahai(jd);
@@ -1304,6 +1333,7 @@ pub fn jd_to_bahai(jd: f64) -> HashMap<String, String> {
 }
 
 /// Bahá'í holy days for the given Bahá'í year.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn bahai_holy_days(bahai_year: i64) -> Vec<HashMap<String, String>> {
     celestial::bahai_holy_days(bahai_year as i32)
@@ -1654,6 +1684,7 @@ pub fn monthly_profection(cusps: Vec<f64>, age_years: i64, age_months: i64) -> P
 // ══════════════════════════════════════════════════════════════════════════════
 
 /// Next esbat (named full moon) JD from a given JD.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn next_esbat(jd_from: f64) -> PhpResult<f64> {
     celestial::next_esbat(jd_from).map(|e| e.jd).map_err(to_php)
@@ -1908,6 +1939,7 @@ pub fn full_dignity(body: i64, lon: f64, is_day: bool) -> Vec<String> {
 }
 
 /// Gregorian year to Hijri years. Returns [year1, year2].
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn gregorian_to_hijri_years(gregorian_year: i64) -> Vec<i64> {
     let (y1, y2) = celestial::gregorian_to_hijri_years(gregorian_year as i32);
@@ -2161,6 +2193,7 @@ pub fn next_aspect_with(
 }
 
 /// Next sabbat. Returns [jd].
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn next_sabbat(jd_from: f64) -> PhpResult<Vec<f64>> {
     celestial::next_sabbat(jd_from)
@@ -2381,6 +2414,7 @@ pub fn get_ayanamsa_name(sid_mode: i64) -> String {
 
 /// Next sabbat name after `jd_from`. Returns the sabbat name string.
 /// Legacy alias — use `next_sabbat` for the full JD+name result.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn next_sabbat_name(jd_from: f64) -> PhpResult<String> {
     celestial::next_sabbat(jd_from)
@@ -2390,6 +2424,7 @@ pub fn next_sabbat_name(jd_from: f64) -> PhpResult<String> {
 
 /// Next full moon Julian Day after `jd_start`.
 /// Legacy alias for `next_full_moon_phase`.
+#[cfg(feature = "calendar-traditions")]
 #[php_function]
 pub fn next_full_moon(jd_start: f64) -> f64 {
     celestial::next_full_moon_after(jd_start)

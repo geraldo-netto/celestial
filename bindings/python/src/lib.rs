@@ -1053,6 +1053,7 @@ fn vimshottari_dasha(
 /// Return the Omer day for the given Julian day, or None if not in the Omer period.
 ///
 /// Returns (day, week, day_of_week, week_sefirah, day_sefirah, hebrew_text, is_lag_baomer, jd)
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn omer_from_jd(py: Python<'_>, jd: f64) -> PyObject {
     match celestial::omer_from_jd(jd) {
@@ -1072,12 +1073,14 @@ fn omer_from_jd(py: Python<'_>, jd: f64) -> PyObject {
 }
 
 /// Return the Julian day of a specific Omer day (1–49) in the given Hebrew year.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn omer_day_jd(hebrew_year: i32, day: i32) -> Option<f64> {
     celestial::omer_day_jd(hebrew_year, day as u8)
 }
 
 /// Return the Julian day of the first day of the Omer for the given Hebrew year.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn omer_start_jd(hebrew_year: i32) -> f64 {
     celestial::omer_start_jd(hebrew_year)
@@ -1086,6 +1089,7 @@ fn omer_start_jd(hebrew_year: i32) -> f64 {
 /// Return all 49 Omer days for the given Hebrew year.
 ///
 /// Each element is (day, week, day_of_week, week_sefirah, day_sefirah, hebrew_text, is_lag_baomer, jd)
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn omer_days(py: Python<'_>, hebrew_year: i32) -> PyObject {
     let result: Vec<PyObject> = celestial::omer_days(hebrew_year)
@@ -1108,6 +1112,7 @@ fn omer_days(py: Python<'_>, hebrew_year: i32) -> PyObject {
 }
 
 /// Return the Omer period (start_jd, end_jd, hebrew_year) containing the given JD.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn omer_period(py: Python<'_>, jd: f64) -> PyObject {
     let p = celestial::omer_period(jd);
@@ -1115,6 +1120,7 @@ fn omer_period(py: Python<'_>, jd: f64) -> PyObject {
 }
 
 /// Return the full declaration string for the given Omer day (1–49).
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn omer_declaration(day: i32) -> String {
     celestial::omer_declaration(day as u8)
@@ -1407,11 +1413,13 @@ fn get_ayanamsa_name(sid_mode: i32) -> String {
     celestial::ayanamsa_name(sid_mode).to_string()
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn next_full_moon(jd_start: f64) -> f64 {
     celestial::next_full_moon_after(jd_start)
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn next_sabbat_name(jd_from: f64) -> PyResult<String> {
     celestial::next_sabbat(jd_from)
@@ -1640,6 +1648,7 @@ fn next_aspect_cusp(
     .map(|r| (r.jd, r.pos[0]))
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn sabbats_for_year(py: Python<'_>, year: i32) -> PyResult<PyObject> {
     let sabbats =
@@ -1648,12 +1657,14 @@ fn sabbats_for_year(py: Python<'_>, year: i32) -> PyResult<PyObject> {
     Ok(result.into_py_any(py).unwrap())
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn next_sabbat(jd_from: f64) -> PyResult<(String, f64)> {
     let s = celestial::next_sabbat(jd_from).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
     Ok((s.name.to_string(), s.jd))
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn sabbat_jd(year: i32, kind: u8) -> PyResult<f64> {
     use celestial::SabbatKind;
@@ -1673,6 +1684,7 @@ fn sabbat_jd(year: i32, kind: u8) -> PyResult<f64> {
     celestial::sabbat_jd(year, *k).map_err(|e| PyRuntimeError::new_err(e.to_string()))
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn esbats_for_year(py: Python<'_>, year: i32) -> PyResult<PyObject> {
     let esbats =
@@ -1684,6 +1696,7 @@ fn esbats_for_year(py: Python<'_>, year: i32) -> PyResult<PyObject> {
     Ok(result.into_py_any(py).unwrap())
 }
 
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn next_esbat(jd_from: f64) -> PyResult<(String, f64)> {
     let e = celestial::next_esbat(jd_from).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
@@ -2136,35 +2149,63 @@ fn register_chart_fns(m: &Bound<'_, PyModule>) -> PyResult<()> {
 }
 
 fn register_calendar_fns(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(omer_from_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(omer_day_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(omer_start_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(omer_days, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(omer_period, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(omer_declaration, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(jewish_holidays, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(jewish_holiday_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(hebrew_year_from_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(jd_to_hebrew_date, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(easter_gregorian, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(easter_orthodox, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(easter_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(easter_orthodox_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(christian_feasts, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(christian_fixed_feasts, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(hijri_from_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(hijri_to_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(hijri_month_name, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(islamic_observances, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(gregorian_to_hijri_years, m)?)?;
     m.add_function(wrap_pyfunction!(panchanga, m)?)?;
     m.add_function(wrap_pyfunction!(hindu_festivals, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(vesak_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(uposatha_days, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(nowruz_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(gregorian_to_solar_hijri, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(naw_ruz_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(jd_to_bahai, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(bahai_holy_days, m)?)?;
     m.add_function(wrap_pyfunction!(iso_week, m)?)?;
     m.add_function(wrap_pyfunction!(day_of_year, m)?)?;
@@ -2185,12 +2226,19 @@ fn register_calendar_fns(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(solar_cycle, m)?)?;
     m.add_function(wrap_pyfunction!(grand_solar_epoch, m)?)?;
     m.add_function(wrap_pyfunction!(cycle_nickname, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(sabbats_for_year, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(next_sabbat, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(sabbat_jd, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(esbats_for_year, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(next_esbat, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(next_full_moon, m)?)?;
+    #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(next_sabbat_name, m)?)?;
     m.add_function(wrap_pyfunction!(solcross_ut, m)?)?;
     Ok(())
@@ -2232,6 +2280,7 @@ fn register_traditions_fns(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
 /// All major Jewish holidays for the given Hebrew year.
 /// Each item: (name, hebrew_name, hebrew_month, hebrew_day, jd, jd_end, days, category)
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn jewish_holidays(py: Python<'_>, hebrew_year: i32) -> PyObject {
     let result: Vec<PyObject> = celestial::jewish_holidays(hebrew_year)
@@ -2255,18 +2304,21 @@ fn jewish_holidays(py: Python<'_>, hebrew_year: i32) -> PyObject {
 }
 
 /// JD of a specific Jewish holiday by name in the given Hebrew year.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn jewish_holiday_jd(hebrew_year: i32, name: &str) -> Option<f64> {
     celestial::jewish_holiday_jd(hebrew_year, name)
 }
 
 /// Hebrew year for a given Julian day.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn hebrew_year_from_jd(jd: f64) -> i32 {
     celestial::hebrew_year_from_jd(jd)
 }
 
 /// Convert JD to Hebrew date → (year, month, day).
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn jd_to_hebrew_date(py: Python<'_>, jd: f64) -> PyObject {
     let (y, m, d) = celestial::jd_to_hebrew_date(jd);
@@ -2276,6 +2328,7 @@ fn jd_to_hebrew_date(py: Python<'_>, jd: f64) -> PyObject {
 // ─── Easter & Christian calendar ─────────────────────────────────────────────
 
 /// Gregorian (Western) Easter → (year, month, day).
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn easter_gregorian(py: Python<'_>, year: i32) -> PyObject {
     let (y, m, d) = celestial::easter_gregorian(year);
@@ -2283,6 +2336,7 @@ fn easter_gregorian(py: Python<'_>, year: i32) -> PyObject {
 }
 
 /// Orthodox Easter in Gregorian calendar → (year, month, day).
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn easter_orthodox(py: Python<'_>, year: i32) -> PyObject {
     let (y, m, d) = celestial::easter_orthodox(year);
@@ -2290,12 +2344,14 @@ fn easter_orthodox(py: Python<'_>, year: i32) -> PyObject {
 }
 
 /// JD of Western Easter.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn easter_jd(year: i32) -> f64 {
     celestial::easter_jd(year)
 }
 
 /// JD of Orthodox Easter.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn easter_orthodox_jd(year: i32) -> f64 {
     celestial::easter_orthodox_jd(year)
@@ -2303,6 +2359,7 @@ fn easter_orthodox_jd(year: i32) -> f64 {
 
 /// All Western Christian moveable feasts for the year.
 /// Each item: (name, easter_offset, jd, year, month, day)
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn christian_feasts(py: Python<'_>, year: i32) -> PyObject {
     let result: Vec<PyObject> = celestial::christian_feasts(year)
@@ -2323,6 +2380,7 @@ fn christian_feasts(py: Python<'_>, year: i32) -> PyObject {
 }
 
 /// Fixed (non-moveable) Christian feasts for the year.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn christian_fixed_feasts(py: Python<'_>, year: i32) -> PyObject {
     let result: Vec<PyObject> = celestial::christian_fixed_feasts(year)
@@ -2335,6 +2393,7 @@ fn christian_fixed_feasts(py: Python<'_>, year: i32) -> PyObject {
 // ─── Islamic calendar ─────────────────────────────────────────────────────────
 
 /// Convert JD to Hijri date → (year, month, day).
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn hijri_from_jd(py: Python<'_>, jd: f64) -> PyObject {
     let (y, m, d) = celestial::hijri_from_jd(jd);
@@ -2342,12 +2401,14 @@ fn hijri_from_jd(py: Python<'_>, jd: f64) -> PyObject {
 }
 
 /// Convert Hijri date to JD.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn hijri_to_jd(year: i32, month: i32, day: i32) -> f64 {
     celestial::hijri_to_jd(year, month as u8, day as u8)
 }
 
 /// Hijri month name (1–12).
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn hijri_month_name(month: i32) -> &'static str {
     celestial::hijri_month_name(month as u8)
@@ -2355,6 +2416,7 @@ fn hijri_month_name(month: i32) -> &'static str {
 
 /// All major Islamic observances for the given Hijri year.
 /// Each item: (name, arabic_name, hijri_month, hijri_day, jd, days)
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn islamic_observances(py: Python<'_>, hijri_year: i32) -> PyObject {
     let result: Vec<PyObject> = celestial::islamic_observances(hijri_year)
@@ -2375,6 +2437,7 @@ fn islamic_observances(py: Python<'_>, hijri_year: i32) -> PyObject {
 }
 
 /// Gregorian year → overlapping Hijri years → (year1, year2).
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn gregorian_to_hijri_years(py: Python<'_>, gregorian_year: i32) -> PyObject {
     let (y1, y2) = celestial::gregorian_to_hijri_years(gregorian_year);
@@ -2429,6 +2492,7 @@ fn hindu_festivals(py: Python<'_>, gregorian_year: i32) -> PyObject {
 // ─── Buddhist observances ─────────────────────────────────────────────────────
 
 /// JD of Vesak for the given Gregorian year.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn vesak_jd(year: i32) -> f64 {
     celestial::vesak_jd(year)
@@ -2436,6 +2500,7 @@ fn vesak_jd(year: i32) -> f64 {
 
 /// All Uposatha days in the given Gregorian year.
 /// Each item: (phase, jd, elongation)
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn uposatha_days(py: Python<'_>, year: i32) -> PyObject {
     let result: Vec<PyObject> = celestial::uposatha_days(year)
@@ -2451,24 +2516,28 @@ fn uposatha_days(py: Python<'_>, year: i32) -> PyObject {
 // ─── Nowruz & Bahá'í calendar ─────────────────────────────────────────────────
 
 /// JD of Nowruz (vernal equinox / Persian New Year) for the given Gregorian year.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn nowruz_jd(year: i32) -> f64 {
     celestial::nowruz_jd(year)
 }
 
 /// Convert Gregorian year to Solar Hijri (Persian) year.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn gregorian_to_solar_hijri(year: i32) -> i32 {
     celestial::gregorian_to_solar_hijri(year)
 }
 
 /// JD of Naw-Rúz (Bahá'í New Year) for the given Bahá'í year.
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn naw_ruz_jd(bahai_year: i32) -> f64 {
     celestial::naw_ruz_jd(bahai_year)
 }
 
 /// Convert JD to Bahá'í date → (year, month, day, month_name).
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn jd_to_bahai(py: Python<'_>, jd: f64) -> PyObject {
     let b = celestial::jd_to_bahai(jd);
@@ -2477,6 +2546,7 @@ fn jd_to_bahai(py: Python<'_>, jd: f64) -> PyObject {
 
 /// Bahá'í holy days for the given Bahá'í year.
 /// Each item: (name, description, bahai_month, bahai_day, jd)
+#[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn bahai_holy_days(py: Python<'_>, bahai_year: i32) -> PyObject {
     let result: Vec<PyObject> = celestial::bahai_holy_days(bahai_year)
