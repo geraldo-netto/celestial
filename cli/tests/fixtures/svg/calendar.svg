@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 890 668" width="890" height="668">
+  <rect width="890" height="668" fill="#ffffff"/>
+  <text x="445" y="42" text-anchor="middle" font-size="22" font-weight="600"
+        font-family="Georgia,serif" fill="#222">May 1986</text>
+  <text x="445" y="68" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#888" opacity=".75">overlays: gregorian · omer · sabbats · moon</text>
+  <text x="115.0" y="146.8" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="600" font-family="Georgia,serif" fill="#5c4a8a">Sun</text>
+  <text x="225.0" y="146.8" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="600" font-family="Georgia,serif" fill="#5c4a8a">Mon</text>
+  <text x="335.0" y="146.8" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="600" font-family="Georgia,serif" fill="#5c4a8a">Tue</text>
+  <text x="445.0" y="146.8" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="600" font-family="Georgia,serif" fill="#5c4a8a">Wed</text>
+  <text x="555.0" y="146.8" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="600" font-family="Georgia,serif" fill="#5c4a8a">Thu</text>
+  <text x="665.0" y="146.8" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="600" font-family="Georgia,serif" fill="#5c4a8a">Fri</text>
+  <text x="775.0" y="146.8" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="600" font-family="Georgia,serif" fill="#5c4a8a">Sat</text>
+  <rect x="60.0" y="158.0" width="770.0" height="450.0" fill="none" stroke="#888" stroke-width="1.0"/>
+  <rect x="500.0" y="158.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="508.0" y="176.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">1</text>
+  <rect x="610.0" y="158.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="618.0" y="176.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">2</text>
+  <rect x="720.0" y="158.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="728.0" y="176.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">3</text>
+  <rect x="60.0" y="248.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="68.0" y="266.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">4</text>
+  <rect x="170.0" y="248.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="178.0" y="266.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">5</text>
+  <rect x="280.0" y="248.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="288.0" y="266.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">6</text>
+  <rect x="390.0" y="248.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="398.0" y="266.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">7</text>
+  <rect x="500.0" y="248.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="508.0" y="266.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">8</text>
+  <rect x="610.0" y="248.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="618.0" y="266.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">9</text>
+  <rect x="720.0" y="248.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="728.0" y="266.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">10</text>
+  <rect x="60.0" y="338.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="68.0" y="356.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">11</text>
+  <rect x="170.0" y="338.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="178.0" y="356.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">12</text>
+  <rect x="280.0" y="338.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="288.0" y="356.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">13</text>
+  <rect x="390.0" y="338.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="398.0" y="356.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">14</text>
+  <rect x="500.0" y="338.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="508.0" y="356.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">15</text>
+  <rect x="610.0" y="338.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="618.0" y="356.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">16</text>
+  <rect x="720.0" y="338.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="728.0" y="356.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">17</text>
+  <rect x="60.0" y="428.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="68.0" y="446.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">18</text>
+  <rect x="170.0" y="428.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="178.0" y="446.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">19</text>
+  <rect x="280.0" y="428.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="288.0" y="446.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">20</text>
+  <rect x="390.0" y="428.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="398.0" y="446.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">21</text>
+  <rect x="500.0" y="428.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="508.0" y="446.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">22</text>
+  <rect x="610.0" y="428.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="618.0" y="446.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">23</text>
+  <rect x="720.0" y="428.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="728.0" y="446.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">24</text>
+  <rect x="60.0" y="518.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="68.0" y="536.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">25</text>
+  <rect x="170.0" y="518.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="178.0" y="536.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">26</text>
+  <rect x="280.0" y="518.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="288.0" y="536.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">27</text>
+  <rect x="390.0" y="518.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="398.0" y="536.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">28</text>
+  <rect x="500.0" y="518.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="508.0" y="536.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">29</text>
+  <rect x="610.0" y="518.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="618.0" y="536.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">30</text>
+  <rect x="720.0" y="518.0" width="110.0" height="90.0" fill="none" stroke="#888" stroke-width=".5"/>
+  <text x="728.0" y="536.0" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="#222">31</text>
+  <g font-family="system-ui,sans-serif" font-size="10" fill="#222">
+  </g>
+</svg>

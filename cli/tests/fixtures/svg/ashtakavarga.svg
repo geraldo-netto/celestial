@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 724 333" width="724" height="333">
+  <rect width="724" height="333" fill="#ffffff"/>
+  <text x="362.0" y="22" text-anchor="middle" font-size="15" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00">Ashtakavarga</text>
+  <text x="362.0" y="40" text-anchor="middle" font-size="8"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".6">1986-05-30 09:00 UT</text>
+  <text x="106.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♈</text>
+  <text x="106.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">1</text>
+  <text x="158.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♉</text>
+  <text x="158.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">2</text>
+  <text x="210.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♊</text>
+  <text x="210.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">3</text>
+  <text x="262.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♋</text>
+  <text x="262.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">4</text>
+  <text x="314.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♌</text>
+  <text x="314.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">5</text>
+  <text x="366.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♍</text>
+  <text x="366.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">6</text>
+  <text x="418.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♎</text>
+  <text x="418.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">7</text>
+  <text x="470.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♏</text>
+  <text x="470.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">8</text>
+  <text x="522.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♐</text>
+  <text x="522.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">9</text>
+  <text x="574.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♑</text>
+  <text x="574.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">10</text>
+  <text x="626.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♒</text>
+  <text x="626.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">11</text>
+  <text x="678.0" y="49.0" font-size="13" text-anchor="middle" font-family="serif" fill="#2a1a00">♓</text>
+  <text x="678.0" y="60.0" font-size="8" text-anchor="middle" fill="#2a1a00" opacity=".5">12</text>
+  <line x1="80.0" y1="65.0" x2="80.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="132.0" y1="65.0" x2="132.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="184.0" y1="65.0" x2="184.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="236.0" y1="65.0" x2="236.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="288.0" y1="65.0" x2="288.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="340.0" y1="65.0" x2="340.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="392.0" y1="65.0" x2="392.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="444.0" y1="65.0" x2="444.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="496.0" y1="65.0" x2="496.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="548.0" y1="65.0" x2="548.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="600.0" y1="65.0" x2="600.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="652.0" y1="65.0" x2="652.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <line x1="704.0" y1="65.0" x2="704.0" y2="273.0" stroke="#5c3a00" stroke-width="0.6" opacity=".4"/>
+  <rect x="80.0" y="65.0" width="624.0" height="26" fill="#5c3a00" opacity=".04"/>
+  <line x1="80.0" y1="65.0" x2="704.0" y2="65.0" stroke="#5c3a00" stroke-width="0.4" opacity=".3"/>
+  <text x="76.0" y="78.0" font-size="10" text-anchor="end" dominant-baseline="central" fill="#1a3a7a" font-weight="500">Sun</text>
+  <text x="106.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="158.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="210.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#901020">1</text>
+  <text x="262.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="314.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">6</text>
+  <text x="366.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">7</text>
+  <text x="418.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="470.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="522.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="574.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="626.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">6</text>
+  <text x="678.0" y="78.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <line x1="80.0" y1="91.0" x2="704.0" y2="91.0" stroke="#5c3a00" stroke-width="0.4" opacity=".3"/>
+  <text x="76.0" y="104.0" font-size="10" text-anchor="end" dominant-baseline="central" fill="#1a3a7a" font-weight="500">Moon</text>
+  <text x="106.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">7</text>
+  <text x="158.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="210.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="262.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="314.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#901020">1</text>
+  <text x="366.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="418.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="470.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">6</text>
+  <text x="522.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="574.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="626.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="678.0" y="104.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <rect x="80.0" y="117.0" width="624.0" height="26" fill="#5c3a00" opacity=".04"/>
+  <line x1="80.0" y1="117.0" x2="704.0" y2="117.0" stroke="#5c3a00" stroke-width="0.4" opacity=".3"/>
+  <text x="76.0" y="130.0" font-size="10" text-anchor="end" dominant-baseline="central" fill="#1a3a7a" font-weight="500">Mars</text>
+  <text x="106.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="158.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="210.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="262.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="314.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#901020">2</text>
+  <text x="366.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">7</text>
+  <text x="418.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#901020">1</text>
+  <text x="470.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="522.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="574.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="626.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="678.0" y="130.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <line x1="80.0" y1="143.0" x2="704.0" y2="143.0" stroke="#5c3a00" stroke-width="0.4" opacity=".3"/>
+  <text x="76.0" y="156.0" font-size="10" text-anchor="end" dominant-baseline="central" fill="#1a3a7a" font-weight="500">Mercury</text>
+  <text x="106.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="158.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="210.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="262.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="314.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="366.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">7</text>
+  <text x="418.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="470.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">8</text>
+  <text x="522.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="574.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="626.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="678.0" y="156.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">6</text>
+  <rect x="80.0" y="169.0" width="624.0" height="26" fill="#5c3a00" opacity=".04"/>
+  <line x1="80.0" y1="169.0" x2="704.0" y2="169.0" stroke="#5c3a00" stroke-width="0.4" opacity=".3"/>
+  <text x="76.0" y="182.0" font-size="10" text-anchor="end" dominant-baseline="central" fill="#1a3a7a" font-weight="500">Jupiter</text>
+  <text x="106.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="158.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">7</text>
+  <text x="210.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="262.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="314.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="366.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="418.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="470.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="522.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">6</text>
+  <text x="574.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="626.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="678.0" y="182.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <line x1="80.0" y1="195.0" x2="704.0" y2="195.0" stroke="#5c3a00" stroke-width="0.4" opacity=".3"/>
+  <text x="76.0" y="208.0" font-size="10" text-anchor="end" dominant-baseline="central" fill="#1a3a7a" font-weight="500">Venus</text>
+  <text x="106.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="158.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">6</text>
+  <text x="210.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="262.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="314.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="366.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="418.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="470.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="522.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="574.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="626.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="678.0" y="208.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <rect x="80.0" y="221.0" width="624.0" height="26" fill="#5c3a00" opacity=".04"/>
+  <line x1="80.0" y1="221.0" x2="704.0" y2="221.0" stroke="#5c3a00" stroke-width="0.4" opacity=".3"/>
+  <text x="76.0" y="234.0" font-size="10" text-anchor="end" dominant-baseline="central" fill="#1a3a7a" font-weight="500">Saturn</text>
+  <text x="106.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="158.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="210.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="262.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="314.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="366.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="418.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#901020">2</text>
+  <text x="470.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">3</text>
+  <text x="522.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#901020">2</text>
+  <text x="574.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <text x="626.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#1a6030">5</text>
+  <text x="678.0" y="234.0" font-size="11" text-anchor="middle" dominant-baseline="central" font-weight="500" fill="#2a1a00">4</text>
+  <rect x="80.0" y="247.0" width="624.0" height="26" fill="#5c3a00" opacity=".1"/>
+  <line x1="80.0" y1="247.0" x2="704.0" y2="247.0" stroke="#5c3a00" stroke-width="1.5" opacity=".6"/>
+  <text x="76.0" y="260.0" font-size="10" text-anchor="end" dominant-baseline="central" fill="#2a1a00" font-weight="700">Total</text>
+  <text x="106.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#1a6030">33</text>
+  <text x="158.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#1a6030">31</text>
+  <text x="210.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#2a1a00">25</text>
+  <text x="262.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#2a1a00">23</text>
+  <text x="314.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#2a1a00">25</text>
+  <text x="366.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#1a6030">36</text>
+  <text x="418.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#2a1a00">24</text>
+  <text x="470.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#1a6030">34</text>
+  <text x="522.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#2a1a00">27</text>
+  <text x="574.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#2a1a00">24</text>
+  <text x="626.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#1a6030">32</text>
+  <text x="678.0" y="260.0" font-size="12" text-anchor="middle" dominant-baseline="central" font-weight="700" fill="#1a6030">31</text>
+</svg>

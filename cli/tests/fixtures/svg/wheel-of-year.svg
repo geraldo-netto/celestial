@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 800" width="900" height="800">
+  <rect width="900" height="800" fill="#ffffff"/>
+  <text x="450" y="36" text-anchor="middle" font-size="20" font-weight="600"
+        font-family="Georgia,serif" fill="#222">Wheel of the Year — 1986</text>
+  <text x="450" y="58" text-anchor="middle" font-size="11"
+        font-family="system-ui,sans-serif" fill="#888" opacity=".75">1986</text>
+  <circle cx="450" cy="420" r="320" fill="none" stroke="#888" stroke-width="1.2"/>
+  <circle cx="450" cy="420" r="240" fill="none" stroke="#888" stroke-width=".8" opacity=".6"/>
+  <circle cx="450" cy="420" r="120" fill="none" stroke="#888" stroke-width=".5" opacity=".4"/>
+  <line x1="130" y1="420" x2="770" y2="420" stroke="#888" stroke-width=".6" opacity=".4" stroke-dasharray="4,4"/>
+  <line x1="450" y1="100" x2="450" y2="740" stroke="#888" stroke-width=".6" opacity=".4" stroke-dasharray="4,4"/>
+  <line x1="280.3" y1="589.7" x2="223.7" y2="646.3" stroke="#3d6b35" stroke-width="2.2"/>
+  <text x="248.5" y="621.5" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="600" font-family="Georgia,serif" fill="#222">Imbolc</text>
+  <text x="248.5" y="639.5" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif" fill="#3d6b35" opacity=".85">1986-02-04</text>
+  <line x1="210.0" y1="420.0" x2="130.0" y2="420.0" stroke="#b8860b" stroke-width="2.2"/>
+  <text x="165.0" y="420.0" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="600" font-family="Georgia,serif" fill="#222">Ostara</text>
+  <text x="165.0" y="438.0" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif" fill="#b8860b" opacity=".85">1986-03-20</text>
+  <line x1="280.3" y1="250.3" x2="223.7" y2="193.7" stroke="#3d6b35" stroke-width="2.2"/>
+  <text x="248.5" y="218.5" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="600" font-family="Georgia,serif" fill="#222">Beltane</text>
+  <text x="248.5" y="236.5" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif" fill="#3d6b35" opacity=".85">1986-05-05</text>
+  <line x1="450.0" y1="180.0" x2="450.0" y2="100.0" stroke="#b8860b" stroke-width="2.2"/>
+  <text x="450.0" y="135.0" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="600" font-family="Georgia,serif" fill="#222">Litha</text>
+  <text x="450.0" y="153.0" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif" fill="#b8860b" opacity=".85">1986-06-21</text>
+  <line x1="619.7" y1="250.3" x2="676.3" y2="193.7" stroke="#3d6b35" stroke-width="2.2"/>
+  <text x="651.5" y="218.5" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="600" font-family="Georgia,serif" fill="#222">Lughnasadh</text>
+  <text x="651.5" y="236.5" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif" fill="#3d6b35" opacity=".85">1986-08-07</text>
+  <line x1="690.0" y1="420.0" x2="770.0" y2="420.0" stroke="#b8860b" stroke-width="2.2"/>
+  <text x="735.0" y="420.0" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="600" font-family="Georgia,serif" fill="#222">Mabon</text>
+  <text x="735.0" y="438.0" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif" fill="#b8860b" opacity=".85">1986-09-23</text>
+  <line x1="619.7" y1="589.7" x2="676.3" y2="646.3" stroke="#3d6b35" stroke-width="2.2"/>
+  <text x="651.5" y="621.5" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="600" font-family="Georgia,serif" fill="#222">Samhain</text>
+  <text x="651.5" y="639.5" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif" fill="#3d6b35" opacity=".85">1986-11-07</text>
+  <line x1="450.0" y1="660.0" x2="450.0" y2="740.0" stroke="#b8860b" stroke-width="2.2"/>
+  <text x="450.0" y="705.0" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="600" font-family="Georgia,serif" fill="#222">Yule</text>
+  <text x="450.0" y="723.0" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif" fill="#b8860b" opacity=".85">1986-12-22</text>
+  <text x="450" y="412" text-anchor="middle" font-size="11" font-family="Georgia,serif" fill="#888" opacity=".7">solstice / equinox</text>
+  <text x="450" y="430" text-anchor="middle" font-size="11" font-family="Georgia,serif" fill="#3d6b35" opacity=".75">cross-quarter</text>
+  <g font-family="system-ui,sans-serif" font-size="10" fill="#222">
+    <rect x="160" y="755" width="14" height="3" fill="#b8860b"/>
+    <text x="180" y="760">Quarter days (solstice / equinox)</text>
+    <rect x="500" y="755" width="14" height="3" fill="#3d6b35"/>
+    <text x="520" y="760">Cross-quarter days</text>
+  </g>
+</svg>

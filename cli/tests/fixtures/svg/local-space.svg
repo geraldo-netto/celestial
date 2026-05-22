@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 980" width="900" height="980">
+  <rect width="900" height="980" fill="#ffffff"/>
+  <text x="450" y="30" text-anchor="middle" font-size="16" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Local Space</text>
+  <text x="450" y="48" text-anchor="middle" font-size="9"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".6">1986-05-30 09:00 UT</text>
+  <text x="450" y="62" text-anchor="middle" font-size="9"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">23.5500°S 46.6300°W</text>
+  <!-- Compass rings -->
+  <circle cx="450" cy="450" r="106.7" fill="none" stroke="#1a1a2e" stroke-width="0.7" opacity=".2"/>
+  <text x="450.00" y="560.67" font-size="8" text-anchor="middle" fill="#1a1a2e" opacity=".35">90°</text>
+  <circle cx="450" cy="450" r="213.3" fill="none" stroke="#1a1a2e" stroke-width="0.7" opacity=".2"/>
+  <text x="450.00" y="667.33" font-size="8" text-anchor="middle" fill="#1a1a2e" opacity=".35">180°</text>
+  <circle cx="450" cy="450" r="320.0" fill="none" stroke="#1a1a2e" stroke-width="0.7" opacity=".2"/>
+  <text x="450.00" y="774.00" font-size="8" text-anchor="middle" fill="#1a1a2e" opacity=".35">270°</text>
+  <line x1="450.00" y1="135.00" x2="450.00" y2="110.00" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <text x="450.00" y="110.00" font-size="14" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e">N</text>
+  <line x1="765.00" y1="450.00" x2="790.00" y2="450.00" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <text x="790.00" y="450.00" font-size="14" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e">E</text>
+  <line x1="450.00" y1="765.00" x2="450.00" y2="790.00" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <text x="450.00" y="790.00" font-size="14" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e">S</text>
+  <line x1="135.00" y1="450.00" x2="110.00" y2="450.00" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <text x="110.00" y="450.00" font-size="14" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e">W</text>
+  <line x1="450.00" y1="140.00" x2="450.00" y2="130.00" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="504.70" y1="139.79" x2="505.57" y2="134.86" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="557.74" y1="154.00" x2="559.45" y2="149.30" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="605.00" y1="181.53" x2="610.00" y2="172.87" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="616.00" y="162.48" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">30°</text>
+  <line x1="652.48" y1="208.70" x2="655.69" y2="204.87" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="691.30" y1="247.52" x2="695.13" y2="244.31" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="718.47" y1="295.00" x2="727.13" y2="290.00" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="737.52" y="284.00" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">60°</text>
+  <line x1="746.00" y1="342.26" x2="750.70" y2="340.55" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="760.21" y1="395.30" x2="765.14" y2="394.43" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="760.00" y1="450.00" x2="770.00" y2="450.00" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="782.00" y="450.00" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">90°</text>
+  <line x1="760.21" y1="504.70" x2="765.14" y2="505.57" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="746.00" y1="557.74" x2="750.70" y2="559.45" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="718.47" y1="605.00" x2="727.13" y2="610.00" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="737.52" y="616.00" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">120°</text>
+  <line x1="691.30" y1="652.48" x2="695.13" y2="655.69" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="652.48" y1="691.30" x2="655.69" y2="695.13" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="605.00" y1="718.47" x2="610.00" y2="727.13" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="616.00" y="737.52" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">150°</text>
+  <line x1="557.74" y1="746.00" x2="559.45" y2="750.70" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="504.70" y1="760.21" x2="505.57" y2="765.14" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="450.00" y1="760.00" x2="450.00" y2="770.00" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="450.00" y="782.00" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">180°</text>
+  <line x1="395.30" y1="760.21" x2="394.43" y2="765.14" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="342.26" y1="746.00" x2="340.55" y2="750.70" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="295.00" y1="718.47" x2="290.00" y2="727.13" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="284.00" y="737.52" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">210°</text>
+  <line x1="247.52" y1="691.30" x2="244.31" y2="695.13" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="208.70" y1="652.48" x2="204.87" y2="655.69" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="181.53" y1="605.00" x2="172.87" y2="610.00" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="162.48" y="616.00" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">240°</text>
+  <line x1="154.00" y1="557.74" x2="149.30" y2="559.45" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="139.79" y1="504.70" x2="134.86" y2="505.57" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="140.00" y1="450.00" x2="130.00" y2="450.00" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="118.00" y="450.00" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">270°</text>
+  <line x1="139.79" y1="395.30" x2="134.86" y2="394.43" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="154.00" y1="342.26" x2="149.30" y2="340.55" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="181.53" y1="295.00" x2="172.87" y2="290.00" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="162.48" y="284.00" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">300°</text>
+  <line x1="208.70" y1="247.52" x2="204.87" y2="244.31" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="247.52" y1="208.70" x2="244.31" y2="204.87" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="295.00" y1="181.53" x2="290.00" y2="172.87" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <text x="284.00" y="162.48" font-size="8" text-anchor="middle" dominant-baseline="central" fill="#1a1a2e" opacity=".5">330°</text>
+  <line x1="342.26" y1="154.00" x2="340.55" y2="149.30" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="395.30" y1="139.79" x2="394.43" y2="134.86" stroke="#1a1a2e" stroke-width="0.8" opacity=".4"/>
+  <line x1="450" y1="450" x2="284.34" y2="509.44" stroke="#0d0d1e" stroke-width="1.0" opacity=".4" stroke-dasharray="4,3"/>
+  <text x="284.34" y="509.44" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".4">☉︎</text>
+  <text x="264.46" y="516.58" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">250°</text>
+  <text x="251.21" y="521.33" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">-9.4°</text>
+  <line x1="450" y1="450" x2="351.57" y2="713.84" stroke="#0d0d1e" stroke-width="1.5" opacity=".7"/>
+  <text x="351.57" y="713.84" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".7">☽︎</text>
+  <text x="339.75" y="745.50" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">200°</text>
+  <text x="331.88" y="766.60" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">+78.7°</text>
+  <line x1="450" y1="450" x2="283.81" y2="507.94" stroke="#0d0d1e" stroke-width="1.0" opacity=".4" stroke-dasharray="4,3"/>
+  <text x="283.81" y="507.94" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".4">☿︎</text>
+  <text x="263.87" y="514.89" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">251°</text>
+  <text x="250.57" y="519.53" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">-18.4°</text>
+  <line x1="450" y1="450" x2="278.61" y2="490.01" stroke="#0d0d1e" stroke-width="1.0" opacity=".4" stroke-dasharray="4,3"/>
+  <text x="278.61" y="490.01" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".4">♀︎</text>
+  <text x="258.04" y="494.81" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">257°</text>
+  <text x="244.33" y="498.01" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">-40.8°</text>
+  <line x1="450" y1="450" x2="727.56" y2="402.46" stroke="#0d0d1e" stroke-width="1.5" opacity=".7"/>
+  <text x="727.56" y="402.46" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".7">♂︎</text>
+  <text x="760.86" y="396.75" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">80°</text>
+  <text x="783.07" y="392.95" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">+52.6°</text>
+  <line x1="450" y1="450" x2="263.70" y2="661.17" stroke="#0d0d1e" stroke-width="1.5" opacity=".7"/>
+  <text x="263.70" y="661.17" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".7">♃︎</text>
+  <text x="241.34" y="686.51" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">221°</text>
+  <text x="226.44" y="703.40" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">+65.8°</text>
+  <line x1="450" y1="450" x2="717.53" y2="362.09" stroke="#0d0d1e" stroke-width="1.5" opacity=".7"/>
+  <text x="717.53" y="362.09" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".7">♄︎</text>
+  <text x="749.63" y="351.54" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">72°</text>
+  <text x="771.03" y="344.51" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">+7.0°</text>
+  <line x1="450" y1="450" x2="719.47" y2="368.23" stroke="#0d0d1e" stroke-width="1.5" opacity=".7"/>
+  <text x="719.47" y="368.23" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".7">♅︎</text>
+  <text x="751.80" y="358.42" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">73°</text>
+  <text x="773.36" y="351.88" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">+21.3°</text>
+  <line x1="450" y1="450" x2="725.89" y2="393.57" stroke="#0d0d1e" stroke-width="1.5" opacity=".7"/>
+  <text x="725.89" y="393.57" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".7">♆︎</text>
+  <text x="758.99" y="386.80" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">78°</text>
+  <text x="781.07" y="382.28" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">+34.7°</text>
+  <line x1="450" y1="450" x2="623.86" y2="422.62" stroke="#0d0d1e" stroke-width="1.0" opacity=".4" stroke-dasharray="4,3"/>
+  <text x="623.86" y="422.62" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".4">♇︎</text>
+  <text x="644.72" y="419.33" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">81°</text>
+  <text x="658.63" y="417.14" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">-26.1°</text>
+  <line x1="450" y1="450" x2="204.57" y2="588.07" stroke="#0d0d1e" stroke-width="1.5" opacity=".7"/>
+  <text x="204.57" y="588.07" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".7">☊︎</text>
+  <text x="175.12" y="604.64" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">241°</text>
+  <text x="155.48" y="615.68" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">+30.3°</text>
+  <line x1="450" y1="450" x2="279.18" y2="492.40" stroke="#0d0d1e" stroke-width="1.0" opacity=".4" stroke-dasharray="4,3"/>
+  <text x="279.18" y="492.40" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central" font-family="serif" fill="#0d0d1e" opacity=".4">⚷︎</text>
+  <text x="258.69" y="497.49" font-size="8" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".55">256°</text>
+  <text x="245.02" y="500.88" font-size="7" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">-13.5°</text>
+</svg>

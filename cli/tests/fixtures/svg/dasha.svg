@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 510" width="900" height="510">
+  <rect width="900" height="510" fill="#ffffff"/>
+  <text x="450" y="28" text-anchor="middle" font-size="16" font-weight="600"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00">Vimshottari Dasha Timeline</text>
+  <text x="450" y="48" text-anchor="middle" font-size="9"
+        font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".6">1986-05-30 09:00 UT</text>
+  <line x1="104.6" y1="70.0" x2="104.6" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="104.6" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">1991</text>
+  <line x1="131.4" y1="70.0" x2="131.4" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="131.4" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">1996</text>
+  <line x1="158.3" y1="70.0" x2="158.3" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="158.3" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2001</text>
+  <line x1="185.1" y1="70.0" x2="185.1" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="185.1" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2006</text>
+  <line x1="211.9" y1="70.0" x2="211.9" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="211.9" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2011</text>
+  <line x1="238.7" y1="70.0" x2="238.7" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="238.7" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2016</text>
+  <line x1="265.6" y1="70.0" x2="265.6" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="265.6" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2021</text>
+  <line x1="292.4" y1="70.0" x2="292.4" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="292.4" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2026</text>
+  <line x1="319.2" y1="70.0" x2="319.2" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="319.2" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2031</text>
+  <line x1="346.0" y1="70.0" x2="346.0" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="346.0" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2036</text>
+  <line x1="372.8" y1="70.0" x2="372.8" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="372.8" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2041</text>
+  <line x1="399.7" y1="70.0" x2="399.7" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="399.7" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2046</text>
+  <line x1="426.5" y1="70.0" x2="426.5" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="426.5" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2051</text>
+  <line x1="453.3" y1="70.0" x2="453.3" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="453.3" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2056</text>
+  <line x1="480.1" y1="70.0" x2="480.1" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="480.1" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2061</text>
+  <line x1="506.9" y1="70.0" x2="506.9" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="506.9" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2066</text>
+  <line x1="533.7" y1="70.0" x2="533.7" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="533.7" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2071</text>
+  <line x1="560.6" y1="70.0" x2="560.6" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="560.6" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2076</text>
+  <line x1="587.4" y1="70.0" x2="587.4" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="587.4" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2081</text>
+  <line x1="614.2" y1="70.0" x2="614.2" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="614.2" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2086</text>
+  <line x1="641.0" y1="70.0" x2="641.0" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="641.0" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2091</text>
+  <line x1="667.8" y1="70.0" x2="667.8" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="667.8" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2096</text>
+  <line x1="694.7" y1="70.0" x2="694.7" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="694.7" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2101</text>
+  <line x1="721.5" y1="70.0" x2="721.5" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="721.5" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2106</text>
+  <line x1="748.3" y1="70.0" x2="748.3" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="748.3" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2111</text>
+  <line x1="775.1" y1="70.0" x2="775.1" y2="470.0" stroke="#2a1a00" stroke-width="0.5" opacity=".2"/>
+  <text x="775.1" y="64.0" text-anchor="middle" font-size="8" fill="#2a1a00" opacity=".5">2116</text>
+  <rect x="80.0" y="70.0" width="76.3" height="36" rx="4" fill="#1a3a7a" opacity=".75"/>
+  <text x="86.0" y="82.6" font-size="10" font-weight="600" dominant-baseline="central" fill="#fff">Body(6)</text>
+  <text x="86.0" y="95.2" font-size="8" dominant-baseline="central" fill="#fff" opacity=".85">14.2y · 1986-05-30 09:00 UT</text>
+  <text x="76.0" y="88.0" text-anchor="end" font-size="9" dominant-baseline="central" fill="#2a1a00" opacity=".7">Body(6)</text>
+  <rect x="156.3" y="110.0" width="91.2" height="36" rx="4" fill="#1a3a7a" opacity=".75"/>
+  <text x="162.3" y="122.6" font-size="10" font-weight="600" dominant-baseline="central" fill="#fff">Body(2)</text>
+  <text x="162.3" y="135.2" font-size="8" dominant-baseline="central" fill="#fff" opacity=".85">17.0y · 2000-08-20 10:34 UT</text>
+  <text x="76.0" y="128.0" text-anchor="end" font-size="9" dominant-baseline="central" fill="#2a1a00" opacity=".7">Body(2)</text>
+  <rect x="247.5" y="150.0" width="37.5" height="36" rx="4" fill="#1a3a7a" opacity=".75"/>
+  <text x="253.5" y="162.6" font-size="10" font-weight="600" dominant-baseline="central" fill="#fff">Body(11)</text>
+  <text x="253.5" y="175.2" font-size="8" dominant-baseline="central" fill="#fff" opacity=".85">7.0y · 2017-08-20 16:34 UT</text>
+  <text x="76.0" y="168.0" text-anchor="end" font-size="9" dominant-baseline="central" fill="#2a1a00" opacity=".7">Body(11)</text>
+  <rect x="285.0" y="190.0" width="107.3" height="36" rx="4" fill="#1a3a7a" opacity=".75"/>
+  <text x="291.0" y="202.6" font-size="10" font-weight="600" dominant-baseline="central" fill="#fff">Body(3)</text>
+  <text x="291.0" y="215.2" font-size="8" dominant-baseline="central" fill="#fff" opacity=".85">20.0y · 2024-08-20 10:34 UT</text>
+  <text x="76.0" y="208.0" text-anchor="end" font-size="9" dominant-baseline="central" fill="#2a1a00" opacity=".7">Body(3)</text>
+  <rect x="392.3" y="230.0" width="32.2" height="36" rx="4" fill="#1a3a7a" opacity=".75"/>
+  <text x="398.3" y="242.6" font-size="10" font-weight="600" dominant-baseline="central" fill="#fff">Body(0)</text>
+  <text x="398.3" y="255.2" font-size="8" dominant-baseline="central" fill="#fff" opacity=".85">6.0y · 2044-08-20 10:34 UT</text>
+  <text x="76.0" y="248.0" text-anchor="end" font-size="9" dominant-baseline="central" fill="#2a1a00" opacity=".7">Body(0)</text>
+  <rect x="424.5" y="270.0" width="53.6" height="36" rx="4" fill="#1a3a7a" opacity=".75"/>
+  <text x="430.5" y="282.6" font-size="10" font-weight="600" dominant-baseline="central" fill="#fff">Body(1)</text>
+  <text x="430.5" y="295.2" font-size="8" dominant-baseline="central" fill="#fff" opacity=".85">10.0y · 2050-08-20 22:34 UT</text>
+  <text x="76.0" y="288.0" text-anchor="end" font-size="9" dominant-baseline="central" fill="#2a1a00" opacity=".7">Body(1)</text>
+  <rect x="478.2" y="310.0" width="37.5" height="36" rx="4" fill="#1a3a7a" opacity=".75"/>
+  <text x="484.2" y="322.6" font-size="10" font-weight="600" dominant-baseline="central" fill="#fff">Body(4)</text>
+  <text x="484.2" y="335.2" font-size="8" dominant-baseline="central" fill="#fff" opacity=".85">7.0y · 2060-08-20 10:34 UT</text>
+  <text x="76.0" y="328.0" text-anchor="end" font-size="9" dominant-baseline="central" fill="#2a1a00" opacity=".7">Body(4)</text>
+  <rect x="515.7" y="350.0" width="96.6" height="36" rx="4" fill="#1a3a7a" opacity=".75"/>
+  <text x="521.7" y="362.6" font-size="10" font-weight="600" dominant-baseline="central" fill="#fff">Body(10)</text>
+  <text x="521.7" y="375.2" font-size="8" dominant-baseline="central" fill="#fff" opacity=".85">18.0y · 2067-08-21 04:34 UT</text>
+  <text x="76.0" y="368.0" text-anchor="end" font-size="9" dominant-baseline="central" fill="#2a1a00" opacity=".7">Body(10)</text>
+  <rect x="612.3" y="390.0" width="85.8" height="36" rx="4" fill="#1a3a7a" opacity=".75"/>
+  <text x="618.3" y="402.6" font-size="10" font-weight="600" dominant-baseline="central" fill="#fff">Body(5)</text>
+  <text x="618.3" y="415.2" font-size="8" dominant-baseline="central" fill="#fff" opacity=".85">16.0y · 2085-08-20 16:34 UT</text>
+  <text x="76.0" y="408.0" text-anchor="end" font-size="9" dominant-baseline="central" fill="#2a1a00" opacity=".7">Body(5)</text>
+  <rect x="698.1" y="430.0" width="101.9" height="36" rx="4" fill="#1a3a7a" opacity=".75"/>
+  <text x="704.1" y="442.6" font-size="10" font-weight="600" dominant-baseline="central" fill="#fff">Body(6)</text>
+  <text x="704.1" y="455.2" font-size="8" dominant-baseline="central" fill="#fff" opacity=".85">19.0y · 2101-08-21 16:34 UT</text>
+  <text x="76.0" y="448.0" text-anchor="end" font-size="9" dominant-baseline="central" fill="#2a1a00" opacity=".7">Body(6)</text>
+</svg>
