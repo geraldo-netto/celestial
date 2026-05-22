@@ -27,7 +27,8 @@ const SNAPSHOTS: &[(&str, &[&str])] = &[
     // ── Wheel family ──
     ("natal", &[]),
     ("cosmogram", &[]),
-    ("solar-return", &[]),
+    // solar-return's year defaults to the current year — pin it.
+    ("solar-return", &["--return-year", "2020"]),
     ("lunar-return", &[]),
     ("progressed", &["--years", "30"]),
     ("solar-arc", &["--years", "30"]),
@@ -37,7 +38,9 @@ const SNAPSHOTS: &[(&str, &[&str])] = &[
         "triwheel",
         &["--date2", "1990-07-01 12:00", "--date3", "2000-01-01 12:00"],
     ),
-    ("ephemeris", &[]),
+    // ephemeris spans [--date, --date2]; --date2 defaults to "now", so it
+    // MUST be pinned or the plotted trajectories drift day to day.
+    ("ephemeris", &["--date2", "1987-05-30 09:00"]),
     ("profection", &[]),
     // ── Specialist / vedic / calendar ──
     ("dial", &[]),

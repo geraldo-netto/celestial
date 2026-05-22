@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1860" width="900" height="1860">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1815" width="900" height="1815">
   <defs>
     <symbol id="g-2648" viewBox="-10 0 1846 2048" preserveAspectRatio="xMidYMid meet"><path d="M854 1556q0 -600 -143 -986.5t-312 -386.5q-129 0 -146 98.5t-17 132.5q0 128 84 256h-134q-93 -132 -93 -293q0 -132 81.5 -225.5t227.5 -93.5q372 0 503 773q8 49 13 89q4 -40 12 -89q132 -773 503 -773q147 0 228 93.5t81 225.5q0 161 -93 293h-134q85 -128 85 -257 q0 -34 -17 -132t-147 -98q-168 0 -311 386.5t-143 986.5h-128z"/></symbol>
     <symbol id="g-2649" viewBox="-10 0 1846 2048" preserveAspectRatio="xMidYMid meet"><path d="M917 696q-147 0 -250 103.5t-103 250.5t103 250t250 103t250.5 -103t103.5 -250t-102.5 -250.5t-251.5 -103.5zM917 546q131 -5 207 -66q86 -66 134.5 -156t129 -177t265.5 -87v108q-123 0 -206.5 156t-214.5 264q-21 19 -44 34q46 30 89 71q146 149 146 359 q0 209 -147.5 356.5t-358.5 147.5q-208 0 -356 -147.5t-148 -356.5q0 -210 148 -359q41 -42 89 -72q-24 -14 -45 -33q-129 -108 -214.5 -264t-207.5 -156v-108q185 0 278 87t129 177t121 156q77 61 206 66z"/></symbol>
@@ -28,12 +28,12 @@
     <symbol id="g-26B7" viewBox="-10 0 1510 2048" preserveAspectRatio="xMidYMid meet"><path d="M550 1418q0 83 58.5 141.5t141.5 58.5t141.5 -58.5t58.5 -141.5t-58.5 -142t-141.5 -59t-141.5 59t-58.5 142zM501.5 1665q-103.5 -103 -103.5 -248.5t104 -248.5q72 -71 165 -93v-974h172v306l293 -173l86 148l-359 209l359 210l-86 148l-293 -174v302q89 22 159 91 q104 103 104 248.5t-103.5 248.5t-248.5 103t-248.5 -103z"/></symbol>
     <symbol id="g-260B" viewBox="-10 0 1829 2048" preserveAspectRatio="xMidYMid meet"><g transform="translate(0,2048) scale(1,-1)"><use href="#g-260A"/></g></symbol>
   </defs>
-  <rect width="900" height="1860" fill="#ffffff"/>
+  <rect width="900" height="1815" fill="#ffffff"/>
   <text x="450" y="34" text-anchor="middle" font-size="18" font-weight="600"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Solar Return 2026</text>
+        font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Solar Return 2020</text>
   <text x="450" y="54" text-anchor="middle" font-size="10"
         font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".7">
-2026-05-30 01:02 UT · 23.5500°S 46.6300°W · JD 2461190.5436 · ☽ Full Moon 98.4%</text>
+2020-05-29 14:11 UT · 23.5500°S 46.6300°W · JD 2458999.0913 · ☽ First Quarter 43.7%</text>
 
   <!-- Three wheels separated by three concentric rings:
        · outer wheel  (signs band):  RO → RI
@@ -44,155 +44,158 @@
   <circle cx="450" cy="424" r="320" fill="none" stroke="#1a1a2e" stroke-width="2.5" opacity=".80"/>
   <circle cx="450" cy="424" r="262" fill="none" stroke="#1a1a2e" stroke-width="2.0" opacity=".70"/>
   <circle cx="450" cy="424" r="238" fill="none" stroke="#1a1a2e" stroke-width="1.6" opacity=".55"/>
-  <line x1="274.88" y1="618.88" x2="236.12" y2="662.02" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-2648" x="305.15" y="670.42" width="26.00" height="26.00" fill="#c1272d"/>
-  <line x1="395.78" y1="680.33" x2="383.78" y2="737.07" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-2649" x="452.52" y="701.59" width="26.00" height="26.00" fill="#5a7a30"/>
-  <line x1="531.21" y1="673.10" x2="549.19" y2="728.24" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-264A" x="595.73" y="654.89" width="26.00" height="26.00" fill="#c4a017"/>
-  <line x1="644.88" y1="599.12" x2="688.02" y2="637.88" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-264B" x="696.42" y="542.85" width="26.00" height="26.00" fill="#1a5fb4"/>
-  <line x1="706.33" y1="478.22" x2="763.07" y2="490.22" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-264C" x="727.59" y="395.48" width="26.00" height="26.00" fill="#c1272d"/>
-  <line x1="699.10" y1="342.79" x2="754.24" y2="324.81" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-264D" x="680.89" y="252.27" width="26.00" height="26.00" fill="#5a7a30"/>
-  <line x1="625.12" y1="229.12" x2="663.88" y2="185.98" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-264E" x="568.85" y="151.58" width="26.00" height="26.00" fill="#c4a017"/>
-  <line x1="504.22" y1="167.67" x2="516.22" y2="110.93" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-264F" x="421.48" y="120.41" width="26.00" height="26.00" fill="#1a5fb4"/>
-  <line x1="368.79" y1="174.90" x2="350.81" y2="119.76" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-2650" x="278.27" y="167.11" width="26.00" height="26.00" fill="#c1272d"/>
-  <line x1="255.12" y1="248.88" x2="211.98" y2="210.12" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-2651" x="177.58" y="279.15" width="26.00" height="26.00" fill="#5a7a30"/>
-  <line x1="193.67" y1="369.78" x2="136.93" y2="357.78" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-2652" x="146.41" y="426.52" width="26.00" height="26.00" fill="#c4a017"/>
-  <line x1="200.90" y1="505.21" x2="145.76" y2="523.19" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
-  <use href="#g-2653" x="193.11" y="569.73" width="26.00" height="26.00" fill="#1a5fb4"/>
+  <line x1="631.44" y1="235.00" x2="671.61" y2="193.16" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-2648" x="577.33" y="156.07" width="26.00" height="26.00" fill="#c1272d"/>
+  <line x1="512.63" y1="169.60" x2="526.50" y2="113.28" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-2649" x="431.06" y="120.06" width="26.00" height="26.00" fill="#5a7a30"/>
+  <line x1="377.04" y1="172.36" x2="360.89" y2="116.66" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-264A" x="286.39" y="162.01" width="26.00" height="26.00" fill="#c4a017"/>
+  <line x1="261.00" y1="242.56" x2="219.16" y2="202.39" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-264B" x="182.07" y="270.67" width="26.00" height="26.00" fill="#1a5fb4"/>
+  <line x1="195.60" y1="361.37" x2="139.28" y2="347.50" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-264C" x="146.06" y="416.94" width="26.00" height="26.00" fill="#c1272d"/>
+  <line x1="198.36" y1="496.96" x2="142.66" y2="513.11" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-264D" x="188.01" y="561.61" width="26.00" height="26.00" fill="#5a7a30"/>
+  <line x1="268.56" y1="613.00" x2="228.39" y2="654.84" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-264E" x="296.67" y="665.93" width="26.00" height="26.00" fill="#c4a017"/>
+  <line x1="387.37" y1="678.40" x2="373.50" y2="734.72" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-264F" x="442.94" y="701.94" width="26.00" height="26.00" fill="#1a5fb4"/>
+  <line x1="522.96" y1="675.64" x2="539.11" y2="731.34" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-2650" x="587.61" y="659.99" width="26.00" height="26.00" fill="#c1272d"/>
+  <line x1="639.00" y1="605.44" x2="680.84" y2="645.61" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-2651" x="691.93" y="551.33" width="26.00" height="26.00" fill="#5a7a30"/>
+  <line x1="704.40" y1="486.63" x2="760.72" y2="500.50" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-2652" x="727.94" y="405.06" width="26.00" height="26.00" fill="#c4a017"/>
+  <line x1="701.64" y1="351.04" x2="757.34" y2="334.89" stroke="#1a1a2e" stroke-width="1.5" opacity=".55"/>
+  <use href="#g-2653" x="685.99" y="260.39" width="26.00" height="26.00" fill="#1a5fb4"/>
 
   <line x1="450.00" y1="424.00" x2="130.00" y2="424.00" stroke="#1a1a2e" stroke-width="3.0" opacity=".90"/>
-  <text x="206.20" y="479.34" font-size="13" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".95">1</text>
-  <line x1="450.00" y1="424.00" x2="213.67" y2="537.11" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
-  <text x="259.11" y="585.44" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">2</text>
-  <line x1="450.00" y1="424.00" x2="299.23" y2="638.27" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
-  <text x="368.52" y="660.35" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">3</text>
-  <line x1="450.00" y1="424.00" x2="433.77" y2="743.59" stroke="#1a1a2e" stroke-width="3.0" opacity=".90"/>
-  <text x="507.80" y="667.23" font-size="13" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".95">4</text>
-  <line x1="450.00" y1="424.00" x2="579.58" y2="651.71" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
-  <text x="627.25" y="600.30" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">5</text>
-  <line x1="450.00" y1="424.00" x2="678.40" y2="552.37" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
-  <text x="691.85" y="487.31" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">6</text>
+  <text x="213.94" y="506.31" font-size="13" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".95">1</text>
+  <line x1="450.00" y1="424.00" x2="244.80" y2="586.90" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
+  <text x="310.05" y="631.16" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">2</text>
+  <line x1="450.00" y1="424.00" x2="375.47" y2="675.18" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
+  <text x="440.75" y="673.83" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">3</text>
+  <line x1="450.00" y1="424.00" x2="518.09" y2="736.67" stroke="#1a1a2e" stroke-width="3.0" opacity=".90"/>
+  <text x="554.60" y="651.06" font-size="13" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".95">4</text>
+  <line x1="450.00" y1="424.00" x2="608.34" y2="632.74" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
+  <text x="639.94" y="586.55" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">5</text>
+  <line x1="450.00" y1="424.00" x2="680.69" y2="548.21" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
+  <text x="692.42" y="485.11" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">6</text>
   <line x1="450.00" y1="424.00" x2="770.00" y2="424.00" stroke="#1a1a2e" stroke-width="3.0" opacity=".90"/>
-  <text x="693.80" y="368.66" font-size="13" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".95">7</text>
-  <line x1="450.00" y1="424.00" x2="686.33" y2="310.89" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
-  <text x="640.89" y="262.56" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">8</text>
-  <line x1="450.00" y1="424.00" x2="600.77" y2="209.73" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
-  <text x="531.48" y="187.65" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">9</text>
-  <line x1="450.00" y1="424.00" x2="466.23" y2="104.41" stroke="#1a1a2e" stroke-width="3.0" opacity=".90"/>
-  <text x="392.20" y="180.77" font-size="13" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".95">10</text>
-  <line x1="450.00" y1="424.00" x2="320.42" y2="196.29" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
-  <text x="272.75" y="247.70" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">11</text>
-  <line x1="450.00" y1="424.00" x2="221.60" y2="295.63" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
-  <text x="208.15" y="360.69" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">12</text>
+  <text x="686.06" y="341.69" font-size="13" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".95">7</text>
+  <line x1="450.00" y1="424.00" x2="655.20" y2="261.10" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
+  <text x="589.95" y="216.84" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">8</text>
+  <line x1="450.00" y1="424.00" x2="524.53" y2="172.82" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
+  <text x="459.25" y="174.17" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">9</text>
+  <line x1="450.00" y1="424.00" x2="381.91" y2="111.33" stroke="#1a1a2e" stroke-width="3.0" opacity=".90"/>
+  <text x="345.40" y="196.94" font-size="13" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".95">10</text>
+  <line x1="450.00" y1="424.00" x2="291.66" y2="215.26" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
+  <text x="260.06" y="261.45" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">11</text>
+  <line x1="450.00" y1="424.00" x2="219.31" y2="299.79" stroke="#1a1a2e" stroke-width="1.2" opacity=".50"/>
+  <text x="207.58" y="362.89" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".80">12</text>
   <text x="170.00" y="424.00" text-anchor="end" font-size="12" font-weight="800" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">ASC</text>
   <text x="730.00" y="424.00" text-anchor="start" font-size="12" font-weight="800" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">DSC</text>
-  <text x="464.20" y="137.36" text-anchor="middle" font-size="12" font-weight="800" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">MC</text>
-  <text x="435.80" y="714.64" text-anchor="middle" font-size="12" font-weight="800" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">IC</text>
+  <text x="390.42" y="143.41" text-anchor="middle" font-size="12" font-weight="800" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">MC</text>
+  <text x="509.58" y="708.59" text-anchor="middle" font-size="12" font-weight="800" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">IC</text>
 
-  <line x1="537.24" y1="597.28" x2="437.62" y2="617.60" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
-  <line x1="537.24" y1="597.28" x2="633.91" y2="485.74" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
-  <line x1="537.24" y1="597.28" x2="353.88" y2="592.51" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="537.24" y1="597.28" x2="516.75" y2="606.15" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="537.24" y1="597.28" x2="330.72" y2="577.00" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="537.24" y1="597.28" x2="257.43" y2="400.49" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="537.24" y1="597.28" x2="270.55" y2="497.72" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
-  <line x1="537.24" y1="597.28" x2="404.85" y2="612.67" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
-  <line x1="537.24" y1="597.28" x2="629.45" y2="350.28" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
-  <line x1="537.24" y1="597.28" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="537.24" y1="597.28" x2="459.84" y2="230.25" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
-  <line x1="408.89" y1="234.41" x2="584.20" y2="564.09" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
-  <line x1="408.89" y1="234.41" x2="633.91" y2="485.74" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
-  <line x1="408.89" y1="234.41" x2="516.75" y2="606.15" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
-  <line x1="408.89" y1="234.41" x2="257.43" y2="400.49" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
-  <line x1="584.20" y1="564.09" x2="353.88" y2="592.51" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
-  <line x1="584.20" y1="564.09" x2="404.85" y2="612.67" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="584.20" y1="564.09" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
-  <line x1="584.20" y1="564.09" x2="459.84" y2="230.25" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
-  <line x1="619.91" y1="517.62" x2="437.62" y2="617.60" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="619.91" y1="517.62" x2="353.88" y2="592.51" stroke="#b01020" stroke-width="1.8" opacity=".55"/>
-  <line x1="619.91" y1="517.62" x2="629.45" y2="350.28" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
-  <line x1="619.91" y1="517.62" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
-  <line x1="619.91" y1="517.62" x2="459.84" y2="230.25" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="437.62" y1="617.60" x2="257.43" y2="400.49" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
-  <line x1="437.62" y1="617.60" x2="270.55" y2="497.72" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="437.62" y1="617.60" x2="629.45" y2="350.28" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="437.62" y1="617.60" x2="256.00" y2="424.00" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
-  <line x1="437.62" y1="617.60" x2="459.84" y2="230.25" stroke="#b01020" stroke-width="1.8" opacity=".55"/>
-  <line x1="633.91" y1="485.74" x2="516.75" y2="606.15" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
-  <line x1="633.91" y1="485.74" x2="404.85" y2="612.67" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
-  <line x1="633.91" y1="485.74" x2="629.45" y2="350.28" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
-  <line x1="353.88" y1="592.51" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
-  <line x1="516.75" y1="606.15" x2="330.72" y2="577.00" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
-  <line x1="516.75" y1="606.15" x2="257.43" y2="400.49" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="516.75" y1="606.15" x2="270.55" y2="497.72" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
-  <line x1="516.75" y1="606.15" x2="629.45" y2="350.28" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
-  <line x1="330.72" y1="577.00" x2="257.43" y2="400.49" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
-  <line x1="330.72" y1="577.00" x2="270.55" y2="497.72" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
-  <line x1="330.72" y1="577.00" x2="629.45" y2="350.28" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
-  <line x1="330.72" y1="577.00" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
-  <line x1="330.72" y1="577.00" x2="459.84" y2="230.25" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
-  <line x1="257.43" y1="400.49" x2="270.55" y2="497.72" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
-  <line x1="257.43" y1="400.49" x2="404.85" y2="612.67" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
-  <line x1="257.43" y1="400.49" x2="629.45" y2="350.28" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
-  <line x1="257.43" y1="400.49" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="257.43" y1="400.49" x2="459.84" y2="230.25" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
-  <line x1="270.55" y1="497.72" x2="404.85" y2="612.67" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="270.55" y1="497.72" x2="629.45" y2="350.28" stroke="#b01020" stroke-width="1.8" opacity=".55"/>
-  <line x1="270.55" y1="497.72" x2="459.84" y2="230.25" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="404.85" y1="612.67" x2="629.45" y2="350.28" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
-  <line x1="629.45" y1="350.28" x2="459.84" y2="230.25" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="368.52" y1="247.94" x2="622.45" y2="335.14" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
+  <line x1="368.52" y1="247.94" x2="639.91" y2="463.64" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="368.52" y1="247.94" x2="468.10" y2="230.85" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
+  <line x1="368.52" y1="247.94" x2="632.97" y2="488.48" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
+  <line x1="368.52" y1="247.94" x2="562.91" y2="266.25" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
+  <line x1="368.52" y1="247.94" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="265.11" y1="482.74" x2="307.44" y2="292.42" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
+  <line x1="265.11" y1="482.74" x2="635.32" y2="481.39" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
+  <line x1="265.11" y1="482.74" x2="639.91" y2="463.64" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
+  <line x1="265.11" y1="482.74" x2="468.10" y2="230.85" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="265.11" y1="482.74" x2="632.97" y2="488.48" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
+  <line x1="265.11" y1="482.74" x2="309.30" y2="290.44" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
+  <line x1="265.11" y1="482.74" x2="562.91" y2="266.25" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
+  <line x1="265.11" y1="482.74" x2="590.70" y2="557.56" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
+  <line x1="265.11" y1="482.74" x2="408.72" y2="234.44" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
+  <line x1="307.44" y1="292.42" x2="639.91" y2="463.64" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
+  <line x1="307.44" y1="292.42" x2="309.30" y2="290.44" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
+  <line x1="307.44" y1="292.42" x2="590.70" y2="557.56" stroke="#b01020" stroke-width="1.8" opacity=".55"/>
+  <line x1="344.57" y1="261.15" x2="622.45" y2="335.14" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
+  <line x1="344.57" y1="261.15" x2="639.91" y2="463.64" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
+  <line x1="344.57" y1="261.15" x2="605.06" y2="307.41" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
+  <line x1="344.57" y1="261.15" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="622.45" y1="335.14" x2="635.32" y2="481.39" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
+  <line x1="622.45" y1="335.14" x2="639.91" y2="463.64" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
+  <line x1="622.45" y1="335.14" x2="468.10" y2="230.85" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="622.45" y1="335.14" x2="632.97" y2="488.48" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
+  <line x1="622.45" y1="335.14" x2="590.70" y2="557.56" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
+  <line x1="622.45" y1="335.14" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="635.32" y1="481.39" x2="639.91" y2="463.64" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="635.32" y1="481.39" x2="605.06" y2="307.41" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="635.32" y1="481.39" x2="632.97" y2="488.48" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="635.32" y1="481.39" x2="562.91" y2="266.25" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
+  <line x1="635.32" y1="481.39" x2="408.72" y2="234.44" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
+  <line x1="639.91" y1="463.64" x2="468.10" y2="230.85" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
+  <line x1="639.91" y1="463.64" x2="632.97" y2="488.48" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="639.91" y1="463.64" x2="309.30" y2="290.44" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
+  <line x1="639.91" y1="463.64" x2="590.70" y2="557.56" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
+  <line x1="639.91" y1="463.64" x2="408.72" y2="234.44" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="468.10" y1="230.85" x2="309.30" y2="290.44" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
+  <line x1="468.10" y1="230.85" x2="562.91" y2="266.25" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
+  <line x1="468.10" y1="230.85" x2="256.00" y2="424.00" stroke="#b01020" stroke-width="1.8" opacity=".22"/>
+  <line x1="605.06" y1="307.41" x2="632.97" y2="488.48" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="605.06" y1="307.41" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="0.9" opacity=".35" stroke-dasharray="4,3"/>
+  <line x1="605.06" y1="307.41" x2="408.72" y2="234.44" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="632.97" y1="488.48" x2="408.72" y2="234.44" stroke="#1a50b0" stroke-width="1.8" opacity=".55"/>
+  <line x1="309.30" y1="290.44" x2="590.70" y2="557.56" stroke="#b01020" stroke-width="1.8" opacity=".55"/>
+  <line x1="309.30" y1="290.44" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
+  <line x1="562.91" y1="266.25" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="1.8" opacity=".22"/>
+  <line x1="590.70" y1="557.56" x2="256.00" y2="424.00" stroke="#1a50b0" stroke-width="0.9" opacity=".18" stroke-dasharray="4,3"/>
 
-  <line x1="557.93" y1="638.36" x2="539.94" y2="602.64" stroke="#d4a017" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-2609" x="533.33" y="601.35" width="24.00" height="24.00" fill="#d4a017"/>
-  <text x="569.07" y="630.07" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#d4a017">8°Gem</text>
-  <line x1="399.14" y1="189.45" x2="407.62" y2="228.54" stroke="#6b7888" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-263D" x="393.08" y="204.81" width="24.00" height="24.00" fill="#6b7888"/>
-  <text x="399.57" y="191.41" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#6b7888">24°Sco</text>
-  <line x1="616.02" y1="597.31" x2="588.35" y2="568.43" stroke="#2c9c4f" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-263F" x="584.65" y="565.09" width="24.00" height="24.00" fill="#2c9c4f"/>
-  <text x="614.64" y="595.87" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#2c9c4f">25°Gem</text>
-  <line x1="660.20" y1="539.82" x2="625.17" y2="520.52" stroke="#d65a9e" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-2640" x="623.68" y="514.31" width="24.00" height="24.00" fill="#d65a9e"/>
-  <text x="655.87" y="543.42" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#d65a9e">13°Can</text>
-  <line x1="434.69" y1="663.51" x2="437.24" y2="623.59" stroke="#c1272d" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-2642" x="424.47" y="623.57" width="24.00" height="24.00" fill="#c1272d"/>
-  <text x="441.18" y="661.84" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#c1272d">8°Tau</text>
-  <line x1="677.52" y1="500.38" x2="639.60" y2="487.65" stroke="#5d3f8e" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-2643" x="638.98" y="479.47" width="24.00" height="24.00" fill="#5d3f8e"/>
-  <text x="677.24" y="494.76" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#5d3f8e">23°Can</text>
-  <line x1="331.09" y1="632.47" x2="350.91" y2="597.73" stroke="#4a4036" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-2644" x="332.96" y="596.15" width="24.00" height="24.00" fill="#4a4036"/>
-  <text x="340.25" y="635.19" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#4a4036">12°Ari</text>
-  <line x1="532.58" y1="649.35" x2="518.82" y2="611.79" stroke="#0085c7" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-2645" x="510.95" y="611.06" width="24.00" height="24.00" fill="#0085c7"/>
-  <text x="518.91" y="651.81" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0085c7">2°Gem</text>
-  <line x1="302.44" y1="613.28" x2="327.03" y2="581.73" stroke="#1ba89d" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-2646" x="307.65" y="579.19" width="24.00" height="24.00" fill="#1ba89d"/>
-  <text x="295.96" y="605.42" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1ba89d">4°Ari</text>
-  <text x="328.65" y="582.19" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1ba89d" opacity=".9">S</text>
-  <line x1="211.77" y1="394.92" x2="251.47" y2="399.77" stroke="#7c1a1a" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-2647" x="227.56" y="386.31" width="24.00" height="24.00" fill="#7c1a1a"/>
-  <text x="213.75" y="395.16" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#7c1a1a">4°Aqu℞</text>
-  <text x="248.56" y="389.31" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#7c1a1a" opacity=".9">S</text>
-  <line x1="228.00" y1="515.20" x2="265.00" y2="500.00" stroke="#6a4f8a" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-260A" x="241.90" y="492.56" width="24.00" height="24.00" fill="#6a4f8a"/>
-  <text x="229.85" y="514.44" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#6a4f8a">4°Pis℞</text>
-  <line x1="394.14" y1="657.41" x2="403.45" y2="618.51" stroke="#6c3a1a" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-26B7" x="388.66" y="618.18" width="24.00" height="24.00" fill="#6c3a1a"/>
-  <text x="389.04" y="654.06" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#6c3a1a">28°Ari</text>
-  <text x="409.66" y="621.18" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#6c3a1a" opacity=".9">S</text>
-  <line x1="672.00" y1="332.80" x2="635.00" y2="348.00" stroke="#6a4f8a" stroke-width="1.0" opacity=".55"/>
-  <use href="#g-260B" x="634.10" y="331.44" width="24.00" height="24.00" fill="#6a4f8a"/>
-  <text x="670.15" y="333.56" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#6a4f8a">4°Vir℞</text>
+  <line x1="355.50" y1="219.81" x2="372.27" y2="199.05" stroke="#d4a017" stroke-width="0.9" opacity=".45" stroke-dasharray="3,2"/>
+  <line x1="349.20" y1="206.20" x2="366.00" y2="242.50" stroke="#d4a017" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-2609" x="348.96" y="219.61" width="24.00" height="24.00" fill="#d4a017"/>
+  <text x="372.27" y="199.05" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#d4a017">8°Gem</text>
+  <line x1="221.27" y1="496.67" x2="259.39" y2="484.56" stroke="#6b7888" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-263D" x="235.95" y="476.19" width="24.00" height="24.00" fill="#6b7888"/>
+  <text x="223.17" y="496.07" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#6b7888">1°Vir</text>
+  <line x1="284.66" y1="271.39" x2="251.06" y2="293.35" stroke="#2c9c4f" stroke-width="0.9" opacity=".45" stroke-dasharray="3,2"/>
+  <line x1="273.64" y1="261.22" x2="303.03" y2="288.35" stroke="#2c9c4f" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-263F" x="282.22" y="268.21" width="24.00" height="24.00" fill="#2c9c4f"/>
+  <text x="251.06" y="293.35" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#2c9c4f">1°Can</text>
+  <line x1="319.57" y1="222.53" x2="341.31" y2="256.11" stroke="#d65a9e" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-2640" x="322.79" y="234.04" width="24.00" height="24.00" fill="#d65a9e"/>
+  <text x="325.36" y="221.25" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#d65a9e">16°Gem℞</text>
+  <line x1="663.34" y1="314.07" x2="627.79" y2="332.39" stroke="#c1272d" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-2642" x="626.45" y="314.90" width="24.00" height="24.00" fill="#c1272d"/>
+  <text x="664.53" y="320.94" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#c1272d">11°Pis</text>
+  <line x1="664.93" y1="490.56" x2="658.69" y2="538.41" stroke="#5d3f8e" stroke-width="0.9" opacity=".45" stroke-dasharray="3,2"/>
+  <line x1="679.26" y1="494.99" x2="641.05" y2="483.16" stroke="#5d3f8e" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-2643" x="640.51" y="474.71" width="24.00" height="24.00" fill="#5d3f8e"/>
+  <text x="658.69" y="538.41" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#5d3f8e">26°Cap℞</text>
+  <text x="661.51" y="477.71" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#5d3f8e" opacity=".9">S</text>
+  <line x1="670.25" y1="469.97" x2="687.54" y2="438.73" stroke="#4a4036" stroke-width="0.9" opacity=".45" stroke-dasharray="3,2"/>
+  <line x1="684.94" y1="473.03" x2="645.78" y2="464.86" stroke="#4a4036" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-2644" x="645.53" y="455.31" width="24.00" height="24.00" fill="#4a4036"/>
+  <text x="687.54" y="438.73" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#4a4036">2°Aqu℞</text>
+  <text x="666.53" y="458.31" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#4a4036" opacity=".9">S</text>
+  <line x1="472.39" y1="185.05" x2="468.66" y2="224.87" stroke="#0085c7" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-2645" x="457.78" y="200.92" width="24.00" height="24.00" fill="#0085c7"/>
+  <text x="472.20" y="187.04" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0085c7">8°Tau</text>
+  <line x1="641.82" y1="279.76" x2="609.85" y2="303.80" stroke="#1ba89d" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-2646" x="607.44" y="284.59" width="24.00" height="24.00" fill="#1ba89d"/>
+  <text x="636.15" y="275.71" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1ba89d">20°Pis</text>
+  <text x="628.44" y="287.59" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1ba89d" opacity=".9">S</text>
+  <line x1="676.36" y1="503.77" x2="638.63" y2="490.47" stroke="#7c1a1a" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-2647" x="637.95" y="482.46" width="24.00" height="24.00" fill="#7c1a1a"/>
+  <text x="678.64" y="490.10" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#7c1a1a">24°Cap℞</text>
+  <text x="658.95" y="485.46" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#7c1a1a" opacity=".9">S</text>
+  <line x1="275.94" y1="258.77" x2="304.95" y2="286.31" stroke="#6a4f8a" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-260A" x="284.24" y="266.05" width="24.00" height="24.00" fill="#6a4f8a"/>
+  <text x="284.11" y="253.34" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#6a4f8a">0°Can℞</text>
+  <line x1="589.69" y1="228.84" x2="566.41" y2="261.37" stroke="#6c3a1a" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-26B7" x="561.39" y="239.61" width="24.00" height="24.00" fill="#6c3a1a"/>
+  <text x="588.52" y="230.47" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#6c3a1a">8°Ari</text>
+  <text x="582.39" y="242.61" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#6c3a1a" opacity=".9">S</text>
+  <line x1="624.06" y1="589.23" x2="595.05" y2="561.69" stroke="#6a4f8a" stroke-width="1.0" opacity=".55"/>
+  <use href="#g-260B" x="591.76" y="557.95" width="24.00" height="24.00" fill="#6a4f8a"/>
+  <text x="622.61" y="587.85" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#6a4f8a">0°Cap℞</text>
   <text x="24" y="784.00" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">Planets</text>
   <line x1="24" y1="787.00" x2="296.00" y2="787.00" stroke="#1a1a2e" stroke-width=".5" opacity=".35"/>
   <use href="#g-2609" x="17.00" y="791.00" width="18.00" height="18.00" fill="#0d0d1e"/>
@@ -201,419 +204,401 @@
   <text x="246.00" y="800.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.96°/d</text>
   <use href="#g-263D" x="17.00" y="807.00" width="18.00" height="18.00" fill="#0d0d1e"/>
   <text x="44.00" y="816.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Moon</text>
-  <text x="144.00" y="816.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">24°10′36″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♏︎</tspan></text>
-  <text x="246.00" y="816.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">11.96°/d</text>
+  <text x="144.00" y="816.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">01°27′26″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♍︎</tspan></text>
+  <text x="246.00" y="816.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">13.88°/d</text>
   <use href="#g-263F" x="17.00" y="823.00" width="18.00" height="18.00" fill="#0d0d1e"/>
   <text x="44.00" y="832.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Mercury</text>
-  <text x="144.00" y="832.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">25°42′44″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♊︎</tspan></text>
-  <text x="246.00" y="832.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">1.81°/d</text>
-  <use href="#g-2640" x="17.00" y="839.00" width="18.00" height="18.00" fill="#0d0d1e"/>
+  <text x="144.00" y="832.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">01°07′28″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♋︎</tspan></text>
+  <text x="246.00" y="832.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">1.31°/d</text>
+  <use href="#g-2640" x="17.00" y="839.00" width="18.00" height="18.00" fill="#b01020"/>
   <text x="44.00" y="848.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Venus</text>
-  <text x="144.00" y="848.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">13°05′17″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♋︎</tspan></text>
-  <text x="246.00" y="848.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">1.18°/d</text>
+  <text x="144.00" y="848.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">16°44′57″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♊︎</tspan></text>
+  <text x="246.00" y="848.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020" opacity="1">℞ 0.58°/d</text>
   <use href="#g-2642" x="17.00" y="855.00" width="18.00" height="18.00" fill="#0d0d1e"/>
   <text x="44.00" y="864.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Mars</text>
-  <text x="144.00" y="864.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">08°17′02″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♉︎</tspan></text>
-  <text x="246.00" y="864.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.74°/d</text>
-  <use href="#g-2643" x="17.00" y="871.00" width="18.00" height="18.00" fill="#0d0d1e"/>
+  <text x="144.00" y="864.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">11°05′31″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♓︎</tspan></text>
+  <text x="246.00" y="864.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.67°/d</text>
+  <use href="#g-2643" x="17.00" y="871.00" width="18.00" height="18.00" fill="#b01020"/>
   <text x="44.00" y="880.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Jupiter</text>
-  <text x="144.00" y="880.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">23°23′08″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♋︎</tspan></text>
-  <text x="246.00" y="880.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.19°/d</text>
-  <use href="#g-2644" x="17.00" y="887.00" width="18.00" height="18.00" fill="#0d0d1e"/>
+  <text x="144.00" y="880.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">26°37′32″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♑︎</tspan></text>
+  <text x="246.00" y="880.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020" opacity="1">℞ 0.04°/d</text>
+  <use href="#g-2644" x="17.00" y="887.00" width="18.00" height="18.00" fill="#b01020"/>
   <text x="44.00" y="896.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Saturn</text>
-  <text x="144.00" y="896.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">12°14′32″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♈︎</tspan></text>
-  <text x="246.00" y="896.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.09°/d</text>
+  <text x="144.00" y="896.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">02°02′33″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♒︎</tspan></text>
+  <text x="246.00" y="896.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020" opacity="1">℞ 0.03°/d</text>
   <use href="#g-2645" x="17.00" y="903.00" width="18.00" height="18.00" fill="#0d0d1e"/>
   <text x="44.00" y="912.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Uranus</text>
-  <text x="144.00" y="912.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">02°04′06″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♊︎</tspan></text>
-  <text x="246.00" y="912.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.06°/d</text>
+  <text x="144.00" y="912.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">08°28′41″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♉︎</tspan></text>
+  <text x="246.00" y="912.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.05°/d</text>
   <use href="#g-2646" x="17.00" y="919.00" width="18.00" height="18.00" fill="#0d0d1e"/>
   <text x="44.00" y="928.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Neptune</text>
-  <text x="144.00" y="928.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">04°00′07″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♈︎</tspan></text>
-  <text x="246.00" y="928.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.02°/d</text>
+  <text x="144.00" y="928.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">20°46′18″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♓︎</tspan></text>
+  <text x="246.00" y="928.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.01°/d</text>
   <use href="#g-2647" x="17.00" y="935.00" width="18.00" height="18.00" fill="#b01020"/>
   <text x="44.00" y="944.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Pluto</text>
-  <text x="144.00" y="944.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">04°58′59″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♒︎</tspan></text>
-  <text x="246.00" y="944.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020" opacity="1">℞ 0.01°/d</text>
+  <text x="144.00" y="944.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">24°25′09″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♑︎</tspan></text>
+  <text x="246.00" y="944.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020" opacity="1">℞ 0.02°/d</text>
   <use href="#g-260A" x="17.00" y="951.00" width="18.00" height="18.00" fill="#b01020"/>
   <text x="44.00" y="960.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Node (North)</text>
-  <text x="144.00" y="960.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">04°16′36″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♓︎</tspan></text>
+  <text x="144.00" y="960.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">00°19′21″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♋︎</tspan></text>
   <text x="246.00" y="960.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020" opacity="1">℞ 0.05°/d</text>
   <use href="#g-26B7" x="17.00" y="967.00" width="18.00" height="18.00" fill="#0d0d1e"/>
   <text x="44.00" y="976.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Chiron</text>
-  <text x="144.00" y="976.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">28°29′03″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♈︎</tspan></text>
-  <text x="246.00" y="976.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.05°/d</text>
+  <text x="144.00" y="976.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">08°14′16″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♈︎</tspan></text>
+  <text x="246.00" y="976.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".4">0.03°/d</text>
   <use href="#g-260B" x="17.00" y="983.00" width="18.00" height="18.00" fill="#b01020"/>
   <text x="44.00" y="992.00" font-size="11" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Node (South)</text>
-  <text x="144.00" y="992.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">04°16′36″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♍︎</tspan></text>
+  <text x="144.00" y="992.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">00°19′21″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♑︎</tspan></text>
   <text x="246.00" y="992.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020" opacity="1">℞ 0.05°/d</text>
 
   <text x="314" y="784.00" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">Angles &amp; Houses</text>
   <line x1="314" y1="787.00" x2="564.00" y2="787.00" stroke="#1a1a2e" stroke-width=".5" opacity=".35"/>
   <text x="316.00" y="800.00" font-size="10" font-weight="700" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">ASC</text>
-  <text x="352.00" y="800.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">11°56′33″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♒︎</tspan></text>
-  <text x="464.00" y="800.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">311.9425&#176;</text>
+  <text x="352.00" y="800.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">13°49′52″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♌︎</tspan></text>
+  <text x="464.00" y="800.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">133.8312&#176;</text>
   <text x="316.00" y="816.00" font-size="10" font-weight="700" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">MC</text>
-  <text x="352.00" y="816.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">09°02′05″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♏︎</tspan></text>
-  <text x="464.00" y="816.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">219.0348&#176;</text>
+  <text x="352.00" y="816.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">26°06′59″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♉︎</tspan></text>
+  <text x="464.00" y="816.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">56.1164&#176;</text>
   <text x="316.00" y="832.00" font-size="10" font-weight="700" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">DSC</text>
-  <text x="352.00" y="832.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">11°56′33″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♌︎</tspan></text>
-  <text x="464.00" y="832.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">131.9425&#176;</text>
+  <text x="352.00" y="832.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">13°49′52″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♒︎</tspan></text>
+  <text x="464.00" y="832.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">313.8312&#176;</text>
   <text x="316.00" y="848.00" font-size="10" font-weight="700" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">IC</text>
-  <text x="352.00" y="848.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">09°02′05″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♉︎</tspan></text>
-  <text x="464.00" y="848.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">39.0348&#176;</text>
+  <text x="352.00" y="848.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">26°06′59″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♏︎</tspan></text>
+  <text x="464.00" y="848.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">236.1164&#176;</text>
   <line x1="314" y1="866.00" x2="564.00" y2="866.00" stroke="#1a1a2e" stroke-width=".3" opacity=".2"/>
   <text x="316.00" y="878.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H1</text>
-  <text x="342.00" y="878.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">11°56′33″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♒︎</tspan></text>
-  <text x="452.00" y="878.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">311.9425&#176;</text>
+  <text x="342.00" y="878.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">13°49′52″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♌︎</tspan></text>
+  <text x="452.00" y="878.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">133.8312&#176;</text>
   <text x="316.00" y="894.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H2</text>
-  <text x="342.00" y="894.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">07°31′10″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♓︎</tspan></text>
-  <text x="452.00" y="894.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">337.5194&#176;</text>
+  <text x="342.00" y="894.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">22°16′35″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♍︎</tspan></text>
+  <text x="452.00" y="894.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">172.2764&#176;</text>
   <text x="316.00" y="910.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H3</text>
-  <text x="342.00" y="910.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">06°48′35″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♈︎</tspan></text>
-  <text x="452.00" y="910.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">6.8098&#176;</text>
+  <text x="342.00" y="910.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">27°18′16″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♎︎</tspan></text>
+  <text x="452.00" y="910.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">207.3044&#176;</text>
   <text x="316.00" y="926.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H4</text>
-  <text x="342.00" y="926.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">09°02′05″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♉︎</tspan></text>
-  <text x="452.00" y="926.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">39.0348&#176;</text>
+  <text x="342.00" y="926.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">26°06′59″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♏︎</tspan></text>
+  <text x="452.00" y="926.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">236.1164&#176;</text>
   <text x="316.00" y="942.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H5</text>
-  <text x="342.00" y="942.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">11°35′08″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♊︎</tspan></text>
-  <text x="452.00" y="942.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">71.5856&#176;</text>
+  <text x="342.00" y="942.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">21°00′51″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♐︎</tspan></text>
+  <text x="452.00" y="942.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">261.0141&#176;</text>
   <text x="316.00" y="958.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H6</text>
-  <text x="342.00" y="958.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">12°36′18″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♋︎</tspan></text>
-  <text x="452.00" y="958.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">102.6049&#176;</text>
+  <text x="342.00" y="958.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">15°31′56″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♑︎</tspan></text>
+  <text x="452.00" y="958.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">285.5324&#176;</text>
   <text x="316.00" y="974.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H7</text>
-  <text x="342.00" y="974.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">11°56′33″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♌︎</tspan></text>
-  <text x="452.00" y="974.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">131.9425&#176;</text>
+  <text x="342.00" y="974.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">13°49′52″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♒︎</tspan></text>
+  <text x="452.00" y="974.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">313.8312&#176;</text>
   <text x="316.00" y="990.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H8</text>
-  <text x="342.00" y="990.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">07°31′10″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♍︎</tspan></text>
-  <text x="452.00" y="990.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">157.5194&#176;</text>
+  <text x="342.00" y="990.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">22°16′35″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♓︎</tspan></text>
+  <text x="452.00" y="990.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">352.2764&#176;</text>
   <text x="316.00" y="1006.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H9</text>
-  <text x="342.00" y="1006.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">06°48′35″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♎︎</tspan></text>
-  <text x="452.00" y="1006.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">186.8098&#176;</text>
+  <text x="342.00" y="1006.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">27°18′16″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♈︎</tspan></text>
+  <text x="452.00" y="1006.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">27.3044&#176;</text>
   <text x="316.00" y="1022.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H10</text>
-  <text x="342.00" y="1022.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">09°02′05″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♏︎</tspan></text>
-  <text x="452.00" y="1022.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">219.0348&#176;</text>
+  <text x="342.00" y="1022.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">26°06′59″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♉︎</tspan></text>
+  <text x="452.00" y="1022.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">56.1164&#176;</text>
   <text x="316.00" y="1038.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H11</text>
-  <text x="342.00" y="1038.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">11°35′08″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c1272d">♐︎</tspan></text>
-  <text x="452.00" y="1038.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">251.5856&#176;</text>
+  <text x="342.00" y="1038.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">21°00′51″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#c4a017">♊︎</tspan></text>
+  <text x="452.00" y="1038.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">81.0141&#176;</text>
   <text x="316.00" y="1054.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".55">H12</text>
-  <text x="342.00" y="1054.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">12°36′18″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#5a7a30">♑︎</tspan></text>
-  <text x="452.00" y="1054.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">282.6049&#176;</text>
+  <text x="342.00" y="1054.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">15°31′56″<tspan font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" font-size="13" fill="#1a5fb4">♋︎</tspan></text>
+  <text x="452.00" y="1054.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">105.5324&#176;</text>
 
   <text x="584" y="784.00" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">Aspects</text>
   <line x1="584" y1="787.00" x2="876.00" y2="787.00" stroke="#1a1a2e" stroke-width=".5" opacity=".35"/>
-  <use href="#g-2609" x="578.00" y="792.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2642" x="594.00" y="792.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="800.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">semi</text>
-  <text x="676.00" y="800.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.38&#176;</text>
-  <text x="714.00" y="800.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <use href="#g-2609" x="578.00" y="792.00" width="16.00" height="16.00" fill="#b01020"/>
+  <use href="#g-2642" x="594.00" y="792.00" width="16.00" height="16.00" fill="#b01020"/>
+  <text x="618.00" y="800.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
+  <text x="676.00" y="800.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">2.43&#176;</text>
+  <text x="714.00" y="800.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
   <text x="752.00" y="800.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Mar</text>
   <use href="#g-2609" x="578.00" y="807.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2643" x="594.00" y="807.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="815.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">semi</text>
-  <text x="676.00" y="815.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.28&#176;</text>
+  <use href="#g-2644" x="594.00" y="807.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="815.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
+  <text x="676.00" y="815.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">6.62&#176;</text>
   <text x="714.00" y="815.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="815.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Jup</text>
+  <text x="752.00" y="815.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Sat</text>
   <use href="#g-2609" x="578.00" y="822.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2644" x="594.00" y="822.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="830.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
-  <text x="676.00" y="830.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">3.58&#176;</text>
-  <text x="714.00" y="830.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="830.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Sat</text>
+  <use href="#g-2645" x="594.00" y="822.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="830.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">semi</text>
+  <text x="676.00" y="830.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.19&#176;</text>
+  <text x="714.00" y="830.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="830.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Ura</text>
   <use href="#g-2609" x="578.00" y="837.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2645" x="594.00" y="837.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="845.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">conj</text>
-  <text x="676.00" y="845.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">6.60&#176;</text>
-  <text x="714.00" y="845.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="845.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Ura</text>
+  <use href="#g-2647" x="594.00" y="837.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="845.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sesq</text>
+  <text x="676.00" y="845.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.75&#176;</text>
+  <text x="714.00" y="845.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="845.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Plu</text>
   <use href="#g-2609" x="578.00" y="852.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2646" x="594.00" y="852.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-26B7" x="594.00" y="852.00" width="16.00" height="16.00" fill="#1a50b0"/>
   <text x="618.00" y="860.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
-  <text x="676.00" y="860.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.66&#176;</text>
+  <text x="676.00" y="860.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.43&#176;</text>
   <text x="714.00" y="860.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="860.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Nep</text>
+  <text x="752.00" y="860.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Chi</text>
   <use href="#g-2609" x="578.00" y="867.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2647" x="594.00" y="867.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="875.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
-  <text x="676.00" y="875.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">3.68&#176;</text>
-  <text x="714.00" y="875.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="875.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Plu</text>
-  <use href="#g-2609" x="578.00" y="882.00" width="16.00" height="16.00" fill="#b01020"/>
-  <use href="#g-260A" x="594.00" y="882.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="618.00" y="890.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
-  <text x="676.00" y="890.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.39&#176;</text>
+  <text x="602.00" y="875.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
+  <text x="618.00" y="875.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
+  <text x="676.00" y="875.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.16&#176;</text>
+  <text x="714.00" y="875.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="875.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;ASC</text>
+  <use href="#g-263D" x="578.00" y="882.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-263F" x="594.00" y="882.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="890.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
+  <text x="676.00" y="890.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.33&#176;</text>
   <text x="714.00" y="890.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="890.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Nod</text>
-  <use href="#g-2609" x="578.00" y="897.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-26B7" x="594.00" y="897.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="905.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">novi</text>
-  <text x="676.00" y="905.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.18&#176;</text>
-  <text x="714.00" y="905.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="905.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Chi</text>
-  <use href="#g-2609" x="578.00" y="912.00" width="16.00" height="16.00" fill="#b01020"/>
-  <use href="#g-260B" x="594.00" y="912.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="618.00" y="920.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
-  <text x="676.00" y="920.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.39&#176;</text>
-  <text x="714.00" y="920.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="920.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;Nod</text>
-  <use href="#g-2609" x="578.00" y="927.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="935.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
+  <text x="752.00" y="890.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Mer</text>
+  <use href="#g-263D" x="578.00" y="897.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-2643" x="594.00" y="897.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="905.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">biqu</text>
+  <text x="676.00" y="905.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.17&#176;</text>
+  <text x="714.00" y="905.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="905.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Jup</text>
+  <use href="#g-263D" x="578.00" y="912.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-2644" x="594.00" y="912.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="920.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
+  <text x="676.00" y="920.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.59&#176;</text>
+  <text x="714.00" y="920.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="920.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Sat</text>
+  <use href="#g-263D" x="578.00" y="927.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-2645" x="594.00" y="927.00" width="16.00" height="16.00" fill="#1a50b0"/>
   <text x="618.00" y="935.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
-  <text x="676.00" y="935.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">3.28&#176;</text>
+  <text x="676.00" y="935.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">7.02&#176;</text>
   <text x="714.00" y="935.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="935.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;ASC</text>
-  <use href="#g-2609" x="578.00" y="942.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="950.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">MC</text>
-  <text x="618.00" y="950.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
-  <text x="676.00" y="950.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.37&#176;</text>
-  <text x="714.00" y="950.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="950.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sun&#8211;MC</text>
+  <text x="752.00" y="935.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Ura</text>
+  <use href="#g-263D" x="578.00" y="942.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-2647" x="594.00" y="942.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="950.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">biqu</text>
+  <text x="676.00" y="950.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.04&#176;</text>
+  <text x="714.00" y="950.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="950.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Plu</text>
   <use href="#g-263D" x="578.00" y="957.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-263F" x="594.00" y="957.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="965.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
-  <text x="676.00" y="965.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.54&#176;</text>
-  <text x="714.00" y="965.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="965.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Mer</text>
+  <use href="#g-260A" x="594.00" y="957.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="965.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
+  <text x="676.00" y="965.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.13&#176;</text>
+  <text x="714.00" y="965.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="965.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Nod</text>
   <use href="#g-263D" x="578.00" y="972.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2643" x="594.00" y="972.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="980.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
-  <text x="676.00" y="980.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.79&#176;</text>
-  <text x="714.00" y="980.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="980.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Jup</text>
-  <use href="#g-263D" x="578.00" y="987.00" width="16.00" height="16.00" fill="#b01020"/>
-  <use href="#g-2645" x="594.00" y="987.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="618.00" y="995.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">oppo</text>
-  <text x="676.00" y="995.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">7.89&#176;</text>
-  <text x="714.00" y="995.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="995.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Ura</text>
-  <use href="#g-263D" x="578.00" y="1002.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2647" x="594.00" y="1002.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1010.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
-  <text x="676.00" y="1010.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.19&#176;</text>
+  <use href="#g-26B7" x="594.00" y="972.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="980.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">biqu</text>
+  <text x="676.00" y="980.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.78&#176;</text>
+  <text x="714.00" y="980.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="980.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Chi</text>
+  <use href="#g-263D" x="578.00" y="987.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-260B" x="594.00" y="987.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="995.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
+  <text x="676.00" y="995.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.13&#176;</text>
+  <text x="714.00" y="995.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="995.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Nod</text>
+  <use href="#g-263D" x="578.00" y="1002.00" width="16.00" height="16.00" fill="#b01020"/>
+  <text x="602.00" y="1010.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#b01020">MC</text>
+  <text x="618.00" y="1010.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
+  <text x="676.00" y="1010.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.34&#176;</text>
   <text x="714.00" y="1010.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1010.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;Plu</text>
+  <text x="752.00" y="1010.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Moo&#8211;MC</text>
   <use href="#g-263F" x="578.00" y="1017.00" width="16.00" height="16.00" fill="#1a50b0"/>
   <use href="#g-2644" x="594.00" y="1017.00" width="16.00" height="16.00" fill="#1a50b0"/>
   <text x="618.00" y="1025.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
-  <text x="676.00" y="1025.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.47&#176;</text>
-  <text x="714.00" y="1025.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="676.00" y="1025.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.92&#176;</text>
+  <text x="714.00" y="1025.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
   <text x="752.00" y="1025.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mer&#8211;Sat</text>
   <use href="#g-263F" x="578.00" y="1032.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-26B7" x="594.00" y="1032.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1040.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
-  <text x="676.00" y="1040.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">2.77&#176;</text>
-  <text x="714.00" y="1040.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1040.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mer&#8211;Chi</text>
-  <use href="#g-263F" x="578.00" y="1047.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="1055.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
-  <text x="618.00" y="1055.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sesq</text>
-  <text x="676.00" y="1055.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.23&#176;</text>
-  <text x="714.00" y="1055.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1055.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mer&#8211;ASC</text>
-  <use href="#g-263F" x="578.00" y="1062.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="1070.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">MC</text>
-  <text x="618.00" y="1070.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sesq</text>
-  <text x="676.00" y="1070.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.68&#176;</text>
-  <text x="714.00" y="1070.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1070.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mer&#8211;MC</text>
+  <use href="#g-260A" x="594.00" y="1032.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1040.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">conj</text>
+  <text x="676.00" y="1040.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.80&#176;</text>
+  <text x="714.00" y="1040.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="1040.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mer&#8211;Nod</text>
+  <use href="#g-263F" x="578.00" y="1047.00" width="16.00" height="16.00" fill="#b01020"/>
+  <use href="#g-260B" x="594.00" y="1047.00" width="16.00" height="16.00" fill="#b01020"/>
+  <text x="618.00" y="1055.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">oppo</text>
+  <text x="676.00" y="1055.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.80&#176;</text>
+  <text x="714.00" y="1055.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="1055.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mer&#8211;Nod</text>
+  <use href="#g-2640" x="578.00" y="1062.00" width="16.00" height="16.00" fill="#b01020"/>
+  <use href="#g-2642" x="594.00" y="1062.00" width="16.00" height="16.00" fill="#b01020"/>
+  <text x="618.00" y="1070.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
+  <text x="676.00" y="1070.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.66&#176;</text>
+  <text x="714.00" y="1070.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="1070.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ven&#8211;Mar</text>
   <use href="#g-2640" x="578.00" y="1077.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2642" x="594.00" y="1077.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1085.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
-  <text x="676.00" y="1085.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.80&#176;</text>
+  <use href="#g-2644" x="594.00" y="1077.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1085.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sesq</text>
+  <text x="676.00" y="1085.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.29&#176;</text>
   <text x="714.00" y="1085.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1085.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ven&#8211;Mar</text>
+  <text x="752.00" y="1085.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ven&#8211;Sat</text>
   <use href="#g-2640" x="578.00" y="1092.00" width="16.00" height="16.00" fill="#b01020"/>
-  <use href="#g-2644" x="594.00" y="1092.00" width="16.00" height="16.00" fill="#b01020"/>
+  <use href="#g-2646" x="594.00" y="1092.00" width="16.00" height="16.00" fill="#b01020"/>
   <text x="618.00" y="1100.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
-  <text x="676.00" y="1100.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.85&#176;</text>
+  <text x="676.00" y="1100.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.02&#176;</text>
   <text x="714.00" y="1100.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1100.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ven&#8211;Sat</text>
+  <text x="752.00" y="1100.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ven&#8211;Nep</text>
   <use href="#g-2640" x="578.00" y="1107.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-260B" x="594.00" y="1107.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1115.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sept</text>
-  <text x="676.00" y="1115.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.24&#176;</text>
-  <text x="714.00" y="1115.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1115.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ven&#8211;Nod</text>
-  <use href="#g-2640" x="578.00" y="1122.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="1130.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
-  <text x="618.00" y="1130.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
-  <text x="676.00" y="1130.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.15&#176;</text>
-  <text x="714.00" y="1130.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1130.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ven&#8211;ASC</text>
-  <use href="#g-2640" x="578.00" y="1137.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="1145.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">MC</text>
-  <text x="618.00" y="1145.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
-  <text x="676.00" y="1145.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.05&#176;</text>
-  <text x="714.00" y="1145.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1145.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ven&#8211;MC</text>
-  <use href="#g-2642" x="578.00" y="1152.00" width="16.00" height="16.00" fill="#b01020"/>
-  <use href="#g-2647" x="594.00" y="1152.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="618.00" y="1160.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
-  <text x="676.00" y="1160.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">3.30&#176;</text>
+  <text x="602.00" y="1115.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
+  <text x="618.00" y="1115.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
+  <text x="676.00" y="1115.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">2.92&#176;</text>
+  <text x="714.00" y="1115.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="1115.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ven&#8211;ASC</text>
+  <use href="#g-2642" x="578.00" y="1122.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-2643" x="594.00" y="1122.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1130.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">semi</text>
+  <text x="676.00" y="1130.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.53&#176;</text>
+  <text x="714.00" y="1130.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="1130.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mar&#8211;Jup</text>
+  <use href="#g-2642" x="578.00" y="1137.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-2644" x="594.00" y="1137.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1145.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">novi</text>
+  <text x="676.00" y="1145.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.95&#176;</text>
+  <text x="714.00" y="1145.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="1145.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mar&#8211;Sat</text>
+  <use href="#g-2642" x="578.00" y="1152.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-2645" x="594.00" y="1152.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1160.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
+  <text x="676.00" y="1160.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">2.61&#176;</text>
   <text x="714.00" y="1160.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1160.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mar&#8211;Plu</text>
+  <text x="752.00" y="1160.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mar&#8211;Ura</text>
   <use href="#g-2642" x="578.00" y="1167.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-260A" x="594.00" y="1167.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1175.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
-  <text x="676.00" y="1175.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.01&#176;</text>
+  <use href="#g-2647" x="594.00" y="1167.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1175.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">semi</text>
+  <text x="676.00" y="1175.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.67&#176;</text>
   <text x="714.00" y="1175.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1175.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mar&#8211;Nod</text>
+  <text x="752.00" y="1175.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mar&#8211;Plu</text>
   <use href="#g-2642" x="578.00" y="1182.00" width="16.00" height="16.00" fill="#1a50b0"/>
   <use href="#g-260B" x="594.00" y="1182.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1190.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
-  <text x="676.00" y="1190.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.01&#176;</text>
-  <text x="714.00" y="1190.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="618.00" y="1190.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
+  <text x="676.00" y="1190.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.23&#176;</text>
+  <text x="714.00" y="1190.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
   <text x="752.00" y="1190.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mar&#8211;Nod</text>
-  <use href="#g-2642" x="578.00" y="1197.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="602.00" y="1205.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#b01020">ASC</text>
-  <text x="618.00" y="1205.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
-  <text x="676.00" y="1205.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">3.66&#176;</text>
+  <use href="#g-2642" x="578.00" y="1197.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="602.00" y="1205.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
+  <text x="618.00" y="1205.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
+  <text x="676.00" y="1205.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">2.74&#176;</text>
   <text x="714.00" y="1205.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
   <text x="752.00" y="1205.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mar&#8211;ASC</text>
-  <use href="#g-2642" x="578.00" y="1212.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="602.00" y="1220.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#b01020">MC</text>
-  <text x="618.00" y="1220.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">oppo</text>
-  <text x="676.00" y="1220.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.75&#176;</text>
-  <text x="714.00" y="1220.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1220.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Mar&#8211;MC</text>
+  <use href="#g-2643" x="578.00" y="1212.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-2644" x="594.00" y="1212.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1220.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">conj</text>
+  <text x="676.00" y="1220.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.42&#176;</text>
+  <text x="714.00" y="1220.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="1220.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Jup&#8211;Sat</text>
   <use href="#g-2643" x="578.00" y="1227.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2645" x="594.00" y="1227.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1235.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sept</text>
-  <text x="676.00" y="1235.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.11&#176;</text>
+  <use href="#g-2646" x="594.00" y="1227.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1235.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
+  <text x="676.00" y="1235.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.85&#176;</text>
   <text x="714.00" y="1235.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1235.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Jup&#8211;Ura</text>
-  <use href="#g-2643" x="578.00" y="1242.00" width="16.00" height="16.00" fill="#b01020"/>
-  <use href="#g-26B7" x="594.00" y="1242.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="618.00" y="1250.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
-  <text x="676.00" y="1250.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.10&#176;</text>
+  <text x="752.00" y="1235.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Jup&#8211;Nep</text>
+  <use href="#g-2643" x="578.00" y="1242.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-2647" x="594.00" y="1242.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1250.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">conj</text>
+  <text x="676.00" y="1250.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">2.21&#176;</text>
   <text x="714.00" y="1250.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1250.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Jup&#8211;Chi</text>
+  <text x="752.00" y="1250.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Jup&#8211;Plu</text>
   <use href="#g-2643" x="578.00" y="1257.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-260B" x="594.00" y="1257.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1265.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">novi</text>
-  <text x="676.00" y="1265.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.89&#176;</text>
+  <use href="#g-26B7" x="594.00" y="1257.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1265.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
+  <text x="676.00" y="1265.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.39&#176;</text>
   <text x="714.00" y="1265.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1265.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Jup&#8211;Nod</text>
-  <use href="#g-2644" x="578.00" y="1272.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="1280.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
-  <text x="618.00" y="1280.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
-  <text x="676.00" y="1280.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.30&#176;</text>
-  <text x="714.00" y="1280.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1280.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sat&#8211;ASC</text>
-  <use href="#g-2645" x="578.00" y="1287.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2646" x="594.00" y="1287.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1295.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
-  <text x="676.00" y="1295.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.93&#176;</text>
-  <text x="714.00" y="1295.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1295.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ura&#8211;Nep</text>
-  <use href="#g-2645" x="578.00" y="1302.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="752.00" y="1265.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Jup&#8211;Chi</text>
+  <use href="#g-2643" x="578.00" y="1272.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="602.00" y="1280.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">MC</text>
+  <text x="618.00" y="1280.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
+  <text x="676.00" y="1280.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.51&#176;</text>
+  <text x="714.00" y="1280.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="1280.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Jup&#8211;MC</text>
+  <use href="#g-2644" x="578.00" y="1287.00" width="16.00" height="16.00" fill="#b01020"/>
+  <use href="#g-2645" x="594.00" y="1287.00" width="16.00" height="16.00" fill="#b01020"/>
+  <text x="618.00" y="1295.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
+  <text x="676.00" y="1295.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">6.44&#176;</text>
+  <text x="714.00" y="1295.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="1295.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sat&#8211;Ura</text>
+  <use href="#g-2644" x="578.00" y="1302.00" width="16.00" height="16.00" fill="#1a50b0"/>
   <use href="#g-2647" x="594.00" y="1302.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1310.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
-  <text x="676.00" y="1310.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">2.91&#176;</text>
+  <text x="618.00" y="1310.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">conj</text>
+  <text x="676.00" y="1310.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">7.62&#176;</text>
   <text x="714.00" y="1310.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1310.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ura&#8211;Plu</text>
-  <use href="#g-2645" x="578.00" y="1317.00" width="16.00" height="16.00" fill="#b01020"/>
-  <use href="#g-260A" x="594.00" y="1317.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="618.00" y="1325.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
-  <text x="676.00" y="1325.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">2.21&#176;</text>
-  <text x="714.00" y="1325.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1325.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ura&#8211;Nod</text>
-  <use href="#g-2645" x="578.00" y="1332.00" width="16.00" height="16.00" fill="#b01020"/>
-  <use href="#g-260B" x="594.00" y="1332.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="618.00" y="1340.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
-  <text x="676.00" y="1340.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">2.21&#176;</text>
-  <text x="714.00" y="1340.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1340.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ura&#8211;Nod</text>
-  <use href="#g-2646" x="578.00" y="1347.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-2647" x="594.00" y="1347.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1355.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
-  <text x="676.00" y="1355.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.98&#176;</text>
+  <text x="752.00" y="1310.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sat&#8211;Plu</text>
+  <use href="#g-2644" x="578.00" y="1317.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-260A" x="594.00" y="1317.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1325.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
+  <text x="676.00" y="1325.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.72&#176;</text>
+  <text x="714.00" y="1325.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="1325.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sat&#8211;Nod</text>
+  <use href="#g-2644" x="578.00" y="1332.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-260B" x="594.00" y="1332.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1340.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">semi</text>
+  <text x="676.00" y="1340.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.72&#176;</text>
+  <text x="714.00" y="1340.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="1340.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sat&#8211;Nod</text>
+  <use href="#g-2644" x="578.00" y="1347.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="602.00" y="1355.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">MC</text>
+  <text x="618.00" y="1355.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
+  <text x="676.00" y="1355.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.93&#176;</text>
   <text x="714.00" y="1355.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1355.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nep&#8211;Plu</text>
-  <use href="#g-2646" x="578.00" y="1362.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="752.00" y="1355.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Sat&#8211;MC</text>
+  <use href="#g-2645" x="578.00" y="1362.00" width="16.00" height="16.00" fill="#1a50b0"/>
   <use href="#g-260A" x="594.00" y="1362.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1370.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">semi</text>
-  <text x="676.00" y="1370.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.27&#176;</text>
+  <text x="618.00" y="1370.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sept</text>
+  <text x="676.00" y="1370.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.41&#176;</text>
   <text x="714.00" y="1370.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1370.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nep&#8211;Nod</text>
-  <use href="#g-2646" x="578.00" y="1377.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-260B" x="594.00" y="1377.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1385.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
-  <text x="676.00" y="1385.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.28&#176;</text>
-  <text x="714.00" y="1385.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1385.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nep&#8211;Nod</text>
-  <use href="#g-2646" x="578.00" y="1392.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="1400.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
-  <text x="618.00" y="1400.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sept</text>
-  <text x="676.00" y="1400.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.63&#176;</text>
-  <text x="714.00" y="1400.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1400.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nep&#8211;ASC</text>
+  <text x="752.00" y="1370.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ura&#8211;Nod</text>
+  <use href="#g-2645" x="578.00" y="1377.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <use href="#g-26B7" x="594.00" y="1377.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1385.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">semi</text>
+  <text x="676.00" y="1385.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.24&#176;</text>
+  <text x="714.00" y="1385.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
+  <text x="752.00" y="1385.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ura&#8211;Chi</text>
+  <use href="#g-2645" x="578.00" y="1392.00" width="16.00" height="16.00" fill="#b01020"/>
+  <text x="602.00" y="1400.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#b01020">ASC</text>
+  <text x="618.00" y="1400.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
+  <text x="676.00" y="1400.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.35&#176;</text>
+  <text x="714.00" y="1400.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="1400.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Ura&#8211;ASC</text>
   <use href="#g-2646" x="578.00" y="1407.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="1415.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">MC</text>
-  <text x="618.00" y="1415.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">biqu</text>
-  <text x="676.00" y="1415.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.97&#176;</text>
-  <text x="714.00" y="1415.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1415.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nep&#8211;MC</text>
-  <use href="#g-2647" x="578.00" y="1422.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-260A" x="594.00" y="1422.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1430.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">semi</text>
-  <text x="676.00" y="1430.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.71&#176;</text>
+  <use href="#g-2647" x="594.00" y="1407.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="618.00" y="1415.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
+  <text x="676.00" y="1415.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">3.65&#176;</text>
+  <text x="714.00" y="1415.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="1415.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nep&#8211;Plu</text>
+  <use href="#g-2646" x="578.00" y="1422.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="602.00" y="1430.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
+  <text x="618.00" y="1430.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">biqu</text>
+  <text x="676.00" y="1430.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.94&#176;</text>
   <text x="714.00" y="1430.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1430.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Plu&#8211;Nod</text>
-  <use href="#g-2647" x="578.00" y="1437.00" width="16.00" height="16.00" fill="#b01020"/>
-  <use href="#g-26B7" x="594.00" y="1437.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="618.00" y="1445.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
-  <text x="676.00" y="1445.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">6.50&#176;</text>
+  <text x="752.00" y="1430.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nep&#8211;ASC</text>
+  <use href="#g-2646" x="578.00" y="1437.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="602.00" y="1445.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">MC</text>
+  <text x="618.00" y="1445.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
+  <text x="676.00" y="1445.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.34&#176;</text>
   <text x="714.00" y="1445.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1445.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Plu&#8211;Chi</text>
+  <text x="752.00" y="1445.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nep&#8211;MC</text>
   <use href="#g-2647" x="578.00" y="1452.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-260B" x="594.00" y="1452.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1460.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">quin</text>
-  <text x="676.00" y="1460.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.71&#176;</text>
+  <text x="602.00" y="1460.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">MC</text>
+  <text x="618.00" y="1460.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
+  <text x="676.00" y="1460.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.70&#176;</text>
   <text x="714.00" y="1460.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1460.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Plu&#8211;Nod</text>
-  <use href="#g-2647" x="578.00" y="1467.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="1475.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
-  <text x="618.00" y="1475.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">conj</text>
-  <text x="676.00" y="1475.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">6.96&#176;</text>
+  <text x="752.00" y="1460.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Plu&#8211;MC</text>
+  <use href="#g-260A" x="578.00" y="1467.00" width="16.00" height="16.00" fill="#b01020"/>
+  <use href="#g-260B" x="594.00" y="1467.00" width="16.00" height="16.00" fill="#b01020"/>
+  <text x="618.00" y="1475.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">oppo</text>
+  <text x="676.00" y="1475.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.00&#176;</text>
   <text x="714.00" y="1475.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1475.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Plu&#8211;ASC</text>
-  <use href="#g-2647" x="578.00" y="1482.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="602.00" y="1490.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#b01020">MC</text>
-  <text x="618.00" y="1490.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">squa</text>
-  <text x="676.00" y="1490.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.05&#176;</text>
-  <text x="714.00" y="1490.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1490.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Plu&#8211;MC</text>
-  <use href="#g-260A" x="578.00" y="1497.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-26B7" x="594.00" y="1497.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1505.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
-  <text x="676.00" y="1505.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.79&#176;</text>
+  <text x="752.00" y="1475.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nod&#8211;Nod</text>
+  <use href="#g-260A" x="578.00" y="1482.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="602.00" y="1490.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
+  <text x="618.00" y="1490.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">semi</text>
+  <text x="676.00" y="1490.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.49&#176;</text>
+  <text x="714.00" y="1490.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="1490.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nod&#8211;ASC</text>
+  <use href="#g-26B7" x="578.00" y="1497.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="602.00" y="1505.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
+  <text x="618.00" y="1505.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
+  <text x="676.00" y="1505.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.59&#176;</text>
   <text x="714.00" y="1505.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1505.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nod&#8211;Chi</text>
-  <use href="#g-260A" x="578.00" y="1512.00" width="16.00" height="16.00" fill="#b01020"/>
-  <use href="#g-260B" x="594.00" y="1512.00" width="16.00" height="16.00" fill="#b01020"/>
-  <text x="618.00" y="1520.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020">oppo</text>
-  <text x="676.00" y="1520.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">0.00&#176;</text>
-  <text x="714.00" y="1520.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1520.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nod&#8211;Nod</text>
-  <use href="#g-260A" x="578.00" y="1527.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="1535.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">MC</text>
-  <text x="618.00" y="1535.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
-  <text x="676.00" y="1535.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.76&#176;</text>
-  <text x="714.00" y="1535.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1535.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nod&#8211;MC</text>
-  <use href="#g-26B7" x="578.00" y="1542.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <use href="#g-260B" x="594.00" y="1542.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="618.00" y="1550.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">trin</text>
-  <text x="676.00" y="1550.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">5.79&#176;</text>
-  <text x="714.00" y="1550.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
-  <text x="752.00" y="1550.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Chi&#8211;Nod</text>
-  <use href="#g-260B" x="578.00" y="1557.00" width="16.00" height="16.00" fill="#1a50b0"/>
-  <text x="602.00" y="1565.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">MC</text>
-  <text x="618.00" y="1565.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sext</text>
-  <text x="676.00" y="1565.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">4.76&#176;</text>
-  <text x="714.00" y="1565.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9660;sep</text>
-  <text x="752.00" y="1565.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nod&#8211;MC</text>
+  <text x="752.00" y="1505.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Chi&#8211;ASC</text>
+  <use href="#g-260B" x="578.00" y="1512.00" width="16.00" height="16.00" fill="#1a50b0"/>
+  <text x="602.00" y="1520.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a50b0">ASC</text>
+  <text x="618.00" y="1520.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a50b0">sesq</text>
+  <text x="676.00" y="1520.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".7">1.49&#176;</text>
+  <text x="714.00" y="1520.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".5">&#9650;app</text>
+  <text x="752.00" y="1520.00" font-size="9"  dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e" opacity=".4">Nod&#8211;ASC</text>
   <text x="24" y="1020.00" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">Essential Dignities</text>
   <line x1="24" y1="1023.00" x2="296.00" y2="1023.00" stroke="#1a1a2e" stroke-width=".5" opacity=".35"/>
   <text x="26.00" y="1034.00" font-size="8" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".6">Planet</text>
@@ -624,44 +609,44 @@
   <text x="164.00" y="1046.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Gemini</text>
   <text x="244.00" y="1046.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Sun</text>
   <use href="#g-263D" x="18.00" y="1054.00" width="16.00" height="16.00" fill="#1a1a2e"/>
-  <text x="44.00" y="1062.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#8b4000" font-weight="500">fall</text>
-  <text x="164.00" y="1062.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Scorpio</text>
+  <text x="44.00" y="1062.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#888888" font-weight="500">peregrine</text>
+  <text x="164.00" y="1062.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Virgo</text>
   <text x="244.00" y="1062.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Moon</text>
   <use href="#g-263F" x="18.00" y="1070.00" width="16.00" height="16.00" fill="#1a1a2e"/>
-  <text x="44.00" y="1078.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a7a1a" font-weight="500">domicile</text>
-  <text x="164.00" y="1078.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Gemini</text>
+  <text x="44.00" y="1078.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#888888" font-weight="500">peregrine</text>
+  <text x="164.00" y="1078.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Cancer</text>
   <text x="244.00" y="1078.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Mercury</text>
   <use href="#g-2640" x="18.00" y="1086.00" width="16.00" height="16.00" fill="#1a1a2e"/>
   <text x="44.00" y="1094.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#888888" font-weight="500">peregrine</text>
-  <text x="164.00" y="1094.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Cancer</text>
+  <text x="164.00" y="1094.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Gemini</text>
   <text x="244.00" y="1094.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Venus</text>
   <use href="#g-2642" x="18.00" y="1102.00" width="16.00" height="16.00" fill="#1a1a2e"/>
-  <text x="44.00" y="1110.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#b01020" font-weight="500">detriment</text>
-  <text x="164.00" y="1110.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Taurus</text>
+  <text x="44.00" y="1110.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#888888" font-weight="500">peregrine</text>
+  <text x="164.00" y="1110.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Pisces</text>
   <text x="244.00" y="1110.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Mars</text>
   <use href="#g-2643" x="18.00" y="1118.00" width="16.00" height="16.00" fill="#1a1a2e"/>
-  <text x="44.00" y="1126.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d5ca8" font-weight="500">exaltation</text>
-  <text x="164.00" y="1126.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Cancer</text>
+  <text x="44.00" y="1126.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#8b4000" font-weight="500">fall</text>
+  <text x="164.00" y="1126.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Capricorn</text>
   <text x="244.00" y="1126.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Jupiter</text>
   <use href="#g-2644" x="18.00" y="1134.00" width="16.00" height="16.00" fill="#1a1a2e"/>
-  <text x="44.00" y="1142.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#8b4000" font-weight="500">fall</text>
-  <text x="164.00" y="1142.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Aries</text>
+  <text x="44.00" y="1142.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a7a1a" font-weight="500">domicile</text>
+  <text x="164.00" y="1142.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Aquarius</text>
   <text x="244.00" y="1142.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Saturn</text>
   <use href="#g-2645" x="18.00" y="1150.00" width="16.00" height="16.00" fill="#1a1a2e"/>
   <text x="44.00" y="1158.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#888888" font-weight="500">peregrine</text>
-  <text x="164.00" y="1158.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Gemini</text>
+  <text x="164.00" y="1158.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Taurus</text>
   <text x="244.00" y="1158.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Uranus</text>
   <use href="#g-2646" x="18.00" y="1166.00" width="16.00" height="16.00" fill="#1a1a2e"/>
   <text x="44.00" y="1174.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#888888" font-weight="500">peregrine</text>
-  <text x="164.00" y="1174.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Aries</text>
+  <text x="164.00" y="1174.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Pisces</text>
   <text x="244.00" y="1174.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Neptune</text>
   <use href="#g-2647" x="18.00" y="1182.00" width="16.00" height="16.00" fill="#1a1a2e"/>
   <text x="44.00" y="1190.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#888888" font-weight="500">peregrine</text>
-  <text x="164.00" y="1190.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Aquarius</text>
+  <text x="164.00" y="1190.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Capricorn</text>
   <text x="244.00" y="1190.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Pluto</text>
   <use href="#g-260A" x="18.00" y="1198.00" width="16.00" height="16.00" fill="#1a1a2e"/>
   <text x="44.00" y="1206.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#888888" font-weight="500">peregrine</text>
-  <text x="164.00" y="1206.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Pisces</text>
+  <text x="164.00" y="1206.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Cancer</text>
   <text x="244.00" y="1206.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Node (North)</text>
   <use href="#g-26B7" x="18.00" y="1214.00" width="16.00" height="16.00" fill="#1a1a2e"/>
   <text x="44.00" y="1222.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#888888" font-weight="500">peregrine</text>
@@ -669,100 +654,100 @@
   <text x="244.00" y="1222.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Chiron</text>
   <use href="#g-260B" x="18.00" y="1230.00" width="16.00" height="16.00" fill="#1a1a2e"/>
   <text x="44.00" y="1238.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#888888" font-weight="500">peregrine</text>
-  <text x="164.00" y="1238.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Virgo</text>
+  <text x="164.00" y="1238.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Capricorn</text>
   <text x="244.00" y="1238.00" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".45">Node (South)</text>
-  <text x="24.00" y="1592.00" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">Symbol reference</text>
-  <line x1="24.00" y1="1595.00" x2="882.00" y2="1595.00" stroke="#1a1a2e" stroke-width=".5" opacity=".35"/>
-  <text x="26.00" y="1610.00" font-size="10" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Planets</text>
-  <use href="#g-2609" x="26.00" y="1620.00" width="16.00" height="16.00" fill="#d4a017"/>
-  <text x="62.00" y="1628.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Sun</text>
-  <use href="#g-263D" x="26.00" y="1636.00" width="16.00" height="16.00" fill="#6b7888"/>
-  <text x="62.00" y="1644.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Moon</text>
-  <use href="#g-263F" x="26.00" y="1652.00" width="16.00" height="16.00" fill="#2c9c4f"/>
-  <text x="62.00" y="1660.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Mercury</text>
-  <use href="#g-2640" x="26.00" y="1668.00" width="16.00" height="16.00" fill="#d65a9e"/>
-  <text x="62.00" y="1676.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Venus</text>
-  <use href="#g-2642" x="26.00" y="1684.00" width="16.00" height="16.00" fill="#c1272d"/>
-  <text x="62.00" y="1692.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Mars</text>
-  <use href="#g-2643" x="26.00" y="1700.00" width="16.00" height="16.00" fill="#5d3f8e"/>
-  <text x="62.00" y="1708.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Jupiter</text>
-  <use href="#g-2644" x="26.00" y="1716.00" width="16.00" height="16.00" fill="#4a4036"/>
-  <text x="62.00" y="1724.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Saturn</text>
-  <use href="#g-2645" x="26.00" y="1732.00" width="16.00" height="16.00" fill="#0085c7"/>
-  <text x="62.00" y="1740.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Uranus</text>
-  <use href="#g-2646" x="26.00" y="1748.00" width="16.00" height="16.00" fill="#1ba89d"/>
-  <text x="62.00" y="1756.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Neptune</text>
-  <use href="#g-2647" x="26.00" y="1764.00" width="16.00" height="16.00" fill="#7c1a1a"/>
-  <text x="62.00" y="1772.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Pluto</text>
-  <use href="#g-260A" x="26.00" y="1780.00" width="16.00" height="16.00" fill="#6a4f8a"/>
-  <text x="62.00" y="1788.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Node (North)</text>
-  <use href="#g-260B" x="26.00" y="1796.00" width="16.00" height="16.00" fill="#6a4f8a"/>
-  <text x="62.00" y="1804.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Node (South)</text>
-  <use href="#g-26B7" x="26.00" y="1812.00" width="16.00" height="16.00" fill="#1a5fb4"/>
-  <text x="62.00" y="1820.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Chiron</text>
-  <text x="242.00" y="1610.00" font-size="10" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Signs</text>
-  <use href="#g-2648" x="242.00" y="1620.00" width="16.00" height="16.00" fill="#c1272d"/>
-  <text x="278.00" y="1628.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Aries</text>
-  <use href="#g-2649" x="242.00" y="1636.00" width="16.00" height="16.00" fill="#5a7a30"/>
-  <text x="278.00" y="1644.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Taurus</text>
-  <use href="#g-264A" x="242.00" y="1652.00" width="16.00" height="16.00" fill="#c4a017"/>
-  <text x="278.00" y="1660.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Gemini</text>
-  <use href="#g-264B" x="242.00" y="1668.00" width="16.00" height="16.00" fill="#1a5fb4"/>
-  <text x="278.00" y="1676.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Cancer</text>
-  <use href="#g-264C" x="242.00" y="1684.00" width="16.00" height="16.00" fill="#c1272d"/>
-  <text x="278.00" y="1692.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Leo</text>
-  <use href="#g-264D" x="242.00" y="1700.00" width="16.00" height="16.00" fill="#5a7a30"/>
-  <text x="278.00" y="1708.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Virgo</text>
-  <use href="#g-264E" x="242.00" y="1716.00" width="16.00" height="16.00" fill="#c4a017"/>
-  <text x="278.00" y="1724.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Libra</text>
-  <use href="#g-264F" x="242.00" y="1732.00" width="16.00" height="16.00" fill="#1a5fb4"/>
-  <text x="278.00" y="1740.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Scorpio</text>
-  <use href="#g-2650" x="242.00" y="1748.00" width="16.00" height="16.00" fill="#c1272d"/>
-  <text x="278.00" y="1756.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Sagittarius</text>
-  <use href="#g-2651" x="242.00" y="1764.00" width="16.00" height="16.00" fill="#5a7a30"/>
-  <text x="278.00" y="1772.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Capricorn</text>
-  <use href="#g-2652" x="242.00" y="1780.00" width="16.00" height="16.00" fill="#c4a017"/>
-  <text x="278.00" y="1788.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Aquarius</text>
-  <use href="#g-2653" x="242.00" y="1796.00" width="16.00" height="16.00" fill="#1a5fb4"/>
-  <text x="278.00" y="1804.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Pisces</text>
-  <text x="458.00" y="1610.00" font-size="10" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Angles</text>
-  <text x="458.00" y="1628.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">ASC</text>
-  <text x="494.00" y="1628.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Ascendant — rising sign</text>
-  <text x="458.00" y="1644.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">MC</text>
-  <text x="494.00" y="1644.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Midheaven — culminating point</text>
-  <text x="458.00" y="1660.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">DSC</text>
-  <text x="494.00" y="1660.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Descendant — setting sign</text>
-  <text x="458.00" y="1676.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">IC</text>
-  <text x="494.00" y="1676.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Imum Coeli — lowest culmination</text>
-  <text x="466.00" y="1692.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a1a2e">℞</text>
-  <text x="494.00" y="1692.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Retrograde motion</text>
-  <text x="674.00" y="1610.00" font-size="10" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Aspects</text>
-  <text x="674.00" y="1628.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">conj</text>
-  <text x="710.00" y="1628.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Conjunction (0°)</text>
-  <text x="674.00" y="1644.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">sext</text>
-  <text x="710.00" y="1644.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Sextile (60°)</text>
-  <text x="674.00" y="1660.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">squa</text>
-  <text x="710.00" y="1660.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Square (90°)</text>
-  <text x="674.00" y="1676.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">trin</text>
-  <text x="710.00" y="1676.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Trine (120°)</text>
-  <text x="674.00" y="1692.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">quin</text>
-  <text x="710.00" y="1692.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Quincunx (150°)</text>
-  <text x="674.00" y="1708.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">oppo</text>
-  <text x="710.00" y="1708.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Opposition (180°)</text>
-  <text x="674.00" y="1724.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">semi</text>
-  <text x="710.00" y="1724.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Semi-sextile (30°)</text>
-  <text x="674.00" y="1740.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">semi</text>
-  <text x="710.00" y="1740.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Semi-square (45°)</text>
-  <text x="674.00" y="1756.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">quin</text>
-  <text x="710.00" y="1756.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Quintile (72°)</text>
-  <text x="674.00" y="1772.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">sesq</text>
-  <text x="710.00" y="1772.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Sesquiquadrate (135°)</text>
-  <text x="674.00" y="1788.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">biqu</text>
-  <text x="710.00" y="1788.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Biquintile (144°)</text>
-  <text x="674.00" y="1804.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">sept</text>
-  <text x="710.00" y="1804.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Septile (51.43°)</text>
+  <text x="24.00" y="1547.00" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">Symbol reference</text>
+  <line x1="24.00" y1="1550.00" x2="882.00" y2="1550.00" stroke="#1a1a2e" stroke-width=".5" opacity=".35"/>
+  <text x="26.00" y="1565.00" font-size="10" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Planets</text>
+  <use href="#g-2609" x="26.00" y="1575.00" width="16.00" height="16.00" fill="#d4a017"/>
+  <text x="62.00" y="1583.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Sun</text>
+  <use href="#g-263D" x="26.00" y="1591.00" width="16.00" height="16.00" fill="#6b7888"/>
+  <text x="62.00" y="1599.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Moon</text>
+  <use href="#g-263F" x="26.00" y="1607.00" width="16.00" height="16.00" fill="#2c9c4f"/>
+  <text x="62.00" y="1615.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Mercury</text>
+  <use href="#g-2640" x="26.00" y="1623.00" width="16.00" height="16.00" fill="#d65a9e"/>
+  <text x="62.00" y="1631.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Venus</text>
+  <use href="#g-2642" x="26.00" y="1639.00" width="16.00" height="16.00" fill="#c1272d"/>
+  <text x="62.00" y="1647.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Mars</text>
+  <use href="#g-2643" x="26.00" y="1655.00" width="16.00" height="16.00" fill="#5d3f8e"/>
+  <text x="62.00" y="1663.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Jupiter</text>
+  <use href="#g-2644" x="26.00" y="1671.00" width="16.00" height="16.00" fill="#4a4036"/>
+  <text x="62.00" y="1679.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Saturn</text>
+  <use href="#g-2645" x="26.00" y="1687.00" width="16.00" height="16.00" fill="#0085c7"/>
+  <text x="62.00" y="1695.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Uranus</text>
+  <use href="#g-2646" x="26.00" y="1703.00" width="16.00" height="16.00" fill="#1ba89d"/>
+  <text x="62.00" y="1711.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Neptune</text>
+  <use href="#g-2647" x="26.00" y="1719.00" width="16.00" height="16.00" fill="#7c1a1a"/>
+  <text x="62.00" y="1727.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Pluto</text>
+  <use href="#g-260A" x="26.00" y="1735.00" width="16.00" height="16.00" fill="#6a4f8a"/>
+  <text x="62.00" y="1743.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Node (North)</text>
+  <use href="#g-260B" x="26.00" y="1751.00" width="16.00" height="16.00" fill="#6a4f8a"/>
+  <text x="62.00" y="1759.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Node (South)</text>
+  <use href="#g-26B7" x="26.00" y="1767.00" width="16.00" height="16.00" fill="#1a5fb4"/>
+  <text x="62.00" y="1775.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Chiron</text>
+  <text x="242.00" y="1565.00" font-size="10" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Signs</text>
+  <use href="#g-2648" x="242.00" y="1575.00" width="16.00" height="16.00" fill="#c1272d"/>
+  <text x="278.00" y="1583.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Aries</text>
+  <use href="#g-2649" x="242.00" y="1591.00" width="16.00" height="16.00" fill="#5a7a30"/>
+  <text x="278.00" y="1599.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Taurus</text>
+  <use href="#g-264A" x="242.00" y="1607.00" width="16.00" height="16.00" fill="#c4a017"/>
+  <text x="278.00" y="1615.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Gemini</text>
+  <use href="#g-264B" x="242.00" y="1623.00" width="16.00" height="16.00" fill="#1a5fb4"/>
+  <text x="278.00" y="1631.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Cancer</text>
+  <use href="#g-264C" x="242.00" y="1639.00" width="16.00" height="16.00" fill="#c1272d"/>
+  <text x="278.00" y="1647.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Leo</text>
+  <use href="#g-264D" x="242.00" y="1655.00" width="16.00" height="16.00" fill="#5a7a30"/>
+  <text x="278.00" y="1663.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Virgo</text>
+  <use href="#g-264E" x="242.00" y="1671.00" width="16.00" height="16.00" fill="#c4a017"/>
+  <text x="278.00" y="1679.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Libra</text>
+  <use href="#g-264F" x="242.00" y="1687.00" width="16.00" height="16.00" fill="#1a5fb4"/>
+  <text x="278.00" y="1695.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Scorpio</text>
+  <use href="#g-2650" x="242.00" y="1703.00" width="16.00" height="16.00" fill="#c1272d"/>
+  <text x="278.00" y="1711.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Sagittarius</text>
+  <use href="#g-2651" x="242.00" y="1719.00" width="16.00" height="16.00" fill="#5a7a30"/>
+  <text x="278.00" y="1727.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Capricorn</text>
+  <use href="#g-2652" x="242.00" y="1735.00" width="16.00" height="16.00" fill="#c4a017"/>
+  <text x="278.00" y="1743.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Aquarius</text>
+  <use href="#g-2653" x="242.00" y="1751.00" width="16.00" height="16.00" fill="#1a5fb4"/>
+  <text x="278.00" y="1759.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Pisces</text>
+  <text x="458.00" y="1565.00" font-size="10" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Angles</text>
+  <text x="458.00" y="1583.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">ASC</text>
+  <text x="494.00" y="1583.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Ascendant — rising sign</text>
+  <text x="458.00" y="1599.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">MC</text>
+  <text x="494.00" y="1599.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Midheaven — culminating point</text>
+  <text x="458.00" y="1615.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">DSC</text>
+  <text x="494.00" y="1615.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Descendant — setting sign</text>
+  <text x="458.00" y="1631.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">IC</text>
+  <text x="494.00" y="1631.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Imum Coeli — lowest culmination</text>
+  <text x="466.00" y="1647.00" font-size="12" font-weight="500" text-anchor="middle" dominant-baseline="central" font-family="'Segoe UI Symbol','Apple Symbols','STIX Two Text','Noto Sans Symbols2','DejaVu Sans',serif" fill="#1a1a2e">℞</text>
+  <text x="494.00" y="1647.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Retrograde motion</text>
+  <text x="674.00" y="1565.00" font-size="10" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e" opacity=".75">Aspects</text>
+  <text x="674.00" y="1583.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">conj</text>
+  <text x="710.00" y="1583.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Conjunction (0°)</text>
+  <text x="674.00" y="1599.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">sext</text>
+  <text x="710.00" y="1599.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Sextile (60°)</text>
+  <text x="674.00" y="1615.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">squa</text>
+  <text x="710.00" y="1615.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Square (90°)</text>
+  <text x="674.00" y="1631.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">trin</text>
+  <text x="710.00" y="1631.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Trine (120°)</text>
+  <text x="674.00" y="1647.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">quin</text>
+  <text x="710.00" y="1647.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Quincunx (150°)</text>
+  <text x="674.00" y="1663.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">oppo</text>
+  <text x="710.00" y="1663.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Opposition (180°)</text>
+  <text x="674.00" y="1679.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">semi</text>
+  <text x="710.00" y="1679.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Semi-sextile (30°)</text>
+  <text x="674.00" y="1695.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">semi</text>
+  <text x="710.00" y="1695.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Semi-square (45°)</text>
+  <text x="674.00" y="1711.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">quin</text>
+  <text x="710.00" y="1711.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Quintile (72°)</text>
+  <text x="674.00" y="1727.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">sesq</text>
+  <text x="710.00" y="1727.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Sesquiquadrate (135°)</text>
+  <text x="674.00" y="1743.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">biqu</text>
+  <text x="710.00" y="1743.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Biquintile (144°)</text>
+  <text x="674.00" y="1759.00" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a1a2e">sept</text>
+  <text x="710.00" y="1759.00" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="#0d0d1e">Septile (51.43°)</text>
 
-  <text x="450" y="1840" text-anchor="middle" font-size="9"
+  <text x="450" y="1795" text-anchor="middle" font-size="9"
         font-family="'Segoe UI',system-ui,sans-serif"
         fill="#1a1a2e" opacity=".35">Generated by Celestial</text>
 </svg>
