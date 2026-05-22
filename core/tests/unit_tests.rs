@@ -1450,6 +1450,7 @@ mod error_type_tests {
 
 // ── Moon, calc_many, and calendar unit tests ──────────────────────────────────
 mod moon_and_calendar_tests {
+    #[cfg(feature = "calendar-traditions")]
     use celestial_core::body::{Body, CalcFlags, Calendar};
     use celestial_core::*;
 
@@ -1628,9 +1629,12 @@ mod moon_and_calendar_tests {
 
 // ── Calendar deep coverage ────────────────────────────────────────────────────
 mod calendar_deep_tests {
+    #[cfg(feature = "calendar-traditions")]
     use celestial_core::body::Calendar;
+    #[cfg(feature = "calendar-traditions")]
     use celestial_core::*;
 
+    #[cfg(feature = "calendar-traditions")]
     const JD: f64 = 2_451_545.0; // J2000.0 = 2000-01-01
 
     // ── Easter / Christian ────────────────────────────────────────────────────

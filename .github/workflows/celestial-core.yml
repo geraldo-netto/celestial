@@ -215,11 +215,17 @@ jobs:
           key: ${{ runner.os }}-core-feat-${{ matrix.id }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ runner.os }}-core-feat-
 
-      - name: cargo check (features = "${{ matrix.features }}")
+      - name: cargo test (features = "${{ matrix.features }}")
+        # Run the suite — not just `check` — under each feature combo so
+        # feature-OFF *behavior* is exercised (compile-only checks let the
+        # ARCH-7 / 6da2ec9 / WIRE-2 feature-gate bugs through). RUSTFLAGS
+        # denies warnings so feature-OFF-only dead imports (TEST-5) fail CI.
+        env:
+          RUSTFLAGS: "-D warnings"
         run: |
           if [ -z "${{ matrix.features }}" ]; then
-            cargo check --package celestial-core --no-default-features
+            cargo test --package celestial-core --no-default-features
           else
-            cargo check --package celestial-core --no-default-features \
+            cargo test --package celestial-core --no-default-features \
               --features "${{ matrix.features }}"
           fi

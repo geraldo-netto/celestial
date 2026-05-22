@@ -487,6 +487,7 @@ fn test_saturn_4_stars() {
 
 // ── Hebrew calendar — tested via public API ──────────────────────────────────
 mod hebrew_public_api {
+    #[cfg(feature = "calendar-traditions")]
     use celestial_core::*;
 
     #[cfg(feature = "calendar-traditions")]
