@@ -136,9 +136,10 @@ impl FromStr for Tz {
         }
         let up = t.to_ascii_uppercase();
 
-        // Bare zero-offset spellings.
-        if up == "UTC" || up == "GMT" || up == "Z" || up == "UT" {
-            return Ok(Tz(0.0));
+        // Bare zero-offset spellings (flat lookup — exempt from the CC cap).
+        match up.as_str() {
+            "UTC" | "GMT" | "Z" | "UT" => return Ok(Tz(0.0)),
+            _ => {}
         }
 
         // Numeric offset, optionally prefixed with UTC/GMT.

@@ -263,7 +263,49 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
         |jd: f64| -> Option<f64> { calc_ut(JulianDay::new(jd), body, flags_speed).ok().map(|p| p.speed_lon) };
 
     let window = body.retrograde_search_window();
+    let (retrograde_jd, direct_jd) = scan_retrograde_stations(window, step, jd_start, speed_at);
 
+    match (retrograde_jd, direct_jd) {
+        (Some(r), Some(d)) => Ok(Stations {
+            retrograde: r,
+            direct: d,
+        }),
+        (Some(r), None) => Err(Error::Calc(format!(
+            "retrograde station found at JD {r:.2} but no direct station in window"
+        ))),
+        _ => Err(Error::Calc(format!(
+            "no retrograde station found for body {body} within search window"
+        ))),
+    }
+}
+
+/// Record a detected station into the retrograde/direct slots based on the
+/// speed sign transition. First-wins: a slot is filled only once.
+fn classify_station(
+    prev_speed: f64,
+    curr: f64,
+    station_jd: f64,
+    retrograde_jd: &mut Option<f64>,
+    direct_jd: &mut Option<f64>,
+) {
+    if prev_speed > 0.0 && curr < 0.0 && retrograde_jd.is_none() {
+        // Positive → negative: going retrograde
+        *retrograde_jd = Some(station_jd);
+    } else if prev_speed < 0.0 && curr > 0.0 && direct_jd.is_none() {
+        // Negative → positive: going direct
+        *direct_jd = Some(station_jd);
+    }
+}
+
+/// Scan forward from `jd_start` over `window` days in `step` increments,
+/// bisecting each speed sign-change to the exact station JD. Returns
+/// `(retrograde_jd, direct_jd)`, stopping once both are found.
+fn scan_retrograde_stations(
+    window: f64,
+    step: f64,
+    jd_start: f64,
+    speed_at: impl Fn(f64) -> Option<f64>,
+) -> (Option<f64>, Option<f64>) {
     let mut retrograde_jd: Option<f64> = None;
     let mut direct_jd: Option<f64> = None;
     let mut jd = jd_start;
@@ -278,15 +320,7 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
             let station_jd = bisect_zero(jd - step, jd, prev_speed, 1e-6, |t| {
                 speed_at(t).unwrap_or(0.0)
             });
-
-            if prev_speed > 0.0 && curr < 0.0 && retrograde_jd.is_none() {
-                // Positive → negative: going retrograde
-                retrograde_jd = Some(station_jd);
-            } else if prev_speed < 0.0 && curr > 0.0 && direct_jd.is_none() {
-                // Negative → positive: going direct
-                direct_jd = Some(station_jd);
-            }
-
+            classify_station(prev_speed, curr, station_jd, &mut retrograde_jd, &mut direct_jd);
             if retrograde_jd.is_some() && direct_jd.is_some() {
                 break;
             }
@@ -294,18 +328,7 @@ pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Res
         prev_speed = curr;
     }
 
-    match (retrograde_jd, direct_jd) {
-        (Some(r), Some(d)) => Ok(Stations {
-            retrograde: r,
-            direct: d,
-        }),
-        (Some(r), None) => Err(Error::Calc(format!(
-            "retrograde station found at JD {r:.2} but no direct station in window"
-        ))),
-        _ => Err(Error::Calc(format!(
-            "no retrograde station found for body {body} within search window"
-        ))),
-    }
+    (retrograde_jd, direct_jd)
 }
 
 // ─── Arabic Parts / Lots ─────────────────────────────────────────────────────

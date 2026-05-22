@@ -143,6 +143,15 @@ pub fn months_in_hebrew_year(year: i32) -> i32 {
     }
 }
 
+/// First dechiyah — should the molad day be postponed one day? Combines
+/// Molad Zaqen (`parts >= 19440`), GaTaRaD (Tue molad, leap-year rule) and
+/// BeTU'TaKPaT (Mon molad, post-leap rule).
+fn molad_postponed(year: i32, day: i64, parts: i64) -> bool {
+    parts >= 19440
+        || (day % 7 == 2 && parts >= 9924 && !is_hebrew_leap_year(year))
+        || (day % 7 == 1 && parts >= 16789 && is_hebrew_leap_year(year - 1))
+}
+
 /// Elapsed days from Hebrew epoch to 1 Tishrei of the given year.
 #[must_use]
 pub fn elapsed_days(year: i32) -> i64 {
@@ -155,14 +164,12 @@ pub fn elapsed_days(year: i32) -> i64 {
     let parts = 1080 * (hours % 24) + parts % 1080;
 
     // Postponement rules (dechiyot)
-    let alt = if parts >= 19440
-        || (day % 7 == 2 && parts >= 9924 && !is_hebrew_leap_year(year))
-        || (day % 7 == 1 && parts >= 16789 && is_hebrew_leap_year(year - 1))
-    {
+    let alt = if molad_postponed(year, day, parts) {
         day + 1
     } else {
         day
     };
+    // ADU rosh: 1 Tishrei may not fall on Sunday/Wednesday/Friday.
     if alt % 7 == 0 || alt % 7 == 3 || alt % 7 == 5 {
         alt + 1
     } else {

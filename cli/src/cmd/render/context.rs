@@ -586,6 +586,12 @@ fn angle_entry(name: &str, lon: f64, asc: f64) -> Value {
 /// (`spd1 - spd2`) so it correctly reflects whether the pair is moving
 /// toward or away from exact. Static angles (ASC/MC) get `speed = 0` so
 /// `applying` collapses to the planet's own approach direction.
+/// The ASC↔MC angle is a house-system geometry artifact, not an aspect —
+/// exclude that pair so the grid matches commercial output.
+fn is_asc_mc_pair(n1: &str, n2: &str) -> bool {
+    (n1 == "ASC" && n2 == "MC") || (n1 == "MC" && n2 == "ASC")
+}
+
 fn compute_aspects(planets: &[Value], asc_lon: f64, mc_lon: f64) -> Vec<Value> {
     type PRef<'a> = (
         f64,       // lon
@@ -633,7 +639,7 @@ fn compute_aspects(planets: &[Value], asc_lon: f64, mc_lon: f64) -> Vec<Value> {
             // aspect — exclude so the grid matches commercial output.
             let n1 = name1.as_str().unwrap_or("");
             let n2 = name2.as_str().unwrap_or("");
-            if (n1 == "ASC" && n2 == "MC") || (n1 == "MC" && n2 == "ASC") {
+            if is_asc_mc_pair(n1, n2) {
                 continue;
             }
             let signed = diff_deg_signed(lon1, lon2);
