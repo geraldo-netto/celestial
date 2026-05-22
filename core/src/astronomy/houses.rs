@@ -40,9 +40,13 @@ pub struct HouseResult {
 /// Speed-extended house result (Ex2 variant).
 #[derive(Debug, Clone, PartialEq)]
 pub struct HouseResultEx2 {
+    /// House cusps. `cusps[1]` = 1st house, …, `cusps[12]` = 12th house.
     pub cusps: [f64; 13],
+    /// Special angles: ASC, MC, ARMC, Vertex, EqAsc, etc.
     pub ascmc: [f64; 10],
+    /// Speeds (deg/day) of the house cusps, parallel to `cusps`.
     pub cusp_speeds: [f64; 13],
+    /// Speeds (deg/day) of the special angles, parallel to `ascmc`.
     pub ascmc_speeds: [f64; 10],
 }
 

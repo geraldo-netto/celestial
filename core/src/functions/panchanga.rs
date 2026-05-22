@@ -303,7 +303,9 @@ pub fn panchanga(jd: f64) -> Panchanga {
 /// based on the Tithi at solar noon for each day. Exact observance may vary by tradition.
 #[derive(Debug, Clone)]
 pub struct HinduFestival {
+    /// Name of the festival.
     pub name: &'static str,
+    /// Short description of the festival.
     pub description: &'static str,
     /// Julian day of the festival.
     pub jd: f64,

@@ -9,95 +9,174 @@ fn norm360(d: f64) -> f64 {
     norm_deg(d)
 }
 
+/// Aspect angles in degrees.
 #[allow(dead_code)]
 pub mod aspect_angles {
+    /// Conjunction (0°).
     pub const CONJUNCTION: f64 = 0.0;
+    /// Squisextile (15°).
     pub const SQUISEXTILE: f64 = 15.0;
+    /// Seminovile (20°).
     pub const SEMINOVILE: f64 = 20.0;
+    /// Squisquare (22.5°).
     pub const SQUISQUARE: f64 = 22.5;
+    /// Undecile (360°/11 ≈ 32.7°).
     pub const UNDECILE: f64 = 360.0 / 11.0;
+    /// Semisextile (30°).
     pub const SEMISEXTILE: f64 = 30.0;
+    /// Semiquintile (36°).
     pub const SEMIQUINTILE: f64 = 36.0;
+    /// Novile (40°).
     pub const NOVILE: f64 = 40.0;
+    /// Semisquare (45°).
     pub const SEMISQUARE: f64 = 45.0;
+    /// Septile (360°/7 ≈ 51.4°).
     pub const SEPTILE: f64 = 360.0 / 7.0;
+    /// Sextile (60°).
     pub const SEXTILE: f64 = 60.0;
+    /// Biundecile (2 × 360°/11 ≈ 65.5°).
     pub const BIUNDECILE: f64 = 360.0 / 11.0 * 2.0;
+    /// Quintile (72°).
     pub const QUINTILE: f64 = 72.0;
+    /// Binovile (80°).
     pub const BINOVILE: f64 = 80.0;
+    /// Square (90°).
     pub const SQUARE: f64 = 90.0;
+    /// Triundecile (3 × 360°/11 ≈ 98.2°).
     pub const TRIUNDECILE: f64 = 360.0 / 11.0 * 3.0;
+    /// Biseptile (2 × 360°/7 ≈ 102.9°).
     pub const BISEPTILE: f64 = 360.0 / 7.0 * 2.0;
+    /// Trine (120°).
     pub const TRINE: f64 = 120.0;
+    /// Quadundecile (4 × 360°/11 ≈ 130.9°).
     pub const QUADUNDECILE: f64 = 360.0 / 11.0 * 4.0;
+    /// Sesquisquare (135°).
     pub const SESQUISQUARE: f64 = 135.0;
+    /// Biquintile (144°).
     pub const BIQUINTILE: f64 = 144.0;
+    /// Quincunx (150°).
     pub const QUINCUNX: f64 = 150.0;
+    /// Inconjunct (150°).
     pub const INCONJUNCT: f64 = 150.0;
+    /// Triseptile (3 × 360°/7 ≈ 154.3°).
     pub const TRISEPTILE: f64 = 360.0 / 7.0 * 3.0;
+    /// Quatronovile (160°).
     pub const QUATRONOVILE: f64 = 160.0;
+    /// Quinundecile (5 × 360°/11 ≈ 163.6°).
     pub const QUINUNDECILE: f64 = 360.0 / 11.0 * 5.0;
+    /// Opposition (180°).
     pub const OPPOSITION: f64 = 180.0;
 }
 
 /// Sign numbers.
 #[allow(dead_code)]
 pub mod signs {
+    /// Aries (sign 0).
     pub const ARIES: i32 = 0;
+    /// Mesha — Aries (sign 0).
     pub const MESHA: i32 = 0;
+    /// Taurus (sign 1).
     pub const TAURUS: i32 = 1;
+    /// Vrishaba — Taurus (sign 1).
     pub const VRISHABA: i32 = 1;
+    /// Gemini (sign 2).
     pub const GEMINI: i32 = 2;
+    /// Mithuna — Gemini (sign 2).
     pub const MITHUNA: i32 = 2;
+    /// Cancer (sign 3).
     pub const CANCER: i32 = 3;
+    /// Kataka — Cancer (sign 3).
     pub const KATAKA: i32 = 3;
+    /// Leo (sign 4).
     pub const LEO: i32 = 4;
+    /// Simha — Leo (sign 4).
     pub const SIMHA: i32 = 4;
+    /// Virgo (sign 5).
     pub const VIRGO: i32 = 5;
+    /// Kanya — Virgo (sign 5).
     pub const KANYA: i32 = 5;
+    /// Libra (sign 6).
     pub const LIBRA: i32 = 6;
+    /// Thula — Libra (sign 6).
     pub const THULA: i32 = 6;
+    /// Scorpio (sign 7).
     pub const SCORPIO: i32 = 7;
+    /// Vrishika — Scorpio (sign 7).
     pub const VRISHIKA: i32 = 7;
+    /// Sagittarius (sign 8).
     pub const SAGITTARIUS: i32 = 8;
+    /// Dhanus — Sagittarius (sign 8).
     pub const DHANUS: i32 = 8;
+    /// Capricorn (sign 9).
     pub const CAPRICORN: i32 = 9;
+    /// Makara — Capricorn (sign 9).
     pub const MAKARA: i32 = 9;
+    /// Aquarius (sign 10).
     pub const AQUARIUS: i32 = 10;
+    /// Kumbha — Aquarius (sign 10).
     pub const KUMBHA: i32 = 10;
+    /// Pisces (sign 11).
     pub const PISCES: i32 = 11;
+    /// Meena — Pisces (sign 11).
     pub const MEENA: i32 = 11;
 }
 
 /// Nakshatra numbers.
 #[allow(dead_code)]
 pub mod nakshatras {
+    /// Aswini (nakshatra 0).
     pub const ASWINI: i32 = 0;
+    /// Bharani (nakshatra 1).
     pub const BHARANI: i32 = 1;
+    /// Krithika (nakshatra 2).
     pub const KRITHIKA: i32 = 2;
+    /// Rohini (nakshatra 3).
     pub const ROHINI: i32 = 3;
+    /// Mrigasira (nakshatra 4).
     pub const MRIGASIRA: i32 = 4;
+    /// Aridra (nakshatra 5).
     pub const ARIDRA: i32 = 5;
+    /// Punarvasu (nakshatra 6).
     pub const PUNARVASU: i32 = 6;
+    /// Pushyami (nakshatra 7).
     pub const PUSHYAMI: i32 = 7;
+    /// Aslesha (nakshatra 8).
     pub const ASLESHA: i32 = 8;
+    /// Makha (nakshatra 9).
     pub const MAKHA: i32 = 9;
+    /// Pubba (nakshatra 10).
     pub const PUBBA: i32 = 10;
+    /// Uttara (nakshatra 11).
     pub const UTTARA: i32 = 11;
+    /// Hasta (nakshatra 12).
     pub const HASTA: i32 = 12;
+    /// Chitta (nakshatra 13).
     pub const CHITTA: i32 = 13;
+    /// Swathi (nakshatra 14).
     pub const SWATHI: i32 = 14;
+    /// Vishaka (nakshatra 15).
     pub const VISHAKA: i32 = 15;
+    /// Anuradha (nakshatra 16).
     pub const ANURADHA: i32 = 16;
+    /// Jyesta (nakshatra 17).
     pub const JYESTA: i32 = 17;
+    /// Moola (nakshatra 18).
     pub const MOOLA: i32 = 18;
+    /// Poorvashada (nakshatra 19).
     pub const POORVASHADA: i32 = 19;
+    /// Uttarashada (nakshatra 20).
     pub const UTTARASHADA: i32 = 20;
+    /// Sravana (nakshatra 21).
     pub const SRAVANA: i32 = 21;
+    /// Dhanishta (nakshatra 22).
     pub const DHANISHTA: i32 = 22;
+    /// Satabisha (nakshatra 23).
     pub const SATABISHA: i32 = 23;
+    /// Poorvabhadra (nakshatra 24).
     pub const POORVABHADRA: i32 = 24;
+    /// Uttarabhadra (nakshatra 25).
     pub const UTTARABHADRA: i32 = 25;
+    /// Revathi (nakshatra 26).
     pub const REVATHI: i32 = 26;
 }
 

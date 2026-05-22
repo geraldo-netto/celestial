@@ -49,13 +49,21 @@ pub fn same_sect(body: Body, is_day: bool) -> bool {
 /// The five essential dignity levels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Dignity {
+    /// Planet ruling its own sign (+5).
     Domicile,
+    /// Planet in its sign of exaltation (+4).
     Exaltation,
+    /// Planet ruling the sign's triplicity (+3 or +2).
     Triplicity,
+    /// Planet ruling the degree's term/bound (+2).
     Term,
+    /// Planet ruling the degree's decan/face (+1).
     Decan,
+    /// Planet with no essential dignity (0).
     Peregrine,
+    /// Planet in the sign opposite its domicile (−5).
     Detriment,
+    /// Planet in the sign opposite its exaltation (−4).
     Fall,
 }
 
@@ -284,6 +292,10 @@ fn triplicity_score(body: Body, lon: f64, is_day: bool) -> Option<i8> {
     }
 }
 
+/// Highest-ranking essential dignity of `body` at `lon`, with its score.
+///
+/// Tests domicile, detriment, exaltation, fall, triplicity, term and decan in
+/// rank order; returns the first match as `(Dignity, score)`, or peregrine (0).
 #[must_use]
 pub fn full_dignity(body: Body, lon: f64, is_day: bool) -> (Dignity, i8) {
     let sign = (lon / 30.0) as u8 % 12;

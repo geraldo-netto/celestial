@@ -118,7 +118,9 @@ pub struct ChristianFeast {
     pub jd: f64,
     /// Gregorian year, month, day.
     pub year: i32,
+    /// Gregorian month of the feast (1–12).
     pub month: u8,
+    /// Gregorian day of the feast (1–31).
     pub day: u8,
 }
 

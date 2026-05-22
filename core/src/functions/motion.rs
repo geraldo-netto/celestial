@@ -4,7 +4,9 @@ use crate::astronomy::crossings as ac;
 /// Result of a Moon node crossing.
 #[derive(Debug, Clone, Copy)]
 pub struct MoonCrossNode {
+    /// Julian day (ET) at which the Moon crosses the node.
     pub jd_cross: f64,
+    /// Ecliptic longitude (degrees) at the crossing.
     pub xlon: f64,
 }
 

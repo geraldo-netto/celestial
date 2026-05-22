@@ -92,9 +92,13 @@ impl MoonPhase {
 /// The four principal Moon phases used for `next_phase` and `moon_phases_for_month`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrincipalPhase {
+    /// New Moon (Sun–Moon elongation 0°).
     NewMoon,
+    /// First Quarter (elongation 90°).
     FirstQuarter,
+    /// Full Moon (elongation 180°).
     FullMoon,
+    /// Last Quarter (elongation 270°).
     LastQuarter,
 }
 

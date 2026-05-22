@@ -7,27 +7,41 @@ use crate::error::{Error, Result};
 
 // ─── Return types ─────────────────────────────────────────────────────────────
 
+/// Eclipse search result: classification flags plus contact-time array.
 #[derive(Debug, Clone, PartialEq)]
 #[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct EclipseResult {
+    /// Eclipse-type bit flags (e.g. `ECL_TOTAL`, `ECL_PARTIAL`).
     pub ret_flags: i32,
+    /// Eclipse contact times as Julian Days (UT); `tret[0]` is the maximum.
     pub tret: [f64; 10],
 }
+/// Eclipse search result with location-specific attributes.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EclipseResultAttr {
+    /// Eclipse-type bit flags.
     pub ret_flags: i32,
+    /// Eclipse contact times as Julian Days (UT); `tret[0]` is the maximum.
     pub tret: [f64; 10],
+    /// Eclipse attributes (magnitude, obscuration, altitude, …).
     pub attr: [f64; 20],
 }
+/// Eclipse circumstances (magnitude, obscuration, contacts) at a fixed time.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EclipseHow {
+    /// Eclipse-type bit flags.
     pub ret_flags: i32,
+    /// Eclipse attributes (magnitude, obscuration, contact times, …).
     pub attr: [f64; 20],
 }
+/// Eclipse geographic result: point of greatest eclipse plus attributes.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EclipseWhere {
+    /// Eclipse-type bit flags.
     pub ret_flags: i32,
+    /// Geographic position; `geopos[0]` = longitude, `geopos[1]` = latitude.
     pub geopos: [f64; 10],
+    /// Eclipse attributes (magnitude, gamma, shadow-axis distance, …).
     pub attr: [f64; 20],
 }
 
@@ -283,6 +297,11 @@ fn try_refine_occultation(jd: f64, step: f64, prev: f64, curr: f64, body: Body) 
     Some(EclipseResult { ret_flags: 64, tret })
 }
 
+/// Next occultation of `body` by the Moon, searching globally from `tjd_start`.
+///
+/// Scans in 0.1-day steps for an angular-separation minimum and refines it;
+/// returns the time of closest approach in `tret[0]`. Set `backwards` to search
+/// toward earlier dates.
 pub fn lun_occult_when_glob(
     tjd_start: f64,
     body: Body,

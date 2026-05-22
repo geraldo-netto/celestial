@@ -24,23 +24,29 @@ use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
-/// A celestial body or point identified by its index.
-///
-/// Use the associated constants (`Body::SUN`, `Body::MOON`, …)
-/// or `Body(n)` for custom asteroid indices.
 pub struct Body(pub i32);
 
 impl Body {
     // ── Main planets & luminaries ─────────────────────────────────────────
+    /// The Sun.
     pub const SUN: Self = Body(0);
+    /// The Moon.
     pub const MOON: Self = Body(1);
+    /// Mercury.
     pub const MERCURY: Self = Body(2);
+    /// Venus.
     pub const VENUS: Self = Body(3);
+    /// Mars.
     pub const MARS: Self = Body(4);
+    /// Jupiter.
     pub const JUPITER: Self = Body(5);
+    /// Saturn.
     pub const SATURN: Self = Body(6);
+    /// Uranus.
     pub const URANUS: Self = Body(7);
+    /// Neptune.
     pub const NEPTUNE: Self = Body(8);
+    /// Pluto.
     pub const PLUTO: Self = Body(9);
 
     // ── Lunar nodes & apsides ─────────────────────────────────────────────
@@ -48,7 +54,9 @@ impl Body {
     pub const MEAN_NODE: Self = Body(10);
     /// True (osculating) lunar node.
     pub const TRUE_NODE: Self = Body(11);
+    /// Mean lunar apogee (mean Black Moon Lilith).
     pub const MEAN_APOGEE: Self = Body(12);
+    /// Osculating lunar apogee (true Black Moon Lilith).
     pub const OSCULATING_APOGEE: Self = Body(13);
     /// Earth — for heliocentric calculations.
     pub const EARTH: Self = Body(14);
@@ -56,12 +64,15 @@ impl Body {
     // ── Asteroids (also available at ASTEROID_OFFSET + n) ────────────────
     /// Chiron.
     pub const CHIRON: Self = Body(15);
+    /// Pholus.
     pub const PHOLUS: Self = Body(16);
     /// Ceres.
     pub const CERES: Self = Body(17);
+    /// Pallas.
     pub const PALLAS: Self = Body(18);
     /// Juno.
     pub const JUNO: Self = Body(19);
+    /// Vesta.
     pub const VESTA: Self = Body(20);
 
     // ── Special markers ───────────────────────────────────────────────────
@@ -336,20 +347,34 @@ impl std::fmt::Display for CalcFlags {
 pub struct HouseSystem(pub u8);
 
 impl HouseSystem {
+    /// Placidus house system.
     pub const PLACIDUS: Self = HouseSystem(b'P');
+    /// Koch house system.
     pub const KOCH: Self = HouseSystem(b'K');
+    /// Equal house system.
     pub const EQUAL: Self = HouseSystem(b'E');
+    /// Whole-sign house system.
     pub const WHOLE_SIGN: Self = HouseSystem(b'W');
+    /// Porphyry house system.
     pub const PORPHYRY: Self = HouseSystem(b'O');
+    /// Regiomontanus house system.
     pub const REGIOMONTANUS: Self = HouseSystem(b'R');
+    /// Campanus house system.
     pub const CAMPANUS: Self = HouseSystem(b'C');
+    /// Morinus house system.
     pub const MORINUS: Self = HouseSystem(b'M');
+    /// Alcabitus house system.
     pub const ALCABITUS: Self = HouseSystem(b'B');
+    /// Axial-rotation (meridian) house system.
     pub const AXIAL_ROTATION: Self = HouseSystem(b'X');
+    /// Gauquelin sectors.
     pub const GAUQUELIN: Self = HouseSystem(b'G');
+    /// Vehlow equal house system.
     pub const VEHLOW_EQUAL: Self = HouseSystem(b'V');
+    /// Whole-sign system anchored on the meridian.
     pub const WHOLE_SIGN_MERIDIAN: Self = HouseSystem(b'Y');
 
+    /// Return the raw house-system code byte.
     #[inline]
     #[must_use]
     pub const fn as_raw(self) -> u8 {
@@ -406,15 +431,22 @@ impl std::fmt::Display for HouseSystem {
 pub struct SiderealMode(pub i32);
 
 impl SiderealMode {
+    /// Fagan-Bradley ayanamsa.
     pub const FAGAN_BRADLEY: Self = SiderealMode(0);
+    /// Lahiri (Chitrapaksha) ayanamsa.
     pub const LAHIRI: Self = SiderealMode(1);
+    /// De Luce ayanamsa.
     pub const DELUCE: Self = SiderealMode(2);
+    /// Raman ayanamsa.
     pub const RAMAN: Self = SiderealMode(3);
+    /// Krishnamurti (KP) ayanamsa.
     pub const KRISHNAMURTI: Self = SiderealMode(5);
+    /// Sassanian ayanamsa.
     pub const SASSANIAN: Self = SiderealMode(11);
     /// User-defined ayanamsa (supply epoch and value via `set_sid_mode`).
     pub const USER_DEFINED: Self = SiderealMode(255);
 
+    /// Return the raw ayanamsa-mode code.
     #[inline]
     #[must_use]
     pub const fn as_raw(self) -> i32 {

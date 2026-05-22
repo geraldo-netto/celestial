@@ -2,11 +2,15 @@
 
 /// A timezone abbreviation (e.g. `"UTC"`, `"EST"`) with UTC offset.
 pub struct TzAbbr {
+    /// Abbreviation, e.g. `"EST"`.
     pub name: &'static str,
+    /// Full description, e.g. `"Eastern Standard Time"`.
     pub desc: &'static str,
     /// UTC offset string, e.g. "UTC+05:30".
     pub offset: &'static str,
+    /// Hours component of the UTC offset.
     pub hours: i32,
+    /// Minutes component of the UTC offset.
     pub minutes: i32,
 }
 

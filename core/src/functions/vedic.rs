@@ -262,6 +262,9 @@ fn residential_within(graha: f64, c1: f64, c2: f64) -> Option<f64> {
     Some(strength)
 }
 
+/// Residential strength (bhava-bala) of a graha given the 12 bhavamadhya
+/// longitudes. Returns the in-house strength in [0, 1], or `None` if the graha
+/// falls in no house.
 pub fn residential_strength(graha: f64, bm: &[f64; 12]) -> Option<f64> {
     let wrap = |i: usize| if i >= 12 { 0 } else { i };
     for i in 0..12 {

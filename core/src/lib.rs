@@ -36,6 +36,10 @@
 //!
 //! A [`prelude`] module re-exports the most-used items for convenience.
 
+// DOC-1: every public item carries a doc comment; this lint keeps it that
+// way (CI runs the feature matrix under `-D warnings`, so a regression fails).
+#![warn(missing_docs)]
+
 // ── Crate-private physics engine (unchanged) ──────────────────────────────────
 pub(crate) mod astronomy;
 pub mod constants; // raw i32 constants kept for internal use

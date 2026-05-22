@@ -66,7 +66,9 @@ fn approx_retro_time(body: Body) -> f64 {
 /// Result of a retrograde station search.
 #[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct RetroResult {
+    /// Julian Day (UT) of the station.
     pub jd: f64,
+    /// Position at the station: `[lon, lat, dist, speed_lon, speed_lat, speed_dist]`.
     pub pos: [f64; 6],
 }
 
@@ -114,6 +116,12 @@ where
     })
 }
 
+/// Find the next retrograde or direct station for `body` from `jd_start`.
+///
+/// Steps until the longitudinal speed changes sign, then bisects to the exact
+/// station. Returns `None` for bodies that never retrograde (Sun, Moon, Earth)
+/// or if no station is found within the search window. Set `backward` to search
+/// toward earlier dates.
 pub fn next_retro(
     body: Body,
     jd_start: f64,
@@ -157,6 +165,7 @@ pub fn next_retro(
 #[derive(Debug, Clone, PartialEq)]
 #[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct AspectResult {
+    /// Julian Day (UT) of the exact aspect.
     pub jd: f64,
     /// Planet positions at exact aspect.
     pub pos1: [f64; 6],
@@ -359,9 +368,13 @@ pub fn next_aspect_with2(
 #[derive(Debug, Clone, PartialEq)]
 #[must_use = "the search result contains the computed data — did you mean to use it?"]
 pub struct AspectCuspResult {
+    /// Julian Day (UT) of the exact aspect to the cusp.
     pub jd: f64,
+    /// Planet position: `[lon, lat, dist, speed_lon, speed_lat, speed_dist]`.
     pub pos: [f64; 6],
+    /// House cusp longitudes at that time (indices 1–12 used).
     pub cusps: [f64; 13],
+    /// Ascendant/MC and related points at that time.
     pub ascmc: [f64; 10],
 }
 

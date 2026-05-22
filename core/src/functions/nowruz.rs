@@ -200,7 +200,9 @@ pub fn jd_to_bahai(jd: f64) -> BahaiDate {
 /// A Bahá'í holy day.
 #[derive(Debug, Clone)]
 pub struct BahaiHolyDay {
+    /// Name of the holy day.
     pub name: &'static str,
+    /// Short description of the holy day.
     pub description: &'static str,
     /// Bahá'í month (1–19, 0=Ayyám-i-Há).
     pub bahai_month: u8,

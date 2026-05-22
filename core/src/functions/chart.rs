@@ -357,8 +357,11 @@ pub fn arabic_part(asc: f64, body2: f64, body1: f64) -> f64 {
 /// Standard Arabic Parts with names.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ArabicPart {
+    /// Name of the part/lot, e.g. `"Part of Fortune"`.
     pub name: &'static str,
+    /// Formula used to compute the part, e.g. `"Asc + Moon - Sun"`.
     pub formula: &'static str,
+    /// Ecliptic longitude of the part, in degrees [0, 360).
     pub degree: f64,
 }
 
