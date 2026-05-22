@@ -685,16 +685,14 @@ pub fn render_default_calendar_svg(ctx: &ChartContext) -> String {
     let gh = g["grid_h"].as_f64().unwrap_or(540.0);
 
     let mut s = String::with_capacity(8192);
+    s.push_str(&super::svg_common::svg_doc_open(vw, vh, &palette.bg));
     let _ = write!(
         s,
-        r#"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {vw:.0} {vh:.0}" width="{vw:.0}" height="{vh:.0}">
-  <rect width="{vw:.0}" height="{vh:.0}" fill="{bg}"/>
+        r#"
   <text x="{cx:.0}" y="42" text-anchor="middle" font-size="22" font-weight="600"
         font-family="Georgia,serif" fill="{txt}">{title}</text>
 "#,
         cx = vw / 2.0,
-        bg = palette.bg,
         txt = palette.txt,
         title = palette.title,
     );

@@ -60,11 +60,10 @@ pub fn render_north_indian_svg(ctx: &ChartContext) -> String {
     let ox = 30.0_f64; // origin offset
     let oy = 65.0_f64;
 
+    s.push_str(&super::svg_common::svg_doc_open(total_w, total_h, &bg));
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w} {total_h}" width="{total_w}" height="{total_h}">
-  <rect width="{total_w}" height="{total_h}" fill="{bg}"/>
+        r##"
   <text x="300" y="26" text-anchor="middle" font-size="15" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
   <text x="300" y="44" text-anchor="middle" font-size="8"
@@ -260,11 +259,10 @@ fn write_av_header(
     total_h: f64,
 ) {
     let cx = total_w / 2.0;
+    s.push_str(&super::svg_common::svg_doc_open(total_w, total_h, bg));
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w:.0} {total_h:.0}" width="{total_w:.0}" height="{total_h:.0}">
-  <rect width="{total_w:.0}" height="{total_h:.0}" fill="{bg}"/>
+        r##"
   <text x="{cx:.1}" y="22" text-anchor="middle" font-size="15" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
   <text x="{cx:.1}" y="40" text-anchor="middle" font-size="8"
@@ -532,11 +530,10 @@ pub fn render_shadbala_svg(ctx: &ChartContext) -> String {
     let total_h = TM + (rows.len() + 1) as f64 * RH + 20.0;
 
     let mut s = String::with_capacity(6 * 1024);
+    s.push_str(&super::svg_common::svg_doc_open(total_w, total_h, &bg));
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w:.0} {total_h:.0}" width="{total_w:.0}" height="{total_h:.0}">
-  <rect width="{total_w:.0}" height="{total_h:.0}" fill="{bg}"/>
+        r##"
   <text x="{:.1}" y="22" text-anchor="middle" font-size="14" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
   <text x="{:.1}" y="38" text-anchor="middle" font-size="8"
@@ -864,11 +861,10 @@ pub fn render_dasha_svg(ctx: &ChartContext) -> String {
     let total_h = TM + n as f64 * (BH + BG) + 40.0;
 
     let mut s = String::with_capacity(8 * 1024);
+    s.push_str(&super::svg_common::svg_doc_open(900.0, total_h, &bg));
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 {total_h:.0}" width="900" height="{total_h:.0}">
-  <rect width="900" height="{total_h:.0}" fill="{bg}"/>
+        r##"
   <text x="450" y="28" text-anchor="middle" font-size="16" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
   <text x="450" y="48" text-anchor="middle" font-size="9"

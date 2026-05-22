@@ -204,11 +204,10 @@ pub fn render_omer_grid_svg(ctx: &ChartContext) -> String {
     let mut s = String::with_capacity(8192);
 
     // Header
+    s.push_str(&super::svg_common::svg_doc_open(vw, vh, &bg));
     let _ = write!(
         s,
-        r#"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {vw:.0} {vh:.0}" width="{vw:.0}" height="{vh:.0}">
-  <rect width="{vw:.0}" height="{vh:.0}" fill="{bg}"/>
+        r#"
   <text x="{cx:.0}" y="42" text-anchor="middle" font-size="22" font-weight="600"
         font-family="Georgia,serif" fill="{txt}">{title}</text>
   <text x="{cx:.0}" y="68" text-anchor="middle" font-size="11"

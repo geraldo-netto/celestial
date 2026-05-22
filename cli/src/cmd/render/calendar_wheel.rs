@@ -123,7 +123,7 @@ pub fn render_sabbat_wheel_svg(ctx: &ChartContext) -> String {
     let mut s = String::with_capacity(4096);
 
     // Header
-    s.push_str(&super::svg_common::svg_doc_open(900, 800, &bg));
+    s.push_str(&super::svg_common::svg_doc_open(900.0, 800.0, &bg));
     let _ = write!(
         s,
         r#"

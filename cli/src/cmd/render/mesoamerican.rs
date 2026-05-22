@@ -122,7 +122,7 @@ pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
     let cr_hmonth = ctx["cr_haab_month"].as_str().unwrap_or("?");
     let sign_idx = ctx["tonal_sign_idx"].as_u64().unwrap_or(0);
 
-    let mut s = super::svg_common::svg_doc_open(700, 580, &bg);
+    let mut s = super::svg_common::svg_doc_open(700.0, 580.0, &bg);
     s.reserve(8 * 1024);
     let _ = writeln!(
         s,

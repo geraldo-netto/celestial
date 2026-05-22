@@ -45,21 +45,24 @@ impl SvgPalette {
     }
 }
 
-/// The invariant document preamble: `<?xml …?>`, `<svg …>` and the
-/// background rect, for an integer-dimensioned canvas. Byte-identical to
-/// the hand-written form used by the static-size renderers (no trailing
-/// newline — callers append their title/date lines directly).
-pub(super) fn svg_doc_open(w: u32, h: u32, bg: &str) -> String {
-    // SEC-9: `bg` is a user-controlled palette colour (--var/config);
-    // escape it as SEC-1 did for builtin_svg. Plain hex colours have no
-    // escapable chars → byte-identical output.
-    let bg = crate::format::xml_escape(bg);
-    format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
-         <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {w} {h}\" \
-         width=\"{w}\" height=\"{h}\">\n  \
-         <rect width=\"{w}\" height=\"{h}\" fill=\"{bg}\"/>"
-    )
+/// The invariant document preamble (`<?xml …?>`, `<svg …>`, background
+/// rect), loaded once from the `fragments/svg_open.svg` template so every
+/// renderer composes the same bytes. `{w}`/`{h}` are rendered with `:.0`
+/// (integer canvases). No trailing newline — callers append their
+/// title/date lines directly. Byte-identical to the hand-written form
+/// previously inlined in each renderer (DUP-8).
+///
+/// `bg` must already be XML-escaped by the caller (every renderer pulls it
+/// via `esc_var`/`SvgPalette`, so SEC-9 escaping happens once at that
+/// boundary — this helper does not re-escape).
+const SVG_OPEN_TEMPLATE: &str = include_str!("fragments/svg_open.svg");
+
+pub(super) fn svg_doc_open(w: f64, h: f64, bg: &str) -> String {
+    SVG_OPEN_TEMPLATE
+        .trim_end_matches('\n')
+        .replace("{w}", &format!("{w:.0}"))
+        .replace("{h}", &format!("{h:.0}"))
+        .replace("{bg}", bg)
 }
 
 /// A bordered panel card: rounded rect + centred heading text. Covers the

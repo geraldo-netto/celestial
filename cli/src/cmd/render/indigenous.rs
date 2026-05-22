@@ -106,7 +106,7 @@ fn element_color(elem: &str) -> &'static str {
 
 fn write_mw_header(s: &mut String, bg: &str, green: &str, txt: &str, title: &str, date: &str) {
     use std::fmt::Write;
-    s.push_str(&super::svg_common::svg_doc_open(700, 600, bg));
+    s.push_str(&super::svg_common::svg_doc_open(700.0, 600.0, bg));
     let _ = writeln!(
         s,
         r##"

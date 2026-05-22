@@ -299,11 +299,10 @@ pub fn render_firdaria_svg(ctx: &ChartContext) -> String {
     let total_h = TM + n as f64 * (BH + BG) + 50.0;
 
     let mut s = String::with_capacity(12 * 1024);
+    s.push_str(&super::svg_common::svg_doc_open(900.0, total_h, &bg));
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 {total_h:.0}" width="900" height="{total_h:.0}">
-  <rect width="900" height="{total_h:.0}" fill="{bg}"/>
+        r##"
   <text x="450" y="28" text-anchor="middle" font-size="16" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
   <text x="450" y="46" text-anchor="middle" font-size="9"

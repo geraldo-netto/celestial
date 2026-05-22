@@ -441,11 +441,10 @@ pub fn render_graphic_ephemeris_svg(ctx: &ChartContext) -> String {
 }
 
 fn write_ge_header(s: &mut String, bg: &str, txt: &str, title: &str, total_h: f64) {
+    s.push_str(&super::svg_common::svg_doc_open(900.0, total_h, bg));
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 {total_h:.0}" width="900" height="{total_h:.0}">
-  <rect width="900" height="{total_h:.0}" fill="{bg}"/>
+        r##"
   <text x="450" y="28" text-anchor="middle" font-size="16" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>"##
     );
@@ -648,11 +647,10 @@ fn write_ls_header(
 ) {
     let ns = if lat >= 0.0 { "N" } else { "S" };
     let ew = if lon_v >= 0.0 { "E" } else { "W" };
+    s.push_str(&super::svg_common::svg_doc_open(900.0, 980.0, bg));
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 980" width="900" height="980">
-  <rect width="900" height="980" fill="{bg}"/>
+        r##"
   <text x="450" y="30" text-anchor="middle" font-size="16" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
   <text x="450" y="48" text-anchor="middle" font-size="9"
@@ -799,11 +797,10 @@ pub fn render_dial_svg(ctx: &ChartContext) -> String {
 
     const CR: f64 = 200.0; // dial radius
     let mut s = String::with_capacity(8 * 1024);
+    s.push_str(&super::svg_common::svg_doc_open(700.0, 600.0, &bg));
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 600" width="700" height="600">
-  <rect width="700" height="600" fill="{bg}"/>
+        r##"
   <text x="350" y="26" text-anchor="middle" font-size="15" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{title}</text>
   <text x="350" y="42" text-anchor="middle" font-size="9" fill="{ring}" opacity=".6">{date}</text>

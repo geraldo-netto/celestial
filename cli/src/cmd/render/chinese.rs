@@ -156,11 +156,10 @@ fn write_bazi_header(
     use std::fmt::Write;
     let (bg, txt, border) = (pal.bg, pal.txt, pal.border);
     let half = total_w / 2.0;
+    s.push_str(&super::svg_common::svg_doc_open(total_w, total_h, bg));
     let _ = writeln!(
         s,
-        r##"<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w:.0} {total_h:.0}" width="{total_w:.0}" height="{total_h:.0}">
-  <rect width="{total_w:.0}" height="{total_h:.0}" fill="{bg}"/>
+        r##"
   <text x="{half:.1}" y="26" text-anchor="middle" font-size="16" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{title}</text>
   <text x="{half:.1}" y="44" text-anchor="middle" font-size="9"
