@@ -131,4 +131,4 @@ Fix pass same day cleared SEC-12, TEST-6, DOC-5, DEAD-2, DUP-9, DUP-10 — rows 
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| DEAD-3 | DEFERRED | S | `celestial_ffi::pos6` used only once (php `lib.rs:53`); js inlines its own struct shape, python uses `pos6_tuple`. | KEEP — docstring frames `pos6` as the array counterpart to `pos6_tuple`; php is a legitimate consumer. Logged so a future rescan doesn't re-flag. |
+| DEAD-3 | DECIDED | S | `celestial_ffi::pos6` used only once (php `lib.rs:53`); js inlines its own struct shape, python uses `pos6_tuple`. | KEEP — docstring frames `pos6` as the array counterpart to `pos6_tuple`; php is a legitimate consumer and the only ffi-shape binding. Logged so a future rescan doesn't re-flag. |
