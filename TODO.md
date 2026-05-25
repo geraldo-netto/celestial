@@ -1,290 +1,137 @@
-# Celestial — Code Audit
+# Celestial — TODO
 
-Rescan: **2026-05-22** (develop, full 16-category re-audit, parallel
-multi-agent sweep + per-claim verification; **fix pass + DOC-1 backfill
-applied same day, re-verified clean**; a **second confirmation rescan**
-then scrutinised the session's own new code — found + fixed one latent
-panic, REL-3). One table per category; stable IDs in the first column.
-Completed work is removed (not listed).
+Rescan: **2026-05-25** (categories per `AGENTS.md` §Rules ∪ prior AUDIT extras; tables only).
 
-| state | meaning |
-|---|---|
-| OPEN | actionable, bounded, byte-safe — do next |
-| DEFERRED | real; needs an isolated session + precision soak |
-| DECIDED | WONTFIX / DECLINED / N-A with rationale (kept so a rescan doesn't re-flag) |
+## Security
 
-| effort | scale |
-|---|---|
-| S | bounded, < 1 h, no precision risk |
-| M | isolated session (multi-file or needs a soak) |
-| L | large / cross-crate / published-API surface |
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| SEC-12 | OPEN | S | `builtin_svg::Palette` shadow vars (`ring_color`/`planet_color`/`pfg`/`retro_c`/`hard_c`/`soft_c`/`txt`) written raw into ~19 SVG attr sites across natal/cosmogram/return/progressed/biwheel/triwheel renderers. CLI `--var 'ring_color=red"/><script>X</script><x foo="'` reproduces XSS-shape inject in release build. | Escape inside `Palette::from` so every downstream site is safe by construction. SEC-1..10b sweep escaped specialist/calendar but missed `builtin_svg`'s `Palette` shadow vars. Medium severity (browser-rendered SVG only). |
 
-> **This rescan found 16 OPEN; all 16 are now fixed** — **0 OPEN
-> remain** (DOC-1, the last, was backfilled in `f978115` and locked with
-> `#![warn(missing_docs)]`). With DUP-8 also done (`e1531fe`), **no OPEN
-> or DEFERRED findings remain** — only DECIDED rows. Fixed and removed:
-> the recurring feature-gate wiring class struck a third time
-> in the language bindings (**WIRE-2**, commit `d6a3ead`) — the
-> structural root, a feature-matrix CI that only `cargo check`ed, was
-> closed by making it `cargo test` under `-D warnings` (**TEST-4/5**,
-> `d1df606`); the phantom `chart` subcommand + 816-LOC orphan
-> (**WIRE-3/DEAD-1/DOC-3**, `785c61a`); **PERF-7** doubled nutation
-> (`e6395b8`, byte-identical); **CC-2..CC-5** (`16f4894`);
-> **REL-1/SEC-11** binding `chunks_exact` (`7728fa2`); **DOC-2**
-> intra-doc links (`0153c4f`); **DUP-7** year-axis dedupe (`64857cc`);
-> and **DOC-1** — all 378 public items documented + `missing_docs`
-> lint (`f978115`). Both language bindings were re-validated at runtime
-> (python 250 pass, js harness + REL-1 malformed-input smoke), and a
-> 27-chart SVG byte-snapshot gate was added (`9a767c2`, `553cdb8`).
->
-> The confirmation rescan found the session's new code clean, plus one
-> pre-existing latent panic — **REL-3** (`--tz "+😀"` sliced a UTF-8
-> char mid-codepoint), **fixed** `26f6281`. It also recorded two small
-> DEFERRED test/cosmetic dedups (DUP-9, DUP-10) and one DECIDED
-> complexity note (CC-6). No OPEN findings remain.
+## Reliability / correctness
 
-Category order: **correctness & safety** first (Security, Reliability,
-Wiring gaps), then **quality gates** (Test coverage, Complexity,
-Duplication), **performance & scale** (Performance, Scalability),
-**structure** (Architecture/SOLID/POSA, Modularity & SoC, Visibility,
-Design patterns), and **domain & docs** (Documentation, DDD,
-Usability/ergonomics).
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| REL-2 | DECIDED | S | `panchanga::karana_name(0)` (`panchanga.rs:201`, public) underflows `0u8-2` → debug-only panic; release wraps to a valid index; internal callers pass `1..=60`. | Release-safe robustness nit. Not tracked for fix. |
 
----
+## Wiring gaps
 
-# Correctness & safety
+| id | status | effort | description | notes |
+|---|---|---|---|---|
 
-## 1. Security
+(no findings)
 
-`unsafe`-free in core/cli/bindings/ffi source; FFI via
-napi/pyo3/ext-php-rs; `plugin.rs` execs via arg array (no shell);
-`cargo audit` clean (90 deps, 0 advisories — re-verified this rescan).
-SEC-1..SEC-10b all fixed (SVG/XML injection escaping reached every
-renderer incl. specialist/calendar/south_indian via
-`svg_common::esc_var`) — removed per completed-work policy. **SEC-11**
-(JS binding `chunks` panic unwinding across the `extern "C"` boundary
-into V8 = UB) was found and **fixed this cycle** (`7728fa2`, with
-REL-1) — removed. No OPEN security findings.
+## Concurrency
 
-## 2. Reliability
+| id | status | effort | description | notes |
+|---|---|---|---|---|
 
-Triaged all 440 `unwrap/expect/panic!/unreachable!` sites: the vast
-majority are inside `#[cfg(test)]` mods; `let _ = write!(String,…)` is
-infallible; float→int casts saturate (Rust ≥1.45, no UB on NaN/±Inf);
-CLI `parse.rs` input is length-guarded; `plugin.rs` crosses no
-privilege boundary. The one real cluster — unchecked `chunks()`
-indexing on attacker-controlled binding input (REL-1) — was **fixed
-this cycle** (`7728fa2`, `chunks_exact`) and removed. The confirmation
-rescan then found **REL-3**: `parse_numeric_offset` (`parse.rs`) sliced
-`&rest[..2]` whenever `rest.len() == 4` (bytes), so a 4-byte non-ASCII
-`--tz` value (`"+😀"`) panicked mid-codepoint — reachable from CLI
-input. **Fixed** `26f6281` (`rest.is_ascii()` guard → graceful
-`ParseError`; regression cases added). Removed per completed-work policy.
+(no findings — no new concurrency primitives in product code; only the test-only `path_lock` in `plugin.rs`, poison-safe.)
 
-| id | status | effort | description |
-|---|---|---|---|
-| REL-2 | DECIDED | S | `panchanga::karana_name(0)` (`panchanga.rs:201`, public) underflows `0u8-2` → debug-only panic; release wraps to a valid index and all internal callers pass `1..=60`. Release-safe robustness nit, not tracked. |
+## Test coverage
 
-## 3. Wiring gaps
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| TEST-6 | OPEN | S | `core/src/units.rs` 50% region/line/function — macro-generated `From<f64>` / `From<$T> for f64` / `Default` per newtype never exercised; below stated 80% per-file floor. | Add 4-line round-trip + `Default` test per newtype, OR drop the unused derives. Precision-neutral. |
+| TEST-2 | DECIDED | — | `bindings/{js,python}/src/lib.rs` 0% — exercised only by the JS/Python language harnesses; `llvm-cov` can't instrument them. | Not a real gap; the only sub-80% product area. |
 
-**New category.** A recurring failure mode: an item is defined/gated on
-one side and referenced/gated differently on the other. The class has
-now been hit and fixed **four times**: ARCH-7 (core `lib.rs`
-re-exports), `6da2ec9` (core test imports), **WIRE-2** (`d6a3ead`, the
-three language bindings — ~35 calendar-traditions symbols referenced
-unconditionally, `cargo build -p celestial-py/-js --no-default-features`
-was failing 37 errors), and the structural root **TEST-4** (`d1df606`,
-matrix CI now `cargo test`s feature-off, see §4). The phantom `chart`
-subcommand + its 816-LOC orphan (**WIRE-3/DEAD-1/DOC-3**, `785c61a`)
-were the second cluster. All fixed and removed. No OPEN wiring findings.
+## Code complexity
 
----
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| CC-6 | DECIDED | S | `calendar_overlays.rs:509 render_day_cell` sits at exactly CC 10 — compliant, zero headroom. Next decoration would breach cap. | If extended, split moon-glyph + omer-badge blocks into `write_*` helpers. |
+| CC-1 | DECIDED | — | `cli_fuzz.rs:250 boundary_…strings`; `parse.rs:418 parse_tz_forms` (test mod). Clippy `cognitive_complexity` 16/12 but pure `assert!`/`matches!` macro expansion; real cyclomatic ≤3. | Lint is `nursery`/disabled. No logic to split. |
 
-# Quality gates
+## Code duplication
 
-## 4. Test coverage
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| DUP-9 | DEFERRED | S | CLI-spawn test harness (`celestial_binary()`, `CLI_LOCK: Mutex<()>`, near-identical render fn) duplicated across `svg_snapshot.rs`, `natal_builtin_render.rs`, `templates_render.rs`, `i18n_help.rs` (rescan widened scope from 2 → 4 files). | Share via `cli/tests/common/mod.rs` (`mod common`). Test-only, precision-neutral. |
+| DUP-10 | DEFERRED | S | Specialist renderers pull the bg/ring/text colour trio as 3 separate `esc_var` calls instead of `SvgPalette::from_ctx`: `specialist.rs:402-404,754-757,786-788`; `south_indian.rs:338-342`. | Byte-identical consolidation (same escaped strings). Cosmetic. |
+| DUP-1 | DECIDED | L | Bindings 201×3 per-export return-adapter stubs — shared *input* half already factored in `bindings/ffi`; residual = irreducible per-language *return* shapes (py tuple / php map / js struct). | Only a ~600-1000 LOC spec + 3-emitter codegen removes it, regenerating 3 published APIs with php unverifiable. Net-negative. = ARCH-10 / DP-4. |
+| DUP-4 | DECIDED | — | `revjul`/`revjul_hms` 3 return shapes — intentional per-language idioms; core call already shared. | Normalizing = published-API break. |
+| DUP-6 | DECIDED | S | `Xorshift64` PRNG copied across `cli_fuzz.rs:18` and `fuzz/src/main.rs:18` — test-only, 2 crates/targets, ~15 LOC. | Shared dev-dep crate disproportionate. |
+| DUP-5 | DECIDED | — | Per-tradition wheel geometry — distinct layout constants, not duplication; shared halves already factored. | N-A. |
 
-`cargo llvm-cov` 0.8.5; product code (core/src + cli/src, tests
-excluded) = **94.9% region / 94.5% line / 94.7% function**; every
-source file ≥80%. CI floor enforced (`--fail-under-lines 80
---fail-under-functions 90`, fuzz/xtask/binding-tests excluded). Only
-known-uncovered product fn is `esbats::bisect_fallback_full_moon`
-(reachable only on primary-solver failure). **TEST-4** (matrix CI only
-`cargo check`ed, never executed feature-off behavior — the structural
-root of the gate-bug class) and **TEST-5** (feature-off-only dead
-imports) were both **fixed this cycle** (`d1df606`): the matrix step now
-`cargo test`s every combo under `RUSTFLAGS=-D warnings`. Removed.
+## Performance
 
-| id | status | effort | description |
-|---|---|---|---|
-| TEST-2 | DECIDED | — | `bindings/{js,python}/src/lib.rs` 0% — exercised only by the JS/Python language harnesses; `llvm-cov` can't instrument them. Not a real gap; the only sub-80% product area. |
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| PERF-8 | DECIDED | S | `svg_common::svg_doc_open` chains 3 `String::replace` + 2 `format!` per chart (~6 allocs for preamble). | One call per chart; not hot. Combining needs a build-time concat or tiny templater. Net-neutral. |
+| PERF-9 | DECIDED | S | `parse_chart_type` (`args.rs:49`) calls `registered_chart_types()` twice — each call joins all aliases into one `String` then splits it. | One-shot at CLI start; <1µs. Cosmetic micro-perf. |
+| PERF-2/3 | DECIDED | — | `searches.rs` post-bisect `calc_ut`/`houses` full-flag re-eval is authoritative, not redundant (scan strips SPEED). | Locked by `perf2345_search_regression_lock`. |
+| PERF-4 | DECIDED | — | `bisect_retro_station` already reuses the last loop sample; no recompute. | N-A. |
+| PERF-5 | DECIDED | M | `next_aspect_with2` dual-scan merge — precision-sensitive rewrite for marginal gain. | Auto-decline per byte-identical gate. |
+| PERF-6 | DECIDED | — | `compute_speed` ±0.5 d central diff is the minimal 2-eval 2nd-order form; forward/back loses precision. | Locked. |
 
-## 5. Code complexity
+## Scalability
 
-Hard rule (CLAUDE.md): no fn CC > 10, tests included; flat lookup
-`match` exempt. Most product fns peak ~6–7. The four fns over/at the cap
-this rescan — **CC-2** `retrograde_station_ut` (~13), **CC-3**
-`compute_aspects`, **CC-4** `elapsed_days`, **CC-5** `Tz::from_str`
-(~11) — were all **fixed this cycle** (`16f4894`: helper extraction +
-flat-match rewrite) and removed. Invariant restored.
+| id | status | effort | description | notes |
+|---|---|---|---|---|
 
-| id | status | effort | description |
-|---|---|---|---|
-| CC-6 | DECIDED | S | `calendar_overlays.rs:509 render_day_cell` sits at exactly CC 10 (lag/sabbat fill + 5 `if let Some` field probes + 2 nested badge probes) — **compliant**, but zero headroom: the next cell decoration would breach the cap. Not a violation today; noted so a rescan doesn't re-flag. If extended, split the moon-glyph + omer-badge blocks into `write_*` helpers. |
-| CC-1 | DECIDED | — | `cli_fuzz.rs:250 boundary_…strings`; `parse.rs:418 parse_tz_forms` (test mod) — clippy `cognitive_complexity` 16/12 but pure `assert!`/`matches!` macro expansion; real cyclomatic ≤3. Lint is `nursery`/disabled. No logic to split. |
+(no findings — aspect grids / `midpoint_table` / `spread_labels` are O(n²) on a fixed chart-body count; calendar batches bounded to a year/month; graphic-ephemeris sampling clamps `days ∈ [28, 366]`; MiniJinja fuel-capped 50M instr.)
 
-## 6. Code duplication
+## Architecture / SOLID / POSA
 
-DUP-7 (year-axis ruler duplicated ~18 LOC across hellenistic + vedic
-timelines) was **fixed this cycle** (`64857cc`, extracted
-`svg_common::write_year_axis`, byte-identical) and removed.
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| ARCH-11 | DECIDED | S | `bindings/ffi/src/lib.rs:17` `pub use celestial_core::*;` glob re-export — any new pub in core silently expands the FFI surface and the 3 binding APIs. | Intentional per `lib.rs:8-14` comment: bindings need the *whole* core API. Explicit list = 200+ items duplicating `lib.rs`. = ARCH-10 class. |
+| ARCH-12 | DECIDED | S | `core::lib.rs` flat re-exports ~300 raw `i32` constants (`SUN`/`MOON`/`FLG_*`/`SIDM_*`/`ECL_*`/`TIDAL_*`) alongside the typed `body::*`/`CalcFlags`. Two parallel APIs. | Back-compat layer for the bindings + published API; tightening = published-API break. Documented at `lib.rs:45`. |
+| ARCH-10 | DECIDED | L | Bindings 201×3 stubs, no codegen. | = DUP-1 / DP-4 (measured net-negative; php unverifiable). |
 
-DUP-8 (inline SVG preamble repeated across ~13 renderers) was **fixed
-this cycle** (`e1531fe`): the skeleton now lives in the fragment file
-`fragments/svg_open.svg` (`include_str!`), composed through a single
-f64-dimensioned `svg_common::svg_doc_open` that fills `{w}/{h}/{bg}` by
-verbatim string replacement (no templating engine). Byte-identical,
-locked by the new 16-chart `svg_snapshot` golden test (`9a767c2`).
-builtin_svg stays inline (it injects glyph `<defs>` mid-preamble).
+## Modularity & SoC / decoupling
 
-| id | status | effort | description |
-|---|---|---|---|
-| DUP-9 | DEFERRED | S | `cli/tests/svg_snapshot.rs` and `cli/tests/natal_builtin_render.rs` duplicate the CLI-spawn harness (`celestial_binary()`, `static CLI_LOCK: Mutex<()>`, near-identical render fn). Separate integration-test crates → share via a `cli/tests/common/mod.rs` (`mod common`). Test-only, precision-neutral; same below-the-bar character as DUP-6. |
-| DUP-10 | DEFERRED | S | Several specialist renderers pull the `bg`/`ring`/`text` colour trio as 3 separate `esc_var` calls instead of `SvgPalette::from_ctx` (which exists for exactly this, taking the accent var name): `specialist.rs:402-404,754-757,786-788`; `south_indian.rs:338-342`. Consolidation is byte-identical (same escaped strings). Cosmetic. |
-| DUP-1 | DECIDED | L | bindings 201×3 per-export return-adapter stubs — shared *input* half already factored in `bindings/ffi`; residual is irreducible per-language *return* shapes (py tuple / php map / js struct). Only a ~600–1000 LOC spec+3-emitter codegen removes it, regenerating 3 *published* APIs with php unverifiable. Net-negative. = ARCH-10 / DP-4. |
-| DUP-4 | DECIDED | — | `revjul`/`revjul_hms` 3 return shapes — intentional per-language idioms; core call already shared. Normalizing = published API break. |
-| DUP-6 | DECIDED | S | `Xorshift64` PRNG copied across `cli_fuzz.rs:18` and `fuzz/src/main.rs:18` — test-only, 2 crates/targets, ~15 LOC; a shared dev-dep crate is disproportionate. |
-| DUP-5 | DECIDED | — | Per-tradition wheel geometry — distinct layout constants, not duplication; shared halves already factored. N-A. |
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| MOD-1 | DECIDED | S | `cli/cmd/render/svg_common.rs::write_year_axis` (`svg_common.rs:107-140`) hard-codes `celestial_core::revjul`/`julday` calls inside a shared render helper — domain call from the rendering layer. | Idiomatic enough (axis ticks need JD↔Gregorian); pass-closures alternative is heavier. Acceptable thin-veneer use of core API. |
 
----
+## Visibility
 
-# Performance & scale
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| VIS-2 | DECIDED | S | `cli/src/format.rs` exposes 9 `pub fn` (`xml_escape`, `lon_zodiac`, `deg_dms`, `dist_au`, `speed_dday`, `rule`, `lpad`, `rpad`, `json_obj`, `json_array`). Used cross-module in cli; no external consumers. Could be `pub(crate)`. | Same class as VIS-1 / DOC-4: cli is a binary crate; `pub` has no library effect. `lib.rs` only exists to enable integration tests + fuzz. Cosmetic. |
+| VIS-1 | DECIDED | S | `render/{specialist,hellenistic,vedic,pipeline}.rs` `build_*`/`render_*` are bare `pub fn` where siblings use `pub(super)` (`mod.rs:486/1627/1890`). | No real leak (parent submodules are private `mod`); cosmetic. |
 
-## 7. Performance (precision is the hard gate)
+## Design patterns
 
-Outputs must stay byte-identical to the 1986-05-30 PDF reference and
-the Diana 1961-07-01 chart; any result-changing perf idea is auto-
-declined. **PERF-7** (doubled 77-term nutation eval on the hot path:
-`apparent_planet/sun/moon` + `sidereal_time_deg` each ran `nutation`
-then `true_obliquity`, which recomputes it) was **fixed this cycle**
-(`e6395b8`, byte-identical — reuse the in-scope `nut.deps`) and removed.
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| DP-12 | DECIDED | S | `builtin_svg::Palette` (`<'a>` borrow) vs `svg_common::SvgPalette` (owned `String`, escaped) — two near-identical palette structs with different escape contracts. | Unifying = either eager escape (breaks byte-gate if any char ≠ identity) or lazy escape (wraps every site). Touches byte-identical gate → DECIDED. |
+| DP-1 | DECIDED | M | Registry macro over the ~12 heterogeneous `dispatch_*` (distinct return-jd / `--years` / date2 logic) — a macro there is closure indirection over a clear hot-path adapter. | The 15 uniform dispatchers were already collapsed into `specialist_dispatch!`. Dismissed. |
+| DP-6 | DECIDED | L | SVG → MiniJinja templates: `Palette` half shipped; templating the 29 renderers changes whitespace → breaks byte-identical gate. | Nothing byte-safe remains. |
+| DP-11 | DECIDED | M | `OutputFormatter` trait over calc/moon/houses/chart — per-command JSON keys + text columns are bespoke; trait abstracts only the 2-line json/text branch. | Leaky. |
+| DP-4 | DECIDED | L | Binding codegen. | = ARCH-10 / DUP-1. |
 
-| id | status | effort | description |
-|---|---|---|---|
-| PERF-2/3 | DECIDED | — | searches.rs post-bisect `calc_ut`/`houses` full-flag re-eval is authoritative, not redundant (scan strips SPEED). Locked: `perf2345_search_regression_lock`. |
-| PERF-4 | DECIDED | — | `bisect_retro_station` already reuses the last loop sample; no recompute. N-A. |
-| PERF-5 | DECIDED | M | `next_aspect_with2` dual-scan merge is a precision-sensitive rewrite for marginal gain. |
-| PERF-6 | DECIDED | — | `compute_speed` ±0.5 d central diff is the minimal 2-eval 2nd-order form; forward/back loses precision. |
+## Documentation
 
-## 8. Scalability
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| DOC-5 | OPEN | S | `cargo doc --workspace --no-deps` emits 17 intra-doc-link warnings outside core: bindings/ffi 1 (`PlanetPos` redundant, `ffi/lib.rs:34`), bindings/js 2 (`[year,month,day,...]` lines 848/854), fuzz 5 (`L0[0]/L0[1]/L0[2]` lines 3911-3912), cli 9 (`[HH:MM[:SS]]`, `[vars]`, private `TR_TABLE` link). | Escape literal brackets with backticks or `\[`. None of these crates have `#![warn(broken_intra_doc_links)]`, so future CI misses. Same pattern as DOC-2 fix. |
+| DOC-4 | DECIDED | M | `celestial-cli` has 34 undocumented `pub` items. Binary crate; `pub` exists only so `main.rs` can use the lib — not a published library API. | `#![warn(missing_docs)]` deliberately core-only. Not a real gap. |
 
-Clean. Aspect grids / `midpoint_table` / `spread_labels` are O(n²) but
-n is the fixed chart body count (~13–23), not user-controllable.
-Graphic-ephemeris sampling clamps `days ∈ [28, 366]`; calendar/moon/omer
-batches are bounded to one year/month; `fixstars::find_star` is a
-single pass; the MiniJinja path is fuel-capped (50M instr). No
-O(n²)-or-worse over a user-controllable span; multi-century requests
-stay bounded per body via the fixed transit-window table. No tracked
-findings.
+## Business patterns / DDD
 
----
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| DDD-1 | DEFERRED | L | Prior audit claimed `JulianDay`/`Longitude`/`Latitude`/`Degrees` were "fully threaded through public moon/motion/chart/solar/vedic signatures — no raw f64 for JD/lon/lat". Wider audit shows ~40 pub fns in `core/src/functions/{panchanga,islamic,hellenistic,coptic,zoroastrian,nowruz,chinese,vedic,indigenous,phenomena,moon_phases,searches,houses,chart,geoformat,config}.rs` still take raw `f64` for jd/lon/lat (e.g. `panchanga(jd: f64)`, `hijri_from_jd(jd: f64)`, `firdaria(jd_birth: f64, ..., span: f64)`, `egyptian_decan(lon: f64)`, `local_apparent_solar_time(jd_ut, geolon_deg)`, `houses_armc(armc, geolat, eps, ...)`). | Primitive obsession across calendar-traditions + hellenistic + houses tiers. Threading newtypes through = published-API break, propagates to 3 bindings + cli. Same cost class as DP-4 / ARCH-10. Prior "no raw f64" claim is overstated. |
 
-# Structure
+## Observability
 
-## 9. Architecture / SOLID / POSA
+| id | status | effort | description | notes |
+|---|---|---|---|---|
 
-Dependency graph re-verified **acyclic and layered**: core → only
-`serde`; ffi → core; {js,php,python} → ffi; **cli → core only**. All
-public error/value enums `#[non_exhaustive]`. `render/mod.rs` (1727 LOC)
-is ~70% tests + banners — a facade, not a god-module. No new SRP/SOLID
-violation.
+(no findings — core has no production `println!`/`eprintln!`; CLI errors carry actionable context via `ParseError`; `plugin::try_exec` formats both "failed to exec" and "unknown command — run --help"; lib/CLI observability is light by design.)
 
-| id | status | effort | description |
-|---|---|---|---|
-| ARCH-10 | DECIDED | L | bindings 201×3 stubs, no codegen — = DUP-1 / DP-4 (measured net-negative; php unverifiable). |
+## Usability / ergonomics
 
-## 10. Modularity & separation of concerns
+| id | status | effort | description | notes |
+|---|---|---|---|---|
 
-Clean. Domain logic stays in core; render/CLI layers consume it; no new
-circular coupling; feature gating separates `timezone` /
-`calendar-traditions` cleanly **within core** (the leaks are at the
-binding/test edges — WIRE-2, TEST-5). No tracked findings.
+(no findings — `--help` text i18n-routed via `localize()`; `BUILTIN_COMMANDS` stays in sync with the `Command` enum; plugin error messages point at `celestial --help`; REL-3 fix already guards `parse_numeric_offset`.)
 
-## 11. Visibility
+## Unused functions / methods
 
-| id | status | effort | description |
-|---|---|---|---|
-| VIS-1 | DECIDED | S | `render/{specialist,hellenistic,vedic,pipeline}.rs` `build_*`/`render_*` are bare `pub fn` where siblings use `pub(super)` (e.g. `mod.rs:486/1627/1890). No real leak (parent submodules are private `mod`); cosmetic. |
-
-## 12. Design patterns
-
-| id | status | effort | description |
-|---|---|---|---|
-| DP-1 | DECIDED | M | Registry macro over the ~12 heterogeneous `dispatch_*` (distinct return-jd / `--years` / date2 logic) — a macro there is closure indirection over a clear hot-path adapter. The 15 *uniform* dispatchers were already collapsed into `specialist_dispatch!`. Dismissed. |
-| DP-6 | DECIDED | L | SVG → MiniJinja templates: `Palette` half shipped; templating the 29 renderers changes whitespace → breaks the byte-identical gate. Nothing byte-safe remains. |
-| DP-11 | DECIDED | M | `OutputFormatter` trait over calc/moon/houses/chart — per-command JSON keys + text columns are bespoke; the trait abstracts only the 2-line json/text branch. Leaky. |
-| DP-4 | DECIDED | L | Binding codegen — = ARCH-10 / DUP-1. |
-
----
-
-# Domain & docs
-
-## 13. Documentation
-
-**core is fully documented.** DOC-1 (378 undocumented public items) was
-**fixed this cycle** (`f978115`): every public item carries a `///` doc,
-and `#![warn(missing_docs)]` now guards `core/src/lib.rs` — with the
-feature-matrix CI running `-D warnings` (TEST-4), a future undocumented
-public item fails the build. DOC-2 (14 broken/ambiguous intra-doc links,
-`0153c4f`) and DOC-3 (stale `main.rs:3` header, `785c61a`) were also
-fixed. rustdoc `-W missing_docs -W broken_intra_doc_links` is clean on
-core across all four feature combos.
-
-| id | status | effort | description |
-|---|---|---|---|
-| DOC-4 | DECIDED | M | `celestial-cli` has 34 undocumented `pub` items (rustdoc `-W missing_docs`). It is a **binary** crate; its `pub` surface exists only so the in-crate `main.rs` can use the lib — not a published library API (the published surfaces are `celestial-core` + the three bindings). `#![warn(missing_docs)]` is deliberately core-only. Not a real gap. |
-
-## 14. Business patterns / DDD
-
-Clean. Domain model coherent (ephemeris / chart / calendar / time
-bounded contexts map to modules; ubiquitous language consistent). The
-`JulianDay`/`Longitude`/`Latitude`/`Degrees` newtypes (DP-2, done) are
-fully threaded through public moon/motion/chart/solar/vedic signatures —
-**no raw `f64` for JD/lon/lat**, so no primitive-obsession gap. Any
-further newtyping touches the published API → DECIDED, not OPEN. No
-tracked findings (the orphaned `chart.rs` is DEAD-1).
-
-## 15. Usability / ergonomics
-
-CLI flag naming / `--help` / i18n localization consistent across the 12
-live subcommands; no dead i18n keys. The one footgun is the phantom
-`chart` builtin shadowing PATH plugins — tracked as **WIRE-3**. No
-separate findings.
-
----
-
-## Recommended next
-
-All 16 OPEN findings from the main rescan were fixed and committed the
-same day (`785c61a`, `d6a3ead`, `d1df606`, `e6395b8`, `16f4894`,
-`7728fa2`, `0153c4f`, `64857cc`, `f978115`), the lone DEFERRED item
-(DUP-8) was cleared (`9a767c2` snapshot net + `e1531fe`), and the
-confirmation rescan's one real finding (REL-3, a CLI `--tz` panic) was
-fixed (`26f6281`). **No OPEN findings remain.**
-
-Two **DEFERRED** items are left, both small and precision-neutral —
-take them when convenient, not urgent:
-- **DUP-9** (S) — share the CLI-spawn test harness between `svg_snapshot`
-  and `natal_builtin_render` via `cli/tests/common/`.
-- **DUP-10** (S) — fold the 3-`esc_var` colour trios in the specialist
-  renderers into `SvgPalette::from_ctx`.
-
-Re-verified clean after the full fix pass: workspace `clippy
---all-targets --all-features -D warnings`, workspace tests, the core
-feature matrix ×4 under `-D warnings` (incl. `missing_docs`), rustdoc
-link + missing-docs lints, `cargo audit` (0 advisories), both
-language-binding harnesses at runtime, and a new **27-chart SVG snapshot
-gate** (`553cdb8`) locking every registered chart type byte-for-byte
-(time-dependent inputs pinned, `1e8ad40`).
-
-The DECIDED rows are kept so a rescan doesn't re-flag them.
+| id | status | effort | description | notes |
+|---|---|---|---|---|
+| DEAD-2 | OPEN | S | `pub use celestial_core as core;` in `bindings/ffi/src/lib.rs:16` — zero consumers; all 3 bindings reach core items via `celestial_ffi::*` (line 17). | DELETE the `as core` alias; keep the glob re-export. One-line, no API break. |
+| DEAD-3 | DEFERRED | S | `celestial_ffi::pos6` used only once (php `lib.rs:53`); js inlines its own struct shape, python uses `pos6_tuple`. | KEEP — docstring frames `pos6` as the array counterpart to `pos6_tuple`; php is a legitimate consumer. Logged so a future rescan doesn't re-flag. |
