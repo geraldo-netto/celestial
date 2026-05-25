@@ -27,28 +27,36 @@ const DIG_COLORS: [(&str, &str); 5] = [
     ("peregrine", "#888888"),
 ];
 
-struct Palette<'a> {
-    bg: &'a str,
-    ring: &'a str,
-    pfg: &'a str,
-    retro_c: &'a str,
-    hard_c: &'a str,
-    soft_c: &'a str,
-    txt: &'a str,
-    title: &'a str,
+/// User-controllable palette/title vars are pre-escaped at construction
+/// (SEC-12): every downstream site reads `pal.*` directly into SVG
+/// attributes/text, so escaping centrally is the only safe-by-construction
+/// shape. Hex colours and the default title pass through `xml_escape`
+/// unchanged → SVG byte-snapshots stay identical.
+struct Palette {
+    bg: String,
+    ring: String,
+    pfg: String,
+    retro_c: String,
+    hard_c: String,
+    soft_c: String,
+    txt: String,
+    title: String,
 }
 
-impl<'a> Palette<'a> {
-    fn from(vars: &'a Value) -> Self {
+impl Palette {
+    fn from(vars: &Value) -> Self {
+        let esc = |k: &str, default: &str| {
+            crate::format::xml_escape(vars[k].as_str().unwrap_or(default))
+        };
         Self {
-            bg: vars["bg_color"].as_str().unwrap_or("#ffffff"),
-            ring: vars["ring_color"].as_str().unwrap_or("#1a1a2e"),
-            pfg: vars["planet_color"].as_str().unwrap_or("#0d0d1e"),
-            retro_c: vars["retro_color"].as_str().unwrap_or("#b01020"),
-            hard_c: vars["hard_color"].as_str().unwrap_or("#b01020"),
-            soft_c: vars["soft_color"].as_str().unwrap_or("#1a50b0"),
-            txt: vars["text_color"].as_str().unwrap_or("#0d0d1e"),
-            title: vars["title"].as_str().unwrap_or("Celestial Chart"),
+            bg: esc("bg_color", "#ffffff"),
+            ring: esc("ring_color", "#1a1a2e"),
+            pfg: esc("planet_color", "#0d0d1e"),
+            retro_c: esc("retro_color", "#b01020"),
+            hard_c: esc("hard_color", "#b01020"),
+            soft_c: esc("soft_color", "#1a50b0"),
+            txt: esc("text_color", "#0d0d1e"),
+            title: esc("title", "Celestial Chart"),
         }
     }
 }
@@ -173,13 +181,12 @@ impl Layout {
 }
 
 fn write_header(s: &mut String, pal: &Palette, h: &ChartHeader, page_h: f64) {
-    // SEC-1: user-controlled palette/title flow into SVG attrs + text;
-    // escape so a crafted `--var`/title can't break out. Plain colours
-    // and the default title are unchanged (byte-identical output).
-    let bg = crate::format::xml_escape(pal.bg);
-    let txt = crate::format::xml_escape(pal.txt);
-    let ring = crate::format::xml_escape(pal.ring);
-    let title = crate::format::xml_escape(pal.title);
+    // SEC-12: `Palette` is pre-escaped at construction, so these are
+    // straight reads into the format string — no double-escape.
+    let bg = pal.bg.as_str();
+    let txt = pal.txt.as_str();
+    let ring = pal.ring.as_str();
+    let title = pal.title.as_str();
     let _ = writeln!(
         s,
         r##"<?xml version="1.0" encoding="UTF-8"?>
@@ -302,7 +309,7 @@ fn write_dms_text(s: &mut String, x: f64, y: f64, dms: &str, txt: &str) {
 }
 
 fn write_sign(s: &mut String, pal: &Palette, sign: &Value) {
-    let ring = pal.ring;
+    let ring = pal.ring.as_str();
     let sx1 = sign["spoke_x1"].as_f64().unwrap_or(0.0);
     let sy1 = sign["spoke_y1"].as_f64().unwrap_or(0.0);
     let sx2 = sign["spoke_x2"].as_f64().unwrap_or(0.0);
@@ -366,7 +373,7 @@ fn house_number_style(is_angle: bool) -> (&'static str, &'static str, &'static s
 }
 
 fn write_house(s: &mut String, pal: &Palette, h: &Value) {
-    let ring = pal.ring;
+    let ring = pal.ring.as_str();
     let x1 = h["x1"].as_f64().unwrap_or(0.0);
     let y1 = h["y1"].as_f64().unwrap_or(0.0);
     let x2 = h["x2"].as_f64().unwrap_or(0.0);
@@ -385,7 +392,7 @@ fn write_house(s: &mut String, pal: &Palette, h: &Value) {
 }
 
 fn write_angle_labels(s: &mut String, pal: &Palette, ang: &Angles) {
-    let ring = pal.ring;
+    let ring = pal.ring.as_str();
     let entries = [
         (ang.asc, "ASC", "end", 0.0),
         (ang.dsc, "DSC", "start", 0.0),
@@ -427,7 +434,7 @@ fn write_aspect(s: &mut String, pal: &Palette, asp: &Value) {
     let orb = asp["orb"].as_f64().unwrap_or(8.0);
     let hard = asp["is_hard"].as_bool().unwrap_or(false);
     let minor = asp["is_minor"].as_bool().unwrap_or(false);
-    let col = if hard { pal.hard_c } else { pal.soft_c };
+    let col = if hard { pal.hard_c.as_str() } else { pal.soft_c.as_str() };
     let (sw, op, dash) = aspect_style(orb, minor);
     let _ = writeln!(
         s,
@@ -468,7 +475,7 @@ fn planet_color<'a>(p: &'a Value, fallback: &'a str) -> &'a str {
 }
 
 fn write_planet(s: &mut String, pal: &Palette, p: &Value, lon_i: f64, placed_ang: f64, asc: f64) {
-    let pfg = pal.pfg;
+    let pfg = pal.pfg.as_str();
     let px = p["x"].as_f64().unwrap_or(0.0);
     let py = p["y"].as_f64().unwrap_or(0.0);
     let tx1 = p["tick_x1"].as_f64().unwrap_or(0.0);
@@ -515,7 +522,7 @@ fn write_planet(s: &mut String, pal: &Palette, p: &Value, lon_i: f64, placed_ang
 }
 
 fn write_planet_legend(s: &mut String, pal: &Palette, planets: &[Value], c1x: f64, ly: f64) {
-    let ring = pal.ring;
+    let ring = pal.ring.as_str();
     let _ = writeln!(
         s,
         r##"  <text x="{c1x}" y="{ly:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Planets</text>
@@ -530,7 +537,12 @@ fn write_planet_legend(s: &mut String, pal: &Palette, planets: &[Value], c1x: f6
 }
 
 fn write_planet_legend_row(s: &mut String, pal: &Palette, p: &Value, c1x: f64, ry: f64) {
-    let (ring, pfg, retro_c, txt) = (pal.ring, pal.pfg, pal.retro_c, pal.txt);
+    let (ring, pfg, retro_c, txt) = (
+        pal.ring.as_str(),
+        pal.pfg.as_str(),
+        pal.retro_c.as_str(),
+        pal.txt.as_str(),
+    );
     let g = p["glyph"].as_str().unwrap_or("?");
     let name = p["name"].as_str().unwrap_or("");
     let dms = p["dms"].as_str().unwrap_or("");
@@ -561,7 +573,7 @@ fn write_angles_legend(
     c2x: f64,
     ly: f64,
 ) {
-    let ring = pal.ring;
+    let ring = pal.ring.as_str();
     let _ = writeln!(
         s,
         r##"
@@ -591,7 +603,7 @@ fn write_angle_legend_row(
     c2x: f64,
     ry: f64,
 ) {
-    let (ring, txt) = (pal.ring, pal.txt);
+    let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
     let _ = writeln!(
         s,
         r##"  <text x="{:.2}" y="{ry:.2}" font-size="10" font-weight="700" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">{name}</text>"##,
@@ -606,7 +618,7 @@ fn write_angle_legend_row(
 }
 
 fn write_houses_legend(s: &mut String, pal: &Palette, houses: &[Value], c2x: f64, ly: f64) {
-    let ring = pal.ring;
+    let ring = pal.ring.as_str();
     let sep_y = ly + 82.0;
     let _ = writeln!(
         s,
@@ -619,7 +631,7 @@ fn write_houses_legend(s: &mut String, pal: &Palette, houses: &[Value], c2x: f64
 }
 
 fn write_house_legend_row(s: &mut String, pal: &Palette, h: &Value, i: usize, c2x: f64, ry: f64) {
-    let (ring, txt) = (pal.ring, pal.txt);
+    let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
     let dms = h["dms"].as_str().unwrap_or("");
     let hlon = h["lon"].as_f64().unwrap_or(0.0);
     let _ = writeln!(
@@ -637,7 +649,7 @@ fn write_house_legend_row(s: &mut String, pal: &Palette, h: &Value, i: usize, c2
 }
 
 fn write_aspects_legend(s: &mut String, pal: &Palette, aspects: &[Value], c3x: f64, ly: f64) {
-    let (ring, txt) = (pal.ring, pal.txt);
+    let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
     let _ = writeln!(
         s,
         r##"
@@ -661,7 +673,7 @@ fn write_aspects_legend(s: &mut String, pal: &Palette, aspects: &[Value], c3x: f
 }
 
 fn write_aspect_legend_row(s: &mut String, pal: &Palette, asp: &Value, c3x: f64, ry: f64) {
-    let (ring, txt) = (pal.ring, pal.txt);
+    let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
     let g1 = asp["glyph1"].as_str().unwrap_or("?");
     let g2 = asp["glyph2"].as_str().unwrap_or("?");
     let aname = asp["aspect_name"].as_str().unwrap_or("");
@@ -670,7 +682,7 @@ fn write_aspect_legend_row(s: &mut String, pal: &Palette, asp: &Value, c3x: f64,
     let b1 = asp["body1"].as_str().unwrap_or("");
     let b2 = asp["body2"].as_str().unwrap_or("");
     let hard = asp["is_hard"].as_bool().unwrap_or(false);
-    let col = if hard { pal.hard_c } else { pal.soft_c };
+    let col = if hard { pal.hard_c.as_str() } else { pal.soft_c.as_str() };
     let aind = if appl { "&#9650;app" } else { "&#9660;sep" };
     // SEC-3: take the first N *chars* (not bytes) — a byte slice can
     // split a multibyte UTF-8 body/aspect name and panic.
@@ -693,7 +705,7 @@ fn write_aspect_legend_row(s: &mut String, pal: &Palette, asp: &Value, c3x: f64,
 }
 
 fn write_dignities(s: &mut String, pal: &Palette, planets: &[Value], c1x: f64, dig_y: f64) {
-    let ring = pal.ring;
+    let ring = pal.ring.as_str();
     let _ = writeln!(
         s,
         r##"  <text x="{c1x}" y="{dig_y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Essential Dignities</text>
@@ -727,7 +739,7 @@ fn dignity_color(dig: &str) -> &'static str {
 }
 
 fn write_dignity_row(s: &mut String, pal: &Palette, p: &Value, c1x: f64, ry: f64) {
-    let (ring, txt) = (pal.ring, pal.txt);
+    let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
     let g = p["glyph"].as_str().unwrap_or("?");
     let name = p["name"].as_str().unwrap_or("");
     let dig = p["dignity"].as_str().unwrap_or("peregrine");
@@ -823,7 +835,7 @@ const GL_COL_W: f64 = 210.0;
 /// on-wheel glyph or abbreviation (rendered identically to its
 /// wheel / aspects-table counterpart) with a one-line description.
 fn write_glyph_legend(s: &mut String, pal: &Palette, gl_y: f64) {
-    let ring = pal.ring;
+    let ring = pal.ring.as_str();
     let _ = writeln!(
         s,
         r##"  <text x="{GL_X1:.2}" y="{gl_y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Symbol reference</text>
@@ -846,7 +858,7 @@ fn write_legend_column(
     x: f64,
     y0: f64,
 ) {
-    let (ring, txt) = (pal.ring, pal.txt);
+    let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
     let _ = writeln!(
         s,
         r##"  <text x="{:.2}" y="{:.2}" font-size="10" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".75">{sub_title}</text>"##,
@@ -918,11 +930,11 @@ fn legend_glyph_color<'a>(pal: &'a Palette, glyph: &'a str) -> &'a str {
             return super::body_color(key);
         }
     }
-    pal.ring
+    pal.ring.as_str()
 }
 
 fn write_footer(s: &mut String, pal: &Palette, footer_y: f64) {
-    let ring = pal.ring;
+    let ring = pal.ring.as_str();
     let _ = writeln!(
         s,
         r##"
@@ -931,4 +943,45 @@ fn write_footer(s: &mut String, pal: &Palette, footer_y: f64) {
         fill="{ring}" opacity=".35">Generated by Celestial</text>
 </svg>"##
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Palette;
+    use serde_json::json;
+
+    /// SEC-12: hostile `--var` values must be escaped at the Palette
+    /// boundary so downstream renderers can't be tricked into emitting
+    /// raw markup.
+    #[test]
+    fn palette_from_escapes_hostile_vars() {
+        let vars = json!({
+            "ring_color": "red\"/><script>X</script><x foo=\"",
+            "planet_color": "<a&b>",
+            "title": "Evil & Co.",
+        });
+        let pal = Palette::from(&vars);
+        for raw in [&pal.ring, &pal.pfg, &pal.title] {
+            assert!(!raw.contains('<'), "raw `<` leaked into palette: {raw}");
+            assert!(!raw.contains('>'), "raw `>` leaked into palette: {raw}");
+            assert!(!raw.contains('"'), "raw `\"` leaked into palette: {raw}");
+        }
+        assert_eq!(pal.title, "Evil &amp; Co.");
+        assert!(pal.ring.contains("&lt;script&gt;"));
+    }
+
+    /// SEC-12 byte-identity: hex defaults and legit titles pass through
+    /// `xml_escape` unchanged, so SVG snapshots stay stable.
+    #[test]
+    fn palette_from_passes_legit_input_unchanged() {
+        let vars = json!({
+            "bg_color": "#ffffff",
+            "ring_color": "#1a1a2e",
+            "title": "Natal — 1986-05-30",
+        });
+        let pal = Palette::from(&vars);
+        assert_eq!(pal.bg, "#ffffff");
+        assert_eq!(pal.ring, "#1a1a2e");
+        assert_eq!(pal.title, "Natal — 1986-05-30");
+    }
 }

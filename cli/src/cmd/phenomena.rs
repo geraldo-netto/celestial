@@ -16,11 +16,11 @@ pub struct PhenomenaArgs {
     #[arg(short, long)]
     pub body: String,
 
-    /// Date (YYYY-MM-DD [HH:MM]), `now`, or a Julian Day number. Default: now.
+    /// Date (`YYYY-MM-DD [HH:MM]`), `now`, or a Julian Day number. Default: now.
     #[arg(short, long, default_value = "now")]
     pub date: String,
 
-    /// Optional time component (HH:MM[:SS]) — merged into `--date` when the
+    /// Optional time component (`HH:MM[:SS]`) — merged into `--date` when the
     /// date is a bare calendar date.
     #[arg(short, long)]
     pub time: Option<String>,

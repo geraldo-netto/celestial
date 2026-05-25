@@ -65,3 +65,40 @@ f64_newtype!(
     /// A bare angle in degrees (ARMC, obliquity, …).
     Degrees
 );
+
+#[cfg(test)]
+mod tests {
+    use super::{Degrees, JulianDay, Latitude, Longitude};
+
+    /// TEST-6: `From<f64>` / `From<$T> for f64` / `Default` are part of
+    /// the public boundary contract — exercise them so the macro-generated
+    /// impls are actually covered (otherwise `units.rs` lands below the
+    /// 80% per-file floor).
+    #[test]
+    fn julian_day_round_trip_and_default() {
+        let jd: JulianDay = 2_446_950.875_f64.into();
+        assert!((f64::from(jd) - 2_446_950.875_f64).abs() < f64::EPSILON);
+        assert_eq!(JulianDay::default().get(), 0.0);
+    }
+
+    #[test]
+    fn latitude_round_trip_and_default() {
+        let lat: Latitude = (-23.45_f64).into();
+        assert!((f64::from(lat) - (-23.45_f64)).abs() < f64::EPSILON);
+        assert_eq!(Latitude::default().get(), 0.0);
+    }
+
+    #[test]
+    fn longitude_round_trip_and_default() {
+        let lon: Longitude = 46.6333_f64.into();
+        assert!((f64::from(lon) - 46.6333_f64).abs() < f64::EPSILON);
+        assert_eq!(Longitude::default().get(), 0.0);
+    }
+
+    #[test]
+    fn degrees_round_trip_and_default() {
+        let d: Degrees = 180.0_f64.into();
+        assert!((f64::from(d) - 180.0_f64).abs() < f64::EPSILON);
+        assert_eq!(Degrees::default().get(), 0.0);
+    }
+}

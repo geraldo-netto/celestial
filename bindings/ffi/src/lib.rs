@@ -13,7 +13,8 @@
 //!   speed_dist]` flatten every `calc*` export produced by hand in
 //!   each binding.
 
-pub use celestial_core as core;
+#![warn(rustdoc::broken_intra_doc_links)]
+
 pub use celestial_core::*;
 
 /// The one canonical FFI error. Transparently wraps a
@@ -31,7 +32,7 @@ impl FfiError {
     }
 }
 
-/// Flatten a core [`PlanetPos`](celestial_core::PlanetPos) into the
+/// Flatten a core [`PlanetPos`] into the
 /// `[lon, lat, dist, speed_lon, speed_lat, speed_dist]` array shape
 /// every `calc*` export marshals to. `ret_flags` is intentionally
 /// excluded — bindings surface it as a separate typed field.

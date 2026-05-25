@@ -8,7 +8,7 @@ use clap::Args;
 
 #[derive(Args)]
 pub struct JdArgs {
-    /// Date to convert to JD (YYYY-MM-DD [HH:MM[:SS]])
+    /// Date to convert to JD (`YYYY-MM-DD [HH:MM[:SS]]`)
     #[arg(group = "input")]
     pub date: Option<String>,
 

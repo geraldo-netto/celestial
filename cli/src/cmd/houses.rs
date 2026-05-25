@@ -11,7 +11,7 @@ use clap::Args;
 
 #[derive(Args)]
 pub struct HousesArgs {
-    /// Date (YYYY-MM-DD [HH:MM[:SS]]) or Julian day, default: now
+    /// Date (`YYYY-MM-DD [HH:MM[:SS]]`) or Julian day, default: now
     #[arg(short, long, default_value = "now")]
     pub date: String,
 

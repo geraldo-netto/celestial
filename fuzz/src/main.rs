@@ -3,6 +3,8 @@
 //! Self-contained: uses a stdlib xorshift64 PRNG — no external crates needed.
 //! Run with: `cargo run --manifest-path fuzz/Cargo.toml`
 
+#![warn(rustdoc::broken_intra_doc_links)]
+
 use celestial_core::Longitude;
 use celestial_core::Latitude;
 use celestial_core::JulianDay;
@@ -3908,8 +3910,8 @@ fn check_vedic_longitude_boundaries(s: &mut Suite) {
 ///
 /// Catches coefficient-magnitude bugs (extra/missing zero in any term
 /// of any L/B/R series) that produce wild outputs at specific dates —
-/// the failure mode that hid the Jupiter L0[0]/L0[1] and
-/// Saturn L0[0]/L0[1]/L0[2] errors for years.
+/// the failure mode that hid the Jupiter `L0[0]`/`L0[1]` and
+/// Saturn `L0[0]`/`L0[1]`/`L0[2]` errors for years.
 /// Ayanamsa is the precession-driven offset between tropical and sidereal
 /// zodiacs. It must increase monotonically with time (precession is a
 /// one-way drift, ~50.3 arcseconds per year). Probe across 200 years and

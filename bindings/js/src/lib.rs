@@ -4,6 +4,7 @@
 //! TypeScript declarations are auto-generated into `index.d.ts`.
 
 #![allow(clippy::too_many_arguments)]
+#![warn(rustdoc::broken_intra_doc_links)]
 
 use celestial::Longitude;
 use celestial::Latitude;
@@ -845,13 +846,13 @@ pub fn set_delta_t_userdef(dt: f64) {
     celestial::set_delta_t_userdef(dt);
 }
 
-/// Revjul with hours/minutes/seconds breakdown. Returns [year,month,day,hour,min,sec].
+/// Revjul with hours/minutes/seconds breakdown. Returns `[year, month, day, hour, min, sec]`.
 #[napi(js_name = "revjulHms")]
 pub fn revjul_hms(jd: f64, calendar: i32) -> Vec<i32> {
     celestial::revjul_hms(jd, Calendar::from(calendar)).to_vec()
 }
 
-/// Parse an ISO datetime string into [year,month,day,hour,min,sec].
+/// Parse an ISO datetime string into `[year, month, day, hour, min, sec]`.
 #[napi(js_name = "parseDatetime")]
 pub fn parse_datetime(s: String) -> Option<Vec<i32>> {
     celestial::parse_datetime(&s).map(|a| a.to_vec())

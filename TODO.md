@@ -1,12 +1,14 @@
 # Celestial — TODO
 
 Rescan: **2026-05-25** (categories per `AGENTS.md` §Rules ∪ prior AUDIT extras; tables only).
+Fix pass same day cleared SEC-12, TEST-6, DOC-5, DEAD-2 — rows removed per AGENTS.md.
 
 ## Security
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| SEC-12 | OPEN | S | `builtin_svg::Palette` shadow vars (`ring_color`/`planet_color`/`pfg`/`retro_c`/`hard_c`/`soft_c`/`txt`) written raw into ~19 SVG attr sites across natal/cosmogram/return/progressed/biwheel/triwheel renderers. CLI `--var 'ring_color=red"/><script>X</script><x foo="'` reproduces XSS-shape inject in release build. | Escape inside `Palette::from` so every downstream site is safe by construction. SEC-1..10b sweep escaped specialist/calendar but missed `builtin_svg`'s `Palette` shadow vars. Medium severity (browser-rendered SVG only). |
+
+(no findings)
 
 ## Reliability / correctness
 
@@ -32,7 +34,6 @@ Rescan: **2026-05-25** (categories per `AGENTS.md` §Rules ∪ prior AUDIT extra
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| TEST-6 | OPEN | S | `core/src/units.rs` 50% region/line/function — macro-generated `From<f64>` / `From<$T> for f64` / `Default` per newtype never exercised; below stated 80% per-file floor. | Add 4-line round-trip + `Default` test per newtype, OR drop the unused derives. Precision-neutral. |
 | TEST-2 | DECIDED | — | `bindings/{js,python}/src/lib.rs` 0% — exercised only by the JS/Python language harnesses; `llvm-cov` can't instrument them. | Not a real gap; the only sub-80% product area. |
 
 ## Code complexity
@@ -106,7 +107,6 @@ Rescan: **2026-05-25** (categories per `AGENTS.md` §Rules ∪ prior AUDIT extra
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| DOC-5 | OPEN | S | `cargo doc --workspace --no-deps` emits 17 intra-doc-link warnings outside core: bindings/ffi 1 (`PlanetPos` redundant, `ffi/lib.rs:34`), bindings/js 2 (`[year,month,day,...]` lines 848/854), fuzz 5 (`L0[0]/L0[1]/L0[2]` lines 3911-3912), cli 9 (`[HH:MM[:SS]]`, `[vars]`, private `TR_TABLE` link). | Escape literal brackets with backticks or `\[`. None of these crates have `#![warn(broken_intra_doc_links)]`, so future CI misses. Same pattern as DOC-2 fix. |
 | DOC-4 | DECIDED | M | `celestial-cli` has 34 undocumented `pub` items. Binary crate; `pub` exists only so `main.rs` can use the lib — not a published library API. | `#![warn(missing_docs)]` deliberately core-only. Not a real gap. |
 
 ## Business patterns / DDD
@@ -133,5 +133,4 @@ Rescan: **2026-05-25** (categories per `AGENTS.md` §Rules ∪ prior AUDIT extra
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| DEAD-2 | OPEN | S | `pub use celestial_core as core;` in `bindings/ffi/src/lib.rs:16` — zero consumers; all 3 bindings reach core items via `celestial_ffi::*` (line 17). | DELETE the `as core` alias; keep the glob re-export. One-line, no API break. |
 | DEAD-3 | DEFERRED | S | `celestial_ffi::pos6` used only once (php `lib.rs:53`); js inlines its own struct shape, python uses `pos6_tuple`. | KEEP — docstring frames `pos6` as the array counterpart to `pos6_tuple`; php is a legitimate consumer. Logged so a future rescan doesn't re-flag. |

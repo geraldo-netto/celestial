@@ -18,7 +18,7 @@
 //!
 //! 1. Add a variant to [`Lang`]
 //! 2. Update [`Lang::from_locale`] with the BCP-47 / POSIX prefix
-//! 3. Add a row in [`TR_TABLE`] for every translation key
+//! 3. Add a row in the private `TR_TABLE` for every translation key
 //! 4. Update [`Lang::all`] (used by tests to verify completeness)
 
 /// Supported user-interface languages.

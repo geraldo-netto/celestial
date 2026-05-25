@@ -71,7 +71,7 @@ fn parse_hsys_char(s: &str) -> Result<char, String> {
 
 #[derive(Args, Debug, Default)]
 pub struct RenderArgs {
-    /// Date and optional time to compute (YYYY-MM-DD [HH:MM[:SS]] or "now")
+    /// Date and optional time to compute (`YYYY-MM-DD [HH:MM[:SS]]` or `now`)
     #[arg(long, default_value = "now")]
     pub date: String,
 
@@ -108,7 +108,7 @@ pub struct RenderArgs {
     #[arg(long)]
     pub config: Option<PathBuf>,
 
-    /// Custom variable KEY=VALUE — repeatable, overrides [vars] in config
+    /// Custom variable KEY=VALUE — repeatable, overrides `[vars]` in config
     #[arg(long = "var", value_name = "KEY=VALUE", action = clap::ArgAction::Append)]
     pub vars: Vec<String>,
 
@@ -137,7 +137,7 @@ pub struct RenderArgs {
     /// Format: YYYY-MM-DD
     #[arg(long)]
     pub date2: Option<String>,
-    /// Third date (YYYY-MM-DD [HH:MM[:SS]]) for tri-wheel ring 3
+    /// Third date (`YYYY-MM-DD [HH:MM[:SS]]`) for tri-wheel ring 3
     #[arg(long)]
     pub date3: Option<String>,
 

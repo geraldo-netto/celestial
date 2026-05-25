@@ -4,6 +4,8 @@
 //! the same modules so that integration tests and fuzz harnesses can
 //! exercise the parsers without spawning the full CLI process.
 
+#![warn(rustdoc::broken_intra_doc_links)]
+
 pub mod cmd;
 pub mod error;
 pub mod format;
