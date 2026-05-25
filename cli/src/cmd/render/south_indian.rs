@@ -9,6 +9,7 @@
 use celestial_core::{long_to_nakshatra, nakshatra_name};
 use serde_json::Value;
 
+use super::svg_common::SvgPalette;
 use super::{json_array, ChartContext};
 
 // ─── North Indian diamond chart ───────────────────────────────────────────────
@@ -335,9 +336,11 @@ pub(crate) fn render_south_indian_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
     // SEC-10: every user-controlled `--var` value is XML-escaped before it
     // reaches the SVG, identical to the vedic.rs renderers.
-    let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#ffffff");
-    let border = super::svg_common::esc_var(&ctx["vars"], "border_color", "#5c3a00");
-    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#2a1a00");
+    let SvgPalette {
+        bg,
+        accent: border,
+        text: txt,
+    } = SvgPalette::from_ctx(ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00");
     let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#1a3a7a");
     let retro = super::svg_common::esc_var(&ctx["vars"], "retro_color", "#a01030");
     let pal = SiPalette {

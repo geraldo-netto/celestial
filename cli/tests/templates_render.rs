@@ -15,27 +15,19 @@
 //! The CLI binary path is provided by Cargo via the `CARGO_BIN_EXE_celestial`
 //! env-var at compile time. No PATH or system-binary assumptions.
 
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::sync::Mutex;
+mod common;
 
-/// Locate the `celestial` binary that Cargo built for us.
-fn celestial_binary() -> &'static Path {
-    Path::new(env!("CARGO_BIN_EXE_celestial"))
-}
+use std::fs;
+use std::path::PathBuf;
+use std::process::Command;
+
+use common::{celestial_binary, CLI_LOCK};
 
 /// Locate the workspace's `cli/templates/` directory relative to this
 /// test file's manifest. `CARGO_MANIFEST_DIR` is the cli crate root.
 fn templates_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates")
 }
-
-/// Lock path used for the per-test scratch SVG output. We don't actually
-/// race on file paths (each test uses a unique filename), but we serialize
-/// CLI invocations to avoid swissdata file-locking contention seen on
-/// macOS in earlier debugging sessions.
-static CLI_LOCK: Mutex<()> = Mutex::new(());
 
 /// Render a template and return the SVG bytes. Panics with a useful
 /// message on any of: missing template, non-zero exit, missing output,

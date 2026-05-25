@@ -1,7 +1,7 @@
 # Celestial — TODO
 
 Rescan: **2026-05-25** (categories per `AGENTS.md` §Rules ∪ prior AUDIT extras; tables only).
-Fix pass same day cleared SEC-12, TEST-6, DOC-5, DEAD-2 — rows removed per AGENTS.md.
+Fix pass same day cleared SEC-12, TEST-6, DOC-5, DEAD-2, DUP-9, DUP-10 — rows removed per AGENTS.md.
 
 ## Security
 
@@ -47,8 +47,6 @@ Fix pass same day cleared SEC-12, TEST-6, DOC-5, DEAD-2 — rows removed per AGE
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| DUP-9 | DEFERRED | S | CLI-spawn test harness (`celestial_binary()`, `CLI_LOCK: Mutex<()>`, near-identical render fn) duplicated across `svg_snapshot.rs`, `natal_builtin_render.rs`, `templates_render.rs`, `i18n_help.rs` (rescan widened scope from 2 → 4 files). | Share via `cli/tests/common/mod.rs` (`mod common`). Test-only, precision-neutral. |
-| DUP-10 | DEFERRED | S | Specialist renderers pull the bg/ring/text colour trio as 3 separate `esc_var` calls instead of `SvgPalette::from_ctx`: `specialist.rs:402-404,754-757,786-788`; `south_indian.rs:338-342`. | Byte-identical consolidation (same escaped strings). Cosmetic. |
 | DUP-1 | DECIDED | L | Bindings 201×3 per-export return-adapter stubs — shared *input* half already factored in `bindings/ffi`; residual = irreducible per-language *return* shapes (py tuple / php map / js struct). | Only a ~600-1000 LOC spec + 3-emitter codegen removes it, regenerating 3 published APIs with php unverifiable. Net-negative. = ARCH-10 / DP-4. |
 | DUP-4 | DECIDED | — | `revjul`/`revjul_hms` 3 return shapes — intentional per-language idioms; core call already shared. | Normalizing = published-API break. |
 | DUP-6 | DECIDED | S | `Xorshift64` PRNG copied across `cli_fuzz.rs:18` and `fuzz/src/main.rs:18` — test-only, 2 crates/targets, ~15 LOC. | Shared dev-dep crate disproportionate. |

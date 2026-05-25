@@ -5,6 +5,7 @@ use celestial_core::Latitude;
 use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
+use super::svg_common::SvgPalette;
 use super::{
     build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI,
     RO,
@@ -399,9 +400,11 @@ const GE_SIGN_GLYPHS: [&str; 12] = [
 ];
 
 pub fn render_graphic_ephemeris_svg(ctx: &ChartContext) -> String {
-    let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#fff");
-    let ring = super::svg_common::esc_var(&ctx["vars"], "ring_color", "#1a1a2e");
-    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#0d0d1e");
+    let SvgPalette {
+        bg,
+        accent: ring,
+        text: txt,
+    } = SvgPalette::from_ctx(ctx, "#fff", "ring_color", "#1a1a2e", "#0d0d1e");
 
     let jd_start = ctx["jd_start"].as_f64().unwrap_or(0.0);
     let jd_end = ctx["jd_end"].as_f64().unwrap_or(0.0);
@@ -751,10 +754,12 @@ fn write_ls_planet(s: &mut String, p: &Value, pfg: &str) {
 }
 
 pub fn render_local_space_svg(ctx: &ChartContext) -> String {
-    let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#fff");
-    let ring = super::svg_common::esc_var(&ctx["vars"], "ring_color", "#1a1a2e");
+    let SvgPalette {
+        bg,
+        accent: ring,
+        text: txt,
+    } = SvgPalette::from_ctx(ctx, "#fff", "ring_color", "#1a1a2e", "#0d0d1e");
     let pfg = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#0d0d1e");
-    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#0d0d1e");
     let title = crate::format::xml_escape(
         ctx["vars"]
             .get("title")
@@ -783,9 +788,11 @@ pub fn render_local_space_svg(ctx: &ChartContext) -> String {
 /// Render a 90° midpoint dial SVG.
 pub fn render_dial_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
-    let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#fff");
-    let ring = super::svg_common::esc_var(&ctx["vars"], "ring_color", "#1a1a2e");
-    let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#0d0d1e");
+    let SvgPalette {
+        bg,
+        accent: ring,
+        text: txt,
+    } = SvgPalette::from_ctx(ctx, "#fff", "ring_color", "#1a1a2e", "#0d0d1e");
     let title = crate::format::xml_escape(
         ctx["vars"]
             .get("title")

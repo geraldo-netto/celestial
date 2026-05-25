@@ -7,16 +7,13 @@
 //! tweaks can't silently regress the layout described in the
 //! World-of-Wisdom natal-chart reference.
 
+mod common;
+
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
-use std::sync::Mutex;
 
-fn celestial_binary() -> &'static Path {
-    Path::new(env!("CARGO_BIN_EXE_celestial"))
-}
-
-static CLI_LOCK: Mutex<()> = Mutex::new(());
+use common::{celestial_binary, CLI_LOCK};
 
 /// Render a built-in natal SVG (no `--template`) and return its bytes.
 fn render_builtin(date: &str, lat: &str, lon: &str, out_name: &str) -> String {

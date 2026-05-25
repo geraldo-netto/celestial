@@ -9,12 +9,11 @@
 //! - a translation table entry is missing or misrouted at runtime
 //! - clap's `mut_subcommand` API stops applying overrides correctly
 
-use std::path::Path;
+mod common;
+
 use std::process::Command;
 
-fn celestial_binary() -> &'static Path {
-    Path::new(env!("CARGO_BIN_EXE_celestial"))
-}
+use common::celestial_binary;
 
 /// Run `celestial --help` with the given environment, returning stdout.
 fn help_output(envs: &[(&str, &str)]) -> String {

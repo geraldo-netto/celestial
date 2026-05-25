@@ -9,16 +9,12 @@
 //! Goldens live in `tests/fixtures/svg/<type>.svg`. To regenerate after an
 //! intentional change, render each type with the args in `SNAPSHOTS` below.
 
+mod common;
+
 use std::fs;
-use std::path::Path;
 use std::process::Command;
-use std::sync::Mutex;
 
-fn celestial_binary() -> &'static Path {
-    Path::new(env!("CARGO_BIN_EXE_celestial"))
-}
-
-static CLI_LOCK: Mutex<()> = Mutex::new(());
+use common::{celestial_binary, CLI_LOCK};
 
 /// `(chart_type, extra_args)` — every registered chart type. Most need only
 /// the common birth args; a few require an extra flag (return span, second
