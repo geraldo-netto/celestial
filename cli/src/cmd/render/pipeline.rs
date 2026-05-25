@@ -6,6 +6,7 @@
 //! movement, no behaviour change (re-exported by the facade).
 
 use super::*;
+use celestial_core::JulianDay;
 use std::path::PathBuf;
 
 /// Default colour palette for the calendar chart-type. Returns a JSON Object
@@ -46,7 +47,7 @@ pub(crate) fn build_calendar_context(
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
 ) -> Result<serde_json::Value, CliError> {
-    let date = revjul(jd, Calendar::Gregorian);
+    let date = revjul(JulianDay::new(jd), Calendar::Gregorian);
     let year = date.year;
     let month = args.month.unwrap_or(date.month as u32);
 
@@ -160,7 +161,7 @@ pub(crate) fn apply_universal_overlays(ctx: &mut serde_json::Value, jd: f64, cal
     if calendars.is_empty() {
         return;
     }
-    let date_now = revjul(jd, Calendar::Gregorian);
+    let date_now = revjul(JulianDay::new(jd), Calendar::Gregorian);
     let year = date_now.year;
     let month = date_now.month as u32;
 

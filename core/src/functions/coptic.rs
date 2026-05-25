@@ -10,6 +10,8 @@
 //! - **Ethiopic** (Amätä Mihrät / Ethiopian Era, EE): epoch 29 Aug 8 Julian AD
 //!   (276 Coptic years before AM) — Ethiopian Orthodox Church.
 
+use crate::units::JulianDay;
+
 /// Julian Day number of 1 Thout AM 1 (Coptic Year 1, Day 1) at noon.
 pub const COPTIC_EPOCH_JD: i64 = 1_825_030;
 
@@ -76,7 +78,8 @@ pub fn coptic_to_jd(year: i32, month: u32, day: u32) -> f64 {
 
 /// Julian Day → Coptic (AM) date `(year, month, day)`.
 #[must_use]
-pub fn jd_to_coptic(jd: f64) -> (i32, u32, u32) {
+pub fn jd_to_coptic(jd: JulianDay) -> (i32, u32, u32) {
+    let jd: f64 = jd.into();
     jd_to_coptic_like(COPTIC_EPOCH_JD, jd)
 }
 
@@ -90,7 +93,8 @@ pub fn ethiopic_to_jd(year: i32, month: u32, day: u32) -> f64 {
 
 /// Julian Day → Ethiopic (EE) date `(year, month, day)`.
 #[must_use]
-pub fn jd_to_ethiopic(jd: f64) -> (i32, u32, u32) {
+pub fn jd_to_ethiopic(jd: JulianDay) -> (i32, u32, u32) {
+    let jd: f64 = jd.into();
     jd_to_coptic_like(ETHIOPIC_EPOCH_JD, jd)
 }
 
@@ -124,7 +128,7 @@ mod tests {
         // 1 Thout AM 1 = JD 1825029.5
         let jd = coptic_to_jd(1, 1, 1);
         assert!((jd - 1_825_029.5).abs() < 1e-6, "got jd = {jd}");
-        assert_eq!(jd_to_coptic(jd), (1, 1, 1));
+        assert_eq!(jd_to_coptic(JulianDay::new(jd)), (1, 1, 1));
     }
 
     #[test]
@@ -153,7 +157,7 @@ mod tests {
         // 1 Maskaram EE 1 = JD 1724220.5
         let jd = ethiopic_to_jd(1, 1, 1);
         assert!((jd - 1_724_220.5).abs() < 1e-6, "got jd = {jd}");
-        assert_eq!(jd_to_ethiopic(jd), (1, 1, 1));
+        assert_eq!(jd_to_ethiopic(JulianDay::new(jd)), (1, 1, 1));
     }
 
     #[test]
@@ -167,7 +171,7 @@ mod tests {
     #[test]
     fn coptic_month_boundary() {
         // 30 Thout + 1 day = 1 Paopi
-        let (y, m, d) = jd_to_coptic(coptic_to_jd(1, 1, 30) + 1.0);
+        let (y, m, d) = jd_to_coptic(JulianDay::new(coptic_to_jd(1, 1, 30) + 1.0));
         assert_eq!((y, m, d), (1, 2, 1));
     }
 }

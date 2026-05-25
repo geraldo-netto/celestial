@@ -13,6 +13,7 @@
 use crate::body::CalcFlags;
 use crate::functions::motion::solcross_ut;
 use crate::functions::time::{julday, revjul};
+use crate::units::{JulianDay, Longitude};
 
 /// The 12 Fasli months, named after Yazatas (divinities).
 pub const FASLI_MONTHS: [&str; 12] = [
@@ -47,7 +48,7 @@ pub const GATHA_DAYS: [&str; 5] = [
 pub fn fasli_nowruz_jd(gregorian_year: i32) -> Option<f64> {
     // Search from March 19 — the equinox falls within a few days
     let jd_approx = julday(gregorian_year, 3, 19, 0.0, crate::body::Calendar::Gregorian);
-    solcross_ut(0.0, jd_approx, CalcFlags::BUILTIN).ok()
+    solcross_ut(Longitude::new(0.0), JulianDay::new(jd_approx), CalcFlags::BUILTIN).ok()
 }
 
 /// Convert a Julian Day to a Fasli date: `(fasli_year, month_index, day)`.
@@ -59,8 +60,9 @@ pub fn fasli_nowruz_jd(gregorian_year: i32) -> Option<f64> {
 ///
 /// Returns `None` if the JD predates the 1906 reform or if the equinox
 /// computation fails.
-pub fn jd_to_fasli(jd: f64) -> Option<(i32, u8, u8)> {
-    let d = revjul(jd, crate::body::Calendar::Gregorian);
+pub fn jd_to_fasli(jd: JulianDay) -> Option<(i32, u8, u8)> {
+    let jd: f64 = jd.into();
+    let d = revjul(JulianDay::new(jd), crate::body::Calendar::Gregorian);
     if d.year < 1906 {
         return None;
     }
@@ -103,14 +105,14 @@ mod tests {
     #[test]
     fn fasli_before_1906_returns_none() {
         let jd = julday(1905, 3, 21, 0.0, crate::body::Calendar::Gregorian);
-        assert!(jd_to_fasli(jd).is_none());
+        assert!(jd_to_fasli(JulianDay::new(jd)).is_none());
     }
 
     #[test]
     fn fasli_nowruz_march_equinox() {
         // Nowruz should always fall in late March
         if let Some(jd) = fasli_nowruz_jd(2024) {
-            let d = revjul(jd, crate::body::Calendar::Gregorian);
+            let d = revjul(JulianDay::new(jd), crate::body::Calendar::Gregorian);
             assert_eq!(d.year, 2024);
             assert_eq!(d.month, 3);
             assert!(
@@ -125,7 +127,7 @@ mod tests {
     fn fasli_year_1_is_1906() {
         // Shortly after Nowruz 1906 = Fasli year 1, month 1
         if let Some(nowruz_1906) = fasli_nowruz_jd(1906) {
-            let (fy, m, _d) = jd_to_fasli(nowruz_1906 + 0.5).unwrap();
+            let (fy, m, _d) = jd_to_fasli(JulianDay::new(nowruz_1906 + 0.5)).unwrap();
             assert_eq!(fy, 1);
             assert_eq!(m, 1);
         }

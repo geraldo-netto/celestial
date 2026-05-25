@@ -180,7 +180,7 @@ mod arabic_parts {
     fn lot_of_fortune_day_chart() {
         // Day chart: Lot of Fortune = ASC + Moon - Sun
         // ASC=0, Moon=120, Sun=30 → Fortune = 0 + 120 - 30 = 90
-        let parts = arabic_parts_seven(0.0, 30.0, 120.0, 200.0, 40.0, 80.0, 50.0, 60.0, true);
+        let parts = arabic_parts_seven(Degrees::new(0.0), Longitude::new(30.0), Longitude::new(120.0), Longitude::new(200.0), Longitude::new(40.0), Longitude::new(80.0), Longitude::new(50.0), Longitude::new(60.0), true);
         let fortune = &parts[0];
         assert_eq!(fortune.name, "Lot of Fortune");
         assert!(
@@ -194,7 +194,7 @@ mod arabic_parts {
     fn lot_of_fortune_night_chart_reversed() {
         // Night chart: Lot of Fortune = ASC + Sun - Moon (reversed)
         // ASC=0, Sun=30, Moon=120 → Fortune = 0 + 30 - 120 = 270 (mod 360)
-        let parts = arabic_parts_seven(0.0, 30.0, 120.0, 200.0, 40.0, 80.0, 50.0, 60.0, false);
+        let parts = arabic_parts_seven(Degrees::new(0.0), Longitude::new(30.0), Longitude::new(120.0), Longitude::new(200.0), Longitude::new(40.0), Longitude::new(80.0), Longitude::new(50.0), Longitude::new(60.0), false);
         let fortune = &parts[0];
         assert!(
             (fortune.degree - 270.0).abs() < 1e-9,
@@ -205,13 +205,13 @@ mod arabic_parts {
 
     #[test]
     fn seven_parts_always_returned() {
-        let parts = arabic_parts_seven(10.0, 20.0, 100.0, 200.0, 50.0, 80.0, 40.0, 30.0, true);
+        let parts = arabic_parts_seven(Degrees::new(10.0), Longitude::new(20.0), Longitude::new(100.0), Longitude::new(200.0), Longitude::new(50.0), Longitude::new(80.0), Longitude::new(40.0), Longitude::new(30.0), true);
         assert_eq!(parts.len(), 7);
     }
 
     #[test]
     fn all_parts_in_0_360() {
-        let parts = arabic_parts_seven(350.0, 10.0, 200.0, 100.0, 50.0, 75.0, 120.0, 300.0, true);
+        let parts = arabic_parts_seven(Degrees::new(350.0), Longitude::new(10.0), Longitude::new(200.0), Longitude::new(100.0), Longitude::new(50.0), Longitude::new(75.0), Longitude::new(120.0), Longitude::new(300.0), true);
         for p in &parts {
             assert!(
                 p.degree >= 0.0 && p.degree < 360.0,
@@ -231,7 +231,7 @@ mod fixed_stars {
     #[test]
     fn regulus_near_leo() {
         // Regulus is at ~5° Virgo (due to precession from Leo)
-        let pos = fixstar_ut("Regulus", 2_451_545.0, CalcFlags::BUILTIN).unwrap();
+        let pos = fixstar_ut("Regulus", celestial_core::JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).unwrap();
         let lon = pos.xx[0];
         assert!(
             (148.0..=162.0).contains(&lon),
@@ -242,7 +242,7 @@ mod fixed_stars {
     #[test]
     fn algol_near_taurus() {
         // Algol (Beta Persei) at ~26° Taurus
-        let pos = fixstar_ut("Algol", 2_451_545.0, CalcFlags::BUILTIN).unwrap();
+        let pos = fixstar_ut("Algol", celestial_core::JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).unwrap();
         let lon = pos.xx[0];
         assert!(
             (50.0..=65.0).contains(&lon),
@@ -260,7 +260,7 @@ mod fixed_stars {
 
     #[test]
     fn unknown_star_returns_error() {
-        let res = fixstar_ut("XyzNotAReal", 2_451_545.0, CalcFlags::BUILTIN);
+        let res = fixstar_ut("XyzNotAReal", celestial_core::JulianDay::new(2_451_545.0), CalcFlags::BUILTIN);
         assert!(res.is_err(), "non-existent star should error");
     }
 }

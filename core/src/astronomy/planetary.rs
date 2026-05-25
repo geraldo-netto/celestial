@@ -14,6 +14,7 @@ use crate::astronomy::{
     nutation::{mean_obliquity, nutation},
     vsop87::{heliocentric, Planet},
 };
+use crate::units::{Degrees, Latitude, Longitude};
 
 /// Geocentric ecliptic apparent coordinates (degrees).
 #[derive(Debug, Clone, Copy)]
@@ -90,7 +91,7 @@ pub fn apparent_planet(planet: Planet, jde: f64) -> GeocentricPos {
     // true_obliquity recompute the same 77-term series. Byte-identical:
     // true_obliquity(jde) == mean_obliquity(jde) + nut.deps / 3600.0.
     let eps = mean_obliquity(jde) + nut.deps / 3600.0;
-    let (ra, dec) = ecl_to_equ(lon_deg, lat_deg, eps);
+    let (ra, dec) = ecl_to_equ(Longitude::new(lon_deg), Latitude::new(lat_deg), Degrees::new(eps));
 
     GeocentricPos {
         lon: lon_deg,
@@ -132,7 +133,7 @@ pub fn apparent_sun(jde: f64) -> GeocentricPos {
     // true_obliquity recompute the same 77-term series. Byte-identical:
     // true_obliquity(jde) == mean_obliquity(jde) + nut.deps / 3600.0.
     let eps = mean_obliquity(jde) + nut.deps / 3600.0;
-    let (ra, dec) = ecl_to_equ(lon_deg, lat_deg, eps);
+    let (ra, dec) = ecl_to_equ(Longitude::new(lon_deg), Latitude::new(lat_deg), Degrees::new(eps));
 
     GeocentricPos {
         lon: lon_deg,
@@ -157,7 +158,7 @@ pub fn apparent_moon(jde: f64) -> GeocentricPos {
     // true_obliquity recompute the same 77-term series. Byte-identical:
     // true_obliquity(jde) == mean_obliquity(jde) + nut.deps / 3600.0.
     let eps = mean_obliquity(jde) + nut.deps / 3600.0;
-    let (ra, dec) = ecl_to_equ(lon_deg, lat_deg, eps);
+    let (ra, dec) = ecl_to_equ(Longitude::new(lon_deg), Latitude::new(lat_deg), Degrees::new(eps));
 
     GeocentricPos {
         lon: lon_deg,
@@ -182,7 +183,10 @@ fn ecliptic_rect(lon: f64, lat: f64, r: f64) -> (f64, f64, f64) {
 
 /// Convert ecliptic longitude/latitude (degrees) to RA/Dec (degrees).
 #[must_use]
-pub fn ecl_to_equ(lon: f64, lat: f64, eps: f64) -> (f64, f64) {
+pub fn ecl_to_equ(lon: Longitude, lat: Latitude, eps: Degrees) -> (f64, f64) {
+    let lon: f64 = lon.into();
+    let lat: f64 = lat.into();
+    let eps: f64 = eps.into();
     let lon_r = to_rad(lon);
     let lat_r = to_rad(lat);
     let eps_r = to_rad(eps);

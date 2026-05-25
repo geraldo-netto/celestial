@@ -22,6 +22,7 @@ use celestial_core::{
     julday, moon_illumination, moon_phases_for_month, omer_days, omer_period, revjul,
     sabbats_for_year, Calendar, PrincipalPhase,
 };
+use celestial_core::JulianDay;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
@@ -179,12 +180,12 @@ pub fn gregorian_year_overlay(year: i32) -> Value {
 /// period, or `null` otherwise. Templates can use the `today` field for
 /// a single-cell tag, or iterate `days` for the full grid.
 pub fn omer_overlay(jd: f64) -> Value {
-    let period = omer_period(jd);
+    let period = omer_period(JulianDay::new(jd));
     let days = omer_days(period.hebrew_year);
     let day_objs: Vec<Value> = days
         .iter()
         .map(|d| {
-            let rd = revjul(d.jd, Calendar::Gregorian);
+            let rd = revjul(JulianDay::new(d.jd), Calendar::Gregorian);
             json!({
                 "day":           d.day,
                 "week":          d.week,
@@ -199,8 +200,8 @@ pub fn omer_overlay(jd: f64) -> Value {
         })
         .collect();
 
-    let today = celestial_core::omer_from_jd(jd).map(|d| {
-        let rd = revjul(d.jd, Calendar::Gregorian);
+    let today = celestial_core::omer_from_jd(JulianDay::new(jd)).map(|d| {
+        let rd = revjul(JulianDay::new(d.jd), Calendar::Gregorian);
         json!({
             "day":           d.day,
             "week":          d.week,
@@ -261,7 +262,7 @@ pub fn sabbats_overlay(year: i32) -> Value {
         .iter()
         .enumerate()
         .map(|(i, s)| {
-            let rd = revjul(s.jd, Calendar::Gregorian);
+            let rd = revjul(JulianDay::new(s.jd), Calendar::Gregorian);
             json!({
                 "index":            i,
                 // Pre-computed pixel y-offset for stacked list rendering at
@@ -322,7 +323,7 @@ pub fn moon_overlay(year: i32, month: u32) -> Value {
         .iter()
         .enumerate()
         .map(|(i, e)| {
-            let rd = revjul(e.jd, Calendar::Gregorian);
+            let rd = revjul(JulianDay::new(e.jd), Calendar::Gregorian);
             json!({
                 "index":       i,
                 "list_y":      14 * (i as i32),
@@ -368,7 +369,7 @@ pub fn annotate_gregorian_with_moon(gregorian: &mut Value, moon: &Value) {
         let Some(jd) = day["jd"].as_f64() else {
             continue;
         };
-        if let Ok(illum) = moon_illumination(jd) {
+        if let Ok(illum) = moon_illumination(JulianDay::new(jd)) {
             day["moon_illumination"] = json!(illum);
             day["moon_illumination_pct"] = json!((illum * 100.0).round() as i32);
         }
@@ -416,8 +417,8 @@ pub fn hebrew_overlay(jd_start: f64, jd_end: f64) -> Value {
         is_hebrew_leap_year, months_in_hebrew_year,
     };
 
-    let h_start = approx_hebrew_year(jd_start);
-    let h_end = approx_hebrew_year(jd_end);
+    let h_start = approx_hebrew_year(JulianDay::new(jd_start));
+    let h_end = approx_hebrew_year(JulianDay::new(jd_end));
     let mut years_covered = vec![h_start];
     if h_end != h_start {
         years_covered.push(h_end);
@@ -439,7 +440,7 @@ pub fn hebrew_overlay(jd_start: f64, jd_end: f64) -> Value {
     let mut day_lookup = Vec::new();
     let mut jd_cur = jd_start.floor();
     while jd_cur <= jd_end {
-        let h_year = approx_hebrew_year(jd_cur);
+        let h_year = approx_hebrew_year(JulianDay::new(jd_cur));
         let n_months = months_in_hebrew_year(h_year);
         let found = (1..=n_months).find_map(|m| {
             let m_start = hebrew_month_start_jd(h_year, m) as f64;

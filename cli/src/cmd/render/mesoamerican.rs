@@ -3,6 +3,7 @@
 use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::{calendar_round, haab, tonalpohualli, tzolkin, xiuhpohualli};
+use celestial_core::JulianDay;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -14,11 +15,11 @@ pub fn build_mesoamerican_context(
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
 
-    let (trecena, sign_idx, tonal_name, tonal_en) = tonalpohualli(jd);
-    let (xiu_month, xiu_day, xiu_month_name, xiu_month_en) = xiuhpohualli(jd);
-    let (tzol_trecena, tzol_idx, tzol_name, tzol_en) = tzolkin(jd);
-    let (haab_month, haab_day, haab_month_name) = haab(jd);
-    let (cr_trecena, cr_sign, cr_haab_day, cr_haab_month) = calendar_round(jd);
+    let (trecena, sign_idx, tonal_name, tonal_en) = tonalpohualli(JulianDay::new(jd));
+    let (xiu_month, xiu_day, xiu_month_name, xiu_month_en) = xiuhpohualli(JulianDay::new(jd));
+    let (tzol_trecena, tzol_idx, tzol_name, tzol_en) = tzolkin(JulianDay::new(jd));
+    let (haab_month, haab_day, haab_month_name) = haab(JulianDay::new(jd));
+    let (cr_trecena, cr_sign, cr_haab_day, cr_haab_month) = calendar_round(JulianDay::new(jd));
 
 
     // ARCH-9/DP-5: typed per-tradition context. Serializes to a JSON

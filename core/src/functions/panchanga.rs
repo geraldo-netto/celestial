@@ -13,9 +13,9 @@
 //! # Examples
 //! ```
 //! # use celestial_core::body::Calendar;
-//! use celestial_core::{panchanga, julday};
+//! use celestial_core::{panchanga, julday, JulianDay};
 //! let jd = julday(2025, 3, 20, 6.0, Calendar::Gregorian);
-//! let p = panchanga(jd);
+//! let p = panchanga(JulianDay::new(jd));
 //! assert!(p.tithi >= 1 && p.tithi <= 30);
 //! assert!(p.nakshatra <= 26);
 //! ```
@@ -211,7 +211,8 @@ pub fn karana_name(karana: u8) -> &'static str {
 ///
 /// Uses Lahiri (Chitrapaksha) ayanamsa for sidereal positions.
 #[must_use]
-pub fn panchanga(jd: f64) -> Panchanga {
+pub fn panchanga(jd: JulianDay) -> Panchanga {
+    let jd: f64 = jd.into();
     // DEC-1: compute under Lahiri, but the prior code only *set* the
     // process-global sidereal mode and never restored it — leaking
     // Lahiri into the caller's later `calc_ut`/`ayanamsa`. Save the
@@ -412,7 +413,7 @@ pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
     let mut festivals = Vec::with_capacity(64);
     let mut jd = start_jd;
     while jd <= end_jd {
-        let p = panchanga(jd);
+        let p = panchanga(JulianDay::new(jd));
         for rule in FESTIVAL_RULES {
             if p.tithi == rule.tithi
                 && p.paksha == rule.paksha
@@ -451,7 +452,7 @@ mod tests {
     #[test]
     fn panchanga_ranges() {
         let jd = julday(2025, 3, 20, 6.0, Calendar::Gregorian);
-        let p = panchanga(jd);
+        let p = panchanga(JulianDay::new(jd));
         assert!(p.tithi >= 1 && p.tithi <= 30, "tithi={}", p.tithi);
         assert!(p.nakshatra <= 26, "nak={}", p.nakshatra);
         assert!(p.yoga <= 26, "yoga={}", p.yoga);
@@ -464,7 +465,7 @@ mod tests {
     fn panchanga_full_moon() {
         // At full moon, elongation ≈ 180°, tithi should be ~15 (Purnima)
         let jd = julday(2025, 1, 13, 22.0, Calendar::Gregorian); // Full moon Jan 13, 2025
-        let p = panchanga(jd);
+        let p = panchanga(JulianDay::new(jd));
         // Elongation near 180°
         assert!(
             p.elongation > 140.0 && p.elongation < 220.0,
@@ -489,7 +490,7 @@ mod tests {
     fn vara_sunday_known() {
         // J2000.0 = Jan 1.5, 2000 = Saturday
         let jd = 2_451_545.0;
-        let p = panchanga(jd);
+        let p = panchanga(JulianDay::new(jd));
         assert_eq!(p.vara, 6, "J2000 should be Saturday (6)");
     }
 
@@ -506,11 +507,11 @@ mod tests {
     fn paksha_flips_across_new_moon() {
         // Several days after new moon we must be Shukla (waxing).
         let jd = julday(2025, 2, 3, 12.0, Calendar::Gregorian); // ~5 days post-new-moon
-        let p = panchanga(jd);
+        let p = panchanga(JulianDay::new(jd));
         assert_eq!(p.paksha, Paksha::Shukla);
         // And several days after full moon, Krishna (waning).
         let jd2 = julday(2025, 2, 17, 12.0, Calendar::Gregorian);
-        let p2 = panchanga(jd2);
+        let p2 = panchanga(JulianDay::new(jd2));
         assert_eq!(p2.paksha, Paksha::Krishna);
     }
 
@@ -535,7 +536,7 @@ mod tests {
         let jd0 = julday(2025, 1, 1, 12.0, Calendar::Gregorian);
         let mut seen = [false; 7];
         for d in 0..7 {
-            let p = panchanga(jd0 + d as f64);
+            let p = panchanga(JulianDay::new(jd0 + d as f64));
             seen[p.vara as usize] = true;
         }
         assert!(seen.iter().all(|&b| b), "missed weekday: {seen:?}");
@@ -546,8 +547,8 @@ mod tests {
         // Tithi 1..30 cycles every ~29.5 days; sample 1-day steps and confirm
         // the difference is small/positive (allowing for end-of-cycle wrap).
         let jd0 = julday(2025, 1, 1, 12.0, Calendar::Gregorian);
-        let prev = panchanga(jd0).tithi;
-        let next = panchanga(jd0 + 1.0).tithi;
+        let prev = panchanga(JulianDay::new(jd0)).tithi;
+        let next = panchanga(JulianDay::new(jd0 + 1.0)).tithi;
         let diff = (next as i32 - prev as i32).rem_euclid(30);
         assert!((0..=2).contains(&diff), "tithi step too large: {diff}");
     }
@@ -563,7 +564,7 @@ mod tests {
         // Caller picks Raman; panchanga internally switches to Lahiri.
         crate::set_sid_mode(SiderealMode::RAMAN, 0.0, 0.0);
         assert_eq!(current_sid_mode(), SiderealMode::RAMAN.as_raw());
-        let p = panchanga(julday(2000, 1, 1, 12.0, crate::body::Calendar::Gregorian));
+        let p = panchanga(JulianDay::new(julday(2000, 1, 1, 12.0, crate::body::Calendar::Gregorian)));
         assert!(p.tithi >= 1 && p.tithi <= 30, "panchanga still valid");
         assert_eq!(
             current_sid_mode(),
@@ -573,7 +574,7 @@ mod tests {
 
         // Also from the default (Fagan-Bradley = 0).
         crate::set_sid_mode(SiderealMode::FAGAN_BRADLEY, 0.0, 0.0);
-        let _ = panchanga(julday(1986, 5, 30, 9.0, crate::body::Calendar::Gregorian));
+        let _ = panchanga(JulianDay::new(julday(1986, 5, 30, 9.0, crate::body::Calendar::Gregorian)));
         assert_eq!(current_sid_mode(), SiderealMode::FAGAN_BRADLEY.as_raw());
     }
 }

@@ -428,8 +428,8 @@ pub fn build_shadbala_context(
             // 2. Saptavargaja bala: simplified — based on rasi/navamsa placement
             //    Full Saptavargaja needs D1,D2,D3,D7,D9,D12,D30.
             //    We compute D1 (rasi) + D9 (navamsa) contribution only.
-            let rasi = long_to_rasi(pos.lon);
-            let navamsa = long_to_navamsa(pos.lon);
+            let rasi = long_to_rasi(Longitude::new(pos.lon));
+            let navamsa = long_to_navamsa(Longitude::new(pos.lon));
             // Relationship: 3=moolatrikona, 2=swakshetra, 1=mitravarga, 0=neutral, -1=shatru
             let d1_rel = naisargika_relation(raw, rasi).unwrap_or(0);
             let d9_rel = naisargika_relation(raw, navamsa).unwrap_or(0);
@@ -687,9 +687,9 @@ pub fn build_vedic_context(
     let mut moon_sid_lon = 0.0_f64;
     for &(body, key, name, glyph) in BODIES {
         if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
-            let rasi = long_to_rasi(pos.lon);
-            let navamsa = long_to_navamsa(pos.lon);
-            let (nak, pada) = long_to_nakshatra(pos.lon);
+            let rasi = long_to_rasi(Longitude::new(pos.lon));
+            let navamsa = long_to_navamsa(Longitude::new(pos.lon));
+            let (nak, pada) = long_to_nakshatra(Longitude::new(pos.lon));
             let nak_name = nakshatra_name(nak).unwrap_or("?");
             let deg_in_rasi = pos.lon % 30.0;
             if key == "moon" {
@@ -712,7 +712,7 @@ pub fn build_vedic_context(
     }
 
     // Vimshottari dasha (next 120 years)
-    let dashas: Vec<Value> = vimshottari_dasha(jd, moon_sid_lon, 120.0)
+    let dashas: Vec<Value> = vimshottari_dasha(JulianDay::new(jd), Longitude::new(moon_sid_lon), 120.0)
         .iter()
         .map(|d| {
             let start = jd_to_date_str(d.start);

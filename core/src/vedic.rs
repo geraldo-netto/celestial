@@ -4,8 +4,9 @@
 //!
 //! ```
 //! use celestial_core::vedic::{long_to_nakshatra, panchanga};
+//! use celestial_core::Longitude;
 //!
-//! let (nak, pada) = long_to_nakshatra(123.456);
+//! let (nak, pada) = long_to_nakshatra(Longitude::new(123.456));
 //! println!("Nakshatra {nak}, pada {pada}");
 //! ```
 

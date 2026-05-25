@@ -15,15 +15,17 @@
 //!
 //! ```
 //! use celestial_core::solar::{solar_cycle, SolarCyclePhase};
+//! use celestial_core::JulianDay;
 //!
 //! // J2000.0 — JD 2_451_545.0, late in cycle 23
-//! let info = solar_cycle(2_451_545.0).unwrap();
+//! let info = solar_cycle(JulianDay::new(2_451_545.0)).unwrap();
 //! assert_eq!(info.cycle_num, 23);
 //! assert!(matches!(info.phase_name, SolarCyclePhase::Maximum));
 //! ```
 
 use crate::body::Calendar;
 use crate::functions::time::julday;
+use crate::units::JulianDay;
 use serde::{Deserialize, Serialize};
 
 /// Phase within a single ~11-year solar cycle.
@@ -175,7 +177,8 @@ fn jd_to_year_approx(jd: f64) -> f64 {
 /// Schwabe cycles 1..=25 (i.e. before ~1755 or after ~2030). For dates outside
 /// that window, use [`grand_solar_epoch`] for century-scale context.
 #[must_use]
-pub fn solar_cycle(jd: f64) -> Option<SolarCycleInfo> {
+pub fn solar_cycle(jd: JulianDay) -> Option<SolarCycleInfo> {
+    let jd: f64 = jd.into();
     if !jd.is_finite() {
         return None;
     }
@@ -223,7 +226,7 @@ pub fn solar_cycle(jd: f64) -> Option<SolarCycleInfo> {
         next_min_jd,
         years_since_min,
         nickname: cycle_nickname(cycle_num),
-        grand_epoch: grand_solar_epoch(jd),
+        grand_epoch: grand_solar_epoch(JulianDay::new(jd)),
     })
 }
 
@@ -242,7 +245,8 @@ pub fn cycle_nickname(n: u8) -> Option<&'static str> {
 /// Schwabe cycles — that's the point: it's the long-term escape hatch when
 /// [`solar_cycle`] returns [`None`].
 #[must_use]
-pub fn grand_solar_epoch(jd: f64) -> Option<GrandSolarEpoch> {
+pub fn grand_solar_epoch(jd: JulianDay) -> Option<GrandSolarEpoch> {
+    let jd: f64 = jd.into();
     if !jd.is_finite() {
         return None;
     }
@@ -271,27 +275,27 @@ mod tests {
 
     #[test]
     fn returns_none_before_cycle_1() {
-        assert!(solar_cycle(jd_of(1700, 1, 1)).is_none());
-        assert!(solar_cycle(jd_of(1500, 1, 1)).is_none());
+        assert!(solar_cycle(JulianDay::new(jd_of(1700, 1, 1))).is_none());
+        assert!(solar_cycle(JulianDay::new(jd_of(1500, 1, 1))).is_none());
     }
 
     #[test]
     fn returns_none_after_cycle_25() {
-        assert!(solar_cycle(jd_of(2050, 1, 1)).is_none());
-        assert!(solar_cycle(jd_of(2100, 1, 1)).is_none());
+        assert!(solar_cycle(JulianDay::new(jd_of(2050, 1, 1))).is_none());
+        assert!(solar_cycle(JulianDay::new(jd_of(2100, 1, 1))).is_none());
     }
 
     #[test]
     fn returns_none_for_non_finite() {
-        assert!(solar_cycle(f64::NAN).is_none());
-        assert!(solar_cycle(f64::INFINITY).is_none());
-        assert!(solar_cycle(f64::NEG_INFINITY).is_none());
+        assert!(solar_cycle(JulianDay::new(f64::NAN)).is_none());
+        assert!(solar_cycle(JulianDay::new(f64::INFINITY)).is_none());
+        assert!(solar_cycle(JulianDay::new(f64::NEG_INFINITY)).is_none());
     }
 
     #[test]
     fn j2000_lands_in_cycle_23_max() {
         // J2000.0 = 2000-01-01 12:00 TT ≈ early 2000, cycle 23 maximum is 2000.3
-        let info = solar_cycle(2_451_545.0).expect("cycle 23");
+        let info = solar_cycle(JulianDay::new(2_451_545.0)).expect("cycle 23");
         assert_eq!(info.cycle_num, 23);
         assert_eq!(info.phase_name, SolarCyclePhase::Maximum);
         assert!(info.phase > 0.0 && info.phase < 1.0);
@@ -300,7 +304,7 @@ mod tests {
     #[test]
     fn cycle_19_has_nickname() {
         // Mid-1957: cycle 19 maximum.
-        let info = solar_cycle(jd_of(1957, 6, 1)).expect("cycle 19");
+        let info = solar_cycle(JulianDay::new(jd_of(1957, 6, 1))).expect("cycle 19");
         assert_eq!(info.cycle_num, 19);
         assert_eq!(info.nickname, Some("the Great Cycle"));
     }
@@ -308,7 +312,7 @@ mod tests {
     #[test]
     fn cycle_24_min_is_minimum_phase() {
         // Late 2008: solar minimum between cycles 23 and 24.
-        let info = solar_cycle(jd_of(2008, 12, 1)).expect("cycle 24 start");
+        let info = solar_cycle(JulianDay::new(jd_of(2008, 12, 1))).expect("cycle 24 start");
         assert_eq!(info.cycle_num, 24);
         assert_eq!(info.phase_name, SolarCyclePhase::Minimum);
         assert!(info.years_since_min < 1.0);
@@ -317,7 +321,7 @@ mod tests {
     #[test]
     fn cycle_25_rising_phase() {
         // 2022: well into cycle 25 ascending phase.
-        let info = solar_cycle(jd_of(2022, 6, 1)).expect("cycle 25 rising");
+        let info = solar_cycle(JulianDay::new(jd_of(2022, 6, 1))).expect("cycle 25 rising");
         assert_eq!(info.cycle_num, 25);
         assert_eq!(info.phase_name, SolarCyclePhase::Rising);
     }
@@ -325,7 +329,7 @@ mod tests {
     #[test]
     fn cycle_24_declining_phase() {
         // Early 2017: declining side of cycle 24 (max was 2014.3).
-        let info = solar_cycle(jd_of(2017, 1, 1)).expect("cycle 24 declining");
+        let info = solar_cycle(JulianDay::new(jd_of(2017, 1, 1))).expect("cycle 24 declining");
         assert_eq!(info.cycle_num, 24);
         assert_eq!(info.phase_name, SolarCyclePhase::Declining);
     }
@@ -333,31 +337,31 @@ mod tests {
     #[test]
     fn grand_epoch_classification() {
         assert_eq!(
-            grand_solar_epoch(jd_of(1680, 1, 1)),
+            grand_solar_epoch(JulianDay::new(jd_of(1680, 1, 1))),
             Some(GrandSolarEpoch::MaunderMinimum)
         );
         assert_eq!(
-            grand_solar_epoch(jd_of(1810, 1, 1)),
+            grand_solar_epoch(JulianDay::new(jd_of(1810, 1, 1))),
             Some(GrandSolarEpoch::DaltonMinimum)
         );
         assert_eq!(
-            grand_solar_epoch(jd_of(1980, 1, 1)),
+            grand_solar_epoch(JulianDay::new(jd_of(1980, 1, 1))),
             Some(GrandSolarEpoch::ModernMaximum)
         );
-        assert_eq!(grand_solar_epoch(jd_of(2010, 1, 1)), None);
+        assert_eq!(grand_solar_epoch(JulianDay::new(jd_of(2010, 1, 1))), None);
     }
 
     #[test]
     fn grand_epoch_handles_non_finite() {
-        assert_eq!(grand_solar_epoch(f64::NAN), None);
-        assert_eq!(grand_solar_epoch(f64::INFINITY), None);
+        assert_eq!(grand_solar_epoch(JulianDay::new(f64::NAN)), None);
+        assert_eq!(grand_solar_epoch(JulianDay::new(f64::INFINITY)), None);
     }
 
     #[test]
     fn phase_within_unit_interval() {
         // Sample a handful of years across the whole table.
         for &year in &[1760, 1800, 1850, 1900, 1950, 2000, 2020] {
-            let info = solar_cycle(jd_of(year, 6, 1)).expect("inside range");
+            let info = solar_cycle(JulianDay::new(jd_of(year, 6, 1))).expect("inside range");
             assert!(
                 (0.0..=1.0).contains(&info.phase),
                 "phase out of range at {year}: {}",

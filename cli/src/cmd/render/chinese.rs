@@ -5,6 +5,7 @@ use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::{calc_ut, four_pillars, solar_term_position, SOLAR_TERMS};
+use celestial_core::Longitude;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
@@ -24,7 +25,7 @@ pub fn build_bazi_context(
     let day_frac = (jd + 0.5).fract(); // fraction of day since midnight UT
     let hour_ut = day_frac * 24.0;
 
-    let pillars = four_pillars(jd, hour_ut, sun_pos.lon);
+    let pillars = four_pillars(JulianDay::new(jd), hour_ut, Longitude::new(sun_pos.lon));
     let pillar_vals: Vec<Value> = pillars
         .iter()
         .map(|p| {
@@ -43,7 +44,7 @@ pub fn build_bazi_context(
         .collect();
 
     // Solar term context
-    let (current_term, deg_into, next_term, deg_to) = solar_term_position(sun_pos.lon);
+    let (current_term, deg_into, next_term, deg_to) = solar_term_position(Longitude::new(sun_pos.lon));
     let (ct_pinyin, ct_english) = (SOLAR_TERMS[current_term].1, SOLAR_TERMS[current_term].2);
     let (nt_pinyin, nt_english) = (SOLAR_TERMS[next_term].1, SOLAR_TERMS[next_term].2);
 

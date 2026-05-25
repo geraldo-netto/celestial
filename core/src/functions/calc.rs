@@ -28,13 +28,12 @@ pub fn calc(jd_et: JulianDay, body: Body, flags: CalcFlags) -> Result<PlanetPos>
 
 /// Geocentric position using Universal Time. Returns [`PlanetPos`].
 pub fn calc_ut(jd_ut: JulianDay, body: Body, flags: CalcFlags) -> Result<PlanetPos> {
-    crate::astronomy::calc_ut(jd_ut.get(), body.as_raw(), flags.as_raw())
+    crate::astronomy::calc_ut(jd_ut, body.as_raw(), flags.as_raw())
 }
 
 /// Planetocentric position: body as seen from `center` instead of Earth.
 pub fn calc_pctr(jd_et: JulianDay, body: Body, center: Body, flags: CalcFlags) -> Result<PlanetPos> {
     use crate::astronomy::calc_ut as au;
-    let jd_et = jd_et.get();
     let body_pos =
         au(jd_et, body.as_raw(), flags.as_raw()).map_err(|e| Error::Calc(e.to_string()))?;
     let center_pos =
@@ -59,7 +58,7 @@ fn fixstar_impl(star: &str, jd: f64, flags: CalcFlags) -> Result<FixStarPos> {
         name: star.to_string(),
     })?;
     let s = &fixstars::CATALOG[idx];
-    let (lon, lat, dist) = fixstars::star_ecliptic_pos(s, jd);
+    let (lon, lat, dist) = fixstars::star_ecliptic_pos(s, JulianDay::new(jd));
     let (sl, sb, sr) = fixstars::star_speed(s);
     let name = format!("{},{}", s.name, s.bayer);
     Ok(FixStarPos {
@@ -73,23 +72,27 @@ fn fixstar_impl(star: &str, jd: f64, flags: CalcFlags) -> Result<FixStarPos> {
 ///
 /// `star` is the star name or Bayer designation (e.g. `"Aldebaran"`, `"alTau"`).
 /// Returns a [`FixStarPos`] with ecliptic coordinates and magnitude.
-pub fn fixstar(star: &str, tjd: f64, flags: CalcFlags) -> Result<FixStarPos> {
+pub fn fixstar(star: &str, tjd: JulianDay, flags: CalcFlags) -> Result<FixStarPos> {
+    let tjd: f64 = tjd.into();
     fixstar_impl(star, tjd, flags)
 }
 /// Fixed-star position at a Julian Day (UT).
 ///
 /// UT variant of [`fixstar`] — converts UT → TT internally.
-pub fn fixstar_ut(star: &str, tjd: f64, flags: CalcFlags) -> Result<FixStarPos> {
+pub fn fixstar_ut(star: &str, tjd: JulianDay, flags: CalcFlags) -> Result<FixStarPos> {
+    let tjd: f64 = tjd.into();
     fixstar_impl(star, tjd, flags)
 }
 /// Fixed-star position (TT) — extended version that also returns the star name.
 ///
 /// Same as [`fixstar`] but the returned [`FixStarPos`] includes the canonical name.
-pub fn fixstar2(star: &str, tjd: f64, flags: CalcFlags) -> Result<FixStarPos> {
+pub fn fixstar2(star: &str, tjd: JulianDay, flags: CalcFlags) -> Result<FixStarPos> {
+    let tjd: f64 = tjd.into();
     fixstar_impl(star, tjd, flags)
 }
 /// Fixed-star position (UT) — extended version that also returns the star name.
-pub fn fixstar2_ut(star: &str, tjd: f64, flags: CalcFlags) -> Result<FixStarPos> {
+pub fn fixstar2_ut(star: &str, tjd: JulianDay, flags: CalcFlags) -> Result<FixStarPos> {
+    let tjd: f64 = tjd.into();
     fixstar_impl(star, tjd, flags)
 }
 
@@ -106,11 +109,13 @@ pub fn fixstar2_mag(star: &str) -> Result<f64> {
 }
 
 /// Planetary nodes and apsides (ET).
-pub fn nod_aps(jd_et: f64, body: Body, flags: CalcFlags, method: i32) -> Result<NodAps> {
+pub fn nod_aps(jd_et: JulianDay, body: Body, flags: CalcFlags, method: i32) -> Result<NodAps> {
+    let jd_et: f64 = jd_et.into();
     nod_aps_impl(jd_et, body, flags, method)
 }
 /// Planetary nodes and apsides (UT).
-pub fn nod_aps_ut(jd_ut: f64, body: Body, flags: CalcFlags, method: i32) -> Result<NodAps> {
+pub fn nod_aps_ut(jd_ut: JulianDay, body: Body, flags: CalcFlags, method: i32) -> Result<NodAps> {
+    let jd_ut: f64 = jd_ut.into();
     nod_aps_impl(jd_ut, body, flags, method)
 }
 
@@ -119,10 +124,10 @@ fn nod_aps_impl(jd: f64, body: Body, flags: CalcFlags, _method: i32) -> Result<N
 
     if body.as_raw() == 1 {
         // Moon: use dedicated formulae
-        let mn_lon = nodes::moon_mean_node(jd);
-        let mn_spd = nodes::moon_mean_node_speed(jd);
-        let peri = nodes::moon_mean_perigee(jd);
-        let peri_s = nodes::moon_mean_perigee_speed(jd);
+        let mn_lon = nodes::moon_mean_node(JulianDay::new(jd));
+        let mn_spd = nodes::moon_mean_node_speed(JulianDay::new(jd));
+        let peri = nodes::moon_mean_perigee(JulianDay::new(jd));
+        let peri_s = nodes::moon_mean_perigee_speed(JulianDay::new(jd));
         let asc = [mn_lon, 0.0, 1.0, mn_spd, 0.0, 0.0];
         let dsc = [
             (mn_lon + 180.0).rem_euclid(360.0),
@@ -144,14 +149,14 @@ fn nod_aps_impl(jd: f64, body: Body, flags: CalcFlags, _method: i32) -> Result<N
     }
 
     let (asc_lon, dsc_lon, peri_lon, aphe_lon, inc) =
-        nodes::planet_nodes_apsides(body.as_raw(), jd).ok_or_else(|| {
+        nodes::planet_nodes_apsides(body.as_raw(), JulianDay::new(jd)).ok_or_else(|| {
             Error::BodyNotImplemented {
                 body: body.as_raw(),
             }
         })?;
 
     let (node_spd, peri_spd) = if flags.as_raw() as u32 & crate::astronomy::flag::FLG_SPEED != 0 {
-        nodes::planet_nodes_speeds(body.as_raw(), jd).unwrap_or((0.0, 0.0))
+        nodes::planet_nodes_speeds(body.as_raw(), JulianDay::new(jd)).unwrap_or((0.0, 0.0))
     } else {
         (0.0, 0.0)
     };
@@ -173,9 +178,10 @@ fn nod_aps_impl(jd: f64, body: Body, flags: CalcFlags, _method: i32) -> Result<N
 ///
 /// Returns [`OrbitalElements`] with named fields: `semi_major_axis`, `eccentricity`,
 /// `inclination`, `ascending_node`, `arg_perihelion`, `mean_anomaly`, etc.
-pub fn get_orbital_elements(jd_et: f64, body: Body, _flags: CalcFlags) -> Result<OrbitalElements> {
+pub fn get_orbital_elements(jd_et: JulianDay, body: Body, _flags: CalcFlags) -> Result<OrbitalElements> {
+    let jd_et: f64 = jd_et.into();
     let el =
-        crate::astronomy::nodes::planet_mean_elements(body.as_raw(), jd_et).ok_or_else(|| {
+        crate::astronomy::nodes::planet_mean_elements(body.as_raw(), JulianDay::new(jd_et)).ok_or_else(|| {
             Error::Calc(format!(
                 "orbital elements not available for body {}",
                 body.as_raw()
@@ -198,12 +204,13 @@ pub fn get_orbital_elements(jd_et: f64, body: Body, _flags: CalcFlags) -> Result
 ///
 /// Returns [`OrbitalDistances`] with `dmax`, `dmin`, and `dtrue` fields.
 pub fn orbit_max_min_true_distance(
-    jd_et: f64,
+    jd_et: JulianDay,
     body: Body,
     _flags: CalcFlags,
 ) -> Result<OrbitalDistances> {
+    let jd_et: f64 = jd_et.into();
     let el =
-        crate::astronomy::nodes::planet_mean_elements(body.as_raw(), jd_et).ok_or_else(|| {
+        crate::astronomy::nodes::planet_mean_elements(body.as_raw(), JulianDay::new(jd_et)).ok_or_else(|| {
             Error::Calc(format!(
                 "orbital elements not available for body {}",
                 body.as_raw()
@@ -257,7 +264,7 @@ pub fn calc_ut_many(
 ) -> Vec<crate::error::Result<PlanetPos>> {
     let jd_ut = jd_ut.get();
     parallel_calc(bodies, move |body| {
-        crate::astronomy::calc_ut(jd_ut, body.as_raw(), flags.as_raw())
+        crate::astronomy::calc_ut(JulianDay::new(jd_ut), body.as_raw(), flags.as_raw())
     })
 }
 
@@ -325,19 +332,19 @@ pub enum CalcStrategy {
 /// # use celestial_core::*;
 /// # use celestial_core::body::{Body, CalcFlags};
 /// // Single body (UT)
-/// let pos = CalcOptions::ut(2_451_545.0, CalcFlags::BUILTIN | CalcFlags::SPEED)
+/// let pos = CalcOptions::ut(JulianDay::new(2_451_545.0), CalcFlags::BUILTIN | CalcFlags::SPEED)
 ///     .body(Body::SUN)
 ///     .get()
 ///     .unwrap();
 /// println!("Sun: {:.4}°", pos.lon);
 ///
 /// // Multiple bodies with automatic strategy
-/// let results = CalcOptions::ut(2_451_545.0, CalcFlags::BUILTIN)
+/// let results = CalcOptions::ut(JulianDay::new(2_451_545.0), CalcFlags::BUILTIN)
 ///     .bodies(&[Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS, Body::MARS])
 ///     .get_many();
 ///
 /// // Force sequential (e.g. in a tight loop)
-/// let results = CalcOptions::ut(2_451_545.0, CalcFlags::BUILTIN)
+/// let results = CalcOptions::ut(JulianDay::new(2_451_545.0), CalcFlags::BUILTIN)
 ///     .strategy(CalcStrategy::Sequential)
 ///     .bodies(&[Body::SUN, Body::MOON])
 ///     .get_many();
@@ -352,7 +359,8 @@ pub struct CalcOptions {
 
 impl CalcOptions {
     /// Create a builder with a Universal Time Julian Day (auto-applies ΔT).
-    pub fn ut(jd_ut: f64, flags: CalcFlags) -> Self {
+    pub fn ut(jd_ut: JulianDay, flags: CalcFlags) -> Self {
+        let jd_ut: f64 = jd_ut.into();
         Self {
             jd: jd_ut,
             flags,
@@ -364,7 +372,8 @@ impl CalcOptions {
     /// Create a builder with a Terrestrial Time Julian Day (no ΔT applied).
     ///
     /// Use when your JD already has ΔT applied — e.g. Meeus examples.
-    pub fn tt(jd_et: f64, flags: CalcFlags) -> Self {
+    pub fn tt(jd_et: JulianDay, flags: CalcFlags) -> Self {
+        let jd_et: f64 = jd_et.into();
         Self {
             jd: jd_et,
             flags,

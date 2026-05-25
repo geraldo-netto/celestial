@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 
 use super::calc_ut;
+use crate::units::JulianDay;
 use crate::PlanetPos;
 
 /// Search for the first time after `jd_start` that body `body` crosses
@@ -157,10 +158,11 @@ where
 pub fn find_crossing(
     body: i32,
     x2cross: f64,
-    jd_start: f64,
+    jd_start: JulianDay,
     forward: bool, // true = forward in time, false = backward
     flags: i32,
 ) -> Option<f64> {
+    let jd_start: f64 = jd_start.into();
     let step = crossing_step(body);
     let dir = if forward { 1.0 } else { -1.0 };
 
@@ -170,7 +172,7 @@ pub fn find_crossing(
     let scan_flags = flags & !(crate::constants::FLG_SPEED | crate::constants::FLG_SPEED3);
 
     let lon_at = |jd: f64| -> Option<f64> {
-        let pos = calc_ut(jd, body, scan_flags).ok()?;
+        let pos = calc_ut(JulianDay::new(jd), body, scan_flags).ok()?;
         Some(pos.lon)
     };
 
@@ -185,23 +187,27 @@ pub fn find_crossing(
 }
 
 /// Sun crosses longitude `x2cross` after `jd_start`.
-pub fn solcross(x2cross: f64, jd_et: f64, flags: i32) -> Option<f64> {
-    find_crossing(0, x2cross, jd_et, true, flags)
+pub fn solcross(x2cross: f64, jd_et: JulianDay, flags: i32) -> Option<f64> {
+    let jd_et: f64 = jd_et.into();
+    find_crossing(0, x2cross, JulianDay::new(jd_et), true, flags)
 }
 
 /// Sun crosses longitude `x2cross` after `jd_start` (UT input).
-pub fn solcross_ut(x2cross: f64, jd_ut: f64, flags: i32) -> Option<f64> {
-    solcross(x2cross, jd_ut, flags)
+pub fn solcross_ut(x2cross: f64, jd_ut: JulianDay, flags: i32) -> Option<f64> {
+    let jd_ut: f64 = jd_ut.into();
+    solcross(x2cross, JulianDay::new(jd_ut), flags)
 }
 
 /// Moon crosses longitude `x2cross` after `jd_start`.
-pub fn mooncross(x2cross: f64, jd_et: f64, flags: i32) -> Option<f64> {
-    find_crossing(1, x2cross, jd_et, true, flags)
+pub fn mooncross(x2cross: f64, jd_et: JulianDay, flags: i32) -> Option<f64> {
+    let jd_et: f64 = jd_et.into();
+    find_crossing(1, x2cross, JulianDay::new(jd_et), true, flags)
 }
 
 /// Moon crosses longitude `x2cross` (UT).
-pub fn mooncross_ut(x2cross: f64, jd_ut: f64, flags: i32) -> Option<f64> {
-    mooncross(x2cross, jd_ut, flags)
+pub fn mooncross_ut(x2cross: f64, jd_ut: JulianDay, flags: i32) -> Option<f64> {
+    let jd_ut: f64 = jd_ut.into();
+    mooncross(x2cross, JulianDay::new(jd_ut), flags)
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -239,8 +245,9 @@ where
     }
 }
 
-pub fn mooncross_node(jd_et: f64, _flags: i32) -> Option<NodeCrossing> {
-    let pos_at = |jd: f64| crate::astronomy::calc_ut(jd, 1, 0).ok();
+pub fn mooncross_node(jd_et: JulianDay, _flags: i32) -> Option<NodeCrossing> {
+    let jd_et: f64 = jd_et.into();
+    let pos_at = |jd: f64| crate::astronomy::calc_ut(JulianDay::new(jd), 1, 0).ok();
 
     let mut jd = jd_et;
     let step = 0.5;
@@ -264,26 +271,29 @@ pub fn mooncross_node(jd_et: f64, _flags: i32) -> Option<NodeCrossing> {
 }
 
 /// Next Moon–node crossing (UT).
-pub fn mooncross_node_ut(jd_ut: f64, flags: i32) -> Option<NodeCrossing> {
-    mooncross_node(jd_ut, flags)
+pub fn mooncross_node_ut(jd_ut: JulianDay, flags: i32) -> Option<NodeCrossing> {
+    let jd_ut: f64 = jd_ut.into();
+    mooncross_node(JulianDay::new(jd_ut), flags)
 }
 
 /// Planet crosses longitude `x2cross` heliocentrically.
-pub fn helio_cross(body: i32, x2cross: f64, jd_et: f64, flags: i32, forward: bool) -> Option<f64> {
+pub fn helio_cross(body: i32, x2cross: f64, jd_et: JulianDay, flags: i32, forward: bool) -> Option<f64> {
+    let jd_et: f64 = jd_et.into();
     // Use the heliocentric flag
     let hflags = flags | crate::astronomy::flag::FLG_HELCTR as i32;
-    find_crossing(body, x2cross, jd_et, forward, hflags)
+    find_crossing(body, x2cross, JulianDay::new(jd_et), forward, hflags)
 }
 
 /// Heliocentric crossing (UT).
 pub fn helio_cross_ut(
     body: i32,
     x2cross: f64,
-    jd_ut: f64,
+    jd_ut: JulianDay,
     flags: i32,
     forward: bool,
 ) -> Option<f64> {
-    helio_cross(body, x2cross, jd_ut, flags, forward)
+    let jd_ut: f64 = jd_ut.into();
+    helio_cross(body, x2cross, JulianDay::new(jd_ut), flags, forward)
 }
 
 /// Like [`find_crossing`] but with an explicit search window in days. Used
@@ -313,7 +323,7 @@ pub(crate) fn find_crossing_window(
     let scan_flags = flags & !(crate::constants::FLG_SPEED | crate::constants::FLG_SPEED3);
 
     let lon_at = |jd: f64| -> Option<f64> {
-        let pos = calc_ut(jd, body, scan_flags).ok()?;
+        let pos = calc_ut(JulianDay::new(jd), body, scan_flags).ok()?;
         Some(pos.lon)
     };
     let diff = |lon: f64| -> f64 { (x2cross - lon + 540.0).rem_euclid(360.0) - 180.0 };

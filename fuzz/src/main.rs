@@ -8,6 +8,7 @@
 use celestial_core::Longitude;
 use celestial_core::Latitude;
 use celestial_core::JulianDay;
+use celestial_core::Degrees;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
 use celestial_core::{
     almuten, annual_profection, arabic_parts_seven, ayanamsa, azalt, bahai_holy_days, calc,
@@ -129,8 +130,8 @@ fn check_norm_cs(s: &mut Suite, cs: i32) {
 
 fn check_coord_transform_round_trip(s: &mut Suite, lon: f64, lat: f64, dist: f64) {
     let eps = 23.4_f64;
-    let fwd = coord_transform([lon, lat, dist], eps);
-    let back = coord_transform(fwd, -eps);
+    let fwd = coord_transform([lon, lat, dist], Degrees::new(eps));
+    let back = coord_transform(fwd, Degrees::new(-eps));
     s.check(fwd[0].is_finite() && fwd[1].is_finite(), || {
         "coord_transform NaN".to_string()
     });
@@ -181,7 +182,7 @@ fn test_math(n: u32) -> Suite {
         // nan/inf inputs (must not panic)
         let _ = norm_deg(f64::NAN);
         let _ = norm_deg(f64::INFINITY);
-        let _ = coord_transform([f64::NAN, 0.0, 1.0], 23.4);
+        let _ = coord_transform([f64::NAN, 0.0, 1.0], Degrees::new(23.4));
         s.passed += 1; // survived
     }
     s
@@ -200,7 +201,7 @@ fn test_time(n: u32) -> Suite {
         let jd = julday(year, month, day, hour, Calendar::Gregorian);
         s.check(jd.is_finite(), || "julday NaN".to_string());
 
-        let back = revjul(jd, Calendar::Gregorian);
+        let back = revjul(JulianDay::new(jd), Calendar::Gregorian);
         s.check(back.year == year, || {
             format!("revjul year: {year} → {}", back.year)
         });
@@ -215,18 +216,18 @@ fn test_time(n: u32) -> Suite {
         });
 
         // day_of_week in [0,6];
-        let dow = day_of_week(jd);
+        let dow = day_of_week(JulianDay::new(jd));
         s.check((0..=6).contains(&dow), || format!("day_of_week={dow}"));
 
         // 7-day cycle
-        s.check(day_of_week(jd) == day_of_week(jd + 7.0), || {
+        s.check(day_of_week(JulianDay::new(jd)) == day_of_week(JulianDay::new(jd + 7.0)), || {
             "7-day cycle broken".to_string()
         });
 
         // deltat plausible (1900–2100);
         let yr2 = rng.range_i32(1900, 2101);
         let jd2 = julday(yr2, 6, 15, 0.0, Calendar::Gregorian);
-        let dt = deltat(jd2);
+        let dt = deltat(JulianDay::new(jd2));
         s.check(dt.is_finite() && dt > -0.01 && dt < 2.0, || {
             format!("deltat={dt} days for year={yr2}")
         });
@@ -401,7 +402,7 @@ fn test_ayanamsa(n: u32) -> Suite {
         let jde = 2_451_545.0 + jd_off;
         let mode_id = (rng.next_u64() % 36) as i32;
         set_sid_mode(SiderealMode(mode_id), 0.0, 0.0);
-        let ay = ayanamsa(jde);
+        let ay = ayanamsa(JulianDay::new(jde));
         s.check(ay.is_finite(), || {
             format!("mode={mode_id} NaN at jde={jde}")
         });
@@ -427,7 +428,7 @@ fn test_rise_set(n: u32) -> Suite {
         };
 
         match rise_trans(
-            jd,
+            JulianDay::new(jd),
             Body::SUN,
             None,
             CalcFlags::BUILTIN,
@@ -476,8 +477,8 @@ fn test_nan_stability() -> Suite {
         let _ = norm_deg(x);
         let _ = norm_rad(x);
         let _ = diff_deg_signed(x, x);
-        let _ = coord_transform([x, 0.0, 1.0], 23.4);
-        let _ = coord_transform([0.0, x.clamp(-89.9, 89.9), 1.0], 23.4);
+        let _ = coord_transform([x, 0.0, 1.0], Degrees::new(23.4));
+        let _ = coord_transform([0.0, x.clamp(-89.9, 89.9), 1.0], Degrees::new(23.4));
         s.passed += 1;
     }
     // Large integer inputs for norm_cs
@@ -509,7 +510,7 @@ fn test_fixstars(n: u32) -> Suite {
     for _ in 0..n {
         let jde = 2_451_545.0 + rng.range_f64(-36525.0, 36525.0);
         let name = NAMES[(rng.next_u64() as usize) % NAMES.len()];
-        if let Ok(r) = fixstar(name, jde, CalcFlags::BUILTIN) {
+        if let Ok(r) = fixstar(name, JulianDay::new(jde), CalcFlags::BUILTIN) {
             s.check(r.xx[0] >= 0.0 && r.xx[0] < 360.0, || {
                 format!("{name} lon={}", r.xx[0])
             });
@@ -557,7 +558,7 @@ fn test_nod_aps(n: u32) -> Suite {
     for _ in 0..n {
         let jde = 2_451_545.0 + rng.range_f64(-36525.0, 36525.0);
         for &body in &[Body::MOON, Body::MARS, Body::SATURN] {
-            if let Ok(r) = nod_aps(jde, body, CalcFlags::BUILTIN, 0) {
+            if let Ok(r) = nod_aps(JulianDay::new(jde), body, CalcFlags::BUILTIN, 0) {
                 // Ascending node longitude in [0, 360)
                 s.check(r.nasc[0] >= 0.0 && r.nasc[0] < 360.0, || {
                     format!("body={body} nasc={}", r.nasc[0])
@@ -607,7 +608,7 @@ fn test_crossings(n: u32) -> Suite {
     for _ in 0..n {
         let jd_start = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         let target = rng.range_f64(0.0, 360.0);
-        if let Ok(jd) = solcross(target, jd_start, CalcFlags::BUILTIN) {
+        if let Ok(jd) = solcross(Longitude::new(target), JulianDay::new(jd_start), CalcFlags::BUILTIN) {
             check_body_crossing(
                 &mut s,
                 "solcross",
@@ -619,7 +620,7 @@ fn test_crossings(n: u32) -> Suite {
                 0.5,
             );
         }
-        if let Ok(jd) = mooncross(target, jd_start, CalcFlags::BUILTIN) {
+        if let Ok(jd) = mooncross(Longitude::new(target), JulianDay::new(jd_start), CalcFlags::BUILTIN) {
             check_body_crossing(
                 &mut s,
                 "mooncross",
@@ -646,7 +647,7 @@ fn test_eclipses(n: u32) -> Suite {
         // fewer because each search takes ~60 months;
         let jd_start = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         // Solar eclipse: found within ~5 years
-        if let Ok(r) = sol_eclipse_when_glob(jd_start, CalcFlags::BUILTIN, 0, false) {
+        if let Ok(r) = sol_eclipse_when_glob(JulianDay::new(jd_start), CalcFlags::BUILTIN, 0, false) {
             s.check(r.tret[0] > jd_start, || "solar eclipse before start".into());
             s.check(r.tret[0] < jd_start + 2000.0, || {
                 "solar eclipse too far".into()
@@ -657,7 +658,7 @@ fn test_eclipses(n: u32) -> Suite {
             });
         }
         // Lunar eclipse
-        if let Ok(r) = lun_eclipse_when(jd_start, CalcFlags::BUILTIN, 0, false) {
+        if let Ok(r) = lun_eclipse_when(JulianDay::new(jd_start), CalcFlags::BUILTIN, 0, false) {
             s.check(r.tret[0] > jd_start, || "lunar eclipse before start".into());
             s.check(r.tret[0] < jd_start + 1000.0, || {
                 "lunar eclipse too far".into()
@@ -678,7 +679,7 @@ fn test_phenomena(n: u32) -> Suite {
     for _ in 0..n {
         let jde = 2_451_545.0 + rng.range_f64(-36525.0, 36525.0);
         for &body in &[Body::MARS, Body::JUPITER, Body::VENUS] {
-            if let Ok(a) = pheno_ut(jde, body, CalcFlags::BUILTIN) {
+            if let Ok(a) = pheno_ut(JulianDay::new(jde), body, CalcFlags::BUILTIN) {
                 s.check(a[0] >= 0.0 && a[0] <= 180.0, || {
                     format!("body={body} phase_angle={}", a[0])
                 });
@@ -773,20 +774,20 @@ fn test_swephelp_vedic(n: u32) -> Suite {
     for _ in 0..n {
         let lon = rng.range_f64(0.0, 360.0);
 
-        let rasi = long_to_rasi(lon);
+        let rasi = long_to_rasi(Longitude::new(lon));
         s.check((0..12).contains(&rasi), || format!("rasi={rasi}"));
 
-        let (nak, pada) = long_to_nakshatra(lon);
+        let (nak, pada) = long_to_nakshatra(Longitude::new(lon));
         s.check((0..27).contains(&nak), || format!("nak={nak}"));
         s.check((0..4).contains(&pada), || format!("pada={pada}"));
 
-        let nav = long_to_navamsa(lon);
+        let nav = long_to_navamsa(Longitude::new(lon));
         s.check((0..12).contains(&nav), || format!("nav={nav}"));
 
         // Raman houses: all 12 cusps in [0,360);
         let asc = rng.range_f64(0.0, 360.0);
         let mc = rng.range_f64(0.0, 360.0);
-        let cusps = raman_houses(asc, mc, false);
+        let cusps = raman_houses(Degrees::new(asc), Degrees::new(mc), false);
         for (i, &c) in cusps.iter().enumerate() {
             s.check((0.0..360.0).contains(&c), || format!("raman cusp[{i}]={c}"));
         }
@@ -824,7 +825,7 @@ fn test_swephelp_vedic(n: u32) -> Suite {
 
 fn check_revjul_hms_ranges(s: &mut Suite, jd: f64) {
     use celestial_core::revjul_hms;
-    let dt = revjul_hms(jd, Calendar::Gregorian);
+    let dt = revjul_hms(JulianDay::new(jd), Calendar::Gregorian);
     s.check(dt[1] >= 1 && dt[1] <= 12, || format!("month={}", dt[1]));
     s.check(dt[2] >= 1 && dt[2] <= 31, || format!("day={}", dt[2]));
     s.check(dt[3] >= 0 && dt[3] <= 23, || format!("hour={}", dt[3]));
@@ -834,7 +835,7 @@ fn check_revjul_hms_ranges(s: &mut Suite, jd: f64) {
 
 fn check_jd_duration_ranges(s: &mut Suite, jd: f64, jd2: f64) {
     use celestial_core::jd_duration;
-    let dur = jd_duration(jd, jd2);
+    let dur = jd_duration(JulianDay::new(jd), JulianDay::new(jd2));
     s.check(dur[1] >= 0 && dur[1] < 24, || {
         format!("dur_hours={}", dur[1])
     });
@@ -850,7 +851,7 @@ fn test_swephelp_datetime(n: u32) -> Suite {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         check_revjul_hms_ranges(&mut s, jd);
 
-        let iso = jd_to_iso_string(jd, Calendar::Gregorian);
+        let iso = jd_to_iso_string(JulianDay::new(jd), Calendar::Gregorian);
         s.check(iso.ends_with("UTC"), || format!("iso={iso}"));
 
         check_jd_duration_ranges(&mut s, jd, jd + rng.range_f64(0.0, 365.0));
@@ -1131,13 +1132,13 @@ fn test_mean_sidtime(n: u32) -> Suite {
     let mut s = Suite::new("mean_sidtime");
     let mut rng = Xorshift64::new(0xABCDEF1234567890);
     // Meeus §12 reference: GMST at J2000 = 280.46061837° = 18.69737449 h
-    let gmst_j2000 = mean_sidtime(2_451_545.0);
+    let gmst_j2000 = mean_sidtime(JulianDay::new(2_451_545.0));
     s.check((gmst_j2000 - 18.697_374_49).abs() < 0.001, || {
         format!("GMST at J2000 = {gmst_j2000:.8} h, expected 18.69737449 h")
     });
     // mean_sidtime must differ from sidtime (GAST) at any date
-    let gmst = mean_sidtime(2_451_545.0);
-    let gast = sidtime(2_451_545.0);
+    let gmst = mean_sidtime(JulianDay::new(2_451_545.0));
+    let gast = sidtime(JulianDay::new(2_451_545.0));
     s.check((gmst - gast).abs() < 1.0 / 3600.0, || {
         format!("GMST-GAST diff {:.4} h exceeds 1s", (gmst - gast).abs())
     });
@@ -1147,7 +1148,7 @@ fn test_mean_sidtime(n: u32) -> Suite {
     // Boundary sweep: result must always be in [0, 24) hours
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
-        let h = mean_sidtime(jd);
+        let h = mean_sidtime(JulianDay::new(jd));
         s.check((0.0..24.0).contains(&h), || {
             format!("mean_sidtime={h:.6} h out of [0,24) at JD {jd:.1}")
         });
@@ -1215,7 +1216,7 @@ fn test_iau2000b_nutation(n: u32) -> Suite {
 
     // Meeus §22: 1987-Apr-10, JDE 2446895.5
     // public nutation() returns (dpsi_deg, deps_deg); convert to arcseconds
-    let (dpsi_deg, deps_deg) = nutation(2_446_895.5);
+    let (dpsi_deg, deps_deg) = nutation(JulianDay::new(2_446_895.5));
     let dpsi_arcsec = dpsi_deg * 3600.0;
     let deps_arcsec = deps_deg * 3600.0;
     s.check((dpsi_arcsec - (-3.788)).abs() < 0.05, || {
@@ -1226,7 +1227,7 @@ fn test_iau2000b_nutation(n: u32) -> Suite {
     });
 
     // true_obliquity via the public API: Meeus 22.b → 23.44357°
-    let eps = true_obliquity(2_446_895.5);
+    let eps = true_obliquity(JulianDay::new(2_446_895.5));
     s.check((eps - 23.443_57).abs() < 0.001, || {
         format!("true obliquity = {eps:.5}° (expected 23.44357°)")
     });
@@ -1234,7 +1235,7 @@ fn test_iau2000b_nutation(n: u32) -> Suite {
     // Sweep: Δψ in [-20, +20] arcsec, Δε in [-10, +10] arcsec
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
-        let (dp, de) = nutation(jd);
+        let (dp, de) = nutation(JulianDay::new(jd));
         let dp_as = dp * 3600.0;
         let de_as = de * 3600.0;
         s.check(dp_as.abs() < 20.0, || {
@@ -1335,7 +1336,7 @@ fn test_arabic_parts(n: u32) -> Suite {
         let ven = rng.range_f64(0.0, 360.0);
 
         for &is_day in &[true, false] {
-            let parts = arabic_parts_seven(asc, sun, moon, sat, mar, jup, mer, ven, is_day);
+            let parts = arabic_parts_seven(Degrees::new(asc), Longitude::new(sun), Longitude::new(moon), Longitude::new(sat), Longitude::new(mar), Longitude::new(jup), Longitude::new(mer), Longitude::new(ven), is_day);
             s.check(parts.len() == 7, || {
                 format!("expected 7 parts, got {}", parts.len())
             });
@@ -1406,7 +1407,7 @@ fn test_returns(n: u32) -> Suite {
     let test_years = [2020i32, 2024, 2030, 2050];
     for &year in &test_years {
         let jd_natal = 2_440_000.0;
-        let sr = solar_return_jd(jd_natal, year, flags);
+        let sr = solar_return_jd(JulianDay::new(jd_natal), year, flags);
         match sr {
             Ok(jd) => {
                 // Julian year bounds for the given year
@@ -1424,7 +1425,7 @@ fn test_returns(n: u32) -> Suite {
     for _ in 0..n / 10 {
         let jd_natal = 2_451_545.0 + rng.range_f64(0.0, 365.0);
         let jd_start = jd_natal + rng.range_f64(0.0, 365.0 * 5.0);
-        if let Ok(lr) = lunar_return_jd(jd_natal, jd_start, flags) {
+        if let Ok(lr) = lunar_return_jd(JulianDay::new(jd_natal), JulianDay::new(jd_start), flags) {
             s.check(lr >= jd_start && lr < jd_start + 30.0, || {
                 format!("lunar return {lr:.2} not in (start={jd_start:.2}, +30d)")
             });
@@ -1462,7 +1463,7 @@ fn test_progressions(n: u32) -> Suite {
         let nat_mc = 0.0_f64;
 
         if let Ok((arc, directed, _mc)) =
-            solar_arc_directions(jd_natal, age, &nat_pos, nat_mc, CalcFlags::BUILTIN)
+            solar_arc_directions(JulianDay::new(jd_natal), age, &nat_pos, Degrees::new(nat_mc), CalcFlags::BUILTIN)
         {
             s.check((0.0..360.0).contains(&arc), || {
                 format!("solar arc {arc:.4}° out of [0,360)")
@@ -1547,12 +1548,12 @@ fn test_calendar_islamic(n: u32) -> Suite {
     let mut rng = Xorshift64::new(0xA1B2C3D4E5F60718);
     for _ in 0..n / 5 {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
-        let (year, month, _day) = hijri_from_jd(jd);
+        let (year, month, _day) = hijri_from_jd(JulianDay::new(jd));
         s.check(year > 1300 && year < 1600, || {
-            format!("hijri_from_jd({jd:.2}): year {year} out of expected range")
+            format!("hijri_from_jd(JulianDay::new({jd:.2})): year {year} out of expected range")
         });
         s.check((1..=12).contains(&month), || {
-            format!("hijri_from_jd({jd:.2}): month {month} out of 1-12")
+            format!("hijri_from_jd(JulianDay::new({jd:.2})): month {month} out of 1-12")
         });
         let days = hijri_month_days(year, month);
         s.check(days == 29 || days == 30, || {
@@ -1589,7 +1590,7 @@ fn test_calendar_christian(n: u32) -> Suite {
         });
         let ej = easter_jd(year);
         s.check(ej > 0.0, || format!("easter_jd({year}) = {ej:.2}"));
-        let jd_cal = revjul(ej, cal);
+        let jd_cal = revjul(JulianDay::new(ej), cal);
         s.check(jd_cal.month as u8 == em && jd_cal.day as u8 == ed, || {
             format!(
                 "easter_jd {year}: {}/{} ≠ gregorian {em}/{ed}",
@@ -1617,7 +1618,7 @@ fn test_calendar_nowruz_bahai(n: u32) -> Suite {
     let mut s = Suite::new("calendar_nowruz_bahai");
     for year in [2024i32, 2025, 2026] {
         let jd = nowruz_jd(year);
-        let cal = revjul(jd, Calendar::Gregorian);
+        let cal = revjul(JulianDay::new(jd), Calendar::Gregorian);
         s.check(cal.year == year, || {
             format!("nowruz_jd({year}): got year {}", cal.year)
         });
@@ -1632,7 +1633,7 @@ fn test_calendar_nowruz_bahai(n: u32) -> Suite {
     }
     for bahai_year in [181i32, 182, 183] {
         let nw = naw_ruz_jd(bahai_year);
-        let cal = revjul(nw, Calendar::Gregorian);
+        let cal = revjul(JulianDay::new(nw), Calendar::Gregorian);
         s.check(cal.month == 3, || {
             format!("naw_ruz_jd({bahai_year}): month {}", cal.month)
         });
@@ -1656,7 +1657,7 @@ fn test_calendar_omer_vesak(n: u32) -> Suite {
         s.check(days.len() == 49, || {
             format!("omer_days({year}) len={}", days.len())
         });
-        let period = omer_period(start + 1.0);
+        let period = omer_period(JulianDay::new(start + 1.0));
         let span = period.end_jd - period.start_jd;
         s.check(span > 47.0 && span < 50.0, || {
             format!("omer_period span {span:.1}d, expected ~48d")
@@ -1664,7 +1665,7 @@ fn test_calendar_omer_vesak(n: u32) -> Suite {
     }
     for year in [2025i32, 2026, 2027] {
         let jd = vesak_jd(year);
-        let cal = revjul(jd, Calendar::Gregorian);
+        let cal = revjul(JulianDay::new(jd), Calendar::Gregorian);
         s.check(cal.month == 4 || cal.month == 5, || {
             format!("vesak_jd({year}): month {}", cal.month)
         });
@@ -1724,7 +1725,7 @@ fn test_searches_stations(n: u32) -> Suite {
     for _ in 0..n / 10 {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
         // Mercury stations are more frequent — better for fuzz
-        match retrograde_station_ut(Body::MERCURY, jd, flags) {
+        match retrograde_station_ut(Body::MERCURY, JulianDay::new(jd), flags) {
             Ok(st) => {
                 s.check(st.retrograde > 0.0 && st.direct > 0.0, || {
                     format!(
@@ -1756,7 +1757,7 @@ fn test_searches_stations(n: u32) -> Suite {
     for _ in 0..n / 5 {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
         let sign = rng.range_f64(0.0, 360.0).floor();
-        match sign_ingress_ut(Body::SUN, jd, flags, false) {
+        match sign_ingress_ut(Body::SUN, JulianDay::new(jd), flags, false) {
             Ok((ingress_jd, _sign)) => {
                 s.check(ingress_jd >= jd, || "ingress not after start".into())
             }
@@ -1773,7 +1774,7 @@ fn test_searches_stations(n: u32) -> Suite {
 }
 
 fn check_node_crossing(s: &mut Suite, jd: f64, flags: CalcFlags) {
-    match mooncross_node(jd, flags) {
+    match mooncross_node(JulianDay::new(jd), flags) {
         Ok(r) => {
             s.check(r.jd_cross > 0.0, || {
                 format!("mooncross_node jd={:.2}", r.jd_cross)
@@ -1784,7 +1785,7 @@ fn check_node_crossing(s: &mut Suite, jd: f64, flags: CalcFlags) {
         }
         Err(_) => s.passed += 1,
     }
-    match mooncross_node_ut(jd, flags) {
+    match mooncross_node_ut(JulianDay::new(jd), flags) {
         Ok(r) => {
             s.check(r.jd_cross > 0.0, || {
                 format!("mooncross_node_ut jd={:.2}", r.jd_cross)
@@ -1795,7 +1796,7 @@ fn check_node_crossing(s: &mut Suite, jd: f64, flags: CalcFlags) {
 }
 
 fn check_next_full_moon(s: &mut Suite, jd: f64) {
-    let nm = next_full_moon_after(jd);
+    let nm = next_full_moon_after(JulianDay::new(jd));
     s.check(nm > jd, || {
         format!("next_full_moon_after {nm:.2} not after {jd:.2}")
     });
@@ -1820,13 +1821,13 @@ fn test_searches_moon_crossings(n: u32) -> Suite {
 // ─── Moon phase fuzz suite ───────────────────────────────────────────────────
 
 fn check_random_moon_phase(s: &mut Suite, jd: f64) {
-    match moon_phase_angle(jd) {
+    match moon_phase_angle(JulianDay::new(jd)) {
         Ok(a) => s.check((0.0..360.0).contains(&a), || {
             format!("moon_phase_angle {a:.2}° out of [0,360)")
         }),
         Err(_) => s.passed += 1,
     }
-    match moon_phase_info(jd) {
+    match moon_phase_info(JulianDay::new(jd)) {
         Ok(info) => {
             s.check(info.illumination >= 0.0 && info.illumination <= 1.0, || {
                 format!("moon_phase_info illumination={:.4}", info.illumination)
@@ -1837,7 +1838,7 @@ fn check_random_moon_phase(s: &mut Suite, jd: f64) {
         }
         Err(_) => s.passed += 1,
     }
-    match next_new_moon(jd) {
+    match next_new_moon(JulianDay::new(jd)) {
         Ok(nm) => s.check(nm > jd && nm < jd + 30.0, || {
             format!("next_new_moon {nm:.2} after {jd:.2}")
         }),
@@ -1890,7 +1891,7 @@ fn test_vedic_dasha_panchanga(n: u32) -> Suite {
         let moon_lon = rng.range_f64(0.0, 360.0);
         let years_ahead = rng.range_f64(0.0, 90.0);
 
-        let dashas = vimshottari_dasha(jd_birth, moon_lon, years_ahead);
+        let dashas = vimshottari_dasha(JulianDay::new(jd_birth), Longitude::new(moon_lon), years_ahead);
         s.check(!dashas.is_empty(), || {
             "vimshottari_dasha returned no periods".into()
         });
@@ -1903,7 +1904,7 @@ fn test_vedic_dasha_panchanga(n: u32) -> Suite {
 
     for _ in 0..n / 5 {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 80_000.0);
-        let p = panchanga(jd);
+        let p = panchanga(JulianDay::new(jd));
         s.check(p.tithi >= 1 && p.tithi <= 30, || {
             format!("panchanga tithi={}", p.tithi)
         });
@@ -1951,7 +1952,7 @@ fn test_geo_utilities(n: u32) -> Suite {
         let geo = [0.0_f64, lat, alt];
         let jd = 2_451_545.0 + rng.range_f64(0.0, 1000.0);
         let xin = [lon, lat, 1.0_f64]; // [lon, lat, dist]
-        let az = azalt(jd, 0, geo, press, temp, xin);
+        let az = azalt(JulianDay::new(jd), 0, geo, press, temp, xin);
         s.check(az.azimuth.is_finite(), || {
             format!("azalt azimuth={:.4}", az.azimuth)
         });
@@ -2034,7 +2035,7 @@ fn test_profections(n: u32) -> Suite {
 }
 
 fn check_calc_options_single(s: &mut Suite, jd: f64, flags: CalcFlags) {
-    let via_builder = CalcOptions::ut(jd, flags).body(Body::SUN).get();
+    let via_builder = CalcOptions::ut(JulianDay::new(jd), flags).body(Body::SUN).get();
     let direct = calc_ut(JulianDay::new(jd), Body::SUN, flags);
     match (via_builder, direct) {
         (Ok(b), Ok(d)) => {
@@ -2054,7 +2055,7 @@ fn check_calc_options_single(s: &mut Suite, jd: f64, flags: CalcFlags) {
 
 fn check_calc_options_multi(s: &mut Suite, jd: f64, flags: CalcFlags) {
     let bodies = [Body::SUN, Body::MOON, Body::MERCURY];
-    let multi = CalcOptions::ut(jd, flags).bodies(&bodies).get_many();
+    let multi = CalcOptions::ut(JulianDay::new(jd), flags).bodies(&bodies).get_many();
     s.check(multi.len() == bodies.len(), || {
         format!(
             "CalcOptions multi: expected {} results, got {}",
@@ -2116,11 +2117,11 @@ fn test_secondary_progressions_midpoints(n: u32) -> Suite {
 
         // secondary_progressions: all returned positions must be finite [0,360)
         match secondary_progressions(
-            jd_natal,
+            JulianDay::new(jd_natal),
             age,
             &bodies,
-            lat,
-            lon,
+            Latitude::new(lat),
+            Longitude::new(lon),
             HouseSystem::PLACIDUS,
             flags,
         ) {
@@ -2182,7 +2183,7 @@ fn test_local_space(n: u32) -> Suite {
         let geopos = [lon, lat, 0.0_f64];
 
         if let Ok(sun) = calc(JulianDay::new(jd), Body::SUN, flags) {
-            let az = azalt(jd, 0, geopos, 0.0, 10.0, [sun.lon, sun.lat, sun.dist]);
+            let az = azalt(JulianDay::new(jd), 0, geopos, 0.0, 10.0, [sun.lon, sun.lat, sun.dist]);
             s.check(az.azimuth >= 0.0 && az.azimuth < 360.0, || {
                 format!("azimuth {:.4} outside [0,360)", az.azimuth)
             });
@@ -2240,7 +2241,7 @@ fn test_ashtakavarga(n: u32) -> Suite {
         s.check(rasi < 12, || format!("rasi {rasi} >= 12 for lon {lon:.4}"));
 
         // Navamsa index must also be in [0,12)
-        let navamsa = long_to_navamsa(lon) as usize % 12;
+        let navamsa = long_to_navamsa(Longitude::new(lon)) as usize % 12;
         s.check(navamsa < 12, || {
             format!("navamsa {navamsa} >= 12 for lon {lon:.4}")
         });
@@ -2333,18 +2334,18 @@ fn test_hellenistic_dignities(n: u32) -> Suite {
     for _ in 0..n {
         let lon = rng.range_f64(0.0, 360.0);
 
-        let term = egyptian_terms_ruler(lon);
+        let term = egyptian_terms_ruler(Longitude::new(lon));
         s.check(trad.contains(&term), || {
             format!("lon {lon:.4}: terms ruler {term:?} not traditional")
         });
 
-        let decan = decan_ruler(lon);
+        let decan = decan_ruler(Longitude::new(lon));
         s.check(
             trad.contains(&decan) || matches!(decan, Body::SUN | Body::MOON),
             || format!("lon {lon:.4}: decan ruler {decan:?} not valid"),
         );
 
-        let (day_r, night_r, _) = triplicity_rulers(lon);
+        let (day_r, night_r, _) = triplicity_rulers(Longitude::new(lon));
         let all_bodies = [
             Body::SUN,
             Body::MOON,
@@ -2373,7 +2374,7 @@ fn test_firdaria(n: u32) -> Suite {
         let is_day = rng.next_u64().is_multiple_of(2);
         let span = rng.range_f64(10.0, 75.0);
 
-        let periods = firdaria(jd, is_day, span);
+        let periods = firdaria(JulianDay::new(jd), is_day, span);
 
         // Must not be empty for any reasonable span
         s.check(!periods.is_empty(), || {
@@ -2422,14 +2423,14 @@ fn test_full_dignity(n: u32) -> Suite {
         let is_day = rng.next_u64().is_multiple_of(2);
 
         for &body in &bodies {
-            let (_dignity, score) = full_dignity(body, lon, is_day);
+            let (_dignity, score) = full_dignity(body, Longitude::new(lon), is_day);
             // Score must be in [-5, 5]
             s.check((-5..=5).contains(&score), || {
                 format!("dignity score {score} out of [-5,5] for {body:?} at {lon:.4}")
             });
 
             // Almuten result must be one of the 7 traditional planets
-            let (alm, alm_score) = almuten(lon, is_day);
+            let (alm, alm_score) = almuten(Longitude::new(lon), is_day);
             s.check(bodies.contains(&alm), || {
                 format!("almuten {alm:?} not a traditional planet at {lon:.4}")
             });
@@ -2450,7 +2451,7 @@ fn test_bazi(n: u32) -> Suite {
         let hr = rng.range_f64(0.0, 23.99);
         let lon = rng.range_f64(0.0, 360.0); // sun longitude
 
-        let pillars = four_pillars(jd, hr, lon);
+        let pillars = four_pillars(JulianDay::new(jd), hr, Longitude::new(lon));
         s.check(pillars.len() == 4, || {
             format!("four_pillars returned {} pillars", pillars.len())
         });
@@ -2459,7 +2460,7 @@ fn test_bazi(n: u32) -> Suite {
             s.check(p.branch < 12, || format!("branch {} >= 12", p.branch));
         }
         // Solar term
-        let (cur, deg_into, next, deg_to) = solar_term_position(lon);
+        let (cur, deg_into, next, deg_to) = solar_term_position(Longitude::new(lon));
         s.check(cur < 24, || format!("solar term idx {cur} >= 24"));
         s.check(next < 24, || format!("next solar term idx {next} >= 24"));
         s.check(deg_into >= 0.0, || format!("deg_into {deg_into} < 0"));
@@ -2475,7 +2476,7 @@ fn test_mesoamerican(n: u32) -> Suite {
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73_049.0);
 
-        let (trecena, sign_idx, _, _) = tonalpohualli(jd);
+        let (trecena, sign_idx, _, _) = tonalpohualli(JulianDay::new(jd));
         s.check((1..=13).contains(&trecena), || {
             format!("tonalpohualli trecena {trecena} out of [1,13]")
         });
@@ -2483,17 +2484,17 @@ fn test_mesoamerican(n: u32) -> Suite {
             format!("tonalpohualli sign {sign_idx} >= 20")
         });
 
-        let (m, day, _, _) = xiuhpohualli(jd);
+        let (m, day, _, _) = xiuhpohualli(JulianDay::new(jd));
         s.check(m <= 18, || format!("xiuhpohualli month {m} > 18"));
         s.check(day >= 1, || format!("xiuhpohualli day {day} < 1"));
 
-        let (zt, zi, _, _) = tzolkin(jd);
+        let (zt, zi, _, _) = tzolkin(JulianDay::new(jd));
         s.check((1..=13).contains(&zt), || {
             format!("tzolkin trecena {zt} out of [1,13]")
         });
         s.check(zi < 20, || format!("tzolkin sign {zi} >= 20"));
 
-        let (hm, hd, _) = haab(jd);
+        let (hm, hd, _) = haab(JulianDay::new(jd));
         s.check(hm <= 18, || format!("haab month {hm} > 18"));
         let _ = hd;
     }
@@ -2507,13 +2508,13 @@ fn test_indigenous(n: u32) -> Suite {
     for _ in 0..n {
         let lon = rng.range_f64(0.0, 360.0);
 
-        let (animal, element, clan, season) = medicine_wheel_totem(lon);
+        let (animal, element, clan, season) = medicine_wheel_totem(Longitude::new(lon));
         s.check(!animal.is_empty(), || "totem animal empty".to_string());
         s.check(!element.is_empty(), || "totem element empty".to_string());
         s.check(!clan.is_empty(), || "totem clan empty".to_string());
         s.check(!season.is_empty(), || "totem season empty".to_string());
 
-        let (idx, name, star) = egyptian_decan(lon);
+        let (idx, name, star) = egyptian_decan(Longitude::new(lon));
         s.check(idx < 36, || format!("decan idx {idx} >= 36"));
         s.check(!name.is_empty(), || "decan name empty".to_string());
         s.check(!star.is_empty(), || "decan star empty".to_string());
@@ -2548,7 +2549,7 @@ fn test_iso_week(n: u32) -> Suite {
         });
 
         // iso_week: week must be 1..=53, iso_year within ±1 of calendar year
-        let (iy, wk) = iso_week(jd);
+        let (iy, wk) = iso_week(JulianDay::new(jd));
         s.check((1..=53).contains(&wk), || {
             format!("wk={wk} for {year}-{month}-{day}")
         });
@@ -2561,14 +2562,14 @@ fn test_iso_week(n: u32) -> Suite {
         s.check(w == 52 || w == 53, || format!("weeks_in_year({year})={w}"));
 
         // day_of_week sanity
-        let dow = day_of_week(jd);
+        let dow = day_of_week(JulianDay::new(jd));
         s.check((0..=6).contains(&dow), || format!("dow={dow}"));
     }
 
     // Known anchors: 2024-01-01 is a Monday in ISO week 2024-W1
     {
         let jd = julday(2024, 1, 1, 12.0, Calendar::Gregorian);
-        let (iy, wk) = iso_week(jd);
+        let (iy, wk) = iso_week(JulianDay::new(jd));
         s.check(iy == 2024 && wk == 1, || {
             format!("2024-01-01 → ({iy}, {wk})")
         });
@@ -2576,7 +2577,7 @@ fn test_iso_week(n: u32) -> Suite {
     // 2023-01-01 Sunday → 2022-W52
     {
         let jd = julday(2023, 1, 1, 12.0, Calendar::Gregorian);
-        let (iy, wk) = iso_week(jd);
+        let (iy, wk) = iso_week(JulianDay::new(jd));
         s.check(iy == 2022 && wk == 52, || {
             format!("2023-01-01 → ({iy}, {wk})")
         });
@@ -2598,7 +2599,7 @@ fn test_maya_long_count(n: u32) -> Suite {
         // Plausible JD range (1 AD through ~3000 AD)
         let jd = rng.range_f64(1_721_423.5, 2_816_787.5);
 
-        let (_b, k, t, u, ki) = maya_long_count(jd); // baktun unused in per-iter checks
+        let (_b, k, t, u, ki) = maya_long_count(JulianDay::new(jd)); // baktun unused in per-iter checks
                                                      // Field ranges: kin 0..20, uinal 0..18, tun 0..20, katun 0..20, baktun unbounded
         s.check(ki < 20, || format!("kin={ki}"));
         s.check(u < 18, || format!("uinal={u}"));
@@ -2606,7 +2607,7 @@ fn test_maya_long_count(n: u32) -> Suite {
         s.check(k < 20, || format!("katun={k}"));
 
         // Dotted string must contain exactly 4 dots and 5 numeric segments
-        let str_form = maya_long_count_str(jd);
+        let str_form = maya_long_count_str(JulianDay::new(jd));
         let parts: Vec<&str> = str_form.split('.').collect();
         s.check(parts.len() == 5, || format!("str=\"{str_form}\""));
         for p in &parts {
@@ -2617,7 +2618,7 @@ fn test_maya_long_count(n: u32) -> Suite {
         }
 
         // Two JDs one day apart should differ by exactly 1 kin (mod rollover)
-        let (_, _, _, _, ki2) = maya_long_count(jd + 1.0);
+        let (_, _, _, _, ki2) = maya_long_count(JulianDay::new(jd + 1.0));
         // ki2 = (ki + 1) mod 20
         let expected = (ki + 1) % 20;
         s.check(ki2 == expected, || {
@@ -2627,12 +2628,12 @@ fn test_maya_long_count(n: u32) -> Suite {
 
     // Known anchors
     // 2012-12-21 = 13.0.0.0.0
-    let (b, k, t, u, ki) = maya_long_count(2_456_283.0);
+    let (b, k, t, u, ki) = maya_long_count(JulianDay::new(2_456_283.0));
     s.check((b, k, t, u, ki) == (13, 0, 0, 0, 0), || {
         format!("2012-12-21: got ({b},{k},{t},{u},{ki})")
     });
     // J2000 = 12.19.6.15.2
-    let (b, k, t, u, ki) = maya_long_count(2_451_545.0);
+    let (b, k, t, u, ki) = maya_long_count(JulianDay::new(2_451_545.0));
     s.check((b, k, t, u, ki) == (12, 19, 6, 15, 2), || {
         format!("J2000: got ({b},{k},{t},{u},{ki})")
     });
@@ -2680,7 +2681,7 @@ fn test_yallop(n: u32) -> Suite {
     for _ in 0..n {
         let ss = rng.range_f64(2_451_545.0, 2_460_000.0);
         let ms = ss + rng.range_f64(0.001, 0.2); // moonset 0.02..5h after sunset
-        let bt = best_time_method(ss, ms);
+        let bt = best_time_method(JulianDay::new(ss), JulianDay::new(ms));
         s.check(bt >= ss && bt <= ms, || {
             format!("bt={bt} outside [ss={ss}, ms={ms}]")
         });
@@ -2717,14 +2718,14 @@ fn test_coptic(n: u32) -> Suite {
 
         // Roundtrip Coptic
         let jd = coptic_to_jd(year, month, day);
-        let (y2, m2, d2) = jd_to_coptic(jd);
+        let (y2, m2, d2) = jd_to_coptic(JulianDay::new(jd));
         s.check((y2, m2, d2) == (year, month, day), || {
             format!("coptic roundtrip failed: ({year},{month},{day}) → ({y2},{m2},{d2})")
         });
 
         // Roundtrip Ethiopic
         let jd_e = ethiopic_to_jd(year, month, day);
-        let (y3, m3, d3) = jd_to_ethiopic(jd_e);
+        let (y3, m3, d3) = jd_to_ethiopic(JulianDay::new(jd_e));
         s.check((y3, m3, d3) == (year, month, day), || {
             format!("ethiopic roundtrip failed: ({year},{month},{day}) → ({y3},{m3},{d3})")
         });
@@ -2774,7 +2775,7 @@ fn test_fasli(_n: u32) -> Suite {
     // Nowruz should always fall in March 19-21 range (astronomically)
     for year in (1910..=2100).step_by(10) {
         if let Some(jd) = fasli_nowruz_jd(year) {
-            let d = celestial_core::revjul(jd, Calendar::Gregorian);
+            let d = celestial_core::revjul(JulianDay::new(jd), Calendar::Gregorian);
             s.check(d.year == year, || format!("year mismatch: got {}", d.year));
             s.check(d.month == 3, || format!("month not 3: got {}", d.month));
             s.check(d.day >= 19 && d.day <= 21, || {
@@ -2785,13 +2786,13 @@ fn test_fasli(_n: u32) -> Suite {
 
     // Before 1906 → None
     let jd_1905 = celestial_core::julday(1905, 3, 21, 12.0, Calendar::Gregorian);
-    s.check(jd_to_fasli(jd_1905).is_none(), || {
+    s.check(jd_to_fasli(JulianDay::new(jd_1905)).is_none(), || {
         "jd_to_fasli before 1906 should be None".into()
     });
 
     // Shortly after Nowruz 1906 should map to Fasli year 1
     if let Some(nowruz_1906) = fasli_nowruz_jd(1906) {
-        if let Some((fy, m, d)) = jd_to_fasli(nowruz_1906 + 0.5) {
+        if let Some((fy, m, d)) = jd_to_fasli(JulianDay::new(nowruz_1906 + 0.5)) {
             s.check(fy == 1, || format!("fasli year 1906: got {fy}"));
             s.check(m == 1, || format!("month 1: got {m}"));
             s.check((1..=2).contains(&d), || format!("day: got {d}"));
@@ -2897,14 +2898,14 @@ fn test_vietnamese(n: u32) -> Suite {
         let jd = rng.range_f64(2_440_000.0, 2_480_000.0);
 
         // Boundary differs is deterministic per JD
-        let b1 = vietnamese_chinese_boundary_differs(jd);
-        let b2 = vietnamese_chinese_boundary_differs(jd);
+        let b1 = vietnamese_chinese_boundary_differs(JulianDay::new(jd));
+        let b2 = vietnamese_chinese_boundary_differs(JulianDay::new(jd));
         s.check(b1 == b2, || {
             "boundary_differs should be deterministic".into()
         });
 
         // JDs exactly 24 hours apart → same answer (same "rotational position")
-        let b3 = vietnamese_chinese_boundary_differs(jd + 1.0);
+        let b3 = vietnamese_chinese_boundary_differs(JulianDay::new(jd + 1.0));
         s.check(b1 == b3, || {
             "boundary_differs should be 1-day periodic".into()
         });
@@ -2918,7 +2919,7 @@ fn test_vietnamese(n: u32) -> Suite {
     let mut diff_count = 0;
     for _ in 0..sample {
         let jd = rng.range_f64(2_450_000.0, 2_460_000.0);
-        if vietnamese_chinese_boundary_differs(jd) {
+        if vietnamese_chinese_boundary_differs(JulianDay::new(jd)) {
             diff_count += 1;
         }
     }
@@ -2931,7 +2932,7 @@ fn test_vietnamese(n: u32) -> Suite {
     // Month start for several test JDs: result (if Some) should be ≤ input
     for _ in 0..(n / 10) {
         let jd = rng.range_f64(2_455_000.0, 2_465_000.0);
-        if let Some(ms) = vietnamese_month_start_jd(jd) {
+        if let Some(ms) = vietnamese_month_start_jd(JulianDay::new(jd)) {
             // Allow sub-day tolerance for JDs near a new-moon boundary
             s.check(ms <= jd + 1.0, || format!("month_start {ms} > jd+1 {jd}"));
             // And within 32 days of the input (lunar month is ~29.5d)
@@ -3187,7 +3188,7 @@ fn test_arabic_part_range(n: u32) -> Suite {
         let asc = rng.range_f64(0.0, 360.0);
         let sun = rng.range_f64(0.0, 360.0);
         let moon = rng.range_f64(0.0, 360.0);
-        let pof = celestial_core::arabic_part(asc, moon, sun);
+        let pof = celestial_core::arabic_part(Degrees::new(asc), Longitude::new(moon), Longitude::new(sun));
         s.check(pof.is_finite() && (0.0..360.0).contains(&pof), || {
             format!("Part of Fortune: {pof} (asc={asc}, sun={sun}, moon={moon})")
         });
@@ -3261,10 +3262,10 @@ fn test_hebrew_calendar(n: u32) -> Suite {
     for _ in 0..n {
         let g_year = rng.range_i32(1900, 2200);
         let jd = julday(g_year, 6, 30, 12.0, Calendar::Gregorian);
-        let h_year = celestial_core::approx_hebrew_year(jd);
+        let h_year = celestial_core::approx_hebrew_year(JulianDay::new(jd));
         let expected = g_year + 3760;
         s.check((h_year - expected).abs() <= 2,
-                || format!("approx_hebrew_year(jd of {g_year}-06-30) = {h_year}                             (expected ≈ {expected})"));
+                || format!("approx_hebrew_year(JulianDay::new(jd of {g_year}-06-30)) = {h_year}                             (expected ≈ {expected})"));
     }
     s
 }
@@ -3477,7 +3478,7 @@ fn test_backward_searches(n: u32) -> Suite {
         let target = rng.range_f64(0.0, 360.0);
 
         // Backwards solcross_back_ut: result must be BEFORE jd
-        match solcross_back_ut(target, jd, CalcFlags::BUILTIN) {
+        match solcross_back_ut(Longitude::new(target), JulianDay::new(jd), CalcFlags::BUILTIN) {
             Ok(prev) => {
                 s.check(
                     prev < jd + 0.1, // result should be before start
@@ -3488,7 +3489,7 @@ fn test_backward_searches(n: u32) -> Suite {
                     || format!("solcross_back_ut {prev:.2} too far from start {jd:.2}"),
                 );
                 // Forward search from result should give a crossing close to jd
-                if let Ok(fwd) = solcross_ut(target, prev - 0.1, CalcFlags::BUILTIN) {
+                if let Ok(fwd) = solcross_ut(Longitude::new(target), JulianDay::new(prev - 0.1), CalcFlags::BUILTIN) {
                     s.check((fwd - jd).abs() < 400.0, || {
                         format!("forward cross {fwd:.2} far from original {jd:.2}")
                     });
@@ -3502,7 +3503,7 @@ fn test_backward_searches(n: u32) -> Suite {
         }
 
         // Backwards mooncross_back_ut: result before jd, within 30 days (lunar period)
-        match mooncross_back_ut(target, jd, CalcFlags::BUILTIN) {
+        match mooncross_back_ut(Longitude::new(target), JulianDay::new(jd), CalcFlags::BUILTIN) {
             Ok(prev) => {
                 s.check(prev < jd + 0.1, || {
                     format!("mooncross_back_ut {prev:.2} not before start {jd:.2}")
@@ -3517,7 +3518,7 @@ fn test_backward_searches(n: u32) -> Suite {
         }
 
         // Backwards eclipse: result must be BEFORE jd
-        match sol_eclipse_when_glob(jd, CalcFlags::BUILTIN, 0, true) {
+        match sol_eclipse_when_glob(JulianDay::new(jd), CalcFlags::BUILTIN, 0, true) {
             Ok(ecl) => {
                 s.check(ecl.tret[0] < jd + 1.0, || {
                     format!(
@@ -3545,8 +3546,8 @@ fn test_coordinate_transforms(n: u32) -> Suite {
         let lat = rng.range_f64(-89.9, 89.9);
         let eps = rng.range_f64(20.0, 27.0); // reasonable obliquity range
                                              // Round-trip: ecliptic → equatorial → ecliptic
-        let eq = coord_transform([lon, lat, 1.0], eps);
-        let back = coord_transform([eq[0], eq[1], eq[2]], -eps);
+        let eq = coord_transform([lon, lat, 1.0], Degrees::new(eps));
+        let back = coord_transform([eq[0], eq[1], eq[2]], Degrees::new(-eps));
         s.check(
             (back[0] - lon).abs().min(360.0 - (back[0] - lon).abs()) < 1e-8,
             || format!("coord_transform roundtrip lon: {lon:.4} → {:.4}", back[0]),
@@ -3556,8 +3557,8 @@ fn test_coordinate_transforms(n: u32) -> Suite {
         });
         // coord_transform_with_speed round-trip with speeds
         let xpo6 = [lon, lat, 1.0, 0.5, 0.1, 0.0];
-        let eq6 = coord_transform_with_speed(xpo6, eps);
-        let back6 = coord_transform_with_speed(eq6, -eps);
+        let eq6 = coord_transform_with_speed(xpo6, Degrees::new(eps));
+        let back6 = coord_transform_with_speed(eq6, Degrees::new(-eps));
         s.check(
             (back6[0] - lon).abs().min(360.0 - (back6[0] - lon).abs()) < 1e-6,
             || {
@@ -3578,7 +3579,7 @@ fn test_occultation_search(n: u32) -> Suite {
     for _ in 0..n {
         let jd = 2_451_545.0 + rng.range_f64(-3650.0, 3650.0); // ±10 years
         let pi = (rng.next_u64() % planets.len() as u64) as usize;
-        match lun_occult_when_glob(jd, planets[pi], None, CalcFlags::BUILTIN, 0, false) {
+        match lun_occult_when_glob(JulianDay::new(jd), planets[pi], None, CalcFlags::BUILTIN, 0, false) {
             Ok(r) => {
                 s.check(r.tret[0] > jd - 1.0, || {
                     format!(
@@ -3657,7 +3658,7 @@ fn test_topocentric_parallax(n: u32) -> Suite {
         let lat = rng.range_f64(-70.0, 70.0);
         let alt = rng.range_f64(0.0, 5000.0);
 
-        set_topo(lon, lat, alt);
+        set_topo(Longitude::new(lon), Latitude::new(lat), alt);
         let Ok(geo) = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN) else {
             s.passed += 1;
             continue;
@@ -3666,7 +3667,7 @@ fn test_topocentric_parallax(n: u32) -> Suite {
             s.passed += 1;
             continue;
         };
-        set_topo(0.0, 0.0, 0.0);
+        set_topo(Longitude::new(0.0), Latitude::new(0.0), 0.0);
 
         // Moon parallax is at most ~1°; shift must be finite and bounded
         let shift = (topo.lon - geo.lon).abs();
@@ -3683,13 +3684,13 @@ fn test_topocentric_parallax(n: u32) -> Suite {
             s.passed += 1;
             continue;
         };
-        set_topo(lon, lat, alt);
+        set_topo(Longitude::new(lon), Latitude::new(lat), alt);
         let Ok(sun_topo) = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC)
         else {
             s.passed += 1;
             continue;
         };
-        set_topo(0.0, 0.0, 0.0);
+        set_topo(Longitude::new(0.0), Latitude::new(0.0), 0.0);
         let sun_shift = (sun_topo.lon - sun_geo.lon).abs();
         let sun_shift = if sun_shift > 180.0 {
             360.0 - sun_shift
@@ -3708,7 +3709,7 @@ fn test_time_equ(n: u32) -> Suite {
     let mut rng = Xorshift64::new(0x0011223344556677);
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
-        match time_equ(jd) {
+        match time_equ(JulianDay::new(jd)) {
             Ok(e) => {
                 s.check(e.is_finite(), || {
                     format!("time_equ={e} not finite at JD {jd:.1}")
@@ -3862,8 +3863,8 @@ fn check_day_of_week_boundaries(s: &mut Suite) {
         f64::NEG_INFINITY,
         f64::NAN,
     ] {
-        let r = catch_unwind(|| day_of_week(jd));
-        s.check(r.is_ok(), || format!("day_of_week({jd}) panicked"));
+        let r = catch_unwind(|| day_of_week(JulianDay::new(jd)));
+        s.check(r.is_ok(), || format!("day_of_week(JulianDay::new({jd})) panicked"));
     }
 }
 
@@ -3887,8 +3888,8 @@ fn check_calendar_year_boundaries(s: &mut Suite) {
 fn check_hijri_from_jd_boundaries(s: &mut Suite) {
     use std::panic::catch_unwind;
     for &jd in &[0.0_f64, 1_721_424.0, 1e8, f64::MAX, f64::INFINITY] {
-        let r = catch_unwind(|| hijri_from_jd(jd));
-        s.check(r.is_ok(), || format!("hijri_from_jd({jd}) panicked"));
+        let r = catch_unwind(|| hijri_from_jd(JulianDay::new(jd)));
+        s.check(r.is_ok(), || format!("hijri_from_jd(JulianDay::new({jd})) panicked"));
     }
 }
 
@@ -3896,7 +3897,7 @@ fn check_vedic_longitude_boundaries(s: &mut Suite) {
     use std::panic::catch_unwind;
     for &lon in &BOUNDARY_EXTREME_FLOATS {
         let _ = catch_unwind(|| celestial_core::lon_to_sign(lon));
-        let _ = catch_unwind(|| long_to_navamsa(lon));
+        let _ = catch_unwind(|| long_to_navamsa(Longitude::new(lon)));
         s.passed += 1;
     }
 }
@@ -3924,7 +3925,7 @@ fn check_ayanamsa_monotonic(s: &mut Suite) {
     // 1900 → 2100, year by year.
     for y in 1900..=2100 {
         let jd = 2_415_020.5 + (y - 1900) as f64 * 365.25;
-        let ay = ayanamsa_ut(jd);
+        let ay = ayanamsa_ut(JulianDay::new(jd));
         s.check(ay.is_finite() && ay > prev, || {
             format!("Lahiri ayanamsa not monotonic at year {y}: {ay} vs prev {prev}")
         });
@@ -3949,7 +3950,7 @@ fn check_calendar_round_trip(s: &mut Suite) {
     let mut rng = Xorshift64::new(0xC0DE_CAFE_BABE_F00D);
     for _ in 0..1000 {
         let jd = 2_400_000.5 + rng.range_f64(0.0, 80_000.0);
-        let d = revjul(jd, Calendar::Gregorian);
+        let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
         let jd2 = julday(
             d.year,
             d.month as i32,
@@ -3976,7 +3977,7 @@ fn check_synodic_month_consistency(s: &mut Suite) {
     let mut prev_nm: Option<f64> = None;
     let mut jd = 2_451_545.0 + 30.0; // start past J2000 so 1st new moon dt ~= synodic
     for i in 0..20 {
-        let Ok(nm) = next_new_moon(jd) else {
+        let Ok(nm) = next_new_moon(JulianDay::new(jd)) else {
             s.passed += 1;
             continue;
         };
@@ -4009,9 +4010,9 @@ fn check_ayanamsa_finite_and_normalized(s: &mut Suite) {
         set_sid_mode(mode, 0.0, 0.0);
         for _ in 0..25 {
             let jd = 2_451_545.0 + rng.range_f64(-100_000.0, 100_000.0);
-            let ay = ayanamsa_ut(jd);
+            let ay = ayanamsa_ut(JulianDay::new(jd));
             s.check(ay.is_finite() && (0.0..360.0).contains(&ay), || {
-                format!("ayanamsa({mode:?}, jd={jd}) = {ay}")
+                format!("ayanamsa(JulianDay::new({mode:?}), jd={jd}) = {ay}")
             });
         }
     }
@@ -4147,19 +4148,19 @@ fn check_maya_ranges(s: &mut Suite) {
     let mut rng = Xorshift64::new(0xFACE_F00D_C0DE_BEEF);
     for _ in 0..1000 {
         let jd = 1_500_000.0 + rng.range_f64(0.0, 730_000.0); // ~ -2000 to 0 CE-ish
-        let (trec_t, sign_t, _, _) = tonalpohualli(jd);
-        let (trec_z, sign_z, _, _) = tzolkin(jd);
+        let (trec_t, sign_t, _, _) = tonalpohualli(JulianDay::new(jd));
+        let (trec_z, sign_z, _, _) = tzolkin(JulianDay::new(jd));
         s.check((1..=13).contains(&trec_t) && sign_t < 20, || {
             format!("tonalpohualli out of range at jd={jd}: ({trec_t}, {sign_t})")
         });
         s.check(trec_t == trec_z && sign_t == sign_z, || {
-            format!("tonalpohualli != tzolkin (same cycle): jd={jd}")
+            format!("tonalpohualli != tzolkin (JulianDay::new(same cycle)): jd={jd}")
         });
-        let (month, day, _) = haab(jd);
+        let (month, day, _) = haab(JulianDay::new(jd));
         s.check(month < 19 && day < 20, || {
             format!("haab out of range at jd={jd}: ({month}, {day})")
         });
-        let (b, k, t, u, kin) = maya_long_count(jd);
+        let (b, k, t, u, kin) = maya_long_count(JulianDay::new(jd));
         s.check(b < 50 && k < 20 && t < 20 && u < 18 && kin < 20, || {
             format!("long_count out of range at jd={jd}: ({b}.{k}.{t}.{u}.{kin})")
         });
@@ -4235,13 +4236,13 @@ fn check_solar_cycle_boundaries(s: &mut Suite) {
         f64::MIN,
     ];
     for &jd in &outside_jds {
-        let r = catch_unwind(|| celestial_core::solar_cycle(jd));
-        s.check(r.is_ok(), || format!("solar_cycle({jd}) panicked"));
+        let r = catch_unwind(|| celestial_core::solar_cycle(JulianDay::new(jd)));
+        s.check(r.is_ok(), || format!("solar_cycle(JulianDay::new({jd})) panicked"));
         if let Ok(Some(_)) = r {
             // Some(_) inside out-of-range zone is only OK for finite JDs that
             // happen to land in the table; NaN/Inf must never yield Some.
             if !jd.is_finite() {
-                s.check(false, || format!("solar_cycle({jd}) returned Some"));
+                s.check(false, || format!("solar_cycle(JulianDay::new({jd})) returned Some"));
             }
         }
     }
@@ -4255,7 +4256,7 @@ fn check_solar_cycle_boundaries(s: &mut Suite) {
         2_460_000.0, // 2023
     ];
     for &jd in &inside_jds {
-        let r = catch_unwind(|| celestial_core::solar_cycle(jd));
+        let r = catch_unwind(|| celestial_core::solar_cycle(JulianDay::new(jd)));
         match r {
             Ok(Some(info)) => {
                 s.check((1..=25).contains(&info.cycle_num), || {
@@ -4273,16 +4274,16 @@ fn check_solar_cycle_boundaries(s: &mut Suite) {
             }
             Ok(None) => {
                 s.check(false, || {
-                    format!("solar_cycle({jd}) returned None (expected Some)")
+                    format!("solar_cycle(JulianDay::new({jd})) returned None (expected Some)")
                 });
             }
-            Err(_) => s.check(false, || format!("solar_cycle({jd}) panicked")),
+            Err(_) => s.check(false, || format!("solar_cycle(JulianDay::new({jd})) panicked")),
         }
     }
     // grand_solar_epoch — must not panic for any input, including non-finite.
     for &jd in &outside_jds {
-        let r = catch_unwind(|| celestial_core::grand_solar_epoch(jd));
-        s.check(r.is_ok(), || format!("grand_solar_epoch({jd}) panicked"));
+        let r = catch_unwind(|| celestial_core::grand_solar_epoch(JulianDay::new(jd)));
+        s.check(r.is_ok(), || format!("grand_solar_epoch(JulianDay::new({jd})) panicked"));
     }
 }
 
@@ -4318,11 +4319,11 @@ fn test_solcross_back(n: u32) -> Suite {
         let jd = 2_415_021.0 + rng.range_f64(100.0, 73000.0);
         let lon = rng.range_f64(0.0, 360.0);
         // Forward then back should bracket the same crossing
-        let Ok(fwd) = solcross_ut(lon, jd, CalcFlags::BUILTIN) else {
+        let Ok(fwd) = solcross_ut(Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN) else {
             s.passed += 1;
             continue;
         };
-        let Ok(back) = solcross_back_ut(lon, fwd + 0.5, CalcFlags::BUILTIN) else {
+        let Ok(back) = solcross_back_ut(Longitude::new(lon), JulianDay::new(fwd + 0.5), CalcFlags::BUILTIN) else {
             s.passed += 1;
             continue;
         };
@@ -4333,11 +4334,11 @@ fn test_solcross_back(n: u32) -> Suite {
             format!("back={back:.3} far from fwd={fwd:.3}")
         });
         // Moon crossing: must be within 30 days
-        let Ok(mfwd) = mooncross_ut(lon, jd, CalcFlags::BUILTIN) else {
+        let Ok(mfwd) = mooncross_ut(Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN) else {
             s.passed += 1;
             continue;
         };
-        let Ok(mback) = mooncross_back_ut(lon, mfwd + 0.5, CalcFlags::BUILTIN) else {
+        let Ok(mback) = mooncross_back_ut(Longitude::new(lon), JulianDay::new(mfwd + 0.5), CalcFlags::BUILTIN) else {
             s.passed += 1;
             continue;
         };
@@ -4372,14 +4373,14 @@ const HELIO_BODIES: [Body; 8] = [
 const HELIO_X2: [f64; 6] = [0.0, 360.0, -30.0, 720.0, 180.0, f64::NAN];
 
 fn check_one_helio(s: &mut Suite, body: Body, x2: f64, jd: f64, dir: i32) {
-    let Ok(et) = helio_cross(body, x2, jd, CalcFlags::BUILTIN, dir) else {
+    let Ok(et) = helio_cross(body, Longitude::new(x2), JulianDay::new(jd), CalcFlags::BUILTIN, dir) else {
         s.passed += 1;
         return;
     };
     s.check(et.is_finite(), || {
         format!("helio_cross et NaN x2={x2} jd={jd}")
     });
-    let Ok(ut) = helio_cross_ut(body, x2, jd, CalcFlags::BUILTIN, dir) else {
+    let Ok(ut) = helio_cross_ut(body, Longitude::new(x2), JulianDay::new(jd), CalcFlags::BUILTIN, dir) else {
         s.passed += 1;
         return;
     };

@@ -3,6 +3,7 @@
 use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::{revjul, sabbats_for_year, Calendar};
+use celestial_core::JulianDay;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
@@ -16,7 +17,7 @@ pub fn build_sabbat_wheel_context(
     jd: f64,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
-    let date = revjul(jd, Calendar::Gregorian);
+    let date = revjul(JulianDay::new(jd), Calendar::Gregorian);
     let year = date.year;
 
     let sabbats =
@@ -47,7 +48,7 @@ pub fn build_sabbat_wheel_context(
         let tick_x2 = CX + RING_OUTER * theta.cos();
         let tick_y2 = CY - RING_OUTER * theta.sin();
 
-        let d = revjul(s.jd, Calendar::Gregorian);
+        let d = revjul(JulianDay::new(s.jd), Calendar::Gregorian);
         let date_str = format!("{:04}-{:02}-{:02}", d.year, d.month, d.day);
 
         entries.push(json!({

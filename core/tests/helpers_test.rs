@@ -84,7 +84,7 @@ fn test_jdnow_reasonable() {
 
 #[test]
 fn test_revjul_hms() {
-    let dt = revjul_hms(JD, Calendar::Gregorian);
+    let dt = revjul_hms(JulianDay::new(JD), Calendar::Gregorian);
     assert_eq!(dt[0], 2002);
     assert_eq!(dt[1], 1);
     assert_eq!(dt[2], 1);
@@ -122,7 +122,7 @@ fn test_parse_time() {
 
 #[test]
 fn test_jd_duration() {
-    let d = jd_duration(JD, JD + 1.5);
+    let d = jd_duration(JulianDay::new(JD), JulianDay::new(JD + 1.5));
     assert_eq!(d[0], 1); // 1 day
     assert_eq!(d[1], 12); // 12 hours
     assert_eq!(d[2], 0);
@@ -131,7 +131,7 @@ fn test_jd_duration() {
 
 #[test]
 fn test_jd_to_iso_string() {
-    let s = jd_to_iso_string(JD, Calendar::Gregorian);
+    let s = jd_to_iso_string(JulianDay::new(JD), Calendar::Gregorian);
     assert!(s.starts_with("2002-01-01"), "iso={s}");
     assert!(s.ends_with("UTC"), "iso={s}");
 }
@@ -232,7 +232,7 @@ fn test_format_coord_lon_west() {
 
 #[test]
 fn test_raman_houses_bhavamadhya_count() {
-    let cusps = raman_houses(15.0, 275.0, false);
+    let cusps = raman_houses(Degrees::new(15.0), Degrees::new(275.0), false);
     assert_eq!(cusps.len(), 12);
     // All longitudes in [0,360)
     for &c in &cusps {
@@ -244,7 +244,7 @@ fn test_raman_houses_bhavamadhya_count() {
 fn test_raman_houses_asc_is_cusp1() {
     let asc = 72.3_f64;
     let mc = 345.8_f64;
-    let cusps = raman_houses(asc, mc, false);
+    let cusps = raman_houses(Degrees::new(asc), Degrees::new(mc), false);
     assert!(
         (cusps[0] - asc % 360.0).abs() < 1e-9,
         "cusp[0]={} asc={}",
@@ -261,23 +261,23 @@ fn test_sign_lord_mars() {
 
 #[test]
 fn test_long_to_rasi() {
-    assert_eq!(long_to_rasi(0.0), 0); // Aries
-    assert_eq!(long_to_rasi(45.0), 1); // Taurus
-    assert_eq!(long_to_rasi(359.9), 11); // Pisces
+    assert_eq!(long_to_rasi(Longitude::new(0.0)), 0); // Aries
+    assert_eq!(long_to_rasi(Longitude::new(45.0)), 1); // Taurus
+    assert_eq!(long_to_rasi(Longitude::new(359.9)), 11); // Pisces
 }
 
 #[test]
 fn test_long_to_navamsa() {
-    let nav = long_to_navamsa(0.0);
+    let nav = long_to_navamsa(Longitude::new(0.0));
     assert!((0..12).contains(&nav));
 }
 
 #[test]
 fn test_long_to_nakshatra() {
-    let (nak, pada) = long_to_nakshatra(0.0);
+    let (nak, pada) = long_to_nakshatra(Longitude::new(0.0));
     assert_eq!(nak, 0); // Aswini
     assert_eq!(pada, 0);
-    let (nak2, _) = long_to_nakshatra(359.99);
+    let (nak2, _) = long_to_nakshatra(Longitude::new(359.99));
     assert_eq!(nak2, 26); // Revathi
 }
 
@@ -475,7 +475,7 @@ fn test_tz_find_unknown() {
 
 #[test]
 fn test_saturn_4_stars() {
-    let r = saturn_4_stars(JD, CalcFlags::BUILTIN).unwrap();
+    let r = saturn_4_stars(JulianDay::new(JD), CalcFlags::BUILTIN).unwrap();
     // Index must be finite and non-negative
     assert!(r[5].is_finite(), "index={}", r[5]);
     assert!(r[5] >= 0.0, "index={}", r[5]);
@@ -494,7 +494,7 @@ mod hebrew_public_api {
     #[test]
     fn hebrew_year_from_jd_known_dates() {
         // J2000.0 (2000-01-01) is in Hebrew year 5760
-        let year = hebrew_year_from_jd(2_451_545.0);
+        let year = hebrew_year_from_jd(JulianDay::new(2_451_545.0));
         assert_eq!(year, 5760, "J2000.0 should be in Hebrew year 5760");
     }
 
@@ -503,7 +503,7 @@ mod hebrew_public_api {
     fn jd_to_hebrew_date_roundtrip() {
         // Convert J2000 to Hebrew date and back via jewish_holiday_jd
         let jd = 2_451_545.0;
-        let (y, m, d) = jd_to_hebrew_date(jd);
+        let (y, m, d) = jd_to_hebrew_date(JulianDay::new(jd));
         assert!(y > 5000, "Hebrew year should be > 5000");
         assert!((1..=13).contains(&m), "month {m} out of range");
         assert!((1..=30).contains(&d), "day {d} out of range");
@@ -514,8 +514,8 @@ mod hebrew_public_api {
     fn jd_to_hebrew_date_monotone() {
         // Adding days to JD should advance the Hebrew date
         let jd = 2_451_545.0;
-        let (y0, m0, d0) = jd_to_hebrew_date(jd);
-        let (y1, m1, d1) = jd_to_hebrew_date(jd + 1.0);
+        let (y0, m0, d0) = jd_to_hebrew_date(JulianDay::new(jd));
+        let (y1, m1, d1) = jd_to_hebrew_date(JulianDay::new(jd + 1.0));
         let ord0 = (y0 as i64) * 10000 + m0 as i64 * 100 + d0 as i64;
         let ord1 = (y1 as i64) * 10000 + m1 as i64 * 100 + d1 as i64;
         assert!(
@@ -549,7 +549,7 @@ mod hebrew_public_api {
             .iter()
             .find(|h| h.name.contains("Rosh Hashanah"))
             .unwrap();
-        let d = celestial_core::revjul(rh.jd, celestial_core::Calendar::Gregorian);
+        let d = celestial_core::revjul(JulianDay::new(rh.jd), celestial_core::Calendar::Gregorian);
         // Rosh Hashanah always falls Sep 5 – Oct 5
         assert!(
             (d.month == 9 && d.day >= 5) || (d.month == 10 && d.day <= 5),
@@ -606,8 +606,8 @@ mod hebrew_public_api {
     #[test]
     fn hebrew_year_from_jd_consistent_with_jd_to_hebrew_date() {
         let jd = 2_451_545.0;
-        let year_fast = hebrew_year_from_jd(jd);
-        let (year_full, _, _) = jd_to_hebrew_date(jd);
+        let year_fast = hebrew_year_from_jd(JulianDay::new(jd));
+        let (year_full, _, _) = jd_to_hebrew_date(JulianDay::new(jd));
         assert_eq!(
             year_fast, year_full,
             "hebrew_year_from_jd and jd_to_hebrew_date should agree"
@@ -621,7 +621,7 @@ mod midpoint_helpers {
 
     #[test]
     fn exact_hit_returns_zero_orb() {
-        let hit = planet_on_midpoint(30.0, 30.0, 2.0);
+        let hit = planet_on_midpoint(celestial_core::Longitude::new(30.0), celestial_core::Longitude::new(30.0), 2.0);
         assert!(hit.is_some());
         assert!(hit.unwrap().abs() < 1e-9);
     }
@@ -629,20 +629,20 @@ mod midpoint_helpers {
     #[test]
     fn within_orb_returns_signed_distance() {
         // Planet at 31°, midpoint at 30° → orb = 1°
-        let hit = planet_on_midpoint(31.0, 30.0, 2.0);
+        let hit = planet_on_midpoint(celestial_core::Longitude::new(31.0), celestial_core::Longitude::new(30.0), 2.0);
         assert!(hit.is_some());
         assert!((hit.unwrap() - 1.0).abs() < 0.001);
     }
 
     #[test]
     fn outside_orb_returns_none() {
-        assert!(planet_on_midpoint(35.0, 30.0, 2.0).is_none());
+        assert!(planet_on_midpoint(celestial_core::Longitude::new(35.0), celestial_core::Longitude::new(30.0), 2.0).is_none());
     }
 
     #[test]
     fn midpoint_wraps_across_0_360() {
         // Midpoint near 0°/360° boundary
-        let hit = planet_on_midpoint(359.5, 0.0, 1.0);
+        let hit = planet_on_midpoint(celestial_core::Longitude::new(359.5), celestial_core::Longitude::new(0.0), 1.0);
         assert!(hit.is_some(), "should find hit across 0°/360° boundary");
     }
 }

@@ -9,7 +9,7 @@ mod bazi {
     fn four_pillars_returns_four() {
         let jd = 2_451_545.0;
         let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
-        let pillars = four_pillars(jd, 12.0, sun.lon);
+        let pillars = four_pillars(JulianDay::new(jd), 12.0, Longitude::new(sun.lon));
         assert_eq!(pillars.len(), 4, "must return 4 pillars");
     }
 
@@ -17,7 +17,7 @@ mod bazi {
     fn pillars_stems_in_range() {
         let jd = 2_451_545.0;
         let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
-        let pillars = four_pillars(jd, 12.0, sun.lon);
+        let pillars = four_pillars(JulianDay::new(jd), 12.0, Longitude::new(sun.lon));
         for p in &pillars {
             assert!(p.stem < 10, "stem {} >= 10", p.stem);
             assert!(p.branch < 12, "branch {} >= 12", p.branch);
@@ -28,7 +28,7 @@ mod bazi {
     fn stem_element_is_one_of_five() {
         let jd = 2_451_545.0;
         let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
-        let pillars = four_pillars(jd, 12.0, sun.lon);
+        let pillars = four_pillars(JulianDay::new(jd), 12.0, Longitude::new(sun.lon));
         let elements = ["Wood", "Fire", "Earth", "Metal", "Water"];
         for p in &pillars {
             assert!(
@@ -48,7 +48,7 @@ mod bazi {
     fn animal_is_one_of_twelve() {
         let jd = 2_451_545.0;
         let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
-        let pillars = four_pillars(jd, 12.0, sun.lon);
+        let pillars = four_pillars(JulianDay::new(jd), 12.0, Longitude::new(sun.lon));
         let animals = [
             "Rat", "Ox", "Tiger", "Rabbit", "Dragon", "Snake", "Horse", "Goat", "Monkey",
             "Rooster", "Dog", "Pig",
@@ -134,7 +134,7 @@ mod solar_terms {
     #[test]
     fn solar_term_position_at_spring_equinox() {
         // Sun at 0° = Chūnfēn (Spring Equinox) = term index 0
-        let (idx, deg_into, next_idx, _) = solar_term_position(0.0);
+        let (idx, deg_into, next_idx, _) = solar_term_position(Longitude::new(0.0));
         assert_eq!(idx, 0, "0° should be Chūnfēn (index 0)");
         assert!(deg_into.abs() < 1e-9);
         assert_eq!(next_idx, 1);
@@ -143,7 +143,7 @@ mod solar_terms {
     #[test]
     fn solar_term_position_at_summer_solstice() {
         // Summer solstice = 90° = index 6 (Xiàzhì)
-        let (idx, _, _, _) = solar_term_position(90.0);
+        let (idx, _, _, _) = solar_term_position(Longitude::new(90.0));
         assert_eq!(idx, 6, "90° = Summer Solstice (index 6)");
         assert_eq!(SOLAR_TERMS[6].1, "Xiàzhì");
     }
@@ -151,7 +151,7 @@ mod solar_terms {
     #[test]
     fn solar_term_position_in_range() {
         for lon in (0..360u32).map(|i| i as f64 + 0.5) {
-            let (cur, deg_into, next, deg_to) = solar_term_position(lon);
+            let (cur, deg_into, next, deg_to) = solar_term_position(Longitude::new(lon));
             assert!(cur < 24, "current term index {cur} >= 24");
             assert!(next < 24, "next term index {next} >= 24");
             assert!(deg_into >= 0.0, "deg_into {deg_into} < 0");
@@ -162,7 +162,7 @@ mod solar_terms {
     #[test]
     fn spring_begins_at_315() {
         // Lìchūn (Start of Spring) = 315° = index 21
-        let (idx, _, _, _) = solar_term_position(315.5);
+        let (idx, _, _, _) = solar_term_position(Longitude::new(315.5));
         assert_eq!(
             SOLAR_TERMS[idx].2, "Start of Spring",
             "315° should be Start of Spring, got {}",
@@ -177,7 +177,7 @@ mod extra_chinese {
     #[test]
     fn four_pillars_returns_four() {
         let jd = 2_451_545.0; // J2000.0
-        let p = four_pillars(jd, 12.0, 280.0); // Sun ~280° at J2000
+        let p = four_pillars(JulianDay::new(jd), 12.0, Longitude::new(280.0)); // Sun ~280° at J2000
         assert_eq!(p.len(), 4);
         // Each pillar must have non-empty names
         for pillar in &p {
@@ -190,7 +190,7 @@ mod extra_chinese {
     #[test]
     fn four_pillars_stems_in_range() {
         let jd = 2_451_545.0;
-        let p = four_pillars(jd, 9.0, 280.0);
+        let p = four_pillars(JulianDay::new(jd), 9.0, Longitude::new(280.0));
         for pillar in &p {
             assert!(
                 HEAVENLY_STEMS.iter().any(|s| s.0 == pillar.stem_name),
@@ -203,7 +203,7 @@ mod extra_chinese {
     #[test]
     fn four_pillars_branches_in_range() {
         let jd = 2_451_545.0;
-        let p = four_pillars(jd, 9.0, 280.0);
+        let p = four_pillars(JulianDay::new(jd), 9.0, Longitude::new(280.0));
         for pillar in &p {
             assert!(
                 EARTHLY_BRANCHES.iter().any(|b| b.0 == pillar.branch_name),
@@ -216,7 +216,7 @@ mod extra_chinese {
     #[test]
     fn solar_term_all_24_positions() {
         for (i, &(lon, _, _)) in SOLAR_TERMS.iter().enumerate() {
-            let (cur, into, _next, _to) = solar_term_position(lon + 1.0);
+            let (cur, into, _next, _to) = solar_term_position(Longitude::new(lon + 1.0));
             assert_eq!(
                 cur, i,
                 "term {i}: position at lon={lon:.0}°+1 should be term {i}"
@@ -231,7 +231,7 @@ mod extra_chinese {
     #[test]
     fn solar_term_boundary_wrap() {
         // At exactly 345° (last term boundary), should be in last term or wrap
-        let (cur, _, _, _) = solar_term_position(345.0);
+        let (cur, _, _, _) = solar_term_position(Longitude::new(345.0));
         assert!(cur < 24, "term index out of range");
     }
 

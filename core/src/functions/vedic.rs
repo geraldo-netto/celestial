@@ -1,6 +1,6 @@
 //! Vedic/Jyotish helpers.
 
-use crate::units::JulianDay;
+use crate::units::{Degrees, JulianDay, Longitude};
 use crate::body::{Body, CalcFlags};
 use crate::{diff_deg_signed, norm_deg};
 
@@ -11,12 +11,13 @@ fn norm360(d: f64) -> f64 {
 
 /// Positions of the four stars used in Vedic Saturn-related calculations
 /// (`Pushya`, `Revati`, `Hasta`, `Chitra`) at a given Julian day.
-pub fn saturn_4_stars(jd: f64, flags: CalcFlags) -> crate::Result<[f64; 6]> {
+pub fn saturn_4_stars(jd: JulianDay, flags: CalcFlags) -> crate::Result<[f64; 6]> {
+    let jd: f64 = jd.into();
     let sat = crate::calc_ut(JulianDay::new(jd), Body::SATURN, flags)?.lon;
-    let ald = crate::functions::calc::fixstar("Aldebaran", jd, flags)?.xx[0];
-    let reg = crate::functions::calc::fixstar("Regulus", jd, flags)?.xx[0];
-    let ant = crate::functions::calc::fixstar("Antares", jd, flags)?.xx[0];
-    let fom = crate::functions::calc::fixstar("Fomalhaut", jd, flags)?.xx[0];
+    let ald = crate::functions::calc::fixstar("Aldebaran", JulianDay::new(jd), flags)?.xx[0];
+    let reg = crate::functions::calc::fixstar("Regulus", JulianDay::new(jd), flags)?.xx[0];
+    let ant = crate::functions::calc::fixstar("Antares", JulianDay::new(jd), flags)?.xx[0];
+    let fom = crate::functions::calc::fixstar("Fomalhaut", JulianDay::new(jd), flags)?.xx[0];
 
     // Sort stars by ecliptic longitude
     let mut stars = [ald, reg, ant, fom];
@@ -54,7 +55,9 @@ pub fn saturn_4_stars(jd: f64, flags: CalcFlags) -> crate::Result<[f64; 6]> {
 /// `sandhi = false` → bhavamadhya (house midpoints), `true` → arambhasandhi (house beginnings).
 /// Returns 12 house cusp longitudes.
 #[must_use]
-pub fn raman_houses(asc: f64, mc: f64, sandhi: bool) -> [f64; 12] {
+pub fn raman_houses(asc: Degrees, mc: Degrees, sandhi: bool) -> [f64; 12] {
+    let asc: f64 = asc.into();
+    let mc: f64 = mc.into();
     let mut ret = [0.0f64; 12];
     if !sandhi {
         ret[0] = norm360(asc);
@@ -98,7 +101,8 @@ pub fn sign_lord(sign: i32) -> Option<i32> {
 #[inline]
 /// Convert ecliptic longitude (degrees) to a Vedic rasi number (0 = Aries, …, 11 = Pisces).
 #[must_use]
-pub fn long_to_rasi(lon: f64) -> i32 {
+pub fn long_to_rasi(lon: Longitude) -> i32 {
+    let lon: f64 = lon.into();
     (norm360(lon) / 30.0) as i32
 }
 
@@ -106,13 +110,15 @@ pub fn long_to_rasi(lon: f64) -> i32 {
 #[inline]
 /// Convert ecliptic longitude (degrees) to a navamsa division number (0–35).
 #[must_use]
-pub fn long_to_navamsa(lon: f64) -> i32 {
+pub fn long_to_navamsa(lon: Longitude) -> i32 {
+    let lon: f64 = lon.into();
     ((norm360(lon) / (10.0 / 3.0)) as i32) % 12
 }
 
 /// Nakshatra (0–26) and Pada (0–3) from ecliptic longitude.
 #[must_use]
-pub fn long_to_nakshatra(lon: f64) -> (i32, i32) {
+pub fn long_to_nakshatra(lon: Longitude) -> (i32, i32) {
+    let lon: f64 = lon.into();
     let lon = norm360(lon);
     let nak = (lon / (40.0 / 3.0)) as i32;
     let pada = ((-(nak as f64)).mul_add(40.0 / 3.0, lon) / (10.0 / 3.0)) as i32;

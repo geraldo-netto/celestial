@@ -21,6 +21,7 @@
 
 use crate::body::{CalcFlags, Calendar};
 use crate::error::{Error, Result};
+use crate::units::{JulianDay, Longitude};
 
 // ─── SabbatKind ──────────────────────────────────────────────────────────────
 
@@ -169,10 +170,10 @@ pub struct Sabbat {
 ///
 /// # Example
 /// ```rust
-/// use celestial_core::{sabbat_jd, SabbatKind, revjul};
+/// use celestial_core::{sabbat_jd, SabbatKind, revjul, JulianDay};
 /// use celestial_core::body::Calendar;
 /// let jd = sabbat_jd(2024, SabbatKind::Ostara).unwrap();
-/// let d  = revjul(jd, Calendar::Gregorian);
+/// let d  = revjul(JulianDay::new(jd), Calendar::Gregorian);
 /// assert_eq!(d.month, 3);  // March
 /// assert_eq!(d.year,  2024);
 /// ```
@@ -184,7 +185,7 @@ pub fn sabbat_jd(year: i32, kind: SabbatKind) -> Result<f64> {
     let month = kind.approx_month();
     let jd_start = crate::julday(year, month, 1, 0.0, Calendar::Gregorian) - 20.0;
 
-    crate::functions::motion::solcross_ut(lon, jd_start, CalcFlags::BUILTIN)
+    crate::functions::motion::solcross_ut(Longitude::new(lon), JulianDay::new(jd_start), CalcFlags::BUILTIN)
         .map_err(|_| Error::Calc(format!("could not find {} for year {year}", kind.name())))
 }
 
@@ -209,7 +210,7 @@ pub fn sabbats_for_year(year: i32) -> Result<Vec<Sabbat>> {
 
 /// The next sabbat at or after the given Julian day.
 pub fn next_sabbat(jd_from: f64) -> Result<Sabbat> {
-    let d = crate::revjul(jd_from, Calendar::Gregorian);
+    let d = crate::revjul(JulianDay::new(jd_from), Calendar::Gregorian);
     // Collect from this year and next to guarantee a result.
     let mut candidates: Vec<Sabbat> = Vec::with_capacity(16);
     for year in [d.year, d.year + 1] {

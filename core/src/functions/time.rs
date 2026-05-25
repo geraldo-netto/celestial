@@ -3,6 +3,7 @@
 use crate::body::{CalcFlags, Calendar};
 
 use crate::error::Result;
+use crate::units::{Degrees, JulianDay, Longitude};
 
 // ─── Return types ─────────────────────────────────────────────────────────────
 
@@ -74,7 +75,8 @@ pub fn julday(year: i32, month: i32, day: i32, hour: f64, calendar: Calendar) ->
 
 /// Convert a Julian day number to a calendar date.
 #[must_use]
-pub fn revjul(jd: f64, calendar: Calendar) -> CalDate {
+pub fn revjul(jd: JulianDay, calendar: Calendar) -> CalDate {
+    let jd: f64 = jd.into();
     // Defensive: extreme f64 values (NaN, ±Inf, ±f64::MAX) cause the
     // floor()/as-i64 chain below to wrap or saturate at i64::MAX, which then
     // overflows on the next add. Map any non-finite or astronomically-absurd
@@ -138,27 +140,29 @@ pub fn utc_to_jd(date: &UtcDate, calendar: Calendar) -> Result<JdPair> {
     // Pure: simple conversion without leap-second tables
     let hour = date.hour as f64 + date.minute as f64 / 60.0 + date.second / 3600.0;
     let ut1 = julday(date.year, date.month, date.day, hour, calendar);
-    let dt = crate::astronomy::deltat(ut1) / 86_400.0;
+    let dt = crate::astronomy::deltat(JulianDay::new(ut1)) / 86_400.0;
     Ok(JdPair { et: ut1 + dt, ut1 })
 }
 
 /// Convert ET Julian day to UTC components.
 #[must_use]
-pub fn jd_et_to_utc(jd_et: f64, calendar: Calendar) -> UtcDate {
-    let dt = crate::astronomy::deltat(jd_et) / 86_400.0;
+pub fn jd_et_to_utc(jd_et: JulianDay, calendar: Calendar) -> UtcDate {
+    let jd_et: f64 = jd_et.into();
+    let dt = crate::astronomy::deltat(JulianDay::new(jd_et)) / 86_400.0;
     let jd_ut = jd_et - dt;
     jd_ut_to_utcdate(jd_ut, calendar)
 }
 
 /// Convert UT1 Julian day to UTC components.
 #[must_use]
-pub fn jd_ut_to_utc(jd_ut: f64, calendar: Calendar) -> UtcDate {
+pub fn jd_ut_to_utc(jd_ut: JulianDay, calendar: Calendar) -> UtcDate {
+    let jd_ut: f64 = jd_ut.into();
     jd_ut_to_utcdate(jd_ut, calendar)
 }
 
 /// Convert a Julian day (UT) to a UTC date.
 fn jd_ut_to_utcdate(jd: f64, calendar: Calendar) -> UtcDate {
-    let cd = revjul(jd, calendar);
+    let cd = revjul(JulianDay::new(jd), calendar);
     let hour_f = cd.hour;
     let h = hour_f.floor() as i32;
     let min_f = (hour_f - h as f64) * 60.0;
@@ -191,7 +195,7 @@ pub fn utc_time_zone(date: &UtcDate, d_timezone: f64) -> UtcDate {
         0.0,
         Calendar::Gregorian,
     );
-    let cd = revjul(base_jd, Calendar::Gregorian);
+    let cd = revjul(JulianDay::new(base_jd), Calendar::Gregorian);
     UtcDate {
         year: cd.year,
         month: cd.month,
@@ -223,11 +227,12 @@ pub fn utc_time_zone(date: &UtcDate, d_timezone: f64) -> UtcDate {
 /// is installed; otherwise evaluates the built-in Espenak/Meeus polynomial
 /// fit (see `astronomy::delta_t_for_year`).
 #[must_use]
-pub fn deltat(tjd: f64) -> f64 {
+pub fn deltat(tjd: JulianDay) -> f64 {
+    let tjd: f64 = tjd.into();
     if let Some(dt) = crate::functions::config::user_delta_t() {
         return dt;
     }
-    crate::astronomy::deltat(tjd) / 86_400.0
+    crate::astronomy::deltat(JulianDay::new(tjd)) / 86_400.0
 }
 
 /// Compute ΔT for a given Julian day (UT), returned in **seconds**.
@@ -236,36 +241,43 @@ pub fn deltat(tjd: f64) -> f64 {
 /// converting to days. Matches Swiss Ephemeris `swe_deltat_ex` semantics.
 ///
 /// At J2000.0, returns ≈ 63.83 s.
-pub fn deltat_ex(jd: f64, _flags: CalcFlags) -> Result<f64> {
+pub fn deltat_ex(jd: JulianDay, _flags: CalcFlags) -> Result<f64> {
+    let jd: f64 = jd.into();
     if let Some(dt) = crate::functions::config::user_delta_t() {
         return Ok(dt * 86_400.0);
     }
-    Ok(crate::astronomy::deltat(jd))
+    Ok(crate::astronomy::deltat(JulianDay::new(jd)))
 }
 
 /// Greenwich Mean Sidereal Time (GMST) in decimal hours — without the
 /// equation of the equinoxes. Use [`sidtime`] for apparent sidereal time (GAST).
 #[must_use]
-pub fn mean_sidtime(jd_ut: f64) -> f64 {
-    crate::astronomy::houses::mean_sidereal_time_deg(jd_ut) / 15.0
+pub fn mean_sidtime(jd_ut: JulianDay) -> f64 {
+    let jd_ut: f64 = jd_ut.into();
+    crate::astronomy::houses::mean_sidereal_time_deg(JulianDay::new(jd_ut)) / 15.0
 }
 
 /// Compute apparent sidereal time for a UT Julian day.
 #[must_use]
-pub fn sidtime(jd_ut: f64) -> f64 {
-    crate::astronomy::houses::sidereal_time_deg(jd_ut) / 15.0
+pub fn sidtime(jd_ut: JulianDay) -> f64 {
+    let jd_ut: f64 = jd_ut.into();
+    crate::astronomy::houses::sidereal_time_deg(JulianDay::new(jd_ut)) / 15.0
 }
 
 /// Compute apparent sidereal time with obliquity and nutation.
 #[must_use]
-pub fn sidtime0(jd_ut: f64, eps: f64, nut: f64) -> f64 {
-    let gmst = crate::astronomy::houses::sidereal_time_deg(jd_ut);
+pub fn sidtime0(jd_ut: JulianDay, eps: Degrees, nut: Degrees) -> f64 {
+    let jd_ut: f64 = jd_ut.into();
+    let eps: f64 = eps.into();
+    let nut: f64 = nut.into();
+    let gmst = crate::astronomy::houses::sidereal_time_deg(JulianDay::new(jd_ut));
     nut.mul_add(eps.to_radians().cos(), gmst) / 15.0
 }
 
 /// Compute the day of week (0 = Monday, …, 6 = Sunday).
 #[must_use]
-pub fn day_of_week(jd: f64) -> i32 {
+pub fn day_of_week(jd: JulianDay) -> i32 {
+    let jd: f64 = jd.into();
     // SEC-8: a non-finite / astronomically-absurd `jd` makes the
     // `f64 as i64` cast saturate (NaN→0, ±Inf→i64::MIN/MAX) → a
     // meaningless weekday. Bound it like `revjul` (panic-free
@@ -285,8 +297,9 @@ pub fn day_of_week(jd: f64) -> i32 {
 /// Range: roughly −14 to +16 minutes (±0.27 hours).
 ///
 /// Algorithm: Meeus, "Astronomical Algorithms" ch. 27.
-pub fn time_equ(jd_ut: f64) -> Result<f64> {
-    let jde = crate::astronomy::delta_t::ut_to_tt(jd_ut);
+pub fn time_equ(jd_ut: JulianDay) -> Result<f64> {
+    let jd_ut: f64 = jd_ut.into();
+    let jde = crate::astronomy::delta_t::ut_to_tt(JulianDay::new(jd_ut));
     // Julian centuries from J2000.0
     let t = (jde - 2_451_545.0) / 36525.0;
 
@@ -323,13 +336,17 @@ pub fn time_equ(jd_ut: f64) -> Result<f64> {
 }
 
 /// Convert local apparent time to local mean time.
-pub fn lat_to_lmt(tjd_lat: f64, geolon: f64) -> Result<f64> {
+pub fn lat_to_lmt(tjd_lat: JulianDay, geolon: Longitude) -> Result<f64> {
+    let tjd_lat: f64 = tjd_lat.into();
+    let geolon: f64 = geolon.into();
     // Pure: simple longitude correction
     Ok(tjd_lat - geolon / 360.0)
 }
 
 /// Convert local mean time to local apparent time.
-pub fn lmt_to_lat(tjd_lmt: f64, geolon: f64) -> Result<f64> {
+pub fn lmt_to_lat(tjd_lmt: JulianDay, geolon: Longitude) -> Result<f64> {
+    let tjd_lmt: f64 = tjd_lmt.into();
+    let geolon: f64 = geolon.into();
     Ok(tjd_lmt + geolon / 360.0)
 }
 
@@ -348,8 +365,9 @@ pub fn jdnow() -> f64 {
 
 /// Decompose a Julian day into `[year, month, day, hour, minute, second]`.
 #[must_use]
-pub fn revjul_hms(jd: f64, calendar: Calendar) -> [i32; 6] {
-    let d = crate::revjul(jd, calendar);
+pub fn revjul_hms(jd: JulianDay, calendar: Calendar) -> [i32; 6] {
+    let jd: f64 = jd.into();
+    let d = crate::revjul(JulianDay::new(jd), calendar);
     let frac = d.hour; // decimal hours
     let h = frac as i32;
     let min_f = (frac - h as f64) * 60.0;
@@ -428,7 +446,9 @@ pub fn parse_time(s: &str) -> Option<[i32; 3]> {
 
 /// Duration between two Julian days → `[days, hours, minutes, seconds]`.
 #[must_use]
-pub fn jd_duration(jd_start: f64, jd_end: f64) -> [i32; 4] {
+pub fn jd_duration(jd_start: JulianDay, jd_end: JulianDay) -> [i32; 4] {
+    let jd_start: f64 = jd_start.into();
+    let jd_end: f64 = jd_end.into();
     let mut span = (jd_end - jd_start).abs();
     let days = span as i32;
     span -= days as f64;
@@ -442,8 +462,9 @@ pub fn jd_duration(jd_start: f64, jd_end: f64) -> [i32; 4] {
 
 /// Format a Julian day as an ISO-8601 string `"YYYY-MM-DD HH:MM:SS UTC"`.
 #[must_use]
-pub fn jd_to_iso_string(jd: f64, calendar: Calendar) -> String {
-    let [y, mo, d, h, mi, s] = revjul_hms(jd, calendar);
+pub fn jd_to_iso_string(jd: JulianDay, calendar: Calendar) -> String {
+    let jd: f64 = jd.into();
+    let [y, mo, d, h, mi, s] = revjul_hms(JulianDay::new(jd), calendar);
     format!("{y:04}-{mo:02}-{d:02} {h:02}:{mi:02}:{s:02} UTC")
 }
 
@@ -451,13 +472,15 @@ pub fn jd_to_iso_string(jd: f64, calendar: Calendar) -> String {
 
 /// Mean obliquity of the ecliptic in degrees at a Julian Ephemeris Day.
 #[must_use]
-pub fn mean_obliquity(jde: f64) -> f64 {
+pub fn mean_obliquity(jde: JulianDay) -> f64 {
+    let jde: f64 = jde.into();
     crate::astronomy::obliquity(jde)
 }
 
 /// True (apparent) obliquity of the ecliptic in degrees (includes nutation).
 #[must_use]
-pub fn true_obliquity(jde: f64) -> f64 {
+pub fn true_obliquity(jde: JulianDay) -> f64 {
+    let jde: f64 = jde.into();
     crate::astronomy::obliquity_true(jde)
 }
 
@@ -465,7 +488,8 @@ pub fn true_obliquity(jde: f64) -> f64 {
 ///
 /// Returns `(nutation_longitude_deg, nutation_obliquity_deg)`.
 #[must_use]
-pub fn nutation(jde: f64) -> (f64, f64) {
+pub fn nutation(jde: JulianDay) -> (f64, f64) {
+    let jde: f64 = jde.into();
     let (nl, no) = crate::astronomy::get_nutation(jde);
     (nl / 3600.0, no / 3600.0)
 }
@@ -473,7 +497,8 @@ pub fn nutation(jde: f64) -> (f64, f64) {
 /// TT (Terrestrial Time) to UT1 — returns the UT1 Julian day.
 #[allow(dead_code)]
 #[must_use]
-pub fn tt_to_ut(jde: f64) -> f64 {
+pub fn tt_to_ut(jde: JulianDay) -> f64 {
+    let jde: f64 = jde.into();
     crate::astronomy::delta_t::tt_to_ut(jde)
 }
 
@@ -494,8 +519,8 @@ pub fn day_of_year(year: i32, month: u32, day: u32) -> u32 {
 /// An ISO year has 53 weeks iff Jan 1 or Dec 31 falls on a Thursday.
 #[must_use]
 pub fn weeks_in_iso_year(year: i32) -> u32 {
-    let jan1 = day_of_week(julday(year, 1, 1, 12.0, Calendar::Gregorian));
-    let dec31 = day_of_week(julday(year, 12, 31, 12.0, Calendar::Gregorian));
+    let jan1 = day_of_week(JulianDay::new(julday(year, 1, 1, 12.0, Calendar::Gregorian)));
+    let dec31 = day_of_week(JulianDay::new(julday(year, 12, 31, 12.0, Calendar::Gregorian)));
     // day_of_week returns 0=Monday..6=Sunday — Thursday = 3
     if jan1 == 3 || dec31 == 3 {
         53
@@ -511,11 +536,12 @@ pub fn weeks_in_iso_year(year: i32) -> u32 {
 /// dates may belong to the next ISO year. Week 1 is the week containing
 /// the first Thursday of the year.
 #[must_use]
-pub fn iso_week(jd: f64) -> (i32, u32) {
-    let d = revjul(jd, Calendar::Gregorian);
+pub fn iso_week(jd: JulianDay) -> (i32, u32) {
+    let jd: f64 = jd.into();
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
     let ordinal = day_of_year(d.year, d.month as u32, d.day as u32) as i32;
     // day_of_week: 0=Monday..6=Sunday; ISO weekday: 1=Monday..7=Sunday
-    let iso_wd = day_of_week(jd) + 1;
+    let iso_wd = day_of_week(JulianDay::new(jd)) + 1;
     let week = (ordinal - iso_wd + 10) / 7;
     if week < 1 {
         let prev_year = d.year - 1;
@@ -535,21 +561,21 @@ mod iso_week_tests {
     fn iso_week_mon_jan1() {
         // 2024-01-01 Monday → (2024, 1)
         let jd = julday(2024, 1, 1, 12.0, Calendar::Gregorian);
-        assert_eq!(iso_week(jd), (2024, 1));
+        assert_eq!(iso_week(JulianDay::new(jd)), (2024, 1));
     }
 
     #[test]
     fn iso_week_sun_jan1_belongs_prev_year() {
         // 2023-01-01 Sunday → last week of 2022
         let jd = julday(2023, 1, 1, 12.0, Calendar::Gregorian);
-        assert_eq!(iso_week(jd), (2022, 52));
+        assert_eq!(iso_week(JulianDay::new(jd)), (2022, 52));
     }
 
     #[test]
     fn iso_53_week_year() {
         // 2020-12-31 Thursday → (2020, 53)
         let jd = julday(2020, 12, 31, 12.0, Calendar::Gregorian);
-        assert_eq!(iso_week(jd), (2020, 53));
+        assert_eq!(iso_week(JulianDay::new(jd)), (2020, 53));
     }
 
     #[test]

@@ -4,6 +4,7 @@
 //! Uses the Meeus "Astronomical Algorithms" ch. 54 approach.
 #![allow(dead_code)]
 
+use crate::units::JulianDay;
 use std::f64::consts::PI;
 
 #[allow(dead_code)]
@@ -113,7 +114,8 @@ fn full_moon_jd(k_int: i64) -> f64 {
 
 /// Compute the integer k for the new Moon nearest to jd_start (looking forward).
 #[must_use]
-pub fn k_from_jd(jd: f64, forward: bool) -> i64 {
+pub fn k_from_jd(jd: JulianDay, forward: bool) -> i64 {
+    let jd: f64 = jd.into();
     // Approximate k: months since J2000 new Moon (JD 2451550.0977)
     let months = (jd - 2_451_550.097_7) / 29.530_588_861;
     if forward {
@@ -331,11 +333,12 @@ fn accept_eclipse(
 
 /// Find the next solar eclipse after `jd_start`.
 pub fn solar_eclipse_when_glob(
-    jd_start: f64,
+    jd_start: JulianDay,
     ecl_type: i32,
     backwards: bool,
 ) -> Option<EclipseResult> {
-    let mut k = k_from_jd(jd_start, !backwards);
+    let jd_start: f64 = jd_start.into();
+    let mut k = k_from_jd(JulianDay::new(jd_start), !backwards);
     let dir: i64 = if backwards { -1 } else { 1 };
 
     for _ in 0..60 {
@@ -363,8 +366,9 @@ pub fn solar_eclipse_when_glob(
 }
 
 /// Find the next lunar eclipse after `jd_start`.
-pub fn lun_eclipse_when(jd_start: f64, ecl_type: i32, backwards: bool) -> Option<EclipseResult> {
-    let mut k = k_from_jd(jd_start, !backwards);
+pub fn lun_eclipse_when(jd_start: JulianDay, ecl_type: i32, backwards: bool) -> Option<EclipseResult> {
+    let jd_start: f64 = jd_start.into();
+    let mut k = k_from_jd(JulianDay::new(jd_start), !backwards);
     let dir: i64 = if backwards { -1 } else { 1 };
 
     for _ in 0..60 {
@@ -435,9 +439,9 @@ pub fn solar_eclipse_geopos(jde: f64, _gamma: f64) -> (f64, f64) {
     let moon_dec = sin_lat.mul_add(sin_eps, cos_lat * cos_eps * sin_lon).asin();
 
     // Greenwich Apparent Sidereal Time → radians
-    let dt = crate::astronomy::delta_t::delta_t(jde);
+    let dt = crate::astronomy::delta_t::delta_t(JulianDay::new(jde));
     let jd_ut = jde - dt / 86400.0;
-    let gst_rad = crate::functions::time::sidtime(jd_ut).to_radians() * 15.0;
+    let gst_rad = crate::functions::time::sidtime(JulianDay::new(jd_ut)).to_radians() * 15.0;
     // (sidtime returns hours; ×15 = degrees; ×π/180 = radians)
 
     // Geographic latitude of the sub-lunar point
@@ -478,10 +482,11 @@ pub fn solar_eclipse_geopos(jde: f64, _gamma: f64) -> (f64, f64) {
 /// * `jd_ut` — Julian day (UT) near the eclipse
 /// * `geopos` — `[longitude_deg, latitude_deg, altitude_m]`
 #[must_use]
-pub fn solar_eclipse_attr(jd_ut: f64, geopos: [f64; 3]) -> [f64; 20] {
+pub fn solar_eclipse_attr(jd_ut: JulianDay, geopos: [f64; 3]) -> [f64; 20] {
+    let jd_ut: f64 = jd_ut.into();
     let mut attr = [0.0f64; 20];
     // Find nearest new Moon
-    let k = k_from_jd(jd_ut, true);
+    let k = k_from_jd(JulianDay::new(jd_ut), true);
     let (_kind, gamma, _u) = check_solar_eclipse(k);
     let (pen_mag, umb_mag) = solar_eclipse_magnitude(k);
 

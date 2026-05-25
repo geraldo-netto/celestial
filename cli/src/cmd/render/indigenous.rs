@@ -6,6 +6,7 @@ use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::calc_ut;
 use celestial_core::{egyptian_decan, medicine_wheel_totem};
+use celestial_core::Longitude;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -19,8 +20,8 @@ pub fn build_medicine_wheel_context(
     let flags = CalcFlags::BUILTIN;
 
     let sun_pos = calc_ut(JulianDay::new(jd), Body::SUN, flags)?;
-    let (animal, element, clan, season) = medicine_wheel_totem(sun_pos.lon);
-    let (decan_idx, decan_name, decan_star) = egyptian_decan(sun_pos.lon);
+    let (animal, element, clan, season) = medicine_wheel_totem(Longitude::new(sun_pos.lon));
+    let (decan_idx, decan_name, decan_star) = egyptian_decan(Longitude::new(sun_pos.lon));
 
 
     // ARCH-9/DP-5: typed context (field names == JSON keys).

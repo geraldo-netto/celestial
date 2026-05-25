@@ -11,15 +11,16 @@
 //! # Examples
 //! ```
 //! # use celestial_core::body::Calendar;
-//! use celestial_core::{nowruz_jd, julday};
+//! use celestial_core::{nowruz_jd, julday, JulianDay};
 //! let jd = nowruz_jd(2025);
 //! // Nowruz 2025 ≈ March 20, 2025
-//! let d = celestial_core::revjul(jd, Calendar::Gregorian);
+//! let d = celestial_core::revjul(JulianDay::new(jd), Calendar::Gregorian);
 //! assert_eq!(d.month, 3);
 //! ```
 
 use crate::body::{CalcFlags, Calendar};
 use crate::solcross_ut;
+use crate::units::{JulianDay, Longitude};
 use crate::{julday, revjul};
 
 /// Julian day of Nowruz (vernal equinox) for the given Gregorian year.
@@ -28,7 +29,7 @@ use crate::{julday, revjul};
 #[must_use]
 pub fn nowruz_jd(year: i32) -> f64 {
     let start = julday(year, 3, 15, 0.0, Calendar::Gregorian);
-    solcross_ut(0.0, start, CalcFlags::BUILTIN).unwrap_or(start)
+    solcross_ut(Longitude::new(0.0), JulianDay::new(start), CalcFlags::BUILTIN).unwrap_or(start)
 }
 
 /// Convert a Gregorian year to the corresponding Iranian solar (Solar Hijri) year.
@@ -143,10 +144,11 @@ pub fn naw_ruz_jd(bahai_year: i32) -> f64 {
 
 /// Convert a Julian day to a Bahá'í date.
 #[must_use]
-pub fn jd_to_bahai(jd: f64) -> BahaiDate {
+pub fn jd_to_bahai(jd: JulianDay) -> BahaiDate {
+    let jd: f64 = jd.into();
     // Find the Bahá'í year
     let gregorian_year = {
-        let d = revjul(jd, Calendar::Gregorian);
+        let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
         d.year
     };
     let mut bahai_year = gregorian_year - 1843;
@@ -341,7 +343,7 @@ mod tests {
     #[test]
     fn nowruz_2025_in_march() {
         let jd = nowruz_jd(2025);
-        let d = revjul(jd, Calendar::Gregorian);
+        let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
         assert_eq!(d.year, 2025);
         assert_eq!(d.month, 3);
         assert!(d.day == 20 || d.day == 21, "day={}", d.day);
@@ -351,7 +353,7 @@ mod tests {
     fn bahai_year_from_jd() {
         // Jan 1, 2025 should be in Bahá'í year 181
         let jd = julday(2025, 1, 1, 12.0, Calendar::Gregorian);
-        let bd = jd_to_bahai(jd);
+        let bd = jd_to_bahai(JulianDay::new(jd));
         assert_eq!(bd.year, 181, "year={}", bd.year);
     }
 
@@ -359,7 +361,7 @@ mod tests {
     fn naw_ruz_2025() {
         // Naw-Rúz 182 BE = Nowruz 2025 ≈ March 20, 2025
         let jd = naw_ruz_jd(182);
-        let d = revjul(jd, Calendar::Gregorian);
+        let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
         assert_eq!(d.month, 3);
         assert!(d.day == 20 || d.day == 21);
     }

@@ -16,6 +16,7 @@
 use super::omer::{
     hebrew_month_days, hebrew_month_start_jd, hebrew_new_year_jd, is_hebrew_leap_year,
 };
+use crate::units::JulianDay;
 
 /// A Jewish holiday with its Hebrew date and Julian day.
 #[derive(Debug, Clone)]
@@ -330,7 +331,8 @@ pub fn jewish_holiday_jd(hebrew_year: i32, name: &str) -> Option<f64> {
 
 /// Return the current Hebrew year for a given Julian day.
 #[must_use]
-pub fn hebrew_year_from_jd(jd: f64) -> i32 {
+pub fn hebrew_year_from_jd(jd: JulianDay) -> i32 {
+    let jd: f64 = jd.into();
     let mut year = ((jd - 347_997.0) * 98_496.0 / 35_975_351.0) as i32 + 1;
     while (hebrew_new_year_jd(year + 1) as f64) <= jd {
         year += 1;
@@ -341,8 +343,9 @@ pub fn hebrew_year_from_jd(jd: f64) -> i32 {
 /// Convert a Julian day to a Hebrew date (year, month, day).
 /// Month: 1=Nisan, 2=Iyyar, …, 7=Tishrei, …, 12=Adar (or Adar I), 13=Adar II (leap)
 #[must_use]
-pub fn jd_to_hebrew_date(jd: f64) -> (i32, u8, u8) {
-    let year = hebrew_year_from_jd(jd);
+pub fn jd_to_hebrew_date(jd: JulianDay) -> (i32, u8, u8) {
+    let jd: f64 = jd.into();
+    let year = hebrew_year_from_jd(JulianDay::new(jd));
     let jd_int = jd.floor() as i64;
     // Find month by walking from Tishrei
     let months: Vec<i32> = {
@@ -472,7 +475,7 @@ mod tests {
     #[test]
     fn jd_to_hebrew_date_known() {
         // JD 2451545.0 = Jan 1, 2000 = 23 Tevet 5760
-        let (y, m, d) = jd_to_hebrew_date(2_451_545.0);
+        let (y, m, d) = jd_to_hebrew_date(JulianDay::new(2_451_545.0));
         assert_eq!(y, 5760);
         assert_eq!(m, 10); // Tevet
         assert_eq!(d, 24); // Jan 1, 2000 = 24 Tevet 5760

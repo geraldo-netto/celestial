@@ -944,7 +944,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
     fn solar_return_jd_is_after_natal() {
         use celestial_core::{body::CalcFlags, solar_return_jd};
         let jd_natal = 2_440_000.0; // 1968-ish
-        let sr = solar_return_jd(jd_natal, 2025, CalcFlags::BUILTIN).unwrap();
+        let sr = solar_return_jd(JulianDay::new(jd_natal), 2025, CalcFlags::BUILTIN).unwrap();
         assert!(
             sr > jd_natal,
             "solar return must be after natal: {sr} <= {jd_natal}"
@@ -958,7 +958,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         use celestial_core::{body::CalcFlags, lunar_return_jd};
         let jd_natal = 2_451_545.0;
         let jd_start = jd_natal + 365.0; // one year later
-        let lr = lunar_return_jd(jd_natal, jd_start, CalcFlags::BUILTIN).unwrap();
+        let lr = lunar_return_jd(JulianDay::new(jd_natal), JulianDay::new(jd_start), CalcFlags::BUILTIN).unwrap();
         assert!(
             lr >= jd_start,
             "lunar return {lr} should be >= start {jd_start}"
@@ -1271,10 +1271,11 @@ mod tests_vedic {
         // At least some planets should have a different navamsa vs rasi sign
         let jd = 2_451_545.0;
         use celestial_core::body::{Body, CalcFlags};
+use celestial_core::Longitude;
         let flags = CalcFlags::BUILTIN | CalcFlags(64); // sidereal
         if let Ok(sun) = celestial_core::calc_ut(JulianDay::new(jd), Body::SUN, flags) {
-            let rasi = long_to_rasi(sun.lon);
-            let navamsa = long_to_navamsa(sun.lon);
+            let rasi = long_to_rasi(Longitude::new(sun.lon));
+            let navamsa = long_to_navamsa(Longitude::new(sun.lon));
             // Can't assert they differ (they might coincide), but both must be valid
             assert!((0..12).contains(&rasi), "rasi {rasi} invalid");
             assert!((0..12).contains(&navamsa), "navamsa {navamsa} invalid");

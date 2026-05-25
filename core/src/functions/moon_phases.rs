@@ -17,11 +17,11 @@
 //! # Examples
 //! ```
 //! # use celestial_core::body::Calendar;
-//! use celestial_core::{moon_phase, moon_illumination, MoonPhase, julday};
+//! use celestial_core::{moon_phase, moon_illumination, MoonPhase, julday, JulianDay};
 //!
 //! let jd = julday(2025, 4, 27, 20.0, Calendar::Gregorian); // near new moon
-//! let phase = moon_phase(jd).unwrap();
-//! let illum = moon_illumination(jd).unwrap();
+//! let phase = moon_phase(JulianDay::new(jd)).unwrap();
+//! let illum = moon_illumination(JulianDay::new(jd)).unwrap();
 //! assert!(illum < 0.15); // near new moon, low illumination
 //! ```
 
@@ -140,7 +140,8 @@ pub struct PhaseEvent {
 // ── Core helpers ──────────────────────────────────────────────────────────────
 
 /// Moon–Sun elongation in [0°, 360°) at the given Julian day.
-pub fn moon_elongation(jd: f64) -> Result<f64> {
+pub fn moon_elongation(jd: JulianDay) -> Result<f64> {
+    let jd: f64 = jd.into();
     let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN)?;
     let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN)?;
     Ok((moon.lon - sun.lon).rem_euclid(360.0))
@@ -159,7 +160,7 @@ fn wrap_signed(d: f64) -> f64 {
 
 /// Signed distance of elongation from a target, in (−180°, +180°].
 fn signed_dist(jd: f64, target: f64) -> Result<f64> {
-    Ok(wrap_signed(moon_elongation(jd)? - target))
+    Ok(wrap_signed(moon_elongation(JulianDay::new(jd))? - target))
 }
 
 /// Mean Moon–Sun elongation rate (°/day): 360° / mean synodic month
@@ -189,7 +190,7 @@ fn bisect_phase(jd_lo: f64, jd_hi: f64, target: f64) -> Result<f64> {
 
     // Validate result — reuse the single elongation eval for both the
     // reported value and the residual check.
-    let e = moon_elongation(jd)?;
+    let e = moon_elongation(JulianDay::new(jd))?;
     let residual = wrap_signed(e - target).abs();
     if residual > 0.5 {
         return Err(Error::Calc(format!(
@@ -205,8 +206,9 @@ fn bisect_phase(jd_lo: f64, jd_hi: f64, target: f64) -> Result<f64> {
 ///
 /// The phase is determined by the Moon–Sun elongation:
 /// each octant (45°) maps to one of the eight named phases.
-pub fn moon_phase(jd: f64) -> Result<MoonPhase> {
-    let e = moon_elongation(jd)?;
+pub fn moon_phase(jd: JulianDay) -> Result<MoonPhase> {
+    let jd: f64 = jd.into();
+    let e = moon_elongation(JulianDay::new(jd))?;
     Ok(match e {
         e if !(22.5..337.5).contains(&e) => MoonPhase::NewMoon,
         e if e < 67.5 => MoonPhase::WaxingCrescent,
@@ -223,27 +225,28 @@ pub fn moon_phase(jd: f64) -> Result<MoonPhase> {
 ///
 /// Returns a value in `[0.0, 1.0]` where 0 = new moon, 1 = full moon.
 /// Uses the standard formula: `(1 − cos(elongation)) / 2`.
-pub fn moon_illumination(jd: f64) -> Result<f64> {
-    let e = moon_elongation(jd)?.to_radians();
+pub fn moon_illumination(jd: JulianDay) -> Result<f64> {
+    let jd: f64 = jd.into();
+    let e = moon_elongation(JulianDay::new(jd))?.to_radians();
     Ok((1.0 - e.cos()) / 2.0)
 }
 
 /// Moon–Sun phase angle at the given Julian day (degrees, [0°, 360°)).
 ///
 /// Identical to the elongation for the purposes of phase; 0° = new, 180° = full.
-pub fn moon_phase_angle(jd: f64) -> Result<f64> {
+pub fn moon_phase_angle(jd: JulianDay) -> Result<f64> {
     moon_elongation(jd)
 }
 
 /// Find the next new moon at or after `jd_from` (elongation = 0°).
 ///
 /// Uses the synodic-month grid to seed a bracketed Newton/bisection solve.
-pub fn next_new_moon(jd_from: f64) -> Result<f64> {
+pub fn next_new_moon(jd_from: JulianDay) -> Result<f64> {
     next_principal_phase(jd_from, PrincipalPhase::NewMoon).map(|e| e.jd)
 }
 
 /// Find the next first-quarter moon at or after `jd_from` (elongation = 90°).
-pub fn next_first_quarter(jd_from: f64) -> Result<f64> {
+pub fn next_first_quarter(jd_from: JulianDay) -> Result<f64> {
     next_principal_phase(jd_from, PrincipalPhase::FirstQuarter).map(|e| e.jd)
 }
 
@@ -251,17 +254,18 @@ pub fn next_first_quarter(jd_from: f64) -> Result<f64> {
 ///
 /// This is a higher-level wrapper over the esbats bisection engine.
 /// For named full moons (Celtic tradition), use [`crate::next_full_moon`] instead.
-pub fn next_full_moon_phase(jd_from: f64) -> Result<f64> {
+pub fn next_full_moon_phase(jd_from: JulianDay) -> Result<f64> {
     next_principal_phase(jd_from, PrincipalPhase::FullMoon).map(|e| e.jd)
 }
 
 /// Find the next last-quarter moon at or after `jd_from` (elongation = 270°).
-pub fn next_last_quarter(jd_from: f64) -> Result<f64> {
+pub fn next_last_quarter(jd_from: JulianDay) -> Result<f64> {
     next_principal_phase(jd_from, PrincipalPhase::LastQuarter).map(|e| e.jd)
 }
 
 /// Find the next occurrence of any [`PrincipalPhase`] at or after `jd_from`.
-pub fn next_principal_phase(jd_from: f64, phase: PrincipalPhase) -> Result<PhaseEvent> {
+pub fn next_principal_phase(jd_from: JulianDay, phase: PrincipalPhase) -> Result<PhaseEvent> {
+    let jd_from: f64 = jd_from.into();
     let target = phase.elongation_target();
 
     // Use the new-moon grid offset by 0, ¼, ½, ¾ synodic month
@@ -281,7 +285,7 @@ pub fn next_principal_phase(jd_from: f64, phase: PrincipalPhase) -> Result<Phase
         }
         if let Ok(jd) = bisect_phase(jd_approx - 2.0, jd_approx + 2.0, target) {
             if jd >= jd_from - 0.01 {
-                let elong = moon_elongation(jd)?;
+                let elong = moon_elongation(JulianDay::new(jd))?;
                 return Ok(PhaseEvent {
                     phase,
                     jd,
@@ -319,7 +323,7 @@ pub fn moon_phases_for_month(year: i32, month: u8) -> Result<Vec<PhaseEvent>> {
     for &phase in &phases {
         let mut jd = month_start;
         loop {
-            match next_principal_phase(jd, phase) {
+            match next_principal_phase(JulianDay::new(jd), phase) {
                 Ok(event) if event.jd < month_end => {
                     events.push(event);
                     jd = events.last().expect("just pushed").jd + SYNODIC_MONTH * 0.9;
@@ -359,10 +363,11 @@ pub struct MoonPhaseInfo {
 /// Compute full Moon phase information for a given Julian day.
 ///
 /// Includes current phase, illumination, and timing of adjacent principal phases.
-pub fn moon_phase_info(jd: f64) -> Result<MoonPhaseInfo> {
-    let elong = moon_elongation(jd)?;
+pub fn moon_phase_info(jd: JulianDay) -> Result<MoonPhaseInfo> {
+    let jd: f64 = jd.into();
+    let elong = moon_elongation(JulianDay::new(jd))?;
     let illum = (1.0 - elong.to_radians().cos()) / 2.0;
-    let phase = moon_phase(jd)?;
+    let phase = moon_phase(JulianDay::new(jd))?;
 
     // Find the next principal phase
     let next_event = [
@@ -372,7 +377,7 @@ pub fn moon_phase_info(jd: f64) -> Result<MoonPhaseInfo> {
         PrincipalPhase::LastQuarter,
     ]
     .iter()
-    .filter_map(|&p| next_principal_phase(jd, p).ok())
+    .filter_map(|&p| next_principal_phase(JulianDay::new(jd), p).ok())
     .min_by(|a, b| a.jd.total_cmp(&b.jd))
     .ok_or_else(|| Error::PhaseNotFound {
         phase: "next".into(),
@@ -388,7 +393,7 @@ pub fn moon_phase_info(jd: f64) -> Result<MoonPhaseInfo> {
     ]
     .iter()
     .filter_map(|&p| {
-        next_principal_phase(jd - SYNODIC_MONTH - 2.0, p)
+        next_principal_phase(JulianDay::new(jd - SYNODIC_MONTH - 2.0), p)
             .ok()
             .filter(|e| e.jd <= jd)
     })
@@ -475,69 +480,69 @@ mod tests {
     #[test]
     fn next_new_moon_apr_2025() {
         let start = jd(2025, 4, 25, 0.0);
-        let nm = next_new_moon(start).unwrap();
+        let nm = next_new_moon(JulianDay::new(start)).unwrap();
         // Expected: April 27, 2025 ~19:31 UT
-        let d = crate::revjul(nm, Calendar::Gregorian);
+        let d = crate::revjul(JulianDay::new(nm), Calendar::Gregorian);
         assert_eq!(d.year, 2025);
         assert_eq!(d.month, 4);
         assert_eq!(d.day, 27);
         // Elongation should be ≈ 0°
-        let e = moon_elongation(nm).unwrap();
+        let e = moon_elongation(JulianDay::new(nm)).unwrap();
         assert!(!(0.1..=359.9).contains(&e), "elongation {e:.4}°");
     }
 
     #[test]
     fn next_full_moon_apr_2025() {
         let start = jd(2025, 4, 10, 0.0);
-        let fm = next_full_moon_phase(start).unwrap();
-        let d = crate::revjul(fm, Calendar::Gregorian);
+        let fm = next_full_moon_phase(JulianDay::new(start)).unwrap();
+        let d = crate::revjul(JulianDay::new(fm), Calendar::Gregorian);
         assert_eq!(d.year, 2025);
         assert_eq!(d.month, 4);
         assert_eq!(d.day, 13);
-        let e = moon_elongation(fm).unwrap();
+        let e = moon_elongation(JulianDay::new(fm)).unwrap();
         assert!((e - 180.0).abs() < 0.1, "elongation {e:.4}°");
     }
 
     #[test]
     fn next_first_quarter_apr_2025() {
         let start = jd(2025, 4, 3, 0.0);
-        let fq = next_first_quarter(start).unwrap();
-        let d = crate::revjul(fq, Calendar::Gregorian);
+        let fq = next_first_quarter(JulianDay::new(start)).unwrap();
+        let d = crate::revjul(JulianDay::new(fq), Calendar::Gregorian);
         assert_eq!(d.month, 4);
         assert!(d.day >= 4 && d.day <= 7, "day={}", d.day);
-        let e = moon_elongation(fq).unwrap();
+        let e = moon_elongation(JulianDay::new(fq)).unwrap();
         assert!((e - 90.0).abs() < 0.5, "elongation {e:.4}°");
     }
 
     #[test]
     fn next_last_quarter_apr_2025() {
         let start = jd(2025, 4, 19, 0.0);
-        let lq = next_last_quarter(start).unwrap();
-        let d = crate::revjul(lq, Calendar::Gregorian);
+        let lq = next_last_quarter(JulianDay::new(start)).unwrap();
+        let d = crate::revjul(JulianDay::new(lq), Calendar::Gregorian);
         assert_eq!(d.month, 4);
         assert!(d.day >= 20 && d.day <= 23, "day={}", d.day);
-        let e = moon_elongation(lq).unwrap();
+        let e = moon_elongation(JulianDay::new(lq)).unwrap();
         assert!((e - 270.0).abs() < 0.5, "elongation {e:.4}°");
     }
 
     #[test]
     fn moon_illumination_at_full() {
-        let fm = next_full_moon_phase(jd(2025, 4, 10, 0.0)).unwrap();
-        let illum = moon_illumination(fm).unwrap();
+        let fm = next_full_moon_phase(JulianDay::new(jd(2025, 4, 10, 0.0))).unwrap();
+        let illum = moon_illumination(JulianDay::new(fm)).unwrap();
         assert!(illum > 0.99, "illumination at full moon={illum:.4}");
     }
 
     #[test]
     fn moon_illumination_at_new() {
-        let nm = next_new_moon(jd(2025, 4, 25, 0.0)).unwrap();
-        let illum = moon_illumination(nm).unwrap();
+        let nm = next_new_moon(JulianDay::new(jd(2025, 4, 25, 0.0))).unwrap();
+        let illum = moon_illumination(JulianDay::new(nm)).unwrap();
         assert!(illum < 0.01, "illumination at new moon={illum:.4}");
     }
 
     #[test]
     fn moon_illumination_at_quarter() {
-        let fq = next_first_quarter(jd(2025, 4, 3, 0.0)).unwrap();
-        let illum = moon_illumination(fq).unwrap();
+        let fq = next_first_quarter(JulianDay::new(jd(2025, 4, 3, 0.0))).unwrap();
+        let illum = moon_illumination(JulianDay::new(fq)).unwrap();
         assert!(
             (illum - 0.5).abs() < 0.02,
             "illumination at quarter={illum:.4}"
@@ -546,15 +551,15 @@ mod tests {
 
     #[test]
     fn moon_phase_near_full() {
-        let fm = next_full_moon_phase(jd(2025, 4, 10, 0.0)).unwrap();
-        let p = moon_phase(fm).unwrap();
+        let fm = next_full_moon_phase(JulianDay::new(jd(2025, 4, 10, 0.0))).unwrap();
+        let p = moon_phase(JulianDay::new(fm)).unwrap();
         assert_eq!(p, MoonPhase::FullMoon);
     }
 
     #[test]
     fn moon_phase_near_new() {
-        let nm = next_new_moon(jd(2025, 4, 25, 0.0)).unwrap();
-        let p = moon_phase(nm).unwrap();
+        let nm = next_new_moon(JulianDay::new(jd(2025, 4, 25, 0.0))).unwrap();
+        let p = moon_phase(JulianDay::new(nm)).unwrap();
         assert_eq!(p, MoonPhase::NewMoon);
     }
 
@@ -570,7 +575,7 @@ mod tests {
         );
         // They should all be in April 2025
         for e in &events {
-            let d = crate::revjul(e.jd, Calendar::Gregorian);
+            let d = crate::revjul(JulianDay::new(e.jd), Calendar::Gregorian);
             assert_eq!(d.month, 4, "event month={}", d.month);
         }
     }
@@ -578,7 +583,7 @@ mod tests {
     #[test]
     fn moon_phase_info_structure() {
         let jd = jd(2025, 4, 15, 12.0); // waning gibbous after Apr 13 full moon
-        let info = moon_phase_info(jd).unwrap();
+        let info = moon_phase_info(JulianDay::new(jd)).unwrap();
         assert!(info.illumination > 0.0 && info.illumination <= 1.0);
         assert!(info.age_days >= 0.0 && info.age_days < 30.0);
         assert!(!info.phase_name.is_empty());
@@ -587,8 +592,8 @@ mod tests {
     #[test]
     fn synodic_month_constant() {
         // Two consecutive new moons should differ by ≈ SYNODIC_MONTH
-        let nm1 = next_new_moon(jd(2025, 4, 25, 0.0)).unwrap();
-        let nm2 = next_new_moon(nm1 + 1.0).unwrap();
+        let nm1 = next_new_moon(JulianDay::new(jd(2025, 4, 25, 0.0))).unwrap();
+        let nm2 = next_new_moon(JulianDay::new(nm1 + 1.0)).unwrap();
         let diff = nm2 - nm1;
         assert!(
             (diff - SYNODIC_MONTH).abs() < 0.5,

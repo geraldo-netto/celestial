@@ -13,6 +13,7 @@ use crate::body::CalcFlags;
 use crate::functions::moon_phases::next_new_moon;
 use crate::functions::motion::solcross_ut;
 use crate::functions::time::julday;
+use crate::units::{JulianDay, Longitude};
 
 /// Lhasa / Tibetan civil timezone offset from UTC (hours).
 pub const LHASA_TZ_OFFSET_HOURS: f64 = 6.0;
@@ -31,12 +32,12 @@ pub fn losar_jd(gregorian_year: i32) -> Option<f64> {
         0.0,
         crate::body::Calendar::Gregorian,
     );
-    let sols = solcross_ut(270.0, jd_dec - 5.0, CalcFlags::BUILTIN).ok()?;
+    let sols = solcross_ut(Longitude::new(270.0), JulianDay::new(jd_dec - 5.0), CalcFlags::BUILTIN).ok()?;
 
     // First new moon after the solstice
-    let nm1 = next_new_moon(sols).ok()?;
+    let nm1 = next_new_moon(JulianDay::new(sols)).ok()?;
     // Second new moon (search from ≥2 days after the first)
-    let nm2 = next_new_moon(nm1 + 2.0).ok()?;
+    let nm2 = next_new_moon(JulianDay::new(nm1 + 2.0)).ok()?;
 
     // Civil day in Lhasa timezone
     let local = nm2 + LHASA_TZ_OFFSET_HOURS / 24.0;
@@ -117,7 +118,7 @@ mod tests {
     fn losar_2025_in_q1() {
         // Tibetan Losar is a Q1 event (Jan–Mar depending on lunar/solar config).
         let jd = losar_jd(2025).expect("losar_jd should compute");
-        let d = crate::revjul(jd, crate::body::Calendar::Gregorian);
+        let d = crate::revjul(JulianDay::new(jd), crate::body::Calendar::Gregorian);
         assert_eq!(d.year, 2025);
         assert!((1..=3).contains(&d.month), "month={}", d.month);
     }

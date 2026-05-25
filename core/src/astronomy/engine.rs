@@ -16,6 +16,7 @@ use crate::astronomy::{
 };
 use crate::error::{Error, Result};
 use crate::types::PlanetPos;
+use crate::units::JulianDay;
 
 // ─── Entry points ─────────────────────────────────────────────────────────────
 
@@ -24,8 +25,9 @@ use crate::types::PlanetPos;
 /// Body numbers follow the Swiss Ephemeris convention (see [`body`]).
 /// Flags are the `FLG_*` constants from [`crate::constants`].
 #[inline]
-pub fn calc_ut(jd_ut: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
-    let jde = ut_to_tt(jd_ut);
+pub fn calc_ut(jd_ut: JulianDay, body_num: i32, flags: i32) -> Result<PlanetPos> {
+    let jd_ut: f64 = jd_ut.into();
+    let jde = ut_to_tt(JulianDay::new(jd_ut));
     calc_tt(jde, body_num, flags)
 }
 
@@ -86,14 +88,14 @@ pub fn calc_tt(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
 
 fn calc_node(jde: f64, body_num: i32, flags: i32) -> PlanetPos {
     let lon = if body_num == body::MEAN_NODE {
-        crate::astronomy::nodes::moon_mean_node(jde)
+        crate::astronomy::nodes::moon_mean_node(JulianDay::new(jde))
     } else {
-        crate::astronomy::nodes::moon_true_node(jde)
+        crate::astronomy::nodes::moon_true_node(JulianDay::new(jde))
     };
     let spd = if body_num == body::MEAN_NODE {
-        crate::astronomy::nodes::moon_mean_node_speed(jde)
+        crate::astronomy::nodes::moon_mean_node_speed(JulianDay::new(jde))
     } else {
-        crate::astronomy::nodes::moon_true_node_speed(jde)
+        crate::astronomy::nodes::moon_true_node_speed(JulianDay::new(jde))
     };
     let speed_lon = if flags as u32 & flag::FLG_SPEED != 0 {
         spd
@@ -117,7 +119,7 @@ fn calc_chiron(jde: f64, flags: i32) -> PlanetPos {
     // labelled as geocentric, giving 10–40° wrong longitudes.
     let (lon, lat, dist) = crate::astronomy::chiron::chiron_geocentric(jde);
     let (speed_lon, speed_lat, speed_dist) = if flags as u32 & flag::FLG_SPEED != 0 {
-        crate::astronomy::chiron::chiron_speed(jde)
+        crate::astronomy::chiron::chiron_speed(JulianDay::new(jde))
     } else {
         (0.0, 0.0, 0.0)
     };
@@ -193,7 +195,7 @@ fn topocentric_lon(
     let horiz_parallax_r = sin_pi.asin();
 
     let gst_deg =
-        crate::functions::time::sidtime(jde - crate::astronomy::delta_t::delta_t(jde) / 86400.0)
+        crate::functions::time::sidtime(JulianDay::new(jde - crate::astronomy::delta_t::delta_t(JulianDay::new(jde)) / 86400.0))
             * 15.0;
     let ha_deg = (gst_deg + obs_lon - geo.ra).rem_euclid(360.0);
     let ha_r = ha_deg.to_radians();
@@ -280,10 +282,10 @@ pub(crate) fn body_position(body_num: i32, jde: f64) -> Result<(f64, f64, f64)> 
         body::URANUS => apparent_planet(Planet::Uranus, jde),
         body::NEPTUNE => apparent_planet(Planet::Neptune, jde),
         body::MOON => apparent_moon(jde),
-        body::MEAN_NODE => return Ok((crate::astronomy::nodes::moon_mean_node(jde), 0.0, 1.0)),
-        body::TRUE_NODE => return Ok((crate::astronomy::nodes::moon_true_node(jde), 0.0, 1.0)),
+        body::MEAN_NODE => return Ok((crate::astronomy::nodes::moon_mean_node(JulianDay::new(jde)), 0.0, 1.0)),
+        body::TRUE_NODE => return Ok((crate::astronomy::nodes::moon_true_node(JulianDay::new(jde)), 0.0, 1.0)),
         body::CHIRON => {
-            let (l, b, r) = crate::astronomy::chiron::chiron_pos(jde);
+            let (l, b, r) = crate::astronomy::chiron::chiron_pos(JulianDay::new(jde));
             return Ok((l, b, r));
         }
         _ => return Err(Error::BodyNotImplemented { body: body_num }),

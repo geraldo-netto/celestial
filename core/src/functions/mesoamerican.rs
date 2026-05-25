@@ -1,5 +1,7 @@
 //! Auto-split from chart.rs — do not edit section headers.
 
+use crate::units::JulianDay;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Phase 7 — Mesoamerican calendars (Aztec/Nahuatl + Mayan)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -87,7 +89,8 @@ pub const XIUHPOHUALLI_MONTHS: &[(&str, &str)] = &[
 /// Uses the GMT correlation. The Aztec calendar system is in continuous
 /// synchrony with the Maya Tzolkin.
 #[must_use]
-pub fn tonalpohualli(jd: f64) -> (u8, usize, &'static str, &'static str) {
+pub fn tonalpohualli(jd: JulianDay) -> (u8, usize, &'static str, &'static str) {
+    let jd: f64 = jd.into();
     // Aztec day number from the base correlation. JD 584283 (Maya
     // Long Count epoch) is the canonical "4 Ahau" / "4 Cipactli"
     // anchor: trecena 4, sign index 19. The +3 / +19 offsets shift
@@ -108,7 +111,8 @@ pub fn tonalpohualli(jd: f64) -> (u8, usize, &'static str, &'static str) {
 /// Returns `(month_index, day_in_month, month_name, month_english)`.
 /// Month 18 (index 18) is the 5-day "Nemontemi" (unlucky days).
 #[must_use]
-pub fn xiuhpohualli(jd: f64) -> (usize, u8, &'static str, &'static str) {
+pub fn xiuhpohualli(jd: JulianDay) -> (usize, u8, &'static str, &'static str) {
+    let jd: f64 = jd.into();
     let day_num = (jd as i64 - GMT_CORRELATION).rem_euclid(365) as usize;
     let month_idx = (day_num / 20).min(18);
     let day_in_month = (day_num % 20 + 1) as u8;
@@ -129,7 +133,8 @@ pub fn xiuhpohualli(jd: f64) -> (usize, u8, &'static str, &'static str) {
 ///
 /// Returns `(trecena_number, day_sign_index, day_sign_name, day_sign_english)`.
 #[must_use]
-pub fn tzolkin(jd: f64) -> (u8, usize, &'static str, &'static str) {
+pub fn tzolkin(jd: JulianDay) -> (u8, usize, &'static str, &'static str) {
+    let jd: f64 = jd.into();
     // Per Maya GMT correlation, JD 584283 = 4 Ahau (trecena 4,
     // sign 19). The +3 / +19 offsets shift the raw 0-based day_num
     // onto that canonical anchor.
@@ -149,7 +154,8 @@ pub fn tzolkin(jd: f64) -> (u8, usize, &'static str, &'static str) {
 /// Returns `(month_index, day_in_month, month_name)`.
 /// Months 0–17 each have 20 days; month 18 (Wayeb) has 5.
 #[must_use]
-pub fn haab(jd: f64) -> (usize, u8, &'static str) {
+pub fn haab(jd: JulianDay) -> (usize, u8, &'static str) {
+    let jd: f64 = jd.into();
     const HAAB_MONTHS: &[&str] = &[
         "Pop", "Wo", "Sip", "Sotz", "Sek", "Xul", "Yaxkin", "Mol", "Ch'en", "Yax", "Sak", "Keh",
         "Mak", "Kankin", "Muwan", "Pax", "Kayab", "Kumku", "Wayeb",
@@ -172,9 +178,10 @@ pub fn haab(jd: f64) -> (usize, u8, &'static str) {
 /// Maya Calendar Round: the 52-year cycle combining Tzolkin + Haab.
 /// Returns `(tzolkin_trecena, tzolkin_sign, haab_day, haab_month)`.
 #[must_use]
-pub fn calendar_round(jd: f64) -> (u8, &'static str, u8, &'static str) {
-    let (trecena, _, sign_name, _) = tzolkin(jd);
-    let (_, haab_day, haab_month) = haab(jd);
+pub fn calendar_round(jd: JulianDay) -> (u8, &'static str, u8, &'static str) {
+    let jd: f64 = jd.into();
+    let (trecena, _, sign_name, _) = tzolkin(JulianDay::new(jd));
+    let (_, haab_day, haab_month) = haab(JulianDay::new(jd));
     (trecena, sign_name, haab_day, haab_month)
 }
 
@@ -193,7 +200,8 @@ pub fn calendar_round(jd: f64) -> (u8, &'static str, u8, &'static str) {
 ///
 /// Uses the GMT correlation (JD 584 283 = Maya Day 0 = 0.0.0.0.0 4 Ajaw 8 Kumk'u).
 #[must_use]
-pub fn maya_long_count(jd: f64) -> (u32, u32, u32, u32, u32) {
+pub fn maya_long_count(jd: JulianDay) -> (u32, u32, u32, u32, u32) {
+    let jd: f64 = jd.into();
     let mut days = jd.floor() as i64 - GMT_CORRELATION;
     if days < 0 {
         days = 0; // clamp for pre-epoch dates
@@ -212,8 +220,9 @@ pub fn maya_long_count(jd: f64) -> (u32, u32, u32, u32, u32) {
 
 /// Long Count in canonical dotted notation, e.g. `"13.0.0.0.0"`.
 #[must_use]
-pub fn maya_long_count_str(jd: f64) -> String {
-    let (b, k, t, u, ki) = maya_long_count(jd);
+pub fn maya_long_count_str(jd: JulianDay) -> String {
+    let jd: f64 = jd.into();
+    let (b, k, t, u, ki) = maya_long_count(JulianDay::new(jd));
     format!("{b}.{k}.{t}.{u}.{ki}")
 }
 
@@ -225,26 +234,26 @@ mod long_count_tests {
     fn long_count_2012_bak13() {
         // 2012-12-21 = 13.0.0.0.0 (end of 13th baktun, popular "Mayan prophecy")
         // JD 2456283.0 (2012-12-21 12:00 UT)
-        let (b, k, t, u, ki) = maya_long_count(2_456_283.0);
+        let (b, k, t, u, ki) = maya_long_count(JulianDay::new(2_456_283.0));
         assert_eq!((b, k, t, u, ki), (13, 0, 0, 0, 0));
     }
 
     #[test]
     fn long_count_j2000() {
         // J2000 = 2000-01-01 12:00 UT → known: 12.19.6.15.2
-        let (b, k, t, u, ki) = maya_long_count(2_451_545.0);
+        let (b, k, t, u, ki) = maya_long_count(JulianDay::new(2_451_545.0));
         assert_eq!((b, k, t, u, ki), (12, 19, 6, 15, 2));
     }
 
     #[test]
     fn long_count_str_format() {
-        assert_eq!(maya_long_count_str(2_456_283.0), "13.0.0.0.0");
+        assert_eq!(maya_long_count_str(JulianDay::new(2_456_283.0)), "13.0.0.0.0");
     }
 
     #[test]
     fn long_count_epoch() {
         // JD 584283 = 0.0.0.0.0 (start of current creation cycle)
-        let (b, k, t, u, ki) = maya_long_count(584_283.0);
+        let (b, k, t, u, ki) = maya_long_count(JulianDay::new(584_283.0));
         assert_eq!((b, k, t, u, ki), (0, 0, 0, 0, 0));
     }
 }

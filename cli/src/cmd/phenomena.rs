@@ -8,6 +8,7 @@
 use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::{pheno_ut, Body, CalcFlags};
+use celestial_core::JulianDay;
 use clap::Args;
 
 #[derive(Args)]
@@ -42,7 +43,7 @@ pub fn run(args: PhenomenaArgs) -> Result<(), CliError> {
     let body_id = parse::parse_body(&args.body)?;
     let body = Body(body_id);
 
-    let attr = pheno_ut(jd, body, CalcFlags::BUILTIN)
+    let attr = pheno_ut(JulianDay::new(jd), body, CalcFlags::BUILTIN)
         .map_err(|e| format!("phenomena calculation failed: {e}"))?;
 
     // attr[0] = phase angle (deg), [1] = illuminated fraction (0..1),
@@ -92,7 +93,7 @@ mod tests {
     fn phenomena_for_venus_at_j2000_runs() {
         // J2000.0 — known reference point. We don't check exact magnitude
         // (depends on phase) but ensure the call succeeds and gives finite values.
-        let attr = pheno_ut(2_451_545.0, Body::VENUS, CalcFlags::BUILTIN).unwrap();
+        let attr = pheno_ut(JulianDay::new(2_451_545.0), Body::VENUS, CalcFlags::BUILTIN).unwrap();
         assert!(attr[0].is_finite(), "phase angle should be finite");
         assert!(
             (0.0..=1.0).contains(&attr[1]),

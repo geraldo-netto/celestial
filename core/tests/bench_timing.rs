@@ -109,23 +109,23 @@ fn bench_calendar_and_time() {
         let _ = julday(2025, 3, 20, 12.0, Calendar::Gregorian);
     });
     bench("revjul", N, || {
-        let _ = revjul(J2000, Calendar::Gregorian);
+        let _ = revjul(JulianDay::new(J2000), Calendar::Gregorian);
     });
     bench("deltat", N, || {
-        let _ = deltat(J2000);
+        let _ = deltat(JulianDay::new(J2000));
     });
     bench("sidtime", N, || {
-        let _ = sidtime(J2000);
+        let _ = sidtime(JulianDay::new(J2000));
     });
     bench("nutation", N, || {
-        let _ = nutation(J2000);
+        let _ = nutation(JulianDay::new(J2000));
     });
     bench("mean_obliquity", N, || {
-        let _ = mean_obliquity(J2000);
+        let _ = mean_obliquity(JulianDay::new(J2000));
     });
     set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
     bench("ayanamsa (Lahiri)", N, || {
-        let _ = ayanamsa(J2000);
+        let _ = ayanamsa(JulianDay::new(J2000));
     });
 }
 
@@ -135,7 +135,7 @@ fn bench_rise_set() {
     let geo = [2.35_f64, 48.85, 0.0];
     bench("Sun rise", 500, || {
         let _ = rise_trans(
-            J2000,
+            JulianDay::new(J2000),
             Body::SUN,
             None,
             CalcFlags::BUILTIN,
@@ -147,7 +147,7 @@ fn bench_rise_set() {
     });
     bench("Moon rise", 500, || {
         let _ = rise_trans(
-            J2000,
+            JulianDay::new(J2000),
             Body::MOON,
             None,
             CalcFlags::BUILTIN,
@@ -159,7 +159,7 @@ fn bench_rise_set() {
     });
     bench("Sun transit", 500, || {
         let _ = rise_trans(
-            J2000,
+            JulianDay::new(J2000),
             Body::SUN,
             None,
             CalcFlags::BUILTIN,
@@ -187,9 +187,9 @@ fn bench_sabbats_esbats() {
 fn bench_eclipses() {
     println!("\n=== Eclipse search (slow — 50 calls) ===");
     bench("next solar eclipse", 50, || {
-        let _ = sol_eclipse_when_glob(J2000, CalcFlags::BUILTIN, 0, false);
+        let _ = sol_eclipse_when_glob(JulianDay::new(J2000), CalcFlags::BUILTIN, 0, false);
     });
     bench("next lunar eclipse", 50, || {
-        let _ = lun_eclipse_when(J2000, CalcFlags::BUILTIN, 0, false);
+        let _ = lun_eclipse_when(JulianDay::new(J2000), CalcFlags::BUILTIN, 0, false);
     });
 }

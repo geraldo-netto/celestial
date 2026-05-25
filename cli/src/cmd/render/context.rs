@@ -17,6 +17,7 @@ use celestial_core::{
     arabic_parts_seven, calc_ut, diff_deg_signed, fixstar_mag, fixstar_ut, houses_ex, is_applying,
     lon_to_sign, midpoint_deg, moon_illumination, zodiac_sign_name,
 };
+use celestial_core::Degrees;
 use serde_json::{json, Value};
 
 use super::{
@@ -46,7 +47,7 @@ pub(crate) fn build_context(
     let arabic_parts = build_arabic_parts(&planets, &h, asc);
     let fixed_stars = build_fixed_stars(jd, asc);
     let angles = build_angles(asc, mc, ic, dsc);
-    let illum_pct = (moon_illumination(jd).unwrap_or(0.0) * 1000.0).round() / 10.0;
+    let illum_pct = (moon_illumination(JulianDay::new(jd)).unwrap_or(0.0) * 1000.0).round() / 10.0;
     let solar_cycle_json = build_solar_cycle(jd);
     let vars = build_vars(&user_vars);
 
@@ -382,7 +383,7 @@ fn build_arabic_parts(planets: &[Value], h: &celestial_core::HouseResult, asc: f
     let b = collect_body_longitudes(planets);
     let is_day = sun_house_index(&h.cusps, b.sun) >= 7;
     let raw = arabic_parts_seven(
-        asc, b.sun, b.moon, b.saturn, b.mars, b.jupiter, b.mercury, b.venus, is_day,
+        Degrees::new(asc), Longitude::new(b.sun), Longitude::new(b.moon), Longitude::new(b.saturn), Longitude::new(b.mars), Longitude::new(b.jupiter), Longitude::new(b.mercury), Longitude::new(b.venus), is_day,
     );
     raw.iter()
         .map(|p| {
@@ -423,7 +424,7 @@ fn build_fixed_stars(jd: f64, asc: f64) -> Vec<Value> {
     TOP_STARS
         .iter()
         .filter_map(|&name| {
-            let pos = fixstar_ut(name, jd, CalcFlags::BUILTIN).ok()?;
+            let pos = fixstar_ut(name, JulianDay::new(jd), CalcFlags::BUILTIN).ok()?;
             let lon_s = pos.xx[0];
             let lat_s = pos.xx[1];
             let mag = fixstar_mag(name).unwrap_or(3.0);
@@ -483,11 +484,11 @@ fn build_vars(user_vars: &BTreeMap<String, String>) -> serde_json::Map<String, V
 /// template namespace: when the date falls outside numbered cycles (1755 →
 /// ~2030) the object only contains a `grand_epoch` field (or is fully empty).
 fn build_solar_cycle(jd: f64) -> Value {
-    if let Some(info) = solar_cycle(jd) {
+    if let Some(info) = solar_cycle(JulianDay::new(jd)) {
         return solar_cycle_to_json(&info);
     }
     // No numbered cycle — emit just the grand-epoch label if one applies.
-    match celestial_core::solar::grand_solar_epoch(jd) {
+    match celestial_core::solar::grand_solar_epoch(JulianDay::new(jd)) {
         Some(g) => json!({ "grand_epoch": g.name() }),
         None => json!({}),
     }

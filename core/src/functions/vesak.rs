@@ -25,7 +25,8 @@ use crate::{calc_ut, julday};
 ///
 /// Uses bisection to find when Moon–Sun elongation = 180°.
 #[must_use]
-pub fn next_full_moon_after(jd_start: f64) -> f64 {
+pub fn next_full_moon_after(jd_start: JulianDay) -> f64 {
+    let jd_start: f64 = jd_start.into();
     // Step forward in ~1-day steps to find the lunation
     let mut jd = jd_start;
     let elongation = |jd: f64| -> f64 {
@@ -69,7 +70,8 @@ pub fn next_full_moon_after(jd_start: f64) -> f64 {
 
 /// Find the next new moon (elongation = 0°) at or after `jd_start`.
 #[must_use]
-pub fn next_new_moon_after(jd_start: f64) -> f64 {
+pub fn next_new_moon_after(jd_start: JulianDay) -> f64 {
+    let jd_start: f64 = jd_start.into();
     let elongation = |jd: f64| -> f64 {
         let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
         let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
@@ -117,10 +119,10 @@ pub fn vesak_jd(year: i32) -> f64 {
     // Start search from March 15 of the given year
     let start = julday(year, 3, 15, 0.0, Calendar::Gregorian);
     // Find first full moon after the equinox
-    let fm1 = next_full_moon_after(start);
+    let fm1 = next_full_moon_after(JulianDay::new(start));
     // Vesak is typically the second full moon after the equinox (in Vaisakha)
     // If the first full moon is in April, the second is Vesak; if in May, it might be the first
-    let fm2 = next_full_moon_after(fm1 + 1.0);
+    let fm2 = next_full_moon_after(JulianDay::new(fm1 + 1.0));
 
     // Vesak per Theravada / Sri Lanka / Thailand / India Buddha Purnima
     // is the May full moon (full moon when Sun is in sidereal Taurus,
@@ -138,7 +140,7 @@ pub fn vesak_jd(year: i32) -> f64 {
         fm2
     } else {
         // Find one more FM
-        next_full_moon_after(fm2 + 1.0)
+        next_full_moon_after(JulianDay::new(fm2 + 1.0))
     }
 }
 

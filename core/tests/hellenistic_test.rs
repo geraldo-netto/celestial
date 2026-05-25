@@ -17,7 +17,7 @@ mod hellenistic_dignities {
         ];
         for i in 0..360u32 {
             let lon = i as f64 + 0.5;
-            let ruler = egyptian_terms_ruler(lon);
+            let ruler = egyptian_terms_ruler(Longitude::new(lon));
             assert!(
                 trad.contains(&ruler),
                 "lon {lon}: terms ruler {ruler:?} not a traditional planet"
@@ -28,11 +28,11 @@ mod hellenistic_dignities {
     #[test]
     fn decan_rulers_cycle_correctly() {
         // 36 decans of 10° each; ruler at 0° should be Mars (Aries decan 1)
-        assert_eq!(decan_ruler(0.0), Body::MARS, "Aries 1st decan = Mars");
-        assert_eq!(decan_ruler(10.0), Body::SUN, "Aries 2nd decan = Sun");
-        assert_eq!(decan_ruler(20.0), Body::VENUS, "Aries 3rd decan = Venus");
+        assert_eq!(decan_ruler(Longitude::new(0.0)), Body::MARS, "Aries 1st decan = Mars");
+        assert_eq!(decan_ruler(Longitude::new(10.0)), Body::SUN, "Aries 2nd decan = Sun");
+        assert_eq!(decan_ruler(Longitude::new(20.0)), Body::VENUS, "Aries 3rd decan = Venus");
         assert_eq!(
-            decan_ruler(30.0),
+            decan_ruler(Longitude::new(30.0)),
             Body::MERCURY,
             "Taurus 1st decan = Mercury"
         );
@@ -42,7 +42,7 @@ mod hellenistic_dignities {
     fn triplicity_rulers_fire_signs() {
         // Aries (0°), Leo (120°), Sagittarius (240°) are fire signs
         for lon in [15.0_f64, 135.0, 255.0] {
-            let (day, night, _part) = triplicity_rulers(lon);
+            let (day, night, _part) = triplicity_rulers(Longitude::new(lon));
             assert_eq!(day, Body::SUN, "fire day ruler = Sun at {lon}");
             assert_eq!(night, Body::JUPITER, "fire night ruler = Jupiter at {lon}");
         }
@@ -52,7 +52,7 @@ mod hellenistic_dignities {
     fn triplicity_rulers_water_signs() {
         // Cancer (90°), Scorpio (210°), Pisces (330°) are water
         for lon in [105.0_f64, 225.0, 345.0] {
-            let (day, night, _part) = triplicity_rulers(lon);
+            let (day, night, _part) = triplicity_rulers(Longitude::new(lon));
             assert_eq!(day, Body::VENUS, "water day ruler = Venus at {lon}");
             assert_eq!(night, Body::MARS, "water night ruler = Mars at {lon}");
         }
@@ -61,7 +61,7 @@ mod hellenistic_dignities {
     #[test]
     fn full_dignity_sun_in_aries_is_exaltation() {
         // Sun is exalted in Aries (15° Aries is the exact degree)
-        let (dig, score) = full_dignity(Body::SUN, 15.0, true);
+        let (dig, score) = full_dignity(Body::SUN, Longitude::new(15.0), true);
         assert_eq!(
             dig.to_string(),
             "exaltation",
@@ -72,21 +72,21 @@ mod hellenistic_dignities {
 
     #[test]
     fn full_dignity_sun_in_leo_is_domicile() {
-        let (dig, score) = full_dignity(Body::SUN, 135.0, true); // 15° Leo
+        let (dig, score) = full_dignity(Body::SUN, Longitude::new(135.0), true); // 15° Leo
         assert_eq!(dig.to_string(), "domicile");
         assert_eq!(score, 5);
     }
 
     #[test]
     fn full_dignity_sun_in_libra_is_fall() {
-        let (dig, score) = full_dignity(Body::SUN, 195.0, true); // 15° Libra
+        let (dig, score) = full_dignity(Body::SUN, Longitude::new(195.0), true); // 15° Libra
         assert_eq!(dig.to_string(), "fall");
         assert_eq!(score, -4);
     }
 
     #[test]
     fn full_dignity_sun_in_aquarius_is_detriment() {
-        let (dig, score) = full_dignity(Body::SUN, 315.0, true); // 15° Aquarius
+        let (dig, score) = full_dignity(Body::SUN, Longitude::new(315.0), true); // 15° Aquarius
         assert_eq!(dig.to_string(), "detriment");
         assert_eq!(score, -5);
     }
@@ -104,7 +104,7 @@ mod hellenistic_dignities {
         ];
         for i in 0..36u32 {
             let lon = i as f64 * 10.0 + 5.0;
-            let (body, _score) = almuten(lon, true);
+            let (body, _score) = almuten(Longitude::new(lon), true);
             assert!(
                 trad.contains(&body),
                 "almuten at {lon}° returned {body:?}, not a traditional planet"
@@ -143,7 +143,7 @@ mod firdaria {
     #[test]
     fn firdaria_day_starts_with_sun() {
         let jd = 2_451_545.0;
-        let periods = firdaria(jd, true, 10.0);
+        let periods = firdaria(JulianDay::new(jd), true, 10.0);
         assert!(!periods.is_empty());
         assert_eq!(
             periods[0].major_lord,
@@ -155,7 +155,7 @@ mod firdaria {
     #[test]
     fn firdaria_night_starts_with_moon() {
         let jd = 2_451_545.0;
-        let periods = firdaria(jd, false, 10.0);
+        let periods = firdaria(JulianDay::new(jd), false, 10.0);
         assert!(!periods.is_empty());
         assert_eq!(
             periods[0].major_lord,
@@ -167,7 +167,7 @@ mod firdaria {
     #[test]
     fn firdaria_periods_are_chronological() {
         let jd = 2_451_545.0;
-        let periods = firdaria(jd, true, 75.0);
+        let periods = firdaria(JulianDay::new(jd), true, 75.0);
         for w in periods.windows(2) {
             assert!(
                 w[0].end <= w[1].start + 1e-6,
@@ -181,7 +181,7 @@ mod firdaria {
     #[test]
     fn firdaria_start_is_birth_jd() {
         let jd = 2_451_545.0;
-        let periods = firdaria(jd, true, 5.0);
+        let periods = firdaria(JulianDay::new(jd), true, 5.0);
         assert!(
             (periods[0].start - jd).abs() < 1e-6,
             "first Firdaria period should start at birth JD"
@@ -191,7 +191,7 @@ mod firdaria {
     #[test]
     fn firdaria_minor_duration_divides_major() {
         let jd = 2_451_545.0;
-        let periods = firdaria(jd, true, 12.0);
+        let periods = firdaria(JulianDay::new(jd), true, 12.0);
         // Find the first complete major period (Sun = 10 years)
         let sun_minor: Vec<_> = periods
             .iter()
@@ -210,7 +210,7 @@ mod firdaria {
     fn firdaria_span_respected() {
         let jd = 2_451_545.0;
         for span in [10.0_f64, 30.0, 75.0] {
-            let periods = firdaria(jd, true, span);
+            let periods = firdaria(JulianDay::new(jd), true, span);
             if let Some(last) = periods.last() {
                 // Allow up to 2 years of overshoot (sub-period rounding)
                 assert!(
@@ -286,34 +286,34 @@ mod is_day_chart {
         let cusps = [
             0.0_f64, 0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0,
         ];
-        assert!(is_day_chart(180.0, &cusps));
-        assert!(!is_day_chart(0.0, &cusps)); // Sun at ASC — below horizon (night)
+        assert!(is_day_chart(Longitude::new(180.0), &cusps));
+        assert!(!is_day_chart(Longitude::new(0.0), &cusps)); // Sun at ASC — below horizon (night)
     }
 
     #[test]
     fn egyptian_terms_boundaries() {
         // Aries: Jupiter 0-6°, Venus 6-12°, Mercury 12-20°
-        assert_eq!(egyptian_terms_ruler(3.0), Body::JUPITER);
-        assert_eq!(egyptian_terms_ruler(9.0), Body::VENUS);
-        assert_eq!(egyptian_terms_ruler(15.0), Body::MERCURY);
+        assert_eq!(egyptian_terms_ruler(Longitude::new(3.0)), Body::JUPITER);
+        assert_eq!(egyptian_terms_ruler(Longitude::new(9.0)), Body::VENUS);
+        assert_eq!(egyptian_terms_ruler(Longitude::new(15.0)), Body::MERCURY);
         // Wraps at 360°
-        assert_eq!(egyptian_terms_ruler(360.0), egyptian_terms_ruler(0.0));
+        assert_eq!(egyptian_terms_ruler(Longitude::new(360.0)), egyptian_terms_ruler(Longitude::new(0.0)));
     }
 
     #[test]
     fn decan_ruler_chaldean_sequence() {
         // Aries decans: Mars (0-10°), Sun (10-20°), Venus (20-30°)
-        assert_eq!(decan_ruler(5.0), Body::MARS);
-        assert_eq!(decan_ruler(15.0), Body::SUN);
-        assert_eq!(decan_ruler(25.0), Body::VENUS);
+        assert_eq!(decan_ruler(Longitude::new(5.0)), Body::MARS);
+        assert_eq!(decan_ruler(Longitude::new(15.0)), Body::SUN);
+        assert_eq!(decan_ruler(Longitude::new(25.0)), Body::VENUS);
         // Taurus first decan: Mercury
-        assert_eq!(decan_ruler(35.0), Body::MERCURY);
+        assert_eq!(decan_ruler(Longitude::new(35.0)), Body::MERCURY);
     }
 
     #[test]
     fn triplicity_rulers_fire_signs() {
         // Aries is a fire sign: day=Sun, night=Jupiter, participating=Saturn
-        let (day, night, part) = triplicity_rulers(5.0); // Aries 5°
+        let (day, night, part) = triplicity_rulers(Longitude::new(5.0)); // Aries 5°
         assert_eq!(day, Body::SUN);
         assert_eq!(night, Body::JUPITER);
         assert_eq!(part, Body::SATURN);
@@ -322,7 +322,7 @@ mod is_day_chart {
     #[test]
     fn full_dignity_domicile() {
         // Sun in Leo (120-150°) = domicile
-        let (dig, score) = full_dignity(Body::SUN, 125.0, true);
+        let (dig, score) = full_dignity(Body::SUN, Longitude::new(125.0), true);
         assert_eq!(dig, Dignity::Domicile);
         assert!(score >= 5);
     }
@@ -330,14 +330,14 @@ mod is_day_chart {
     #[test]
     fn full_dignity_detriment() {
         // Sun in Aquarius (300-330°) = detriment
-        let (dig, score) = full_dignity(Body::SUN, 315.0, true);
+        let (dig, score) = full_dignity(Body::SUN, Longitude::new(315.0), true);
         assert_eq!(dig, Dignity::Detriment);
         assert!(score < 0);
     }
 
     #[test]
     fn almuten_returns_valid_body() {
-        let (body, score) = almuten(15.0, true); // Aries 15°
+        let (body, score) = almuten(Longitude::new(15.0), true); // Aries 15°
         assert!(score >= 0);
         let name = planet_name(body);
         assert!(!name.is_empty());
@@ -346,7 +346,7 @@ mod is_day_chart {
     #[test]
     fn firdaria_day_chart_starts_with_sun() {
         let jd = 2_451_545.0;
-        let periods = firdaria(jd, true, 75.0);
+        let periods = firdaria(JulianDay::new(jd), true, 75.0);
         assert!(!periods.is_empty());
         assert_eq!(periods[0].major_lord, Body::SUN);
         // Day chart: Sun 10y, Venus 8y, Mercury 13y...
@@ -357,7 +357,7 @@ mod is_day_chart {
     #[test]
     fn firdaria_night_chart_starts_with_moon() {
         let jd = 2_451_545.0;
-        let periods = firdaria(jd, false, 75.0);
+        let periods = firdaria(JulianDay::new(jd), false, 75.0);
         assert_eq!(periods[0].major_lord, Body::MOON);
     }
 
@@ -441,7 +441,7 @@ mod extra_hellenistic {
     #[test]
     fn full_dignity_exaltation() {
         // Sun exalted in Aries (0-30°)
-        let (dig, score) = full_dignity(Body::SUN, 15.0, true);
+        let (dig, score) = full_dignity(Body::SUN, Longitude::new(15.0), true);
         assert_eq!(dig, Dignity::Exaltation);
         assert!(score >= 4);
     }
@@ -449,7 +449,7 @@ mod extra_hellenistic {
     #[test]
     fn full_dignity_fall() {
         // Sun in fall in Libra (180-210°) — opposite exaltation
-        let (dig, score) = full_dignity(Body::SUN, 195.0, true);
+        let (dig, score) = full_dignity(Body::SUN, Longitude::new(195.0), true);
         assert_eq!(dig, Dignity::Fall);
         assert!(score < 0);
     }
@@ -458,11 +458,11 @@ mod extra_hellenistic {
     fn planet_on_midpoint_within_orb() {
         use celestial_core::planet_on_midpoint;
         // Planet at 15°, midpoint at 15° — exact hit
-        let hit = planet_on_midpoint(15.0, 15.0, 1.5);
+        let hit = planet_on_midpoint(Longitude::new(15.0), Longitude::new(15.0), 1.5);
         assert!(hit.is_some());
         assert!(hit.unwrap().abs() < 0.001);
         // Planet at 20°, midpoint at 15°, orb 1.5° — miss
-        assert!(planet_on_midpoint(20.0, 15.0, 1.5).is_none());
+        assert!(planet_on_midpoint(Longitude::new(20.0), Longitude::new(15.0), 1.5).is_none());
     }
 
     #[test]
@@ -477,7 +477,7 @@ mod extra_hellenistic {
     fn triplicity_rulers_all_signs_non_empty() {
         for sign in 0..12 {
             let lon = sign as f64 * 30.0 + 1.0;
-            let (d, n, p) = triplicity_rulers(lon);
+            let (d, n, p) = triplicity_rulers(Longitude::new(lon));
             let name_d = planet_name(d);
             let name_n = planet_name(n);
             let name_p = planet_name(p);
@@ -490,7 +490,7 @@ mod extra_hellenistic {
     #[test]
     fn firdaria_periods_non_overlapping() {
         let jd = 2_451_545.0;
-        let periods = firdaria(jd, true, 75.0);
+        let periods = firdaria(JulianDay::new(jd), true, 75.0);
         for w in periods.windows(2) {
             assert!(
                 (w[1].start - w[0].end).abs() < 0.01,

@@ -1,5 +1,6 @@
 //! Ecliptic crossings, rise/set/transit events.
 use crate::astronomy::crossings as ac;
+use crate::units::{JulianDay, Latitude, Longitude};
 
 /// Result of a Moon node crossing.
 #[derive(Debug, Clone, Copy)]
@@ -11,28 +12,37 @@ pub struct MoonCrossNode {
 }
 
 /// Next time the Sun crosses ecliptic longitude `x2cross`, searching forward from `jd_et`.
-pub fn solcross(x2cross: f64, jd_et: f64, flags: CalcFlags) -> Result<f64> {
-    ac::solcross(x2cross, jd_et, flags.as_raw())
+pub fn solcross(x2cross: Longitude, jd_et: JulianDay, flags: CalcFlags) -> Result<f64> {
+    let x2cross: f64 = x2cross.into();
+    let jd_et: f64 = jd_et.into();
+    ac::solcross(x2cross, JulianDay::new(jd_et), flags.as_raw())
         .ok_or_else(|| Error::Calc("solcross: no crossing found in search window".into()))
 }
 /// Next time the Sun crosses ecliptic longitude `x2cross`, searching forward from `jd_ut` (UT).
-pub fn solcross_ut(x2cross: f64, jd_ut: f64, flags: CalcFlags) -> Result<f64> {
-    ac::solcross_ut(x2cross, jd_ut, flags.as_raw())
+pub fn solcross_ut(x2cross: Longitude, jd_ut: JulianDay, flags: CalcFlags) -> Result<f64> {
+    let x2cross: f64 = x2cross.into();
+    let jd_ut: f64 = jd_ut.into();
+    ac::solcross_ut(x2cross, JulianDay::new(jd_ut), flags.as_raw())
         .ok_or_else(|| Error::Calc("solcross_ut: no crossing found".into()))
 }
 /// Next time the Moon crosses ecliptic longitude `x2cross`, searching forward from `jd_et`.
-pub fn mooncross(x2cross: f64, jd_et: f64, flags: CalcFlags) -> Result<f64> {
-    ac::mooncross(x2cross, jd_et, flags.as_raw())
+pub fn mooncross(x2cross: Longitude, jd_et: JulianDay, flags: CalcFlags) -> Result<f64> {
+    let x2cross: f64 = x2cross.into();
+    let jd_et: f64 = jd_et.into();
+    ac::mooncross(x2cross, JulianDay::new(jd_et), flags.as_raw())
         .ok_or_else(|| Error::Calc("mooncross: no crossing found".into()))
 }
 /// Next time the Moon crosses ecliptic longitude `x2cross`, searching forward from `jd_ut` (UT).
-pub fn mooncross_ut(x2cross: f64, jd_ut: f64, flags: CalcFlags) -> Result<f64> {
-    ac::mooncross_ut(x2cross, jd_ut, flags.as_raw())
+pub fn mooncross_ut(x2cross: Longitude, jd_ut: JulianDay, flags: CalcFlags) -> Result<f64> {
+    let x2cross: f64 = x2cross.into();
+    let jd_ut: f64 = jd_ut.into();
+    ac::mooncross_ut(x2cross, JulianDay::new(jd_ut), flags.as_raw())
         .ok_or_else(|| Error::Calc("mooncross_ut: no crossing found".into()))
 }
 /// Next time the Moon crosses its own ascending node (ET).
-pub fn mooncross_node(jd_et: f64, flags: CalcFlags) -> Result<MoonCrossNode> {
-    ac::mooncross_node(jd_et, flags.as_raw())
+pub fn mooncross_node(jd_et: JulianDay, flags: CalcFlags) -> Result<MoonCrossNode> {
+    let jd_et: f64 = jd_et.into();
+    ac::mooncross_node(JulianDay::new(jd_et), flags.as_raw())
         .map(|n| MoonCrossNode {
             jd_cross: n.jd_cross,
             xlon: n.xlon,
@@ -40,25 +50,27 @@ pub fn mooncross_node(jd_et: f64, flags: CalcFlags) -> Result<MoonCrossNode> {
         .ok_or_else(|| Error::Calc("mooncross_node: no node crossing found".into()))
 }
 /// Next time the Moon crosses its own ascending node (UT).
-pub fn mooncross_node_ut(jd_ut: f64, flags: CalcFlags) -> Result<MoonCrossNode> {
+pub fn mooncross_node_ut(jd_ut: JulianDay, flags: CalcFlags) -> Result<MoonCrossNode> {
     mooncross_node(jd_ut, flags)
 }
 /// Heliocentric crossing of ecliptic longitude `x2cross` (ET).
 pub fn helio_cross(
     body: Body,
-    x2cross: f64,
-    jd_et: f64,
+    x2cross: Longitude,
+    jd_et: JulianDay,
     flags: CalcFlags,
     dir: i32,
 ) -> Result<f64> {
-    ac::helio_cross(body.as_raw(), x2cross, jd_et, flags.as_raw(), dir >= 0)
+    let x2cross: f64 = x2cross.into();
+    let jd_et: f64 = jd_et.into();
+    ac::helio_cross(body.as_raw(), x2cross, JulianDay::new(jd_et), flags.as_raw(), dir >= 0)
         .ok_or_else(|| Error::Calc("helio_cross: no crossing found".into()))
 }
 /// Heliocentric crossing of ecliptic longitude `x2cross` (UT).
 pub fn helio_cross_ut(
     body: Body,
-    x2cross: f64,
-    jd_ut: f64,
+    x2cross: Longitude,
+    jd_ut: JulianDay,
     flags: CalcFlags,
     dir: i32,
 ) -> Result<f64> {
@@ -123,7 +135,7 @@ impl RiseSetEvent {
 /// Find rise, transit or set time — pure-Rust engine.
 #[allow(clippy::too_many_arguments)]
 pub fn rise_trans(
-    jd_ut: f64,
+    jd_ut: JulianDay,
     planet: Body,
     _starname: Option<&str>,
     _flags: CalcFlags,
@@ -132,14 +144,15 @@ pub fn rise_trans(
     _atpress: f64,
     _attemp: f64,
 ) -> Result<RiseTransResult> {
+    let jd_ut: f64 = jd_ut.into();
     let ev_byte: u8 = RiseSetEvent::from_bits(event_type).ev_byte();
     let jd = match planet.as_raw() {
-        0 => crate::astronomy::sun_rise_transit_set(jd_ut, geopos[1], geopos[0], ev_byte),
-        1 => crate::astronomy::moon_rise_transit_set(jd_ut, geopos[1], geopos[0], ev_byte),
+        0 => crate::astronomy::sun_rise_transit_set(JulianDay::new(jd_ut), Latitude::new(geopos[1]), Longitude::new(geopos[0]), ev_byte),
+        1 => crate::astronomy::moon_rise_transit_set(JulianDay::new(jd_ut), Latitude::new(geopos[1]), Longitude::new(geopos[0]), ev_byte),
         _ => crate::astronomy::planet_rise_transit_set(
-            jd_ut,
-            geopos[1],
-            geopos[0],
+            JulianDay::new(jd_ut),
+            Latitude::new(geopos[1]),
+            Longitude::new(geopos[0]),
             planet.as_raw(),
             ev_byte,
         ),
@@ -157,7 +170,7 @@ pub fn rise_trans(
 /// rise_trans_true_hor — delegates to rise_trans in pure mode.
 #[allow(clippy::too_many_arguments)]
 pub fn rise_trans_true_hor(
-    jd_ut: f64,
+    jd_ut: JulianDay,
     planet: Body,
     starname: Option<&str>,
     flags: CalcFlags,
@@ -182,14 +195,18 @@ pub fn rise_trans_true_hor(
 /// Next time the Sun crosses ecliptic longitude `x2cross`, searching backward from `jd_ut`.
 ///
 /// Mirrors [`solcross_ut`] but walks backward in time.
-pub fn solcross_back_ut(x2cross: f64, jd_ut: f64, flags: CalcFlags) -> Result<f64> {
-    crate::astronomy::crossings::find_crossing(0, x2cross, jd_ut, false, flags.as_raw())
+pub fn solcross_back_ut(x2cross: Longitude, jd_ut: JulianDay, flags: CalcFlags) -> Result<f64> {
+    let x2cross: f64 = x2cross.into();
+    let jd_ut: f64 = jd_ut.into();
+    crate::astronomy::crossings::find_crossing(0, x2cross, JulianDay::new(jd_ut), false, flags.as_raw())
         .ok_or_else(|| Error::Calc("solcross_back_ut: no crossing found searching backward".into()))
 }
 
 /// Next time the Moon crosses ecliptic longitude `x2cross`, searching backward from `jd_ut`.
-pub fn mooncross_back_ut(x2cross: f64, jd_ut: f64, flags: CalcFlags) -> Result<f64> {
-    crate::astronomy::crossings::find_crossing(1, x2cross, jd_ut, false, flags.as_raw()).ok_or_else(
+pub fn mooncross_back_ut(x2cross: Longitude, jd_ut: JulianDay, flags: CalcFlags) -> Result<f64> {
+    let x2cross: f64 = x2cross.into();
+    let jd_ut: f64 = jd_ut.into();
+    crate::astronomy::crossings::find_crossing(1, x2cross, JulianDay::new(jd_ut), false, flags.as_raw()).ok_or_else(
         || Error::Calc("mooncross_back_ut: no crossing found searching backward".into()),
     )
 }
@@ -202,7 +219,7 @@ pub fn mooncross_back_ut(x2cross: f64, jd_ut: f64, flags: CalcFlags) -> Result<f
 /// ```no_run
 /// # use celestial_core::*;
 /// # use celestial_core::body::{Body, CalcFlags};
-/// let result = RiseTransOptions::new(2_451_545.0, Body::MOON, [2.35, 48.85, 35.0])
+/// let result = RiseTransOptions::new(JulianDay::new(2_451_545.0), Body::MOON, [2.35, 48.85, 35.0])
 ///     .event(1) // CALC_RISE
 ///     .flags(CalcFlags::BUILTIN)
 ///     .search()
@@ -226,7 +243,8 @@ impl RiseTransOptions {
     /// Create a new builder.
     ///
     /// `geopos` is `[geographic_longitude, latitude, altitude_m]`.
-    pub fn new(jd_ut: f64, planet: Body, geopos: [f64; 3]) -> Self {
+    pub fn new(jd_ut: JulianDay, planet: Body, geopos: [f64; 3]) -> Self {
+        let jd_ut: f64 = jd_ut.into();
         Self {
             jd_ut,
             planet,
@@ -274,7 +292,7 @@ impl RiseTransOptions {
     /// Execute the search and return a `RiseTransResult`.
     pub fn search(self) -> crate::Result<RiseTransResult> {
         rise_trans_true_hor(
-            self.jd_ut,
+            JulianDay::new(self.jd_ut),
             self.planet,
             self.starname.as_deref(),
             self.flags,
@@ -316,22 +334,22 @@ mod tests {
     /// via the constructed options struct.
     #[test]
     fn horizon_height_round_trip() {
-        let opts = RiseTransOptions::new(0.0, Body::SUN, [0.0, 0.0, 0.0]).horizon_height(2.5);
+        let opts = RiseTransOptions::new(JulianDay::new(0.0), Body::SUN, [0.0, 0.0, 0.0]).horizon_height(2.5);
         assert!((opts.horhgt - 2.5).abs() < 1e-12);
 
         // Negative offset (depression below horizon, e.g. for a ship's bridge)
-        let opts = RiseTransOptions::new(0.0, Body::SUN, [0.0, 0.0, 0.0]).horizon_height(-1.2);
+        let opts = RiseTransOptions::new(JulianDay::new(0.0), Body::SUN, [0.0, 0.0, 0.0]).horizon_height(-1.2);
         assert!((opts.horhgt - (-1.2)).abs() < 1e-12);
 
         // Zero is the default; re-setting to 0 must still yield 0
-        let opts = RiseTransOptions::new(0.0, Body::SUN, [0.0, 0.0, 0.0]).horizon_height(0.0);
+        let opts = RiseTransOptions::new(JulianDay::new(0.0), Body::SUN, [0.0, 0.0, 0.0]).horizon_height(0.0);
         assert_eq!(opts.horhgt, 0.0);
     }
 
     /// Builder methods chain. Each one only mutates its own field.
     #[test]
     fn builder_chains_independently() {
-        let opts = RiseTransOptions::new(2_460_000.0, Body::SUN, [1.0, 2.0, 3.0])
+        let opts = RiseTransOptions::new(JulianDay::new(2_460_000.0), Body::SUN, [1.0, 2.0, 3.0])
             .horizon_height(10.0)
             .atmosphere(900.0, 20.0)
             .event(2);
@@ -345,7 +363,7 @@ mod tests {
     /// Remaining builder setters (`flags`, `star`) write to their fields.
     #[test]
     fn builder_flags_and_star_fields() {
-        let opts = RiseTransOptions::new(2_460_000.0, Body::SUN, [0.0, 0.0, 0.0])
+        let opts = RiseTransOptions::new(JulianDay::new(2_460_000.0), Body::SUN, [0.0, 0.0, 0.0])
             .flags(CalcFlags::BUILTIN)
             .star("Sirius");
         assert_eq!(opts.flags.as_raw(), CalcFlags::BUILTIN.as_raw());
@@ -361,7 +379,7 @@ mod tests {
     /// which from J2000 should land roughly at JD 2_451_624 (≈ March 2000).
     #[test]
     fn solcross_finds_vernal_equinox() {
-        let jd = solcross(0.0, 2_451_545.0, CalcFlags::BUILTIN).expect("crossing");
+        let jd = solcross(Longitude::new(0.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("crossing");
         assert!(jd.is_finite());
         assert!(
             (2_451_600.0..2_451_700.0).contains(&jd),
@@ -373,8 +391,8 @@ mod tests {
     /// same crossing (the ET↔UT offset is tiny near J2000).
     #[test]
     fn solcross_ut_matches_et_variant() {
-        let et = solcross(180.0, 2_451_545.0, CalcFlags::BUILTIN).expect("et");
-        let ut = solcross_ut(180.0, 2_451_545.0, CalcFlags::BUILTIN).expect("ut");
+        let et = solcross(Longitude::new(180.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("et");
+        let ut = solcross_ut(Longitude::new(180.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("ut");
         assert!((et - ut).abs() < 0.01, "et={et}, ut={ut}");
     }
 
@@ -383,15 +401,15 @@ mod tests {
     #[test]
     fn mooncross_finds_within_30_days() {
         let start = 2_451_545.0;
-        let jd = mooncross(120.0, start, CalcFlags::BUILTIN).expect("crossing");
+        let jd = mooncross(Longitude::new(120.0), JulianDay::new(start), CalcFlags::BUILTIN).expect("crossing");
         assert!(jd > start && jd < start + 30.0, "mooncross jd={jd}");
     }
 
     /// `mooncross_ut` mirrors `mooncross` to better than 1 second.
     #[test]
     fn mooncross_ut_matches_et_variant() {
-        let et = mooncross(45.0, 2_451_545.0, CalcFlags::BUILTIN).expect("et");
-        let ut = mooncross_ut(45.0, 2_451_545.0, CalcFlags::BUILTIN).expect("ut");
+        let et = mooncross(Longitude::new(45.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("et");
+        let ut = mooncross_ut(Longitude::new(45.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("ut");
         assert!((et - ut).abs() < 0.01);
     }
 
@@ -400,7 +418,7 @@ mod tests {
     #[test]
     fn mooncross_node_returns_finite() {
         let start = 2_451_545.0;
-        let node = mooncross_node(start, CalcFlags::BUILTIN).expect("node");
+        let node = mooncross_node(JulianDay::new(start), CalcFlags::BUILTIN).expect("node");
         assert!(node.jd_cross.is_finite());
         assert!(node.xlon.is_finite());
         assert!((node.jd_cross - start).abs() < 30.0);
@@ -409,8 +427,8 @@ mod tests {
     /// `mooncross_node_ut` delegates to `mooncross_node` with the same args.
     #[test]
     fn mooncross_node_ut_matches_et_variant() {
-        let a = mooncross_node(2_451_545.0, CalcFlags::BUILTIN).expect("et");
-        let b = mooncross_node_ut(2_451_545.0, CalcFlags::BUILTIN).expect("ut");
+        let a = mooncross_node(JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("et");
+        let b = mooncross_node_ut(JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("ut");
         assert!((a.jd_cross - b.jd_cross).abs() < 1e-9);
     }
 
@@ -418,7 +436,7 @@ mod tests {
     #[test]
     fn solcross_back_walks_backward() {
         let start = 2_451_545.0;
-        let back = solcross_back_ut(0.0, start, CalcFlags::BUILTIN).expect("back");
+        let back = solcross_back_ut(Longitude::new(0.0), JulianDay::new(start), CalcFlags::BUILTIN).expect("back");
         assert!(back < start, "back={back}, start={start}");
         assert!(start - back < 366.0, "more than a year back: {back}");
     }
@@ -427,7 +445,7 @@ mod tests {
     #[test]
     fn mooncross_back_walks_backward() {
         let start = 2_451_545.0;
-        let back = mooncross_back_ut(200.0, start, CalcFlags::BUILTIN).expect("back");
+        let back = mooncross_back_ut(Longitude::new(200.0), JulianDay::new(start), CalcFlags::BUILTIN).expect("back");
         assert!(back < start);
         assert!(start - back < 30.0);
     }
@@ -435,15 +453,15 @@ mod tests {
     /// `helio_cross` finds a Mars heliocentric crossing forward in time.
     #[test]
     fn helio_cross_mars_forward() {
-        let jd = helio_cross(Body::MARS, 0.0, 2_451_545.0, CalcFlags::BUILTIN, 1).expect("mars");
+        let jd = helio_cross(Body::MARS, Longitude::new(0.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN, 1).expect("mars");
         assert!(jd > 2_451_545.0);
     }
 
     /// `helio_cross_ut` is a thin wrapper around `helio_cross`.
     #[test]
     fn helio_cross_ut_matches_helio_cross() {
-        let et = helio_cross(Body::MARS, 90.0, 2_451_545.0, CalcFlags::BUILTIN, 1);
-        let ut = helio_cross_ut(Body::MARS, 90.0, 2_451_545.0, CalcFlags::BUILTIN, 1);
+        let et = helio_cross(Body::MARS, Longitude::new(90.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN, 1);
+        let ut = helio_cross_ut(Body::MARS, Longitude::new(90.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN, 1);
         match (et, ut) {
             (Ok(a), Ok(b)) => assert!((a - b).abs() < 1e-9),
             (Err(_), Err(_)) => {} // both failed: still consistent
@@ -458,7 +476,7 @@ mod tests {
     #[test]
     fn rise_trans_sun_at_equator() {
         let res = rise_trans(
-            2_451_545.0,
+            JulianDay::new(2_451_545.0),
             Body::SUN,
             None,
             CalcFlags::BUILTIN,
@@ -477,7 +495,7 @@ mod tests {
     #[test]
     fn rise_trans_moon_at_equator() {
         let res = rise_trans(
-            2_451_545.0,
+            JulianDay::new(2_451_545.0),
             Body::MOON,
             None,
             CalcFlags::BUILTIN,
@@ -494,7 +512,7 @@ mod tests {
     #[test]
     fn rise_trans_planet_at_equator() {
         let res = rise_trans(
-            2_451_545.0,
+            JulianDay::new(2_451_545.0),
             Body::MARS,
             None,
             CalcFlags::BUILTIN,
@@ -515,7 +533,7 @@ mod tests {
     #[test]
     fn rise_trans_ambiguous_event_falls_back() {
         let _ = rise_trans(
-            2_451_545.0,
+            JulianDay::new(2_451_545.0),
             Body::SUN,
             None,
             CalcFlags::BUILTIN,
@@ -525,7 +543,7 @@ mod tests {
             15.0,
         );
         let _ = rise_trans(
-            2_451_545.0,
+            JulianDay::new(2_451_545.0),
             Body::SUN,
             None,
             CalcFlags::BUILTIN,
@@ -545,7 +563,7 @@ mod tests {
         // above the horizon for an observer at +85° N.
         let jd_solstice = 2_451_899.0; // approx 2000-12-21
         let res = rise_trans(
-            jd_solstice,
+            JulianDay::new(jd_solstice),
             Body::SUN,
             None,
             CalcFlags::BUILTIN,
@@ -565,7 +583,7 @@ mod tests {
     #[test]
     fn rise_trans_true_hor_matches_rise_trans() {
         let a = rise_trans(
-            2_451_545.0,
+            JulianDay::new(2_451_545.0),
             Body::SUN,
             None,
             CalcFlags::BUILTIN,
@@ -575,7 +593,7 @@ mod tests {
             15.0,
         );
         let b = rise_trans_true_hor(
-            2_451_545.0,
+            JulianDay::new(2_451_545.0),
             Body::SUN,
             None,
             CalcFlags::BUILTIN,
@@ -596,7 +614,7 @@ mod tests {
     /// settings.
     #[test]
     fn options_search_executes() {
-        let res = RiseTransOptions::new(2_451_545.0, Body::SUN, [0.0, 0.0, 0.0])
+        let res = RiseTransOptions::new(JulianDay::new(2_451_545.0), Body::SUN, [0.0, 0.0, 0.0])
             .event(1)
             .flags(CalcFlags::BUILTIN)
             .search()

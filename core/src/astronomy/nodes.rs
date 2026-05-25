@@ -1,6 +1,7 @@
 //! Moon nodes (mean and true) and planetary nodes/apsides.
 
 use crate::astronomy::constants::{norm_deg as norm360, to_rad};
+use crate::units::JulianDay;
 
 const J2000: f64 = 2451545.0;
 
@@ -9,7 +10,8 @@ const J2000: f64 = 2451545.0;
 /// Mean ascending node of the Moon (ecliptic longitude, degrees).
 /// Meeus "Astronomical Algorithms" ch. 47.
 #[must_use]
-pub fn moon_mean_node(jd_et: f64) -> f64 {
+pub fn moon_mean_node(jd_et: JulianDay) -> f64 {
+    let jd_et: f64 = jd_et.into();
     let t = (jd_et - J2000) / 36525.0;
     let t2 = t * t;
     let t3 = t2 * t;
@@ -21,7 +23,8 @@ pub fn moon_mean_node(jd_et: f64) -> f64 {
 
 /// Speed of the mean node (deg/day).
 #[must_use]
-pub fn moon_mean_node_speed(jd_et: f64) -> f64 {
+pub fn moon_mean_node_speed(jd_et: JulianDay) -> f64 {
+    let jd_et: f64 = jd_et.into();
     let t = (jd_et - J2000) / 36525.0;
     // d/dt of mean node (deg/century → deg/day)
     let dc = -1_934.136_261_972 + 2.0 * 0.002_075_633 * t + 3.0 * 0.000_002_139 * t * t;
@@ -33,14 +36,15 @@ pub fn moon_mean_node_speed(jd_et: f64) -> f64 {
 /// True (osculating) ascending node of the Moon.
 /// Adds the principal periodic corrections to the mean node.
 #[must_use]
-pub fn moon_true_node(jd_et: f64) -> f64 {
+pub fn moon_true_node(jd_et: JulianDay) -> f64 {
+    let jd_et: f64 = jd_et.into();
     let t = (jd_et - J2000) / 36525.0;
 
     // Mean anomalies and arguments (degrees)
     let m = norm360(357.529_109_2 + 35_999.050_29 * t); // Sun  mean anomaly
     let mp = norm360(134.963_396_0 + 477_198.867_398 * t); // Moon mean anomaly
     let f = norm360(93.272_095_0 + 483_202.017_538 * t); // Moon arg of lat
-    let om = moon_mean_node(jd_et);
+    let om = moon_mean_node(JulianDay::new(jd_et));
 
     // Periodic terms (Meeus table 47.b, truncated to significant terms)
     let delta = -1.4979 * (2.0 * to_rad(f - om)).sin()
@@ -54,9 +58,10 @@ pub fn moon_true_node(jd_et: f64) -> f64 {
 
 /// Speed of the true node (deg/day) — numerical derivative.
 #[must_use]
-pub fn moon_true_node_speed(jd_et: f64) -> f64 {
+pub fn moon_true_node_speed(jd_et: JulianDay) -> f64 {
+    let jd_et: f64 = jd_et.into();
     let h = 0.5;
-    (moon_true_node(jd_et + h) - moon_true_node(jd_et - h)) / (2.0 * h)
+    (moon_true_node(JulianDay::new(jd_et + h)) - moon_true_node(JulianDay::new(jd_et - h))) / (2.0 * h)
 }
 
 // ─── Lunar apsides ────────────────────────────────────────────────────────────
@@ -64,7 +69,8 @@ pub fn moon_true_node_speed(jd_et: f64) -> f64 {
 /// Longitude of lunar perigee (degrees) — mean value.
 /// Meeus ch. 48.
 #[must_use]
-pub fn moon_mean_perigee(jd_et: f64) -> f64 {
+pub fn moon_mean_perigee(jd_et: JulianDay) -> f64 {
+    let jd_et: f64 = jd_et.into();
     let t = (jd_et - J2000) / 36525.0;
     let pi = 83.353_243_0 + 4_069.013_564 * t - 0.010_325_2 * t * t - 0.000_012_468 * t * t * t;
     norm360(pi)
@@ -72,7 +78,7 @@ pub fn moon_mean_perigee(jd_et: f64) -> f64 {
 
 /// Speed of mean perigee (deg/day).
 #[must_use]
-pub fn moon_mean_perigee_speed(_jd_et: f64) -> f64 {
+pub fn moon_mean_perigee_speed(_jd_et: JulianDay) -> f64 {
     // ~4069.013564 deg/century → deg/day
     4_069.013_564 / 36525.0
 }
@@ -231,7 +237,8 @@ fn elements_for_body(body: i32) -> Option<&'static [f64; 12]> {
 /// Orbital elements for a planet at Julian ephemeris date.
 /// body: 0=Sun/Earth, 1=Mercury, 2=Venus, 4=Mars,
 ///       5=Jupiter, 6=Saturn, 7=Uranus, 8=Neptune
-pub fn planet_mean_elements(body: i32, jd_et: f64) -> Option<PlanetElements> {
+pub fn planet_mean_elements(body: i32, jd_et: JulianDay) -> Option<PlanetElements> {
+    let jd_et: f64 = jd_et.into();
     let t = (jd_et - J2000) / 36525.0;
     let [l0, l1, a0, a1, e0, e1, i0, i1, om0, om1, w0, w1] = *elements_for_body(body)?;
     Some(PlanetElements {
@@ -248,8 +255,9 @@ pub fn planet_mean_elements(body: i32, jd_et: f64) -> Option<PlanetElements> {
 /// Returns (asc_node_lon, desc_node_lon, perihelion_lon, aphelion_lon)
 /// all in ecliptic degrees, along with the inclination.
 /// Returns `(asc_lon, desc_lon, peri_lon, aphe_lon, inc)` for a planet.
-pub fn planet_nodes_apsides(body: i32, jd_et: f64) -> Option<(f64, f64, f64, f64, f64)> {
-    let el = planet_mean_elements(body, jd_et)?;
+pub fn planet_nodes_apsides(body: i32, jd_et: JulianDay) -> Option<(f64, f64, f64, f64, f64)> {
+    let jd_et: f64 = jd_et.into();
+    let el = planet_mean_elements(body, JulianDay::new(jd_et))?;
     let asc = el.node_lon;
     let desc = norm360(asc + 180.0);
     let peri = el.peri_lon;
@@ -258,9 +266,10 @@ pub fn planet_nodes_apsides(body: i32, jd_et: f64) -> Option<(f64, f64, f64, f64
 }
 
 /// Returns speeds (°/day) for node and perihelion by numerical differentiation.
-pub fn planet_nodes_speeds(body: i32, jd_et: f64) -> Option<(f64, f64)> {
-    let el_p = planet_mean_elements(body, jd_et + 0.5)?;
-    let el_m = planet_mean_elements(body, jd_et - 0.5)?;
+pub fn planet_nodes_speeds(body: i32, jd_et: JulianDay) -> Option<(f64, f64)> {
+    let jd_et: f64 = jd_et.into();
+    let el_p = planet_mean_elements(body, JulianDay::new(jd_et + 0.5))?;
+    let el_m = planet_mean_elements(body, JulianDay::new(jd_et - 0.5))?;
 
     let node_speed = crate::functions::utils::wrap_signed_180(el_p.node_lon - el_m.node_lon);
     let peri_speed = crate::functions::utils::wrap_signed_180(el_p.peri_lon - el_m.peri_lon);
@@ -297,7 +306,7 @@ mod tests {
     #[test]
     fn mean_elements_at_j2000_match_constants() {
         // At t=0, mean_lon = L0 normalized; semi_major = a0; ecc = e0; inc = i0
-        let el = planet_mean_elements(1, J2000).unwrap();
+        let el = planet_mean_elements(1, JulianDay::new(J2000)).unwrap();
         assert!((el.mean_lon - norm360(MERCURY_ELEMENTS[0])).abs() < 1e-9);
         assert!((el.semi_major - MERCURY_ELEMENTS[2]).abs() < 1e-12);
         assert!((el.ecc - MERCURY_ELEMENTS[4]).abs() < 1e-12);
@@ -307,7 +316,7 @@ mod tests {
     #[test]
     fn nodes_apsides_inclination_consistent() {
         for body in [1, 2, 4, 5, 6, 7, 8] {
-            let (_a, _d, _p, _ap, inc) = planet_nodes_apsides(body, J2000).unwrap();
+            let (_a, _d, _p, _ap, inc) = planet_nodes_apsides(body, JulianDay::new(J2000)).unwrap();
             assert!((0.0..=10.0).contains(&inc), "body {body} inc {inc}");
         }
     }
@@ -321,7 +330,7 @@ mod tests {
             s ^= s << 17;
             let jd = J2000 + ((s % 2_000_000) as f64 - 1_000_000.0); // ± ~2700 yr
             for body in [1, 2, 3, 4, 5, 6, 7, 8] {
-                let el = planet_mean_elements(body, jd).unwrap();
+                let el = planet_mean_elements(body, JulianDay::new(jd)).unwrap();
                 assert!(el.mean_lon.is_finite() && (0.0..360.0).contains(&el.mean_lon));
                 assert!(el.node_lon.is_finite() && (0.0..360.0).contains(&el.node_lon));
                 assert!(el.peri_lon.is_finite() && (0.0..360.0).contains(&el.peri_lon));

@@ -5,12 +5,13 @@
 //! ```no_run
 //! use celestial_core::motion::{RiseTransOptions, SearchOptions, solcross_ut};
 //! use celestial_core::body::{Body, CalcFlags, HouseSystem};
+//! use celestial_core::{JulianDay, Latitude, Longitude};
 //!
 //! // Next time the Sun crosses 0° (Aries ingress)
-//! let jd = solcross_ut(0.0, 2_451_545.0, CalcFlags::BUILTIN).unwrap();
+//! let jd = solcross_ut(Longitude::new(0.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).unwrap();
 //!
 //! // Moon rise using the builder
-//! let rise = RiseTransOptions::new(2_451_545.0, Body::MOON, [2.35, 48.85, 35.0])
+//! let rise = RiseTransOptions::new(JulianDay::new(2_451_545.0), Body::MOON, [2.35, 48.85, 35.0])
 //!     .event(1) // CALC_RISE
 //!     .search()
 //!     .unwrap();

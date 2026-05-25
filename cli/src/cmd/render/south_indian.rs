@@ -7,6 +7,7 @@
 //! `super::render_south_indian_svg` call sites are unchanged.
 
 use celestial_core::{long_to_nakshatra, nakshatra_name};
+use celestial_core::Longitude;
 use serde_json::Value;
 
 use super::svg_common::SvgPalette;
@@ -259,7 +260,7 @@ fn write_si_centre(s: &mut String, ctx: &Value, pal: &SiPalette) {
     let cx = SI_OX + SI_CW;
     let cy = SI_OY + SI_CH;
     let moon_sid = ctx["moon_sid_lon"].as_f64().unwrap_or(0.0);
-    let (moon_nak, _) = long_to_nakshatra(moon_sid);
+    let (moon_nak, _) = long_to_nakshatra(Longitude::new(moon_sid));
     let nak_nm = nakshatra_name(moon_nak).unwrap_or("?");
     let _ = writeln!(
         s,

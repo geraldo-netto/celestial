@@ -7,6 +7,7 @@
 use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::{omer_days, omer_period, revjul, Calendar};
+use celestial_core::JulianDay;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
@@ -28,7 +29,7 @@ const SEFIROT_NAMES: [&str; 7] = [
 ];
 
 fn date_str_from_jd(jd: f64) -> String {
-    let d = revjul(jd, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
     format!("{:04}-{:02}-{:02}", d.year, d.month, d.day)
 }
 
@@ -119,7 +120,7 @@ pub fn build_omer_grid_context(
     jd: f64,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
-    let period = omer_period(jd);
+    let period = omer_period(JulianDay::new(jd));
     let hebrew_year = period.hebrew_year;
     let days = omer_days(hebrew_year);
     if days.len() != 49 {

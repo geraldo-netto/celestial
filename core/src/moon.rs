@@ -10,8 +10,9 @@
 //!
 //! ```
 //! use celestial_core::moon::{moon_phase, moon_illumination, moon_phases_for_month};
+//! use celestial_core::JulianDay;
 //!
-//! let jd    = 2_451_545.0;
+//! let jd    = JulianDay::new(2_451_545.0);
 //! let phase = moon_phase(jd).unwrap();
 //! let illum = moon_illumination(jd).unwrap();
 //! println!("{phase:?}  {illum:.1}%");

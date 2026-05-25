@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 
 use crate::astronomy::constants::to_rad;
+use crate::units::{JulianDay, Latitude, Longitude};
 
 // ─── Atmospheric extinction ───────────────────────────────────────────────────
 
@@ -205,15 +206,15 @@ fn try_heliacal_at(
     } else {
         RiseSetEvent::Set
     };
-    let rs = sun_rise_set(jd, geolat, geolon, twilight_event);
+    let rs = sun_rise_set(JulianDay::new(jd), Latitude::new(geolat), Longitude::new(geolon), twilight_event);
     if !rs.found {
         return None;
     }
     let jd_event = rs.jd_ut;
     let sun_alt_at_event = -6.0_f64;
 
-    let body = calc_ut(jd_event, body_num, 0).ok()?;
-    let sun = calc_ut(jd_event, 0, 0).ok()?;
+    let body = calc_ut(JulianDay::new(jd_event), body_num, 0).ok()?;
+    let sun = calc_ut(JulianDay::new(jd_event), 0, 0).ok()?;
 
     let elong_raw = (body.lon - sun.lon + 360.0).rem_euclid(360.0);
     let elong = if elong_raw > 180.0 {
@@ -291,8 +292,8 @@ pub fn heliacal_pheno(
     let temp_c = datm[1];
     let age = if dobs[0] > 0.0 { dobs[0] } else { 45.0 };
 
-    if let Ok(body) = crate::astronomy::calc_ut(jd_ut, body_num, 0) {
-        if let Ok(sun) = crate::astronomy::calc_ut(jd_ut, 0, 0) {
+    if let Ok(body) = crate::astronomy::calc_ut(JulianDay::new(jd_ut), body_num, 0) {
+        if let Ok(sun) = crate::astronomy::calc_ut(JulianDay::new(jd_ut), 0, 0) {
             let elong = {
                 let d = (body.lon - sun.lon + 360.0).rem_euclid(360.0);
                 if d > 180.0 {
@@ -345,11 +346,11 @@ pub fn vis_limit_mag(
 
     let mut out = [0.0f64; 8];
 
-    let body_pos = match crate::astronomy::calc_ut(jd_ut, body_num, 0) {
+    let body_pos = match crate::astronomy::calc_ut(JulianDay::new(jd_ut), body_num, 0) {
         Ok(p) => p,
         Err(_) => return out,
     };
-    let sun_pos = match crate::astronomy::calc_ut(jd_ut, 0, 0) {
+    let sun_pos = match crate::astronomy::calc_ut(JulianDay::new(jd_ut), 0, 0) {
         Ok(p) => p,
         Err(_) => return out,
     };

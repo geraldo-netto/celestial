@@ -12,7 +12,7 @@
 //! println!("Sun lon = {:.4}°", sun.lon);
 //!
 //! // Multiple bodies with auto parallel strategy
-//! let results = CalcOptions::ut(2_451_545.0, CalcFlags::BUILTIN)
+//! let results = CalcOptions::ut(JulianDay::new(2_451_545.0), CalcFlags::BUILTIN)
 //!     .bodies(&[Body::SUN, Body::MOON, Body::MERCURY])
 //!     .get_many();
 //! ```

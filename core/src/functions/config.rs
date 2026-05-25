@@ -2,6 +2,7 @@
 
 use crate::body::{Body, CalcFlags, SiderealMode};
 use crate::error::Result;
+use crate::units::{JulianDay, Latitude, Longitude};
 
 use std::cell::Cell;
 
@@ -83,7 +84,9 @@ pub(crate) fn current_topo() -> (f64, f64, f64) {
 ///
 /// Stored and used by `azalt` / `azalt_rev` when no explicit geopos is given.
 /// Has no effect on `calc_ut` (which computes geocentric positions only).
-pub fn set_topo(geolon: f64, geolat: f64, geoalt: f64) {
+pub fn set_topo(geolon: Longitude, geolat: Latitude, geoalt: f64) {
+    let geolon: f64 = geolon.into();
+    let geolat: f64 = geolat.into();
     cfg_update(|c| c.topo = (geolon, geolat, geoalt));
 }
 
@@ -125,23 +128,27 @@ pub fn set_lapse_rate(_lapse_rate: f64) {}
 
 /// Get the ayanamsa for a JDE (TT).
 #[must_use]
-pub fn ayanamsa(jd_et: f64) -> f64 {
+pub fn ayanamsa(jd_et: JulianDay) -> f64 {
+    let jd_et: f64 = jd_et.into();
     crate::astronomy::get_ayanamsa(jd_et, current_sid_mode())
 }
 
 /// Get the ayanamsa for a JD (UT).
 #[must_use]
-pub fn ayanamsa_ut(jd_ut: f64) -> f64 {
+pub fn ayanamsa_ut(jd_ut: JulianDay) -> f64 {
+    let jd_ut: f64 = jd_ut.into();
     crate::astronomy::get_ayanamsa(jd_ut, current_sid_mode())
 }
 
 /// Get ayanamsa with extended flags (TT).
-pub fn ayanamsa_ex(jd_et: f64, _flags: CalcFlags) -> Result<f64> {
+pub fn ayanamsa_ex(jd_et: JulianDay, _flags: CalcFlags) -> Result<f64> {
+    let jd_et: f64 = jd_et.into();
     Ok(crate::astronomy::get_ayanamsa(jd_et, current_sid_mode()))
 }
 
 /// Get ayanamsa with extended flags (UT).
-pub fn ayanamsa_ex_ut(jd_ut: f64, _flags: CalcFlags) -> Result<f64> {
+pub fn ayanamsa_ex_ut(jd_ut: JulianDay, _flags: CalcFlags) -> Result<f64> {
+    let jd_ut: f64 = jd_ut.into();
     Ok(crate::astronomy::get_ayanamsa(jd_ut, current_sid_mode()))
 }
 
@@ -195,7 +202,7 @@ mod tests {
         assert_eq!(current_sid_mode(), 1);
         assert_eq!(current_topo(), (0.0, 0.0, 0.0));
 
-        set_topo(12.5, -7.25, 100.0);
+        set_topo(Longitude::new(12.5), Latitude::new(-7.25), 100.0);
         assert_eq!(current_topo(), (12.5, -7.25, 100.0));
         assert_eq!(current_sid_mode(), 1); // unchanged
 

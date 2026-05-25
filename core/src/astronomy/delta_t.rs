@@ -6,6 +6,8 @@
 //! The polynomial fits are from Morrison & Stephenson (2004), Espenak & Meeus
 //! (2006), and the USNO/IERS for recent years.
 
+use crate::units::JulianDay;
+
 /// Compute ΔT (seconds) for a given Julian day number (UT).
 ///
 /// Returns TT − UT1 in seconds, accurate to ~1 s from 500 BCE to 2100 CE
@@ -14,7 +16,8 @@
 /// If a user override has been set via `set_delta_t_userdef`, that value
 /// (converted to seconds) is returned instead.
 #[must_use]
-pub fn delta_t(jd_ut: f64) -> f64 {
+pub fn delta_t(jd_ut: JulianDay) -> f64 {
+    let jd_ut: f64 = jd_ut.into();
     // Check for user-defined override (stored in days, convert to seconds)
     if let Some(dt_days) = crate::functions::config::user_delta_t() {
         return dt_days * 86_400.0;
@@ -242,8 +245,9 @@ fn polynomial(x: f64, coeffs: &[f64]) -> f64 {
 /// Convert a UT Julian day to TT (Terrestrial Time) Julian day.
 #[inline]
 #[must_use]
-pub fn ut_to_tt(jd_ut: f64) -> f64 {
-    jd_ut + delta_t(jd_ut) / 86_400.0
+pub fn ut_to_tt(jd_ut: JulianDay) -> f64 {
+    let jd_ut: f64 = jd_ut.into();
+    jd_ut + delta_t(JulianDay::new(jd_ut)) / 86_400.0
 }
 
 /// Convert a TT Julian day to UT Julian day (iterative).
@@ -251,7 +255,7 @@ pub fn ut_to_tt(jd_ut: f64) -> f64 {
 pub fn tt_to_ut(jd_tt: f64) -> f64 {
     // ΔT as a function of TT is approximately the same as a function of UT
     // for the precision we need here.
-    jd_tt - delta_t(jd_tt) / 86_400.0
+    jd_tt - delta_t(JulianDay::new(jd_tt)) / 86_400.0
 }
 
 #[cfg(test)]
@@ -268,7 +272,7 @@ mod tests {
     #[test]
     fn delta_t_2000() {
         // Known: ΔT ≈ 63.8 s in 2000
-        let dt = delta_t(2_451_545.0);
+        let dt = delta_t(JulianDay::new(2_451_545.0));
         assert!((dt - 63.8).abs() < 2.0, "ΔT(J2000) = {dt}");
     }
 
@@ -282,7 +286,7 @@ mod tests {
     #[test]
     fn ut_to_tt_roundtrip() {
         let jd = 2_451_545.0;
-        let tt = ut_to_tt(jd);
+        let tt = ut_to_tt(JulianDay::new(jd));
         let ut = tt_to_ut(tt);
         assert!(
             (ut - jd).abs() < 1e-6,

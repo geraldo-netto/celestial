@@ -7,6 +7,7 @@
 //! position, extra annotations) by design, not by copy-paste.
 
 use serde_json::Value;
+use celestial_core::JulianDay;
 
 /// Read one `ctx["vars"]` colour/title string and XML-escape it
 /// (SEC-10: user-controlled `--var`/config values flow into SVG text
@@ -119,7 +120,7 @@ pub(super) fn write_year_axis(
 ) {
     use std::fmt::Write;
     let birth_year = {
-        let d = celestial_core::revjul(jd_birth, celestial_core::body::Calendar::Gregorian);
+        let d = celestial_core::revjul(JulianDay::new(jd_birth), celestial_core::body::Calendar::Gregorian);
         d.year as i32
     };
     let end_year = birth_year + (span / 365.25) as i32 + 1;

@@ -2,6 +2,7 @@
 
 #[allow(unused_imports)]
 use crate::functions::time::revjul;
+use crate::units::{JulianDay, Longitude};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Phase 6 — Chinese astrology (Ba Zi / Four Pillars + Solar Terms)
@@ -91,11 +92,13 @@ pub fn make_pillar(stem: u8, branch: u8) -> BaZiPillar {
 /// * `hour_ut` — hour of day (0.0–23.99, UT)
 /// * `sun_lon` — Sun's ecliptic longitude at `jd_ut` (degrees)
 #[must_use]
-pub fn four_pillars(jd_ut: f64, hour_ut: f64, sun_lon: f64) -> [BaZiPillar; 4] {
+pub fn four_pillars(jd_ut: JulianDay, hour_ut: f64, sun_lon: Longitude) -> [BaZiPillar; 4] {
+    let jd_ut: f64 = jd_ut.into();
+    let sun_lon: f64 = sun_lon.into();
     // ── Year pillar ───────────────────────────────────────────────────────────
     // Chinese year starts at Lì Chūn (立春, Start of Spring, Sun ≈ 315°).
     // Approximate by Gregorian year: adjust if before ~Feb 4 (315° not yet reached).
-    let d = crate::revjul(jd_ut, crate::body::Calendar::Gregorian);
+    let d = crate::revjul(JulianDay::new(jd_ut), crate::body::Calendar::Gregorian);
     // Sun at 315° ≈ Feb 3–5; use sun_lon to determine if the Chinese year has turned
     // For simplicity, approximate: Chinese year = Gregorian year - 1 if Sun < 315°
     // and month is Jan (before ~Feb 4)
@@ -207,7 +210,8 @@ pub const SOLAR_TERMS: &[(f64, &str, &str)] = &[
 ///
 /// Returns `(current_term_index, degrees_into_term, next_term_index, degrees_to_next)`.
 #[must_use]
-pub fn solar_term_position(sun_lon: f64) -> (usize, f64, usize, f64) {
+pub fn solar_term_position(sun_lon: Longitude) -> (usize, f64, usize, f64) {
+    let sun_lon: f64 = sun_lon.into();
     let lon = sun_lon.rem_euclid(360.0);
     let current = SOLAR_TERMS
         .iter()
@@ -254,12 +258,13 @@ pub const CHINA_TZ_OFFSET_HOURS: f64 = 8.0;
 /// Returns the JD at midnight UT of the Hanoi civil day containing the
 /// starting new moon. Returns `None` if no new moon is found within the
 /// last 30 days (should not happen for any valid input).
-pub fn vietnamese_month_start_jd(jd_ut: f64) -> Option<f64> {
+pub fn vietnamese_month_start_jd(jd_ut: JulianDay) -> Option<f64> {
+    let jd_ut: f64 = jd_ut.into();
     // Search backwards: find the new moon preceding jd_ut.
     let mut search = jd_ut - 30.0;
     let mut last_nm: Option<f64> = None;
     while search < jd_ut {
-        match crate::functions::moon_phases::next_new_moon(search) {
+        match crate::functions::moon_phases::next_new_moon(JulianDay::new(search)) {
             Ok(nm) if nm <= jd_ut => {
                 last_nm = Some(nm);
                 search = nm + 2.0;
@@ -279,7 +284,8 @@ pub fn vietnamese_month_start_jd(jd_ut: f64) -> Option<f64> {
 /// Useful for detecting the ~20% of new moons where the lunar month
 /// starts a different civil day in the two calendars.
 #[must_use]
-pub fn vietnamese_chinese_boundary_differs(jd_ut: f64) -> bool {
+pub fn vietnamese_chinese_boundary_differs(jd_ut: JulianDay) -> bool {
+    let jd_ut: f64 = jd_ut.into();
     let vn = (jd_ut + VIETNAM_TZ_OFFSET_HOURS / 24.0).floor();
     let cn = (jd_ut + CHINA_TZ_OFFSET_HOURS / 24.0).floor();
     vn != cn
@@ -298,10 +304,10 @@ mod viet_tests {
     fn boundary_differs_detection() {
         // JD at 23:30 UTC → 06:30 Vietnam, 07:30 China → same civil day
         let jd_same = 2_451_545.0 + 23.5 / 24.0;
-        assert!(!vietnamese_chinese_boundary_differs(jd_same));
+        assert!(!vietnamese_chinese_boundary_differs(JulianDay::new(jd_same)));
 
         // JD at 16:30 UTC → 23:30 Vietnam (same day), 00:30 China (next day)
         let jd_diff = 2_451_545.0 + 16.5 / 24.0;
-        assert!(vietnamese_chinese_boundary_differs(jd_diff));
+        assert!(vietnamese_chinese_boundary_differs(JulianDay::new(jd_diff)));
     }
 }

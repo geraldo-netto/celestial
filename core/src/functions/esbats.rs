@@ -23,7 +23,7 @@
 //! Full moons are found by bisecting the Moon–Sun elongation function to the
 //! exact moment when elongation = 180°, accurate to within a few seconds.
 
-use crate::units::JulianDay;
+use crate::units::{JulianDay, Longitude};
 use crate::body::{Body, CalcFlags, Calendar};
 use crate::error::{Error, Result};
 
@@ -153,8 +153,8 @@ pub fn esbats_for_year(year: i32) -> Result<Vec<Esbat>> {
 
     // Autumn equinox JD (Sun at 180° = Mabon) for Harvest Moon determination
     let equinox_jd = crate::functions::motion::solcross(
-        180.0,
-        crate::julday(year, 9, 1, 0.0, Calendar::Gregorian),
+        Longitude::new(180.0),
+        JulianDay::new(crate::julday(year, 9, 1, 0.0, Calendar::Gregorian)),
         CalcFlags::BUILTIN,
     )
     .unwrap_or_else(|_| crate::julday(year, 9, 22, 0.0, Calendar::Gregorian));
@@ -174,7 +174,7 @@ pub fn esbats_for_year(year: i32) -> Result<Vec<Esbat>> {
 
 /// The next esbat (named full moon) at or after the given Julian day.
 pub fn next_esbat(jd_from: f64) -> Result<Esbat> {
-    let d = crate::revjul(jd_from, Calendar::Gregorian);
+    let d = crate::revjul(JulianDay::new(jd_from), Calendar::Gregorian);
     // Search this year and next so we always find a result near year boundaries
     for year in [d.year, d.year + 1] {
         if let Ok(esbats) = esbats_for_year(year) {
@@ -300,7 +300,7 @@ fn assign_names(full_moons: &[f64], equinox_jd: f64) -> Vec<EsbatName> {
 
     let months: Vec<i32> = full_moons
         .iter()
-        .map(|&jd| crate::revjul(jd, Calendar::Gregorian).month)
+        .map(|&jd| crate::revjul(JulianDay::new(jd), Calendar::Gregorian).month)
         .collect();
 
     // ── 1. Blue Moon: second full moon in the same calendar month ─────────────

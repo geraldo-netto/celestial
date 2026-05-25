@@ -8,12 +8,14 @@ use crate::error::{Error, Result};
 
 /// Compute planetary phenomena.
 /// Returns `attr[20]`: `[phase_angle, phase_frac, elongation, ang_diam, magnitude, …]`
-pub fn pheno(jd_et: f64, body: Body, flags: CalcFlags) -> Result<[f64; 20]> {
+pub fn pheno(jd_et: JulianDay, body: Body, flags: CalcFlags) -> Result<[f64; 20]> {
+    let jd_et: f64 = jd_et.into();
     pheno_impl(jd_et, body, flags)
 }
 
 /// Compute planetary phenomena (UT).
-pub fn pheno_ut(jd_ut: f64, body: Body, flags: CalcFlags) -> Result<[f64; 20]> {
+pub fn pheno_ut(jd_ut: JulianDay, body: Body, flags: CalcFlags) -> Result<[f64; 20]> {
+    let jd_ut: f64 = jd_ut.into();
     pheno_impl(jd_ut, body, flags)
 }
 
@@ -25,7 +27,7 @@ pub fn pheno_ut(jd_ut: f64, body: Body, flags: CalcFlags) -> Result<[f64; 20]> {
 /// and 18 below the horizon, numbered from the ascendant.
 #[allow(clippy::too_many_arguments)]
 pub fn gauquelin_sector(
-    jd_ut: f64,
+    jd_ut: JulianDay,
     body: Body,
     _starname: Option<&str>,
     flags: CalcFlags,
@@ -34,6 +36,7 @@ pub fn gauquelin_sector(
     _atpress: f64,
     _attemp: f64,
 ) -> Result<f64> {
+    let jd_ut: f64 = jd_ut.into();
     use crate::functions::calc::calc_ut;
     let pos = calc_ut(JulianDay::new(jd_ut), body, flags)?;
     let lon_body = pos.lon;
@@ -65,7 +68,7 @@ pub fn gauquelin_sector(
 ///
 /// Returns a vector of 50 f64 values where `[0]` is the event JD.
 pub fn heliacal_ut(
-    jd_start: f64,
+    jd_start: JulianDay,
     dgeo: [f64; 3],
     datm: [f64; 4],
     dobs: [f64; 6],
@@ -73,6 +76,7 @@ pub fn heliacal_ut(
     type_event: i32,
     _flags: CalcFlags,
 ) -> Result<Vec<f64>> {
+    let jd_start: f64 = jd_start.into();
     use crate::astronomy::heliacal::{find_heliacal_event, HeliacalEvent};
     let body_num = body_name_to_num(objectname);
     let event = HeliacalEvent::from_i32(type_event);
@@ -91,7 +95,7 @@ pub fn heliacal_ut(
 /// Returns a 50-element array with elongation, arc of vision, sky brightness,
 /// limiting magnitude, and related quantities.
 pub fn heliacal_pheno_ut(
-    jd_ut: f64,
+    jd_ut: JulianDay,
     dgeo: [f64; 3],
     datm: [f64; 4],
     dobs: [f64; 6],
@@ -99,6 +103,7 @@ pub fn heliacal_pheno_ut(
     _type_event: i32,
     _flags: CalcFlags,
 ) -> Result<Vec<f64>> {
+    let jd_ut: f64 = jd_ut.into();
     use crate::astronomy::heliacal::heliacal_pheno;
     let body_num = body_name_to_num(objectname);
     Ok(heliacal_pheno(jd_ut, dgeo, datm, dobs, body_num))
@@ -138,13 +143,14 @@ fn pheno_impl(jd: f64, body: Body, _flags: CalcFlags) -> Result<[f64; 20]> {
 ///
 /// Returns `[lim_mag, obj_mag, sky_brightness, elongation, arc_vision, sun_alt, pressure_mb, temp_c]`
 pub fn vis_limit_mag(
-    jd_ut: f64,
+    jd_ut: JulianDay,
     dgeo: [f64; 3],
     datm: [f64; 4],
     dobs: [f64; 6],
     objectname: &str,
     helflag: i32,
 ) -> Result<[f64; 8]> {
+    let jd_ut: f64 = jd_ut.into();
     use crate::astronomy::heliacal::vis_limit_mag as vlm;
     let body_num: i32 = match objectname.trim().to_ascii_lowercase().as_str() {
         "" | "sun" => 0,
@@ -241,7 +247,9 @@ pub fn yallop_q(arcv_deg: f64, arcl_deg: f64, sd_arcmin: f64) -> (f64, char) {
 /// Inputs are Julian Days (UT). This is the standard epoch for evaluating
 /// [`yallop_q`] and related crescent-visibility criteria.
 #[must_use]
-pub fn best_time_method(jd_sunset: f64, jd_moonset: f64) -> f64 {
+pub fn best_time_method(jd_sunset: JulianDay, jd_moonset: JulianDay) -> f64 {
+    let jd_sunset: f64 = jd_sunset.into();
+    let jd_moonset: f64 = jd_moonset.into();
     jd_sunset + (4.0 / 9.0) * (jd_moonset - jd_sunset)
 }
 
@@ -276,7 +284,7 @@ mod yallop_tests {
         // If moonset is 2 hours after sunset, best time is 4/9 × 2h after sunset
         let jd_ss = 2_451_545.0;
         let jd_ms = jd_ss + 2.0 / 24.0;
-        let bt = best_time_method(jd_ss, jd_ms);
+        let bt = best_time_method(JulianDay::new(jd_ss), JulianDay::new(jd_ms));
         let expected = jd_ss + (4.0 / 9.0) * 2.0 / 24.0;
         assert!((bt - expected).abs() < 1e-9);
     }

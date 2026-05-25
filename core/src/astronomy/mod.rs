@@ -52,6 +52,7 @@ use crate::astronomy::{
     rise_set::{moon_rise_set, planet_rise_set, sun_rise_set, RiseSetEvent},
     vsop87::Planet,
 };
+use crate::units::{Degrees, JulianDay, Latitude, Longitude};
 
 // ─── Public body-number constants ─────────────────────────────────────────────
 
@@ -102,13 +103,19 @@ pub use houses::houses_from_armc;
 /// - `geolat` — geographic latitude (degrees, N positive)
 /// - `geolon` — geographic longitude (degrees, E positive)
 /// - `hsys`   — house system byte: `b'P'` Placidus, `b'K'` Koch, `b'E'` Equal, etc.
-pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: u8) -> HouseResult {
-    calc_houses(jd_ut, geolat, geolon, hsys)
+pub fn houses(jd_ut: JulianDay, geolat: Latitude, geolon: Longitude, hsys: u8) -> HouseResult {
+    let jd_ut: f64 = jd_ut.into();
+    let geolat: f64 = geolat.into();
+    let geolon: f64 = geolon.into();
+    calc_houses(JulianDay::new(jd_ut), Latitude::new(geolat), Longitude::new(geolon), hsys)
 }
 
 /// Compute house cusps from ARMC, latitude and obliquity directly.
-pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
-    calc_houses_armc(armc, geolat, eps, hsys)
+pub fn houses_armc(armc: Degrees, geolat: Latitude, eps: Degrees, hsys: u8) -> HouseResult {
+    let armc: f64 = armc.into();
+    let geolat: f64 = geolat.into();
+    let eps: f64 = eps.into();
+    calc_houses_armc(Degrees::new(armc), Latitude::new(geolat), Degrees::new(eps), hsys)
 }
 
 /// Return the display name for a house system byte.
@@ -138,8 +145,9 @@ pub fn get_ayanamsa_name(sid_mode: i32) -> &'static str {
 
 /// Compute ΔT = TT − UT1 (seconds) for a given UT Julian day.
 #[must_use]
-pub fn deltat(jd_ut: f64) -> f64 {
-    delta_t::delta_t(jd_ut)
+pub fn deltat(jd_ut: JulianDay) -> f64 {
+    let jd_ut: f64 = jd_ut.into();
+    delta_t::delta_t(JulianDay::new(jd_ut))
 }
 
 /// Compute mean obliquity of the ecliptic (degrees) for a JDE (TT).
@@ -166,26 +174,32 @@ pub fn get_nutation(jde: f64) -> (f64, f64) {
 /// Compute rise, transit or set time (UT Julian day) for the Sun.
 ///
 /// - `event` — 0 = rise, 1 = transit, 2 = set
-pub fn sun_rise_transit_set(jd_ut: f64, geolat: f64, geolon: f64, event: u8) -> Option<f64> {
+pub fn sun_rise_transit_set(jd_ut: JulianDay, geolat: Latitude, geolon: Longitude, event: u8) -> Option<f64> {
+    let jd_ut: f64 = jd_ut.into();
+    let geolat: f64 = geolat.into();
+    let geolon: f64 = geolon.into();
     let ev = match event {
         0 => RiseSetEvent::Rise,
         1 => RiseSetEvent::Transit,
         2 => RiseSetEvent::Set,
         _ => return None,
     };
-    let r = sun_rise_set(jd_ut, geolat, geolon, ev);
+    let r = sun_rise_set(JulianDay::new(jd_ut), Latitude::new(geolat), Longitude::new(geolon), ev);
     r.found.then_some(r.jd_ut)
 }
 
 /// Compute rise, transit or set time (UT Julian day) for the Moon.
-pub fn moon_rise_transit_set(jd_ut: f64, geolat: f64, geolon: f64, event: u8) -> Option<f64> {
+pub fn moon_rise_transit_set(jd_ut: JulianDay, geolat: Latitude, geolon: Longitude, event: u8) -> Option<f64> {
+    let jd_ut: f64 = jd_ut.into();
+    let geolat: f64 = geolat.into();
+    let geolon: f64 = geolon.into();
     let ev = match event {
         0 => RiseSetEvent::Rise,
         1 => RiseSetEvent::Transit,
         2 => RiseSetEvent::Set,
         _ => return None,
     };
-    let r = moon_rise_set(jd_ut, geolat, geolon, ev);
+    let r = moon_rise_set(JulianDay::new(jd_ut), Latitude::new(geolat), Longitude::new(geolon), ev);
     r.found.then_some(r.jd_ut)
 }
 
@@ -193,12 +207,15 @@ pub fn moon_rise_transit_set(jd_ut: f64, geolat: f64, geolon: f64, event: u8) ->
 ///
 /// `body_num` follows the [`body`] constants.
 pub fn planet_rise_transit_set(
-    jd_ut: f64,
-    geolat: f64,
-    geolon: f64,
+    jd_ut: JulianDay,
+    geolat: Latitude,
+    geolon: Longitude,
     body_num: i32,
     event: u8,
 ) -> Option<f64> {
+    let jd_ut: f64 = jd_ut.into();
+    let geolat: f64 = geolat.into();
+    let geolon: f64 = geolon.into();
     let planet = body_to_vsop87(body_num)?;
     let ev = match event {
         0 => RiseSetEvent::Rise,
@@ -206,7 +223,7 @@ pub fn planet_rise_transit_set(
         2 => RiseSetEvent::Set,
         _ => return None,
     };
-    let r = planet_rise_set(jd_ut, geolat, geolon, ev, planet);
+    let r = planet_rise_set(JulianDay::new(jd_ut), Latitude::new(geolat), Longitude::new(geolon), ev, planet);
     r.found.then_some(r.jd_ut)
 }
 
@@ -259,7 +276,7 @@ mod tests {
     #[test]
     fn sun_lon_2002_jan_1() {
         let pos = calc_ut(
-            2_452_275.5,
+            JulianDay::new(2_452_275.5),
             body::SUN,
             (flag::FLG_BUILTIN | flag::FLG_SPEED) as i32,
         )
@@ -270,7 +287,7 @@ mod tests {
 
     #[test]
     fn moon_position_j2000() {
-        let pos = calc_ut(2_451_545.0, body::MOON, flag::FLG_BUILTIN as i32).expect("Moon failed");
+        let pos = calc_ut(JulianDay::new(2_451_545.0), body::MOON, flag::FLG_BUILTIN as i32).expect("Moon failed");
         assert!(pos.lon >= 0.0 && pos.lon < 360.0);
         assert!(pos.dist > 0.002 && pos.dist < 0.003); // Moon ~0.00257 AU
     }
@@ -289,7 +306,7 @@ mod tests {
             body::MOON,
         ];
         for &b in &bodies {
-            let pos = calc_ut(2_451_545.0, b, flag::FLG_BUILTIN as i32).expect("calc_ut");
+            let pos = calc_ut(JulianDay::new(2_451_545.0), b, flag::FLG_BUILTIN as i32).expect("calc_ut");
             assert!(
                 pos.lon >= 0.0 && pos.lon < 360.0,
                 "body {b} lon out of range"
@@ -301,7 +318,7 @@ mod tests {
     #[test]
     fn speed_flag_gives_nonzero_speeds() {
         let pos = calc_ut(
-            2_451_545.0,
+            JulianDay::new(2_451_545.0),
             body::SUN,
             (flag::FLG_BUILTIN | flag::FLG_SPEED) as i32,
         )
@@ -317,7 +334,7 @@ mod tests {
 
     #[test]
     fn unknown_body_returns_error() {
-        assert!(calc_ut(2_451_545.0, 99, flag::FLG_BUILTIN as i32).is_err());
+        assert!(calc_ut(JulianDay::new(2_451_545.0), 99, flag::FLG_BUILTIN as i32).is_err());
     }
 
     #[test]
@@ -335,7 +352,7 @@ mod tests {
 
     #[test]
     fn deltat_j2000() {
-        let dt = deltat(2_451_545.0);
+        let dt = deltat(JulianDay::new(2_451_545.0));
         assert!((dt - 63.8).abs() < 3.0, "ΔT = {dt}");
     }
 }

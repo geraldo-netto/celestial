@@ -5,6 +5,8 @@
 //!
 //! Catalog sources: Hipparcos, Yale Bright Star Catalog, FK6.
 
+use crate::units::JulianDay;
+
 /// One fixed star entry.
 #[derive(Debug, Clone, PartialEq)]
 pub struct StarEntry {
@@ -1135,7 +1137,8 @@ pub fn find_star(query: &str) -> Option<usize> {
 /// Returns `(ecliptic_lon_deg, ecliptic_lat_deg, distance_au)`.
 /// Applies precession and proper motion only (no parallax for distant stars).
 #[must_use]
-pub fn star_ecliptic_pos(star: &StarEntry, jd_ut: f64) -> (f64, f64, f64) {
+pub fn star_ecliptic_pos(star: &StarEntry, jd_ut: JulianDay) -> (f64, f64, f64) {
+    let jd_ut: f64 = jd_ut.into();
     let t = (jd_ut - J2000) / 365.25; // Julian years from J2000
 
     // Apply proper motion (arcsec/yr → degrees)

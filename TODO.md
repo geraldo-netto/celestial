@@ -1,7 +1,7 @@
 # Celestial — TODO
 
 Rescan: **2026-05-25** (categories per `AGENTS.md` §Rules ∪ prior AUDIT extras; tables only).
-Fix pass same day cleared SEC-12, TEST-6, DOC-5, DEAD-2, DUP-9, DUP-10 — rows removed per AGENTS.md.
+Fix pass same day cleared SEC-12, TEST-6, DOC-5, DEAD-2, DUP-9, DUP-10, DDD-1 — rows removed per AGENTS.md. DEAD-3 demoted to DECIDED.
 
 ## Security
 
@@ -111,7 +111,6 @@ Fix pass same day cleared SEC-12, TEST-6, DOC-5, DEAD-2, DUP-9, DUP-10 — rows 
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| DDD-1 | DEFERRED | L | Prior audit claimed `JulianDay`/`Longitude`/`Latitude`/`Degrees` were "fully threaded through public moon/motion/chart/solar/vedic signatures — no raw f64 for JD/lon/lat". Wider audit shows ~40 pub fns in `core/src/functions/{panchanga,islamic,hellenistic,coptic,zoroastrian,nowruz,chinese,vedic,indigenous,phenomena,moon_phases,searches,houses,chart,geoformat,config}.rs` still take raw `f64` for jd/lon/lat (e.g. `panchanga(jd: f64)`, `hijri_from_jd(jd: f64)`, `firdaria(jd_birth: f64, ..., span: f64)`, `egyptian_decan(lon: f64)`, `local_apparent_solar_time(jd_ut, geolon_deg)`, `houses_armc(armc, geolat, eps, ...)`). | Primitive obsession across calendar-traditions + hellenistic + houses tiers. Threading newtypes through = published-API break, propagates to 3 bindings + cli. Same cost class as DP-4 / ARCH-10. Prior "no raw f64" claim is overstated. |
 
 ## Observability
 

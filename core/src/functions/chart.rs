@@ -4,7 +4,7 @@
 //! generating aspect tables, secondary progressions, solar/lunar returns,
 //! solar arc directions, midpoints, Arabic parts, and planetary stations.
 
-use crate::units::{JulianDay, Latitude, Longitude};
+use crate::units::{Degrees, JulianDay, Latitude, Longitude};
 use crate::body::{Body, CalcFlags, Calendar, HouseSystem};
 use crate::diff_deg_signed;
 use crate::error::{Error, Result};
@@ -138,17 +138,18 @@ pub fn calc_chart_aspects(
 /// use celestial_core::*;
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// // When does Saturn next enter a new sign?
-/// let (jd, sign) = sign_ingress_ut(Body::SATURN, 2_451_545.0, CalcFlags::BUILTIN, false).unwrap();
+/// let (jd, sign) = sign_ingress_ut(Body::SATURN, JulianDay::new(2_451_545.0), CalcFlags::BUILTIN, false).unwrap();
 /// let sign_name = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo",
 ///                  "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
 /// println!("Saturn enters {}: JD {jd:.2}", sign_name[sign as usize]);
 /// ```
 pub fn sign_ingress_ut(
     body: Body,
-    jd_start: f64,
+    jd_start: JulianDay,
     flags: CalcFlags,
     backward: bool,
 ) -> Result<(f64, u8)> {
+    let jd_start: f64 = jd_start.into();
     // Current position
     let pos = calc_ut(JulianDay::new(jd_start), body, flags)?;
     let current_sign = (pos.lon / 30.0).floor() as i32;
@@ -204,7 +205,7 @@ pub struct Stations {
 /// ```no_run
 /// use celestial_core::*;
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
-/// let s = retrograde_station_ut(Body::MARS, 2_451_545.0, CalcFlags::BUILTIN).unwrap();
+/// let s = retrograde_station_ut(Body::MARS, JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).unwrap();
 /// println!("Mars retrograde: JD {:.2}", s.retrograde);
 /// println!("Mars direct:     JD {:.2}", s.direct);
 /// ```
@@ -254,7 +255,8 @@ where
 ///   `Body::MOON`, `Body::EARTH` — these never go retrograde from Earth's
 ///   POV)
 /// - No station is found within the search window
-pub fn retrograde_station_ut(body: Body, jd_start: f64, flags: CalcFlags) -> Result<Stations> {
+pub fn retrograde_station_ut(body: Body, jd_start: JulianDay, flags: CalcFlags) -> Result<Stations> {
+    let jd_start: f64 = jd_start.into();
     // Step size: 0.5d — stations last hours to a day; this gives good resolution
     let step = 0.5_f64;
     let flags_speed = flags | CalcFlags::SPEED;
@@ -346,11 +348,14 @@ fn scan_retrograde_stations(
 /// let chart = houses(JulianDay::new(2_451_545.0), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
 /// let sun  = calc_ut(JulianDay::new(2_451_545.0), Body::SUN, CalcFlags::BUILTIN).unwrap();
 /// let moon = calc_ut(JulianDay::new(2_451_545.0), Body::MOON, CalcFlags::BUILTIN).unwrap();
-/// let lot_of_fortune = arabic_part(chart.ascmc[0], moon.lon, sun.lon);
+/// let lot_of_fortune = arabic_part(Degrees::new(chart.ascmc[0]), Longitude::new(moon.lon), Longitude::new(sun.lon));
 /// ```
 #[inline]
 #[must_use]
-pub fn arabic_part(asc: f64, body2: f64, body1: f64) -> f64 {
+pub fn arabic_part(asc: Degrees, body2: Longitude, body1: Longitude) -> f64 {
+    let asc: f64 = asc.into();
+    let body2: f64 = body2.into();
+    let body1: f64 = body1.into();
     (asc + body2 - body1).rem_euclid(360.0)
 }
 
@@ -388,23 +393,31 @@ pub struct ArabicPart {
 /// let ven  = calc_ut(JulianDay::new(jd), Body::VENUS, CalcFlags::BUILTIN).unwrap();
 /// let asc  = chart.ascmc[0];
 /// let is_day = planet_house_number(sun.lon, &chart.cusps) >= 7;
-/// let parts = arabic_parts_seven(asc, sun.lon, moon.lon, sat.lon, mar.lon,
-///                                jup.lon, mer.lon, ven.lon, is_day);
+/// let parts = arabic_parts_seven(Degrees::new(asc), Longitude::new(sun.lon), Longitude::new(moon.lon), Longitude::new(sat.lon), Longitude::new(mar.lon),
+///                                Longitude::new(jup.lon), Longitude::new(mer.lon), Longitude::new(ven.lon), is_day);
 /// for p in &parts { println!("{}: {:.2}°", p.name, p.degree); }
 /// ```
 #[allow(clippy::too_many_arguments)]
 #[must_use]
 pub fn arabic_parts_seven(
-    asc: f64,
-    sun: f64,
-    moon: f64,
-    sat: f64,
-    mar: f64,
-    jup: f64,
-    mer: f64,
-    ven: f64,
+    asc: Degrees,
+    sun: Longitude,
+    moon: Longitude,
+    sat: Longitude,
+    mar: Longitude,
+    jup: Longitude,
+    mer: Longitude,
+    ven: Longitude,
     is_day: bool,
 ) -> Vec<ArabicPart> {
+    let asc: f64 = asc.into();
+    let sun: f64 = sun.into();
+    let moon: f64 = moon.into();
+    let sat: f64 = sat.into();
+    let mar: f64 = mar.into();
+    let jup: f64 = jup.into();
+    let mer: f64 = mer.into();
+    let ven: f64 = ven.into();
     // Day chart: Fortune = ASC + Moon - Sun; Spirit = ASC + Sun - Moon
     // Night chart: reversed
     let (fortune_b2, fortune_b1, spirit_b2, spirit_b1) = if is_day {
@@ -421,7 +434,7 @@ pub fn arabic_parts_seven(
             } else {
                 "ASC + Sun − Moon"
             },
-            degree: arabic_part(asc, fortune_b2, fortune_b1),
+            degree: arabic_part(Degrees::new(asc), Longitude::new(fortune_b2), Longitude::new(fortune_b1)),
         },
         ArabicPart {
             name: "Lot of Spirit",
@@ -430,32 +443,32 @@ pub fn arabic_parts_seven(
             } else {
                 "ASC + Moon − Sun"
             },
-            degree: arabic_part(asc, spirit_b2, spirit_b1),
+            degree: arabic_part(Degrees::new(asc), Longitude::new(spirit_b2), Longitude::new(spirit_b1)),
         },
         ArabicPart {
             name: "Lot of Love",
             formula: "ASC + Venus − Sun",
-            degree: arabic_part(asc, ven, sun),
+            degree: arabic_part(Degrees::new(asc), Longitude::new(ven), Longitude::new(sun)),
         },
         ArabicPart {
             name: "Lot of Necessity",
             formula: "ASC + Mercury − Moon",
-            degree: arabic_part(asc, mer, moon),
+            degree: arabic_part(Degrees::new(asc), Longitude::new(mer), Longitude::new(moon)),
         },
         ArabicPart {
             name: "Lot of Courage",
             formula: "ASC + Mars − Saturn",
-            degree: arabic_part(asc, mar, sat),
+            degree: arabic_part(Degrees::new(asc), Longitude::new(mar), Longitude::new(sat)),
         },
         ArabicPart {
             name: "Lot of Victory",
             formula: "ASC + Jupiter − Saturn",
-            degree: arabic_part(asc, jup, sat),
+            degree: arabic_part(Degrees::new(asc), Longitude::new(jup), Longitude::new(sat)),
         },
         ArabicPart {
             name: "Lot of Nemesis",
             formula: "ASC + Saturn − Sun",
-            degree: arabic_part(asc, sat, sun),
+            degree: arabic_part(Degrees::new(asc), Longitude::new(sat), Longitude::new(sun)),
         },
     ]
 }
@@ -479,17 +492,20 @@ pub fn arabic_parts_seven(
 /// Returns `(progressed_bodies, progressed_chart)` where `progressed_bodies`
 /// is a `Vec<(body_num, PlanetPos)>` and the chart has the progressed angles.
 pub fn secondary_progressions(
-    jd_natal: f64,
+    jd_natal: JulianDay,
     years: f64,
     bodies: &[Body],
-    lat: f64,
-    lon: f64,
+    lat: Latitude,
+    lon: Longitude,
     hsys: HouseSystem,
     flags: CalcFlags,
 ) -> Result<(
     Vec<(Body, crate::types::PlanetPos)>,
     crate::functions::houses::HouseResult,
 )> {
+    let jd_natal: f64 = jd_natal.into();
+    let lat: f64 = lat.into();
+    let lon: f64 = lon.into();
     // Progressed JD: 1 tropical year = 365.24219 days, but convention is simply
     // progressed_jd = natal_jd + years (one calendar day per year)
     let jd_progressed = jd_natal + years;
@@ -517,12 +533,14 @@ pub fn secondary_progressions(
 /// `directed_positions` — each natal longitude + arc (mod 360°)  
 /// `directed_chart` — house cusps with MC advanced by arc
 pub fn solar_arc_directions(
-    jd_natal: f64,
+    jd_natal: JulianDay,
     years: f64,
     natal_positions: &[(Body, f64)], // (body, natal_lon)
-    natal_mc: f64,
+    natal_mc: Degrees,
     flags: CalcFlags,
 ) -> Result<SolarArcResult> {
+    let jd_natal: f64 = jd_natal.into();
+    let natal_mc: f64 = natal_mc.into();
     // Progressed Sun position (using secondary progression timing)
     let jd_prog = jd_natal + years;
     let prog_sun = calc_ut(JulianDay::new(jd_prog), Body::SUN, flags)?;
@@ -561,10 +579,11 @@ pub fn solar_arc_directions(
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// // Find solar return for year 2025
 /// let natal_jd = 2_440_000.0; // some birth date
-/// let sr_jd = solar_return_jd(natal_jd, 2025, CalcFlags::BUILTIN).unwrap();
+/// let sr_jd = solar_return_jd(JulianDay::new(natal_jd), 2025, CalcFlags::BUILTIN).unwrap();
 /// println!("Solar return 2025: JD {sr_jd:.4}");
 /// ```
-pub fn solar_return_jd(jd_natal: f64, return_year: i32, flags: CalcFlags) -> Result<f64> {
+pub fn solar_return_jd(jd_natal: JulianDay, return_year: i32, flags: CalcFlags) -> Result<f64> {
+    let jd_natal: f64 = jd_natal.into();
     // Get natal Sun longitude
     let natal_sun = calc_ut(JulianDay::new(jd_natal), Body::SUN, flags)?;
     let natal_lon = natal_sun.lon;
@@ -597,7 +616,9 @@ pub fn solar_return_jd(jd_natal: f64, return_year: i32, flags: CalcFlags) -> Res
 /// * `jd_natal`   — natal Julian Day
 /// * `jd_start`   — start searching from this date
 /// * `flags`      — ephemeris flags
-pub fn lunar_return_jd(jd_natal: f64, jd_start: f64, flags: CalcFlags) -> Result<f64> {
+pub fn lunar_return_jd(jd_natal: JulianDay, jd_start: JulianDay, flags: CalcFlags) -> Result<f64> {
+    let jd_natal: f64 = jd_natal.into();
+    let jd_start: f64 = jd_start.into();
     let natal_moon = calc_ut(JulianDay::new(jd_natal), Body::MOON, flags)?;
     let natal_lon = natal_moon.lon;
 
@@ -627,11 +648,13 @@ pub fn lunar_return_jd(jd_natal: f64, jd_start: f64, flags: CalcFlags) -> Result
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// let sun_lon  = 280.0;
 /// let moon_lon = 100.0;
-/// let mid = midpoint(sun_lon, moon_lon); // 10.0° (shorter arc)
+/// let mid = midpoint(Longitude::new(sun_lon), Longitude::new(moon_lon)); // 10.0° (shorter arc)
 /// ```
 #[inline]
 #[must_use]
-pub fn midpoint(lon1: f64, lon2: f64) -> f64 {
+pub fn midpoint(lon1: Longitude, lon2: Longitude) -> f64 {
+    let lon1: f64 = lon1.into();
+    let lon2: f64 = lon2.into();
     crate::midpoint_deg(lon1, lon2)
 }
 
@@ -639,7 +662,9 @@ pub fn midpoint(lon1: f64, lon2: f64) -> f64 {
 ///
 /// Returns the orb (0.0 if exact) or `None` if outside the orb.
 #[inline]
-pub fn planet_on_midpoint(planet_lon: f64, mid_lon: f64, orb: f64) -> Option<f64> {
+pub fn planet_on_midpoint(planet_lon: Longitude, mid_lon: Longitude, orb: f64) -> Option<f64> {
+    let planet_lon: f64 = planet_lon.into();
+    let mid_lon: f64 = mid_lon.into();
     let diff = diff_deg_signed(planet_lon, mid_lon).abs();
     let diff = diff.min(180.0 - diff); // also check opposition point
     if diff <= orb {
@@ -665,11 +690,11 @@ pub fn midpoint_table(positions: &[(Body, f64)], orb: f64) -> Vec<MidpointEntry>
         for j in (i + 1)..n {
             let (b1, lon1) = positions[i];
             let (b2, lon2) = positions[j];
-            let mid = midpoint(lon1, lon2);
+            let mid = midpoint(Longitude::new(lon1), Longitude::new(lon2));
             let on_mid: Vec<(Body, f64)> = positions
                 .iter()
                 .filter(|&&(b, _)| b != b1 && b != b2)
-                .filter_map(|&(b, lon)| planet_on_midpoint(lon, mid, orb).map(|o| (b, o)))
+                .filter_map(|&(b, lon)| planet_on_midpoint(Longitude::new(lon), Longitude::new(mid), orb).map(|o| (b, o)))
                 .collect();
             result.push((b1, b2, mid, on_mid));
         }
@@ -689,7 +714,10 @@ pub fn midpoint_table(positions: &[(Body, f64)], orb: f64) -> Vec<MidpointEntry>
 /// `dec_deg` — declination of the body (degrees)
 /// `lat_deg` — observer latitude (degrees)
 #[must_use]
-pub fn parallactic_angle(ha_deg: f64, dec_deg: f64, lat_deg: f64) -> f64 {
+pub fn parallactic_angle(ha_deg: Degrees, dec_deg: Degrees, lat_deg: Latitude) -> f64 {
+    let ha_deg: f64 = ha_deg.into();
+    let dec_deg: f64 = dec_deg.into();
+    let lat_deg: f64 = lat_deg.into();
     let ha = ha_deg.to_radians();
     let dec = dec_deg.to_radians();
     let lat = lat_deg.to_radians();
@@ -847,10 +875,12 @@ pub fn calc_chart_aspects_auto(
 /// use celestial_core::*;
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// // What does the sundial show in Paris (lon=2.35°E) at J2000?
-/// let last = local_apparent_solar_time(2_451_545.0, 2.35).unwrap();
+/// let last = local_apparent_solar_time(JulianDay::new(2_451_545.0), Longitude::new(2.35)).unwrap();
 /// println!("LAST Paris: {:.2}h", last);
 /// ```
-pub fn local_apparent_solar_time(jd_ut: f64, geolon_deg: f64) -> crate::Result<f64> {
+pub fn local_apparent_solar_time(jd_ut: JulianDay, geolon_deg: Longitude) -> crate::Result<f64> {
+    let jd_ut: f64 = jd_ut.into();
+    let geolon_deg: f64 = geolon_deg.into();
     // Extract UTC hour-of-day from JD:
     // JD epoch is noon (12:00 UT), so fractional part 0.0 = noon.
     // Time of day (hours) = ((jd_ut + 0.5).fract()) * 24.0
@@ -858,7 +888,7 @@ pub fn local_apparent_solar_time(jd_ut: f64, geolon_deg: f64) -> crate::Result<f
     // Local Mean Solar Time = UTC + longitude_offset
     let lmt = (utc_hours + geolon_deg / 15.0).rem_euclid(24.0);
     // Equation of time (hours): positive when sundial is ahead of clock
-    let eot = crate::functions::time::time_equ(jd_ut)?;
+    let eot = crate::functions::time::time_equ(JulianDay::new(jd_ut))?;
     // Local Apparent Solar Time = LMT + EoT
     let last = (lmt + eot).rem_euclid(24.0);
     Ok(last)
@@ -994,17 +1024,19 @@ pub const DASHA_SEQUENCE: &[(Body, f64)] = &[
 /// use celestial_core::body::{Body, CalcFlags, HouseSystem};
 /// let jd_birth = 2_440_000.0;
 /// let moon_lon = calc_ut(JulianDay::new(jd_birth), Body::MOON, CalcFlags::BUILTIN | CalcFlags::SIDEREAL).unwrap().lon;
-/// let dashas = vimshottari_dasha(jd_birth, moon_lon, 120.0);
+/// let dashas = vimshottari_dasha(JulianDay::new(jd_birth), Longitude::new(moon_lon), 120.0);
 /// for d in &dashas {
 ///     println!("{}: {:.2} years", d.body.name(), d.years);
 /// }
 /// ```
 #[must_use]
 pub fn vimshottari_dasha(
-    jd_birth: f64,
-    moon_lon_sidereal: f64,
+    jd_birth: JulianDay,
+    moon_lon_sidereal: Longitude,
     years_ahead: f64,
 ) -> Vec<DashaLevel> {
+    let jd_birth: f64 = jd_birth.into();
+    let moon_lon_sidereal: f64 = moon_lon_sidereal.into();
     const YEAR_DAYS: f64 = 365.25;
     const NAKSHATRA_DEG: f64 = 13.333_333; // 360/27
 

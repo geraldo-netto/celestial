@@ -6,6 +6,7 @@
 //!
 //! Accuracy: ~0.5° over 1800–2200 CE; degrades outside that range.
 
+use crate::units::JulianDay;
 use std::f64::consts::PI;
 
 const J2000: f64 = 2451545.0;
@@ -43,7 +44,8 @@ fn kepler(m: f64, ecc: f64) -> f64 {
 ///
 /// Elements: epoch J2000.0, from MPC / AstDys.
 #[must_use]
-pub fn chiron_pos(jd: f64) -> (f64, f64, f64) {
+pub fn chiron_pos(jd: JulianDay) -> (f64, f64, f64) {
+    let jd: f64 = jd.into();
     // Mean elements at epoch J2000.0
     let a = 13.648_16_f64; // AU
     let ecc = 0.382_95_f64;
@@ -97,7 +99,8 @@ pub fn chiron_pos(jd: f64) -> (f64, f64, f64) {
 /// motion of Chiron as seen from Earth — matching how
 /// `chiron_speed` is consumed by `calc_chiron`.
 #[must_use]
-pub fn chiron_speed(jd: f64) -> (f64, f64, f64) {
+pub fn chiron_speed(jd: JulianDay) -> (f64, f64, f64) {
+    let jd: f64 = jd.into();
     let h = 0.5;
     let (l0, b0, r0) = chiron_geocentric(jd - h);
     let (l1, b1, r1) = chiron_geocentric(jd + h);
@@ -123,7 +126,7 @@ pub fn chiron_speed(jd: f64) -> (f64, f64, f64) {
 pub fn chiron_geocentric(jde: f64) -> (f64, f64, f64) {
     use crate::astronomy::vsop87::{heliocentric, Planet};
 
-    let (ch_lon, ch_lat, ch_r) = chiron_pos(jde);
+    let (ch_lon, ch_lat, ch_r) = chiron_pos(JulianDay::new(jde));
     let earth = heliocentric(Planet::Earth, jde);
 
     // Chiron heliocentric → rectangular ecliptic.

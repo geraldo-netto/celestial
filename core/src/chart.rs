@@ -10,6 +10,7 @@
 //!     four_pillars, tonalpohualli, medicine_wheel_totem,
 //! };
 //! use celestial_core::body::Body;
+//! use celestial_core::{JulianDay, Longitude};
 //!
 //! // Aspect matching with separate applying/separating orbs
 //! let m = AspectOrbs::new(2.0, 1.5)
@@ -17,19 +18,19 @@
 //! if m.matched { println!("Trine  orb = {:.2}°", m.diff.abs()); }
 //!
 //! // Hellenistic dignity
-//! let (dig, score) = full_dignity(Body::SUN, 280.4, false);
+//! let (dig, score) = full_dignity(Body::SUN, Longitude::new(280.4), false);
 //! println!("Sun dignity: {dig:?}  score: {score}");
 //!
 //! // Chinese Ba Zi four pillars
-//! let pillars = four_pillars(2_451_545.0, 12.0, 280.4);
+//! let pillars = four_pillars(JulianDay::new(2_451_545.0), 12.0, Longitude::new(280.4));
 //! println!("Year: {} {}", pillars[0].stem_name, pillars[0].branch_name);
 //!
 //! // Aztec Tonalpohualli
-//! let (trecena, sign, name, _) = tonalpohualli(2_451_545.0);
+//! let (trecena, sign, name, _) = tonalpohualli(JulianDay::new(2_451_545.0));
 //! println!("{trecena} {name}");
 //!
 //! // Medicine Wheel birth totem
-//! let (animal, element, clan, season) = medicine_wheel_totem(280.4);
+//! let (animal, element, clan, season) = medicine_wheel_totem(Longitude::new(280.4));
 //! println!("{animal}  {element}  {clan}  {season}");
 //! ```
 

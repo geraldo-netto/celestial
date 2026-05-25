@@ -11,6 +11,7 @@ use celestial_core::{
     hindu_festivals, islamic_observances, jd_to_bahai, jdnow, jewish_holidays, naw_ruz_jd,
     nowruz_jd, panchanga, revjul, uposatha_days, vesak_jd, Paksha, UposathaPhase,
 };
+use celestial_core::JulianDay;
 use clap::{Args, Subcommand};
 
 // ─── Top-level args ────────────────────────────────────────────────────────────
@@ -63,12 +64,12 @@ pub struct JewishArgs {
 fn run_jewish(args: JewishArgs) -> Result<(), CliError> {
     let greg_year = args
         .year
-        .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
+        .unwrap_or_else(|| revjul(JulianDay::new(jdnow()), Calendar::Gregorian).year);
     // Use both Hebrew years that overlap this Gregorian year
     let jd_jan1 = celestial_core::julday(greg_year, 1, 1, 0.0, Calendar::Gregorian);
     let jd_dec31 = celestial_core::julday(greg_year, 12, 31, 0.0, Calendar::Gregorian);
-    let hy1 = celestial_core::hebrew_year_from_jd(jd_jan1);
-    let hy2 = celestial_core::hebrew_year_from_jd(jd_dec31);
+    let hy1 = celestial_core::hebrew_year_from_jd(JulianDay::new(jd_jan1));
+    let hy2 = celestial_core::hebrew_year_from_jd(JulianDay::new(jd_dec31));
 
     let mut holidays: Vec<_> = jewish_holidays(hy1)
         .into_iter()
@@ -78,7 +79,7 @@ fn run_jewish(args: JewishArgs) -> Result<(), CliError> {
             vec![]
         })
         .filter(|h| {
-            let d = revjul(h.jd, Calendar::Gregorian);
+            let d = revjul(JulianDay::new(h.jd), Calendar::Gregorian);
             d.year == greg_year
         })
         .collect();
@@ -105,7 +106,7 @@ fn run_jewish(args: JewishArgs) -> Result<(), CliError> {
         println!("  Jewish holidays — {greg_year}");
         println!("  {}", fmt::rule(58));
         for h in &holidays {
-            let d = revjul(h.jd, Calendar::Gregorian);
+            let d = revjul(JulianDay::new(h.jd), Calendar::Gregorian);
             let dur = if h.days > 1 {
                 format!(" ({} days)", h.days)
             } else {
@@ -139,7 +140,7 @@ pub struct EasterArgs {
 fn run_easter(args: EasterArgs) -> Result<(), CliError> {
     let year = args
         .year
-        .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
+        .unwrap_or_else(|| revjul(JulianDay::new(jdnow()), Calendar::Gregorian).year);
     let (ey, em, ed) = easter_gregorian(year);
     let (oy, om, od) = easter_orthodox(year);
 
@@ -216,8 +217,8 @@ pub struct IslamicArgs {
 fn run_islamic(args: IslamicArgs) -> Result<(), CliError> {
     if let Some(ref date_str) = args.convert {
         let jd = parse::parse_date(date_str)?;
-        let (hy, hm, hd) = hijri_from_jd(jd);
-        let greg = revjul(jd, Calendar::Gregorian);
+        let (hy, hm, hd) = hijri_from_jd(JulianDay::new(jd));
+        let greg = revjul(JulianDay::new(jd), Calendar::Gregorian);
         if args.json {
             println!(
                 "{}",
@@ -248,7 +249,7 @@ fn run_islamic(args: IslamicArgs) -> Result<(), CliError> {
 
     let greg_year = args
         .year
-        .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
+        .unwrap_or_else(|| revjul(JulianDay::new(jdnow()), Calendar::Gregorian).year);
     let (hy1, hy2) = gregorian_to_hijri_years(greg_year);
     let solar_hijri = gregorian_to_solar_hijri(greg_year);
 
@@ -260,7 +261,7 @@ fn run_islamic(args: IslamicArgs) -> Result<(), CliError> {
             vec![]
         })
         .filter(|o| {
-            let d = revjul(o.jd, Calendar::Gregorian);
+            let d = revjul(JulianDay::new(o.jd), Calendar::Gregorian);
             d.year == greg_year
         })
         .collect();
@@ -287,7 +288,7 @@ fn run_islamic(args: IslamicArgs) -> Result<(), CliError> {
         println!("  (Hijri {hy1}/{hy2} AH · Solar Hijri {solar_hijri})");
         println!("  {}", fmt::rule(56));
         for o in &obs {
-            let d = revjul(o.jd, Calendar::Gregorian);
+            let d = revjul(JulianDay::new(o.jd), Calendar::Gregorian);
             let dur = if o.days > 1 {
                 format!(" ({} days)", o.days)
             } else {
@@ -325,7 +326,7 @@ fn run_panchanga(args: PanchangaArgs) -> Result<(), CliError> {
     if args.festivals {
         let year = args
             .year
-            .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
+            .unwrap_or_else(|| revjul(JulianDay::new(jdnow()), Calendar::Gregorian).year);
         let festivals = hindu_festivals(year);
         if args.json {
             let items: Vec<String> = festivals
@@ -345,7 +346,7 @@ fn run_panchanga(args: PanchangaArgs) -> Result<(), CliError> {
             println!("  Hindu festivals — {year}");
             println!("  {}", fmt::rule(52));
             for f in &festivals {
-                let d = revjul(f.jd, Calendar::Gregorian);
+                let d = revjul(JulianDay::new(f.jd), Calendar::Gregorian);
                 println!(
                     "  {:<32}  {:04}-{:02}-{:02}",
                     f.name, d.year, d.month, d.day
@@ -357,7 +358,7 @@ fn run_panchanga(args: PanchangaArgs) -> Result<(), CliError> {
     }
 
     let jd = parse::parse_date(&args.date)?;
-    let p = panchanga(jd);
+    let p = panchanga(JulianDay::new(jd));
     let paksha_str = match p.paksha {
         Paksha::Shukla => "Shukla (waxing)",
         Paksha::Krishna => "Krishna (waning)",
@@ -422,7 +423,7 @@ pub struct VesakArgs {
 fn run_vesak(args: VesakArgs) -> Result<(), CliError> {
     let year = args
         .year
-        .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
+        .unwrap_or_else(|| revjul(JulianDay::new(jdnow()), Calendar::Gregorian).year);
 
     if args.uposatha {
         let days = uposatha_days(year);
@@ -460,7 +461,7 @@ fn run_vesak(args: VesakArgs) -> Result<(), CliError> {
     }
 
     let vesak = vesak_jd(year);
-    let d = revjul(vesak, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(vesak), Calendar::Gregorian);
     if args.json {
         println!(
             "{}",
@@ -498,7 +499,7 @@ pub struct NowruzArgs {
 fn run_nowruz(args: NowruzArgs) -> Result<(), CliError> {
     let year = args
         .year
-        .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
+        .unwrap_or_else(|| revjul(JulianDay::new(jdnow()), Calendar::Gregorian).year);
     let solar_hijri = gregorian_to_solar_hijri(year);
 
     if args.bahai {
@@ -520,13 +521,13 @@ fn run_nowruz(args: NowruzArgs) -> Result<(), CliError> {
             println!("{}", fmt::json_array(items));
         } else {
             let naw_ruz = naw_ruz_jd(bahai_year);
-            let d = revjul(naw_ruz, Calendar::Gregorian);
+            let d = revjul(JulianDay::new(naw_ruz), Calendar::Gregorian);
             println!();
             println!("  Bahá'í Calendar — {bahai_year} BE  ({year} CE)");
             println!("  Naw-Rúz: {:04}-{:02}-{:02}", d.year, d.month, d.day);
             println!("  {}", fmt::rule(56));
             for h in &holy_days {
-                let d = revjul(h.jd, Calendar::Gregorian);
+                let d = revjul(JulianDay::new(h.jd), Calendar::Gregorian);
                 println!(
                     "  {:<36}  {:04}-{:02}-{:02}",
                     h.name, d.year, d.month, d.day
@@ -538,9 +539,9 @@ fn run_nowruz(args: NowruzArgs) -> Result<(), CliError> {
     }
 
     let nowruz = nowruz_jd(year);
-    let d = revjul(nowruz, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(nowruz), Calendar::Gregorian);
     let bahai_year = year - 1843;
-    let bd = jd_to_bahai(nowruz);
+    let bd = jd_to_bahai(JulianDay::new(nowruz));
 
     if args.json {
         println!(

@@ -8,7 +8,7 @@ mod mesoamerican {
     fn tonalpohualli_trecena_in_range() {
         for i in 0..260u32 {
             let jd = 2_451_545.0 + i as f64;
-            let (trecena, sign_idx, _, _) = tonalpohualli(jd);
+            let (trecena, sign_idx, _, _) = tonalpohualli(JulianDay::new(jd));
             assert!(
                 (1..=13).contains(&trecena),
                 "trecena {trecena} out of [1,13] at day {i}"
@@ -20,8 +20,8 @@ mod mesoamerican {
     #[test]
     fn tonalpohualli_260_day_cycle() {
         let jd = 2_451_545.0;
-        let (t1, s1, _, _) = tonalpohualli(jd);
-        let (t2, s2, _, _) = tonalpohualli(jd + 260.0);
+        let (t1, s1, _, _) = tonalpohualli(JulianDay::new(jd));
+        let (t2, s2, _, _) = tonalpohualli(JulianDay::new(jd + 260.0));
         assert_eq!(t1, t2, "trecena should repeat after 260 days");
         assert_eq!(s1, s2, "sign should repeat after 260 days");
     }
@@ -29,8 +29,8 @@ mod mesoamerican {
     #[test]
     fn xiuhpohualli_365_day_cycle() {
         let jd = 2_451_545.0;
-        let (m1, d1, _, _) = xiuhpohualli(jd);
-        let (m2, d2, _, _) = xiuhpohualli(jd + 365.0);
+        let (m1, d1, _, _) = xiuhpohualli(JulianDay::new(jd));
+        let (m2, d2, _, _) = xiuhpohualli(JulianDay::new(jd + 365.0));
         assert_eq!(m1, m2, "month should repeat after 365 days");
         assert_eq!(d1, d2, "day should repeat after 365 days");
     }
@@ -39,8 +39,8 @@ mod mesoamerican {
     fn tzolkin_same_structure_as_tonalpohualli() {
         // Tzolkin and Tonalpohualli share the 260-day base
         let jd = 2_451_545.0;
-        let (tt, ts, _, _) = tzolkin(jd);
-        let (at, as_, _, _) = tonalpohualli(jd);
+        let (tt, ts, _, _) = tzolkin(JulianDay::new(jd));
+        let (at, as_, _, _) = tonalpohualli(JulianDay::new(jd));
         // Same trecena and same sign index (both use day_num % 260)
         assert_eq!(tt, at, "tzolkin and tonalpohualli trecena should match");
         assert_eq!(ts, as_, "tzolkin and tonalpohualli sign index should match");
@@ -49,8 +49,8 @@ mod mesoamerican {
     #[test]
     fn haab_365_day_cycle() {
         let jd = 2_451_545.0;
-        let (m1, d1, _) = haab(jd);
-        let (m2, d2, _) = haab(jd + 365.0);
+        let (m1, d1, _) = haab(JulianDay::new(jd));
+        let (m2, d2, _) = haab(JulianDay::new(jd + 365.0));
         assert_eq!(m1, m2);
         assert_eq!(d1, d2);
     }
@@ -59,8 +59,8 @@ mod mesoamerican {
     fn calendar_round_52_year_cycle() {
         // 18_980 days = LCM(260, 365) = 52 Haab years
         let jd = 2_451_545.0;
-        let (t1, s1, hd1, hm1) = calendar_round(jd);
-        let (t2, s2, hd2, hm2) = calendar_round(jd + 18_980.0);
+        let (t1, s1, hd1, hm1) = calendar_round(JulianDay::new(jd));
+        let (t2, s2, hd2, hm2) = calendar_round(JulianDay::new(jd + 18_980.0));
         assert_eq!(t1, t2, "Calendar Round trecena");
         assert_eq!(s1, s2, "Calendar Round tzolkin sign");
         assert_eq!(hd1, hd2, "Calendar Round haab day");
@@ -82,8 +82,8 @@ mod extra_mesoamerican {
     fn tonalpohualli_cycle_length_260() {
         // Exactly 260 days later should give the same position
         let jd = GMT;
-        let (t0, s0, _, _) = tonalpohualli(jd);
-        let (t260, s260, _, _) = tonalpohualli(jd + 260.0);
+        let (t0, s0, _, _) = tonalpohualli(JulianDay::new(jd));
+        let (t260, s260, _, _) = tonalpohualli(JulianDay::new(jd + 260.0));
         assert_eq!(t0, t260, "trecena repeats at 260 days");
         assert_eq!(s0, s260, "sign repeats at 260 days");
     }
@@ -93,7 +93,7 @@ mod extra_mesoamerican {
         // trecena is always 1-13, sign_idx always 0-19
         for offset in 0..260i64 {
             let jd = GMT + offset as f64;
-            let (t, s, _, _) = tonalpohualli(jd);
+            let (t, s, _, _) = tonalpohualli(JulianDay::new(jd));
             assert!((1..=13).contains(&t), "trecena {t} out of range [1,13]");
             assert!(s < 20, "sign_idx {s} out of range [0,19]");
         }
@@ -103,7 +103,7 @@ mod extra_mesoamerican {
     fn tonalpohualli_epoch_is_4_xochitl() {
         // GMT correlation: JD 584283 = Maya "4 Ahau" = Aztec "4 Xochitl"
         // (sign 19 in both naming systems). Identical 260-day cycle.
-        let (t, s, _name, _) = tonalpohualli(GMT);
+        let (t, s, _name, _) = tonalpohualli(JulianDay::new(GMT));
         assert_eq!(t, 4, "GMT day: trecena 4 (Maya canon = 4 Ahau)");
         assert_eq!(s, 19, "GMT day: sign 19 (Aztec Xochitl / Maya Ahau)");
     }
@@ -111,8 +111,8 @@ mod extra_mesoamerican {
     #[test]
     fn xiuhpohualli_365_day_cycle() {
         let jd = GMT;
-        let (m0, d0, _, _) = xiuhpohualli(jd);
-        let (m365, d365, _, _) = xiuhpohualli(jd + 365.0);
+        let (m0, d0, _, _) = xiuhpohualli(JulianDay::new(jd));
+        let (m365, d365, _, _) = xiuhpohualli(JulianDay::new(jd + 365.0));
         assert_eq!(m0, m365, "xiuhpohualli month repeats at 365 days");
         assert_eq!(d0, d365, "xiuhpohualli day repeats at 365 days");
     }
@@ -121,8 +121,8 @@ mod extra_mesoamerican {
     fn tzolkin_matches_tonalpohualli_cycle() {
         // Tzolkin is the Maya equivalent of Tonalpohualli — same 260-day period
         let jd = GMT + 17.0;
-        let (tt, _, _, _) = tonalpohualli(jd);
-        let (tz, _, _, _) = tzolkin(jd);
+        let (tt, _, _, _) = tonalpohualli(JulianDay::new(jd));
+        let (tz, _, _, _) = tzolkin(JulianDay::new(jd));
         assert_eq!(
             tt, tz,
             "trecena should match between Tzolkin and Tonalpohualli"
@@ -132,8 +132,8 @@ mod extra_mesoamerican {
     #[test]
     fn haab_365_day_cycle() {
         let jd = GMT;
-        let (m0, d0, _) = haab(jd);
-        let (m365, d365, _) = haab(jd + 365.0);
+        let (m0, d0, _) = haab(JulianDay::new(jd));
+        let (m365, d365, _) = haab(JulianDay::new(jd + 365.0));
         assert_eq!(m0, m365);
         assert_eq!(d0, d365);
     }
@@ -142,8 +142,8 @@ mod extra_mesoamerican {
     fn calendar_round_18980_day_cycle() {
         // Calendar Round = LCM(260, 365) = 18980 days
         let jd = GMT;
-        let cr0 = calendar_round(jd);
-        let cr18980 = calendar_round(jd + 18980.0);
+        let cr0 = calendar_round(JulianDay::new(jd));
+        let cr18980 = calendar_round(JulianDay::new(jd + 18980.0));
         assert_eq!(cr0, cr18980, "Calendar Round repeats at 18980 days");
     }
 

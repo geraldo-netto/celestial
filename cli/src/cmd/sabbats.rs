@@ -4,6 +4,7 @@ use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::Calendar;
 use celestial_core::{esbats_for_year, jdnow, next_esbat, next_sabbat, revjul, sabbats_for_year};
+use celestial_core::JulianDay;
 use clap::Args;
 
 // ─── Sabbats ──────────────────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ pub fn run_sabbats(args: SabbatsArgs) -> Result<(), CliError> {
 
     let year = args
         .year
-        .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
+        .unwrap_or_else(|| revjul(JulianDay::new(jdnow()), Calendar::Gregorian).year);
     let sabbats = sabbats_for_year(year)?;
 
     if args.json {
@@ -145,7 +146,7 @@ pub fn run_esbats(args: EsbatsArgs) -> Result<(), CliError> {
 
     let year = args
         .year
-        .unwrap_or_else(|| revjul(jdnow(), Calendar::Gregorian).year);
+        .unwrap_or_else(|| revjul(JulianDay::new(jdnow()), Calendar::Gregorian).year);
     let esbats = esbats_for_year(year)?;
 
     if args.json {

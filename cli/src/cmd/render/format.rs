@@ -5,6 +5,7 @@
 
 use celestial_core::body::Calendar;
 use celestial_core::{lon_to_sign, moon_phase, revjul, MoonPhase};
+use celestial_core::JulianDay;
 
 pub(crate) fn fmt_lon_dms(lon: f64) -> String {
     let (sign_idx, deg_in_sign) = lon_to_sign(lon);
@@ -36,7 +37,7 @@ pub(crate) fn fmt_lon_dms(lon: f64) -> String {
 }
 
 pub(crate) fn moon_phase_str(jd: f64) -> &'static str {
-    match moon_phase(jd).unwrap_or(MoonPhase::NewMoon) {
+    match moon_phase(JulianDay::new(jd)).unwrap_or(MoonPhase::NewMoon) {
         MoonPhase::NewMoon => "New Moon",
         MoonPhase::WaxingCrescent => "Waxing Crescent",
         MoonPhase::FirstQuarter => "First Quarter",
@@ -50,7 +51,7 @@ pub(crate) fn moon_phase_str(jd: f64) -> &'static str {
 
 /// Format a Julian Day as a date string, including HH:MM when the time is not midnight.
 pub(crate) fn jd_to_date_str(jd: f64) -> String {
-    let d = revjul(jd, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
     let total_sec = (d.hour * 3600.0).round() as i32; // round to nearest second first
     let total_min = total_sec / 60; // truncate seconds from display
     let h = total_min / 60;

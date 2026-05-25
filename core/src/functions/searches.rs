@@ -194,7 +194,7 @@ pub fn next_aspect(
     // We want: lon + aspect ≡ fixed_pt (mod 360)
     // → lon ≡ fixed_pt - aspect (mod 360)
     let target = norm360(fixed_pt - aspect);
-    let jd = find_crossing(body.as_raw(), target, jd_start, !backward, flags.as_raw())?;
+    let jd = find_crossing(body.as_raw(), target, JulianDay::new(jd_start), !backward, flags.as_raw())?;
 
     // Check stop limit
     if stop_days > 0.0 {
@@ -482,7 +482,7 @@ pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
         let dec = diff_deg(sun2, sun1) / 360.0;
         let mut jd = jd1;
         loop {
-            let r = crate::functions::motion::solcross(sun1, jd + 1e-5, CalcFlags::BUILTIN)
+            let r = crate::functions::motion::solcross(Longitude::new(sun1), JulianDay::new(jd + 1e-5), CalcFlags::BUILTIN)
                 .map_err(|e| crate::error::Error::Calc(e.to_string()))?;
             if r <= jd2 {
                 years += 1.0;
@@ -499,14 +499,14 @@ pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
             // Sanity-check that a Sun crossing of `sun1` exists in the search
             // neighbourhood before walking backward. Result intentionally
             // discarded — only the propagated error is consumed.
-            let _ = crate::functions::motion::solcross(sun1, jd - 1e-5, CalcFlags::BUILTIN)
+            let _ = crate::functions::motion::solcross(Longitude::new(sun1), JulianDay::new(jd - 1e-5), CalcFlags::BUILTIN)
                 .map_err(|e| crate::error::Error::Calc(e.to_string()))?;
             // solcross searches forward; for the backward branch we use
             // find_crossing with `forward=false` to walk into the past.
             let rb = crate::astronomy::crossings::find_crossing(
                 0,
                 sun1,
-                jd - 1e-5,
+                JulianDay::new(jd - 1e-5),
                 false,
                 flags.as_raw(),
             )
@@ -760,7 +760,7 @@ pub fn meridian_transit_ut(
     flags: CalcFlags,
 ) -> crate::Result<crate::functions::motion::RiseTransResult> {
     crate::functions::motion::rise_trans(
-        jd_start,
+        JulianDay::new(jd_start),
         body,
         None,
         flags,
@@ -804,7 +804,7 @@ pub fn lower_meridian_transit_ut(
             Err(_) => return 0.0, // treat as HA=0 if calc fails
         };
         // Convert ecliptic lon/lat → RA
-        let eps = crate::true_obliquity(jd).to_radians();
+        let eps = crate::true_obliquity(JulianDay::new(jd)).to_radians();
         let lon_r = pos.lon.to_radians();
         let lat_r = pos.lat.to_radians();
         // Meeus eq.13.3: RA = atan2(sin(lon)*cos(eps) - tan(lat)*sin(eps), cos(lon))
@@ -815,7 +815,7 @@ pub fn lower_meridian_transit_ut(
             .atan2(cos_lon)
             .to_degrees()
             .rem_euclid(360.0);
-        let gast = crate::sidtime(jd) * 15.0; // hours → degrees
+        let gast = crate::sidtime(JulianDay::new(jd)) * 15.0; // hours → degrees
         (gast + lon - ra).rem_euclid(360.0)
     };
 
@@ -824,7 +824,7 @@ pub fn lower_meridian_transit_ut(
 
     // Start from upper transit to find the NEXT lower transit (~12h later)
     let upper = crate::functions::motion::rise_trans(
-        jd_start,
+        JulianDay::new(jd_start),
         body,
         None,
         flags,

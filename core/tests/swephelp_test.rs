@@ -84,7 +84,7 @@ fn test_jdnow_reasonable() {
 
 #[test]
 fn test_revjul_hms() {
-    let dt = revjul_hms(JD, Calendar::Gregorian);
+    let dt = revjul_hms(JulianDay::new(JD), Calendar::Gregorian);
     assert_eq!(dt[0], 2002);
     assert_eq!(dt[1], 1);
     assert_eq!(dt[2], 1);
@@ -122,7 +122,7 @@ fn test_parse_time() {
 
 #[test]
 fn test_jd_duration() {
-    let d = jd_duration(JD, JD + 1.5);
+    let d = jd_duration(JulianDay::new(JD), JulianDay::new(JD + 1.5));
     assert_eq!(d[0], 1); // 1 day
     assert_eq!(d[1], 12); // 12 hours
     assert_eq!(d[2], 0);
@@ -131,7 +131,7 @@ fn test_jd_duration() {
 
 #[test]
 fn test_jd_to_iso_string() {
-    let s = jd_to_iso_string(JD, Calendar::Gregorian);
+    let s = jd_to_iso_string(JulianDay::new(JD), Calendar::Gregorian);
     assert!(s.starts_with("2002-01-01"), "iso={s}");
     assert!(s.ends_with("UTC"), "iso={s}");
 }
@@ -232,7 +232,7 @@ fn test_format_coord_lon_west() {
 
 #[test]
 fn test_raman_houses_bhavamadhya_count() {
-    let cusps = raman_houses(15.0, 275.0, false);
+    let cusps = raman_houses(Degrees::new(15.0), Degrees::new(275.0), false);
     assert_eq!(cusps.len(), 12);
     // All longitudes in [0,360)
     for &c in &cusps {
@@ -244,7 +244,7 @@ fn test_raman_houses_bhavamadhya_count() {
 fn test_raman_houses_asc_is_cusp1() {
     let asc = 72.3_f64;
     let mc = 345.8_f64;
-    let cusps = raman_houses(asc, mc, false);
+    let cusps = raman_houses(Degrees::new(asc), Degrees::new(mc), false);
     assert!(
         (cusps[0] - asc % 360.0).abs() < 1e-9,
         "cusp[0]={} asc={}",
@@ -261,23 +261,23 @@ fn test_sign_lord_mars() {
 
 #[test]
 fn test_long_to_rasi() {
-    assert_eq!(long_to_rasi(0.0), 0); // Aries
-    assert_eq!(long_to_rasi(45.0), 1); // Taurus
-    assert_eq!(long_to_rasi(359.9), 11); // Pisces
+    assert_eq!(long_to_rasi(Longitude::new(0.0)), 0); // Aries
+    assert_eq!(long_to_rasi(Longitude::new(45.0)), 1); // Taurus
+    assert_eq!(long_to_rasi(Longitude::new(359.9)), 11); // Pisces
 }
 
 #[test]
 fn test_long_to_navamsa() {
-    let nav = long_to_navamsa(0.0);
+    let nav = long_to_navamsa(Longitude::new(0.0));
     assert!((0..12).contains(&nav));
 }
 
 #[test]
 fn test_long_to_nakshatra() {
-    let (nak, pada) = long_to_nakshatra(0.0);
+    let (nak, pada) = long_to_nakshatra(Longitude::new(0.0));
     assert_eq!(nak, 0); // Aswini
     assert_eq!(pada, 0);
-    let (nak2, _) = long_to_nakshatra(359.99);
+    let (nak2, _) = long_to_nakshatra(Longitude::new(359.99));
     assert_eq!(nak2, 26); // Revathi
 }
 
@@ -475,7 +475,7 @@ fn test_tz_find_unknown() {
 
 #[test]
 fn test_saturn_4_stars() {
-    let r = saturn_4_stars(JD, CalcFlags::BUILTIN).unwrap();
+    let r = saturn_4_stars(JulianDay::new(JD), CalcFlags::BUILTIN).unwrap();
     // Index must be finite and non-negative
     assert!(r[5].is_finite(), "index={}", r[5]);
     assert!(r[5] >= 0.0, "index={}", r[5]);

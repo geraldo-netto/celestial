@@ -1,6 +1,8 @@
 //! Utility calculations: azimuth/altitude, refraction, coordinate transforms,
 //! phenomena, Gauquelin sectors, and heliacal events.
 
+use crate::units::{Degrees, JulianDay};
+
 // ─── Azimuth / altitude ───────────────────────────────────────────────────────
 
 /// Result of [`azalt`].
@@ -24,13 +26,14 @@ pub struct AzAlt {
 /// Returns azimuth (0° N, clockwise) and true / apparent altitude above horizon.
 #[must_use]
 pub fn azalt(
-    jd_ut: f64,
+    jd_ut: JulianDay,
     direction: i32,
     geopos: [f64; 3],
     pressure_mb: f64,
     temp_c: f64,
     xin: [f64; 3],
 ) -> AzAlt {
+    let jd_ut: f64 = jd_ut.into();
     let geolon = geopos[0]; // observer longitude (°E)
     let geolat = geopos[1]; // observer latitude  (°N)
 
@@ -56,7 +59,7 @@ pub fn azalt(
     };
 
     // ── Step 2: Local Sidereal Time → Hour Angle ───────────────────────────
-    let gmst_deg = crate::astronomy::houses::sidereal_time_deg(jd_ut);
+    let gmst_deg = crate::astronomy::houses::sidereal_time_deg(JulianDay::new(jd_ut));
     let lst_deg = (gmst_deg + geolon).rem_euclid(360.0);
     let ha_deg = (lst_deg - ra).rem_euclid(360.0);
 
@@ -107,7 +110,8 @@ pub fn azalt(
 /// - `xin` = `[azimuth°, true_altitude°]`  (South-based azimuth, S=0° clockwise)
 /// - `geopos` = observer `[lon°, lat°, alt_m]`
 #[must_use]
-pub fn azalt_rev(jd_ut: f64, direction: i32, geopos: [f64; 3], xin: [f64; 2]) -> [f64; 3] {
+pub fn azalt_rev(jd_ut: JulianDay, direction: i32, geopos: [f64; 3], xin: [f64; 2]) -> [f64; 3] {
+    let jd_ut: f64 = jd_ut.into();
     let geolon = geopos[0];
     let geolat = geopos[1];
 
@@ -135,7 +139,7 @@ pub fn azalt_rev(jd_ut: f64, direction: i32, geopos: [f64; 3], xin: [f64; 2]) ->
     let ha_deg = if sin_az < 0.0 { ha_base } else { 360.0 - ha_base };
 
     // Hour angle → right ascension via Local Sidereal Time
-    let gmst_deg = crate::astronomy::houses::sidereal_time_deg(jd_ut);
+    let gmst_deg = crate::astronomy::houses::sidereal_time_deg(JulianDay::new(jd_ut));
     let lst_deg = (gmst_deg + geolon).rem_euclid(360.0);
     let ra = (lst_deg - ha_deg).rem_euclid(360.0);
 
@@ -200,7 +204,8 @@ pub fn refrac_extended(
 /// `coords` = `[lon, lat, dist]`, `eps` = obliquity in degrees.
 /// Positive `eps` converts ecliptic → equatorial; negative reverses.
 #[must_use]
-pub fn coord_transform(coords: [f64; 3], eps: f64) -> [f64; 3] {
+pub fn coord_transform(coords: [f64; 3], eps: Degrees) -> [f64; 3] {
+    let eps: f64 = eps.into();
     let (lon, lat, dist) = (coords[0], coords[1], coords[2]);
     let eps_r = eps.to_radians();
     let lon_r = lon.to_radians();
@@ -222,7 +227,7 @@ pub fn coord_transform(coords: [f64; 3], eps: f64) -> [f64; 3] {
 
 /// Transform with speeds (coord_transform_with_speed).
 #[must_use]
-pub fn coord_transform_with_speed(coords: [f64; 6], eps: f64) -> [f64; 6] {
+pub fn coord_transform_with_speed(coords: [f64; 6], eps: Degrees) -> [f64; 6] {
     let pos = [coords[0], coords[1], coords[2]];
     let out = coord_transform(pos, eps);
     [out[0], out[1], out[2], coords[3], coords[4], coords[5]]

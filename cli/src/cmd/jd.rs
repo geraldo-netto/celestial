@@ -4,6 +4,7 @@ use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::Calendar;
 use celestial_core::{deltat, revjul, sidtime};
+use celestial_core::JulianDay;
 use clap::Args;
 
 #[derive(Args)]
@@ -30,9 +31,9 @@ pub fn run(args: JdArgs) -> Result<(), CliError> {
         celestial_core::jdnow()
     };
 
-    let d = revjul(jd, Calendar::Gregorian);
-    let dt = deltat(jd) * 86_400.0; // days → seconds
-    let st = sidtime(jd); // hours
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
+    let dt = deltat(JulianDay::new(jd)) * 86_400.0; // days → seconds
+    let st = sidtime(JulianDay::new(jd)); // hours
 
     let total_min = (d.hour * 60.0).round() as i32;
     let h = total_min / 60;
@@ -43,7 +44,7 @@ pub fn run(args: JdArgs) -> Result<(), CliError> {
     let st_s = (((st - st_h as f64) * 60.0 - st_m as f64) * 60.0).round() as u32;
 
     // Day of week
-    let dow = celestial_core::day_of_week(jd);
+    let dow = celestial_core::day_of_week(JulianDay::new(jd));
     let dow_name = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dow as usize % 7];
 
     if args.json {

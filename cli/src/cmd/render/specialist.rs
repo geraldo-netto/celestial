@@ -556,7 +556,7 @@ fn write_ge_x_axis_labels(
     let mut jd_lbl = jd_start;
     while jd_lbl <= jd_end + 1.0 {
         let x = GE_LM + (jd_lbl - jd_start) * x_scale;
-        let d = celestial_core::revjul(jd_lbl, celestial_core::body::Calendar::Gregorian);
+        let d = celestial_core::revjul(JulianDay::new(jd_lbl), celestial_core::body::Calendar::Gregorian);
         let lbl = format!("{:.0}-{:02.0}", d.year, d.month);
         let _ = writeln!(
             s,
@@ -587,7 +587,7 @@ pub fn build_local_space_context(
     for &(body, key, name, glyph) in BODIES {
         if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
             // Convert to azimuth/altitude using azalt
-            let az_result: AzAlt = azalt(jd, 0, geopos, 0.0, 10.0, [pos.lon, pos.lat, pos.dist]);
+            let az_result: AzAlt = azalt(JulianDay::new(jd), 0, geopos, 0.0, 10.0, [pos.lon, pos.lat, pos.dist]);
             let az = az_result.azimuth;
             let alt = az_result.true_alt;
             planets.push(json!({

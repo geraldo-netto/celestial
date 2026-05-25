@@ -3,6 +3,7 @@
 use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::{omer_days, omer_declaration, omer_from_jd, omer_period};
+use celestial_core::JulianDay;
 use clap::Args;
 
 #[derive(Args)]
@@ -27,7 +28,7 @@ pub struct OmerArgs {
 /// Print the full 49-day Omer table (`--all` mode).
 fn run_all_mode(hebrew_year: i32, jd: f64, json: bool) {
     let days = omer_days(hebrew_year);
-    let period = omer_period(jd);
+    let period = omer_period(JulianDay::new(jd));
 
     if json {
         let items: Vec<String> = days
@@ -131,7 +132,7 @@ fn run_not_in_omer_mode(jd: f64, json: bool) {
         println!("{{\"in_omer\": false}}");
         return;
     }
-    let period = omer_period(jd);
+    let period = omer_period(JulianDay::new(jd));
     println!();
     println!("  Not currently in the Omer period.");
     println!(
@@ -147,7 +148,7 @@ pub fn run(args: OmerArgs) -> Result<(), CliError> {
 
     // Determine Hebrew year (from --year flag or from date)
     let hebrew_year = args.year.unwrap_or_else(|| {
-        let period = omer_period(jd);
+        let period = omer_period(JulianDay::new(jd));
         period.hebrew_year
     });
 
@@ -155,7 +156,7 @@ pub fn run(args: OmerArgs) -> Result<(), CliError> {
         run_all_mode(hebrew_year, jd, args.json);
         return Ok(());
     }
-    match omer_from_jd(jd) {
+    match omer_from_jd(JulianDay::new(jd)) {
         Some(day) => run_in_omer_mode(day, args.json),
         None => run_not_in_omer_mode(jd, args.json),
     }

@@ -1,5 +1,7 @@
 //! Auto-split from chart.rs — do not edit section headers.
 
+use crate::units::Longitude;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Phase 8 — Indigenous / other calendar systems
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -15,8 +17,9 @@
 /// It is NOT representative of any single traditional indigenous nation's teachings.
 #[must_use]
 pub fn medicine_wheel_totem(
-    sun_lon: f64,
+    sun_lon: Longitude,
 ) -> (&'static str, &'static str, &'static str, &'static str) {
+    let sun_lon: f64 = sun_lon.into();
     // (min_lon, max_lon, animal, element, clan, season)
     // Aligned to approximate Sun longitude ranges (tropical)
     const TOTEMS: &[(f64, f64, &str, &str, &str, &str)] = &[
@@ -52,7 +55,8 @@ pub fn medicine_wheel_totem(
 ///
 /// Returns `(decan_index 0–35, decan_name, associated_star)`.
 #[must_use]
-pub fn egyptian_decan(lon: f64) -> (usize, &'static str, &'static str) {
+pub fn egyptian_decan(lon: Longitude) -> (usize, &'static str, &'static str) {
+    let lon: f64 = lon.into();
     const DECANS: &[(&str, &str)] = &[
         ("Khontarty", "Alphard"),
         ("Khontarty II", "Alphard"),

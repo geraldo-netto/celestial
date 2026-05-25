@@ -59,12 +59,13 @@ fn ec_to_result(e: ae::EclipseResult) -> EclipseResult {
 /// `ecl_type` filters by eclipse kind: 0 = any, or combine `ECL_TOTAL`,
 /// `ECL_ANNULAR`, `ECL_PARTIAL`, `ECL_HYBRID`.
 pub fn sol_eclipse_when_glob(
-    tjd_start: f64,
+    tjd_start: JulianDay,
     _flags: CalcFlags,
     ecl_type: i32,
     backwards: bool,
 ) -> Result<EclipseResult> {
-    ae::solar_eclipse_when_glob(tjd_start, ecl_type, backwards)
+    let tjd_start: f64 = tjd_start.into();
+    ae::solar_eclipse_when_glob(JulianDay::new(tjd_start), ecl_type, backwards)
         .map(ec_to_result)
         .ok_or(Error::NoEclipseFound { from_jd: tjd_start })
 }
@@ -73,14 +74,15 @@ pub fn sol_eclipse_when_glob(
 ///
 /// `geopos` = `[longitude, latitude, altitude_m]`.
 pub fn sol_eclipse_when_loc(
-    tjd_start: f64,
+    tjd_start: JulianDay,
     _flags: CalcFlags,
     geopos: [f64; 3],
     backwards: bool,
 ) -> Result<EclipseResultAttr> {
-    ae::solar_eclipse_when_glob(tjd_start, 0, backwards)
+    let tjd_start: f64 = tjd_start.into();
+    ae::solar_eclipse_when_glob(JulianDay::new(tjd_start), 0, backwards)
         .map(|e| {
-            let attr = ae::solar_eclipse_attr(e.tret[0], geopos);
+            let attr = ae::solar_eclipse_attr(JulianDay::new(e.tret[0]), geopos);
             EclipseResultAttr {
                 ret_flags: e.ret_flags,
                 tret: e.tret,
@@ -93,8 +95,9 @@ pub fn sol_eclipse_when_loc(
 /// Solar eclipse attributes at a specific time and location.
 ///
 /// Returns magnitude, obscuration, and contact times in the `attr` array.
-pub fn sol_eclipse_how(jd_ut: f64, _flags: CalcFlags, geopos: [f64; 3]) -> Result<EclipseHow> {
-    let attr = ae::solar_eclipse_attr(jd_ut, geopos);
+pub fn sol_eclipse_how(jd_ut: JulianDay, _flags: CalcFlags, geopos: [f64; 3]) -> Result<EclipseHow> {
+    let jd_ut: f64 = jd_ut.into();
+    let attr = ae::solar_eclipse_attr(JulianDay::new(jd_ut), geopos);
     let ret_flags = if attr[1] > 0.0 {
         ae::ECL_TOTAL
     } else {
@@ -111,15 +114,16 @@ pub fn sol_eclipse_how(jd_ut: f64, _flags: CalcFlags, geopos: [f64; 3]) -> Resul
 /// `geopos[0]` = longitude (°E), `geopos[1]` = latitude (°N).
 /// `attr[0]`   = eclipse magnitude at that point.
 /// `attr[7]`   = gamma (shadow axis distance from Earth centre, in Earth radii).
-pub fn sol_eclipse_where(jd_ut: f64, _flags: CalcFlags) -> Result<EclipseWhere> {
-    let k = ae::k_from_jd(jd_ut, true);
+pub fn sol_eclipse_where(jd_ut: JulianDay, _flags: CalcFlags) -> Result<EclipseWhere> {
+    let jd_ut: f64 = jd_ut.into();
+    let k = ae::k_from_jd(JulianDay::new(jd_ut), true);
     let (kind, gamma, u) = ae::check_solar_eclipse(k);
     if kind == ae::EclipseKind::None {
         // No central eclipse at this time — find the nearest one and use it
         // Return the point for the nearest solar eclipse
-        let result = ae::solar_eclipse_when_glob(jd_ut, 0, false)
+        let result = ae::solar_eclipse_when_glob(JulianDay::new(jd_ut), 0, false)
             .ok_or(Error::NoEclipseFound { from_jd: jd_ut })?;
-        let k2 = ae::k_from_jd(result.tret[0], true);
+        let k2 = ae::k_from_jd(JulianDay::new(result.tret[0]), true);
         let (_kind2, gamma2, u2) = ae::check_solar_eclipse(k2);
         let jde = result.tret[0];
         let (lon, lat) = ae::solar_eclipse_geopos(jde, gamma2);
@@ -165,24 +169,26 @@ pub fn sol_eclipse_where(jd_ut: f64, _flags: CalcFlags) -> Result<EclipseWhere> 
 ///
 /// `ecl_type` filters: 0 = any, or `ECL_TOTAL`, `ECL_PARTIAL`, `ECL_PENUMBRAL`.
 pub fn lun_eclipse_when(
-    tjd_start: f64,
+    tjd_start: JulianDay,
     _flags: CalcFlags,
     ecl_type: i32,
     backwards: bool,
 ) -> Result<EclipseResult> {
-    ae::lun_eclipse_when(tjd_start, ecl_type, backwards)
+    let tjd_start: f64 = tjd_start.into();
+    ae::lun_eclipse_when(JulianDay::new(tjd_start), ecl_type, backwards)
         .map(ec_to_result)
         .ok_or(Error::NoEclipseFound { from_jd: tjd_start })
 }
 
 /// Next lunar eclipse visible from a geographic location.
 pub fn lun_eclipse_when_loc(
-    tjd_start: f64,
+    tjd_start: JulianDay,
     _flags: CalcFlags,
     _geopos: [f64; 3],
     backwards: bool,
 ) -> Result<EclipseResultAttr> {
-    ae::lun_eclipse_when(tjd_start, 0, backwards)
+    let tjd_start: f64 = tjd_start.into();
+    ae::lun_eclipse_when(JulianDay::new(tjd_start), 0, backwards)
         .map(|e| EclipseResultAttr {
             ret_flags: e.ret_flags,
             tret: e.tret,
@@ -193,12 +199,13 @@ pub fn lun_eclipse_when_loc(
 
 /// Lunar eclipse attributes at a specific time.
 pub fn lun_eclipse_how(
-    jd_ut: f64,
+    jd_ut: JulianDay,
     _flags: CalcFlags,
     _geopos: Option<[f64; 3]>,
 ) -> Result<EclipseHow> {
+    let jd_ut: f64 = jd_ut.into();
     use crate::astronomy::eclipses::k_from_jd;
-    let k = k_from_jd(jd_ut, true);
+    let k = k_from_jd(JulianDay::new(jd_ut), true);
     let attr = ae::lunar_eclipse_attr(k);
     let (_, pen, umb) = ae::check_lunar_eclipse(k);
     let flags = if umb > 0.0 {
@@ -247,7 +254,7 @@ fn ecl_to_eq(lon_deg: f64, lat_deg: f64, eps: f64) -> (f64, f64) {
 fn moon_body_separation(jd: f64, body: Body) -> Option<f64> {
     let moon = crate::calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).ok()?;
     let planet = crate::calc_ut(JulianDay::new(jd), body, CalcFlags::BUILTIN).ok()?;
-    let eps = crate::true_obliquity(jd).to_radians();
+    let eps = crate::true_obliquity(JulianDay::new(jd)).to_radians();
     let (ra_m, dec_m) = ecl_to_eq(moon.lon, moon.lat, eps);
     let (ra_p, dec_p) = ecl_to_eq(planet.lon, planet.lat, eps);
     let d_ra = ra_m - ra_p;
@@ -303,13 +310,14 @@ fn try_refine_occultation(jd: f64, step: f64, prev: f64, curr: f64, body: Body) 
 /// returns the time of closest approach in `tret[0]`. Set `backwards` to search
 /// toward earlier dates.
 pub fn lun_occult_when_glob(
-    tjd_start: f64,
+    tjd_start: JulianDay,
     body: Body,
     _starname: Option<&str>,
     _flags: CalcFlags,
     _ecl_type: i32,
     backwards: bool,
 ) -> Result<EclipseResult> {
+    let tjd_start: f64 = tjd_start.into();
     let step = if backwards { -0.1_f64 } else { 0.1_f64 };
     let mut jd = tjd_start;
     let limit = step.mul_add(4000.0, tjd_start);
@@ -342,7 +350,7 @@ pub fn lun_occult_when_glob(
 ///
 /// `geopos` = `[longitude_deg, latitude_deg, altitude_m]`.
 pub fn lun_occult_when_loc(
-    tjd_start: f64,
+    tjd_start: JulianDay,
     body: Body,
     starname: Option<&str>,
     flags: CalcFlags,
@@ -357,7 +365,7 @@ pub fn lun_occult_when_loc(
     let moon_alt = {
         let moon = crate::calc_ut(JulianDay::new(jd_occ), Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
         // Hour angle = LST - RA (approximate: use geographic longitude for LST)
-        let lst_deg = crate::sidtime(jd_occ) * 15.0 + geopos[0];
+        let lst_deg = crate::sidtime(JulianDay::new(jd_occ)) * 15.0 + geopos[0];
         let ha_deg = lst_deg - moon.lon; // rough HA using ecliptic lon ≈ RA
         let ha_r = ha_deg.to_radians();
         let lat_r = geopos[1].to_radians();
@@ -383,7 +391,7 @@ pub fn lun_occult_when_loc(
 ///
 /// Currently returns a stub result.
 pub fn lun_occult_where(
-    _jd_ut: f64,
+    _jd_ut: JulianDay,
     _body: Body,
     _starname: Option<&str>,
     _flags: CalcFlags,

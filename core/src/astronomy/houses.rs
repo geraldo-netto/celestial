@@ -20,6 +20,7 @@
 #![allow(clippy::needless_range_loop)]
 
 use crate::astronomy::constants::{norm_deg, to_deg, to_rad};
+use crate::units::{Degrees, JulianDay, Latitude, Longitude};
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -123,18 +124,24 @@ impl HouseSystem {
 /// - `hsys` — house system character (`b'P'` = Placidus, etc.)
 ///
 /// Uses sidereal time computed from JD.
-pub fn houses(jd_ut: f64, geolat: f64, geolon: f64, hsys: u8) -> HouseResult {
-    let armc = sidereal_time_deg(jd_ut) + geolon;
+pub fn houses(jd_ut: JulianDay, geolat: Latitude, geolon: Longitude, hsys: u8) -> HouseResult {
+    let jd_ut: f64 = jd_ut.into();
+    let geolat: f64 = geolat.into();
+    let geolon: f64 = geolon.into();
+    let armc = sidereal_time_deg(JulianDay::new(jd_ut)) + geolon;
     let armc = norm_deg(armc);
-    let eps = obliquity_simple(jd_ut);
-    houses_armc(armc, geolat, eps, hsys)
+    let eps = obliquity_simple(JulianDay::new(jd_ut));
+    houses_armc(Degrees::new(armc), Latitude::new(geolat), Degrees::new(eps), hsys)
 }
 
 /// Compute house cusps from ARMC, latitude and obliquity.
 ///
 /// This is the low-level entry point used when ARMC and obliquity are
 /// already known (e.g. from the full astronomy pipeline).
-pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
+pub fn houses_armc(armc: Degrees, geolat: Latitude, eps: Degrees, hsys: u8) -> HouseResult {
+    let armc: f64 = armc.into();
+    let geolat: f64 = geolat.into();
+    let eps: f64 = eps.into();
     let system = HouseSystem::from_char(hsys).unwrap_or(HouseSystem::Placidus);
     compute_houses(armc, geolat, eps, system)
 }
@@ -142,8 +149,8 @@ pub fn houses_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 fn compute_houses(armc: f64, lat: f64, eps: f64, sys: HouseSystem) -> HouseResult {
-    let asc = ascendant(armc, lat, eps);
-    let mc = midheaven(armc, eps);
+    let asc = ascendant(Degrees::new(armc), Latitude::new(lat), Degrees::new(eps));
+    let mc = midheaven(Degrees::new(armc), Degrees::new(eps));
 
     let cusps = match sys {
         HouseSystem::Placidus => placidus(armc, lat, eps, asc, mc),
@@ -178,7 +185,10 @@ fn compute_houses(armc: f64, lat: f64, eps: f64, sys: HouseSystem) -> HouseResul
 
 /// Ascendant (degrees).
 #[must_use]
-pub fn ascendant(armc: f64, lat: f64, eps: f64) -> f64 {
+pub fn ascendant(armc: Degrees, lat: Latitude, eps: Degrees) -> f64 {
+    let armc: f64 = armc.into();
+    let lat: f64 = lat.into();
+    let eps: f64 = eps.into();
     let armc_r = to_rad(armc);
     let lat_r = to_rad(lat);
     let eps_r = to_rad(eps);
@@ -196,7 +206,9 @@ pub fn ascendant(armc: f64, lat: f64, eps: f64) -> f64 {
 
 /// Midheaven (MC) (degrees).
 #[must_use]
-pub fn midheaven(armc: f64, eps: f64) -> f64 {
+pub fn midheaven(armc: Degrees, eps: Degrees) -> f64 {
+    let armc: f64 = armc.into();
+    let eps: f64 = eps.into();
     let armc_r = to_rad(armc);
     let eps_r = to_rad(eps);
     // Meeus, "Astronomical Algorithms" 2nd ed. ch. 13/25, for a point on the
@@ -213,7 +225,7 @@ pub fn midheaven(armc: f64, eps: f64) -> f64 {
 fn vertex_point(armc: f64, lat: f64, eps: f64) -> f64 {
     // Vertex = ASC for latitude - 90° rotated 90°
     let anti_armc = norm_deg(armc + 90.0);
-    ascendant(anti_armc, 90.0 - lat.abs(), eps)
+    ascendant(Degrees::new(anti_armc), Latitude::new(90.0 - lat.abs()), Degrees::new(eps))
 }
 
 /// Equatorial Ascendant (East Point).
@@ -498,8 +510,8 @@ fn regiomontanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     let eps_r = to_rad(eps);
 
     let mut cusps = [0.0f64; 13];
-    cusps[1] = ascendant(armc, lat, eps);
-    cusps[10] = midheaven(armc, eps);
+    cusps[1] = ascendant(Degrees::new(armc), Latitude::new(lat), Degrees::new(eps));
+    cusps[10] = midheaven(Degrees::new(armc), Degrees::new(eps));
     // Set IC and DSC up front so the later "fill opposites from cusps
     // 1..=6" loop has correct seed values for h=4 and h=1.
     cusps[4] = norm_deg(cusps[10] + 180.0);
@@ -547,8 +559,8 @@ fn campanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     let eps_r = to_rad(eps);
 
     let mut cusps = [0.0f64; 13];
-    cusps[1] = ascendant(armc, lat, eps);
-    cusps[10] = midheaven(armc, eps);
+    cusps[1] = ascendant(Degrees::new(armc), Latitude::new(lat), Degrees::new(eps));
+    cusps[10] = midheaven(Degrees::new(armc), Degrees::new(eps));
     cusps[7] = norm_deg(cusps[1] + 180.0); // DSC = ASC + 180°
     cusps[4] = norm_deg(cusps[10] + 180.0); // IC  = MC  + 180°
 
@@ -656,7 +668,7 @@ fn alcabitius(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
 
     let mut cusps = [0.0f64; 13];
     cusps[1] = asc;
-    cusps[10] = midheaven(armc, eps);
+    cusps[10] = midheaven(Degrees::new(armc), Degrees::new(eps));
     // IC and DSC seeded explicitly so the later opposite-fill loop has
     // valid values for h=4 and h=1 (same bug class as Regiomontanus).
     cusps[4] = norm_deg(cusps[10] + 180.0);
@@ -714,7 +726,7 @@ fn azimuth_to_ecliptic(az: f64, alt: f64, lat_r: f64, armc: f64, eps_r: f64) -> 
 
 fn topocentric(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
     // Topocentric (Polich/Page): close to Placidus with a latitude-based correction.
-    let mut cusps = placidus(armc, lat, eps, asc, midheaven(armc, eps));
+    let mut cusps = placidus(armc, lat, eps, asc, midheaven(Degrees::new(armc), Degrees::new(eps)));
 
     let lat_r = to_rad(lat);
     let eps_r = to_rad(eps);
@@ -740,8 +752,8 @@ fn topocentric(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
 fn gauquelin(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     // Standard houses placeholder — full 36-sector variant is in gauquelin_sectors()
     let mut cusps = [0.0f64; 13];
-    let asc = ascendant(armc, lat, eps);
-    let mc = midheaven(armc, eps);
+    let asc = ascendant(Degrees::new(armc), Latitude::new(lat), Degrees::new(eps));
+    let mc = midheaven(Degrees::new(armc), Degrees::new(eps));
     cusps[1] = asc;
     cusps[10] = mc;
     for i in 1..=12 {
@@ -755,7 +767,8 @@ fn gauquelin(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
 /// Approximate mean sidereal time (degrees) for a UT Julian day.
 /// Mean Greenwich Sidereal Time (degrees) for a UT Julian day.
 #[must_use]
-pub fn mean_sidereal_time_deg(jd_ut: f64) -> f64 {
+pub fn mean_sidereal_time_deg(jd_ut: JulianDay) -> f64 {
+    let jd_ut: f64 = jd_ut.into();
     let t = (jd_ut - 2_451_545.0) / 36_525.0;
     let dt = jd_ut - 2_451_545.0;
     let p1 = 360.985_647_366_29_f64.mul_add(dt, 280.460_618_37);
@@ -769,8 +782,9 @@ pub fn mean_sidereal_time_deg(jd_ut: f64) -> f64 {
 /// Adds the equation of the equinoxes (nutation in longitude × cos ε) to
 /// mean sidereal time, giving the true origin of hour angles.
 #[must_use]
-pub fn sidereal_time_deg(jd_ut: f64) -> f64 {
-    let gmst = mean_sidereal_time_deg(jd_ut);
+pub fn sidereal_time_deg(jd_ut: JulianDay) -> f64 {
+    let jd_ut: f64 = jd_ut.into();
+    let gmst = mean_sidereal_time_deg(JulianDay::new(jd_ut));
     // Equation of the equinoxes: dpsi * cos(eps)
     let nut = crate::astronomy::nutation::nutation(jd_ut);
     // PERF-7: reuse `nut` instead of re-running the 77-term series inside
@@ -782,7 +796,8 @@ pub fn sidereal_time_deg(jd_ut: f64) -> f64 {
 
 /// Approximate obliquity of the ecliptic (degrees) for a UT Julian day.
 #[must_use]
-pub fn obliquity_simple(jd_ut: f64) -> f64 {
+pub fn obliquity_simple(jd_ut: JulianDay) -> f64 {
+    let jd_ut: f64 = jd_ut.into();
     let t = (jd_ut - 2_451_545.0) / 36_525.0;
     // Horner form: more accurate (single rounding per FMA on FMA hosts) and
     // equivalent in IEEE-754 to the original term-by-term expansion within
@@ -792,8 +807,11 @@ pub fn obliquity_simple(jd_ut: f64) -> f64 {
     p2.mul_add(t, 23.439_291_111)
 }
 /// Alias for `houses_armc` — compute house cusps directly from ARMC, latitude and obliquity.
-pub fn houses_from_armc(armc: f64, geolat: f64, eps: f64, hsys: u8) -> HouseResult {
-    houses_armc(armc, geolat, eps, hsys)
+pub fn houses_from_armc(armc: Degrees, geolat: Latitude, eps: Degrees, hsys: u8) -> HouseResult {
+    let armc: f64 = armc.into();
+    let geolat: f64 = geolat.into();
+    let eps: f64 = eps.into();
+    houses_armc(Degrees::new(armc), Latitude::new(geolat), Degrees::new(eps), hsys)
 }
 
 #[cfg(test)]
@@ -804,7 +822,7 @@ mod tests {
     /// cusps[0] == 191.0989364639854, ascmc[0] == 191.098...
     #[test]
     fn placidus_equator_reference() {
-        let result = houses(2_452_275.499_255_786, 0.0, 0.0, b'P');
+        let result = houses(JulianDay::new(2_452_275.499_255_786), Latitude::new(0.0), Longitude::new(0.0), b'P');
         // At the equator all Placidus cusps should be 30° apart
         for h in 1..=12 {
             assert!(
@@ -817,7 +835,7 @@ mod tests {
 
     #[test]
     fn mc_is_opposite_ic() {
-        let result = houses(2_452_275.5, 48.0, 2.0, b'P');
+        let result = houses(JulianDay::new(2_452_275.5), Latitude::new(48.0), Longitude::new(2.0), b'P');
         let mc = result.ascmc[1];
         let ic = result.cusps[4];
         let diff = (norm_deg(ic - mc) - 180.0).abs();
@@ -827,7 +845,7 @@ mod tests {
     #[test]
     fn all_cusps_in_range() {
         for sys in [b'P', b'K', b'E', b'W', b'C', b'R', b'O', b'M', b'X', b'B'] {
-            let result = houses(2_451_545.0, 51.5, -0.1, sys);
+            let result = houses(JulianDay::new(2_451_545.0), Latitude::new(51.5), Longitude::new(-0.1), sys);
             for h in 1..=12 {
                 assert!(
                     result.cusps[h] >= 0.0 && result.cusps[h] < 360.0,
@@ -841,7 +859,7 @@ mod tests {
 
     #[test]
     fn equal_houses_30_apart() {
-        let result = houses(2_451_545.0, 51.5, -0.1, b'E');
+        let result = houses(JulianDay::new(2_451_545.0), Latitude::new(51.5), Longitude::new(-0.1), b'E');
         for h in 1..12 {
             let diff = norm_deg(result.cusps[h + 1] - result.cusps[h]);
             assert!(
@@ -854,7 +872,7 @@ mod tests {
 
     #[test]
     fn whole_sign_multiple_of_30() {
-        let result = houses(2_451_545.0, 40.0, -74.0, b'W');
+        let result = houses(JulianDay::new(2_451_545.0), Latitude::new(40.0), Longitude::new(-74.0), b'W');
         for h in 1..=12 {
             assert!(
                 (result.cusps[h] % 30.0).abs() < 0.001
@@ -889,7 +907,7 @@ mod tests {
             9.0,
             crate::body::Calendar::Gregorian,
         );
-        let result = houses(jd_ut, -23.5333, -46.6333, b'P');
+        let result = houses(JulianDay::new(jd_ut), Latitude::new(-23.5333), Longitude::new(-46.6333), b'P');
         let tol = 5.0 / 60.0; // 5 arcminutes
 
         // PDF cusps in decimal degrees (sign × 30 + degrees + minutes/60).

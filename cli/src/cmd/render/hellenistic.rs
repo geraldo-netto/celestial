@@ -47,7 +47,7 @@ pub fn build_hellenistic_context(
         .and_then(|p| p.iter().find(|p| p["key"] == "sun"))
         .and_then(|p| p["lon"].as_f64())
         .unwrap_or(0.0);
-    let is_day = is_day_chart(sun_lon, &cusps_arr);
+    let is_day = is_day_chart(Longitude::new(sun_lon), &cusps_arr);
 
     // Augment each planet with Phase 5 dignity data
     if let Some(planets) = ctx["planets"].as_array_mut() {
@@ -57,11 +57,11 @@ pub fn build_hellenistic_context(
             let body = key_to_body(body_key);
 
             if let Some(body) = body {
-                let (dignity, score) = full_dignity(body, plon, is_day);
-                let term_ruler = egyptian_terms_ruler(plon);
-                let decan = decan_ruler(plon);
-                let (trip_d, trip_n, trip_p) = triplicity_rulers(plon);
-                let (alm, alm_score) = almuten(plon, is_day);
+                let (dignity, score) = full_dignity(body, Longitude::new(plon), is_day);
+                let term_ruler = egyptian_terms_ruler(Longitude::new(plon));
+                let decan = decan_ruler(Longitude::new(plon));
+                let (trip_d, trip_n, trip_p) = triplicity_rulers(Longitude::new(plon));
+                let (alm, alm_score) = almuten(Longitude::new(plon), is_day);
                 let sect_ok = same_sect(body, is_day);
 
                 p["dignity5"] = json!(dignity.to_string());
@@ -217,9 +217,9 @@ pub fn build_firdaria_context(
     };
 
     let sun_pos = calc_ut(JulianDay::new(jd), Body::SUN, flags)?;
-    let is_day = is_day_chart(sun_pos.lon, &cusps_arr);
+    let is_day = is_day_chart(Longitude::new(sun_pos.lon), &cusps_arr);
 
-    let periods = firdaria(jd, is_day, 75.0);
+    let periods = firdaria(JulianDay::new(jd), is_day, 75.0);
     let period_vals: Vec<Value> = periods
         .iter()
         .map(|p| {

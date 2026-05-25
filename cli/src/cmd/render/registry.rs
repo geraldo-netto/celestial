@@ -6,6 +6,7 @@
 //! movement, no behaviour change (the facade re-exports these).
 
 use super::*;
+use celestial_core::JulianDay;
 
 /// Clone `user_vars` and ensure a `title` field exists, using `default`
 /// only when the user didn't supply one via `--var title=…`.
@@ -53,10 +54,10 @@ pub(crate) fn dispatch_solar_return(
 ) -> Result<(ChartContext, ChartRenderer), CliError> {
     let year = args.return_year.unwrap_or_else(|| {
         let today_jd = crate::parse::parse_date("now").unwrap_or(2_451_545.0);
-        let d = celestial_core::revjul(today_jd, celestial_core::body::Calendar::Gregorian);
+        let d = celestial_core::revjul(JulianDay::new(today_jd), celestial_core::body::Calendar::Gregorian);
         d.year as i32
     });
-    let sr_jd = solar_return_jd(jd, year, CalcFlags::BUILTIN)?;
+    let sr_jd = solar_return_jd(JulianDay::new(jd), year, CalcFlags::BUILTIN)?;
     let sr_date = jd_to_date_str(sr_jd);
     let mut v = user_vars.clone();
     v.insert("title".to_string(), format!("Solar Return {year}"));
@@ -81,7 +82,7 @@ pub(crate) fn dispatch_lunar_return(
         .map(crate::parse::parse_date)
         .transpose()?
         .unwrap_or(jd);
-    let lr_jd = lunar_return_jd(jd, start, CalcFlags::BUILTIN)?;
+    let lr_jd = lunar_return_jd(JulianDay::new(jd), JulianDay::new(start), CalcFlags::BUILTIN)?;
     let lr_date = jd_to_date_str(lr_jd);
     let mut v = user_vars.clone();
     v.insert("title".to_string(), "Lunar Return".to_string());

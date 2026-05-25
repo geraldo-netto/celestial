@@ -11,11 +11,13 @@
 //!
 //! # Examples
 //! ```
-//! use celestial_core::hijri_from_jd;
-//! let (y, m, d) = hijri_from_jd(2451545.0); // J2000 = Jan 1, 2000
+//! use celestial_core::{hijri_from_jd, JulianDay};
+//! let (y, m, d) = hijri_from_jd(JulianDay::new(2451545.0)); // J2000 = Jan 1, 2000
 //! assert_eq!(y, 1420);
 //! assert_eq!(m, 9); // Ramadan
 //! ```
+
+use crate::units::JulianDay;
 
 /// Islamic Hijri epoch: 1 Muharram 1 AH = July 16, 622 CE = JD 1948438.5
 pub const HIJRI_EPOCH: f64 = 1_948_438.5;
@@ -92,7 +94,8 @@ pub fn hijri_month_start_jd(year: i32, month: u8) -> f64 {
 ///
 /// Returns `(1, 1, 1)` for non-finite input.
 #[must_use]
-pub fn hijri_from_jd(jd: f64) -> (i32, u8, u8) {
+pub fn hijri_from_jd(jd: JulianDay) -> (i32, u8, u8) {
+    let jd: f64 = jd.into();
     if !jd.is_finite() {
         return (1, 1, 1);
     }
@@ -245,8 +248,9 @@ pub fn islamic_observances(hijri_year: i32) -> Vec<IslamicObservance> {
 
 /// Return the Islamic observances for the Hijri year that contains the given JD.
 #[must_use]
-pub fn islamic_observances_for_jd(jd: f64) -> Vec<IslamicObservance> {
-    let (year, _, _) = hijri_from_jd(jd);
+pub fn islamic_observances_for_jd(jd: JulianDay) -> Vec<IslamicObservance> {
+    let jd: f64 = jd.into();
+    let (year, _, _) = hijri_from_jd(JulianDay::new(jd));
     islamic_observances(year)
 }
 
@@ -262,8 +266,8 @@ pub fn gregorian_to_hijri_years(gregorian_year: i32) -> (i32, i32) {
     }
     let jan1 = gregorian_to_jd(gregorian_year, 1, 1);
     let dec31 = gregorian_to_jd(gregorian_year, 12, 31);
-    let (y1, _, _) = hijri_from_jd(jan1);
-    let (y2, _, _) = hijri_from_jd(dec31);
+    let (y1, _, _) = hijri_from_jd(JulianDay::new(jan1));
+    let (y2, _, _) = hijri_from_jd(JulianDay::new(dec31));
     (y1, y2)
 }
 
@@ -276,7 +280,7 @@ mod tests {
     #[test]
     fn hijri_from_jd_j2000() {
         // JD 2451545.0 = Jan 1, 2000 CE = 24 Ramadan 1420 AH
-        let (y, m, d) = hijri_from_jd(2_451_545.0);
+        let (y, m, d) = hijri_from_jd(JulianDay::new(2_451_545.0));
         assert_eq!(y, 1420);
         assert_eq!(m, 9); // Ramadan
         assert_eq!(d, 24);
@@ -286,7 +290,7 @@ mod tests {
     fn hijri_to_jd_roundtrip() {
         let (y, m, d) = (1446, 9, 1); // 1 Ramadan 1446
         let jd = hijri_to_jd(y, m, d);
-        let (y2, m2, d2) = hijri_from_jd(jd);
+        let (y2, m2, d2) = hijri_from_jd(JulianDay::new(jd));
         assert_eq!((y, m, d), (y2, m2, d2));
     }
 

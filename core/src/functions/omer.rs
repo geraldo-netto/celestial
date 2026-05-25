@@ -12,11 +12,11 @@
 //!
 //! ```
 //! # use celestial_core::body::Calendar;
-//! use celestial_core::{omer_from_jd, julday, GREG_CAL};
+//! use celestial_core::{omer_from_jd, julday, JulianDay, GREG_CAL};
 //!
 //! // 16 Nisan 5785 begins at nightfall April 13, 2025
 //! let jd = julday(2025, 4, 13, 20.0, Calendar::Gregorian);
-//! if let Some(day) = omer_from_jd(jd) {
+//! if let Some(day) = omer_from_jd(JulianDay::new(jd)) {
 //!     assert_eq!(day.day, 1);
 //!     assert_eq!(day.week, 1);
 //!     assert_eq!(day.day_of_week, 1);
@@ -24,6 +24,8 @@
 //!     assert_eq!(day.day_sefirah, "Chesed");
 //! }
 //! ```
+
+use crate::units::JulianDay;
 
 // ─── Sefirot ──────────────────────────────────────────────────────────────────
 
@@ -227,7 +229,8 @@ pub fn hebrew_month_start_jd(year: i32, month: i32) -> i64 {
 
 /// Approximate Hebrew year from a Julian day number.
 #[must_use]
-pub fn approx_hebrew_year(jd: f64) -> i32 {
+pub fn approx_hebrew_year(jd: JulianDay) -> i32 {
+    let jd: f64 = jd.into();
     // Average Hebrew year ≈ 365.25 days; epoch = 347997
     ((jd - 347_997.0) * 98_496.0 / 35_975_351.0) as i32 + 1
 }
@@ -261,9 +264,10 @@ pub fn omer_day_jd(hebrew_year: i32, day: u8) -> Option<f64> {
 /// The Hebrew day starts at nightfall (~18:00). This function uses the
 /// astronomical convention that the JD advances at noon, so an evening time
 /// (e.g. 20:00 = JD + 0.33) is treated as the beginning of the next Hebrew day.
-pub fn omer_from_jd(jd: f64) -> Option<OmerDay> {
+pub fn omer_from_jd(jd: JulianDay) -> Option<OmerDay> {
+    let jd: f64 = jd.into();
     // Find candidate Hebrew year
-    let mut year = approx_hebrew_year(jd);
+    let mut year = approx_hebrew_year(JulianDay::new(jd));
     // Refine (may be off by 1)
     while (omer_start_jd(year + 1)) <= jd {
         year += 1;
@@ -317,8 +321,9 @@ fn omer_from_day(day: u8, jd: f64) -> Option<OmerDay> {
 /// If `jd` is not within any Omer period, returns the Omer period of the
 /// nearest upcoming Hebrew year.
 #[must_use]
-pub fn omer_period(jd: f64) -> OmerPeriod {
-    let mut year = approx_hebrew_year(jd).max(1);
+pub fn omer_period(jd: JulianDay) -> OmerPeriod {
+    let jd: f64 = jd.into();
+    let mut year = approx_hebrew_year(JulianDay::new(jd)).max(1);
     // Find the year whose Omer period contains or follows jd
     while omer_start_jd(year) + 48.0 < jd {
         year += 1;
@@ -386,7 +391,7 @@ mod tests {
         // 16 Nisan 5785 begins at nightfall April 13, 2025
         // (Hebrew day starts at sunset; 15 Nisan seder = April 12/13, so 16 Nisan = April 13 eve)
         let jd = gregorian_to_jd(2025, 4, 13, 20.0);
-        let day = omer_from_jd(jd).expect("should be Omer day 1");
+        let day = omer_from_jd(JulianDay::new(jd)).expect("should be Omer day 1");
         assert_eq!(day.day, 1);
         assert_eq!(day.week, 1);
         assert_eq!(day.day_of_week, 1);
@@ -399,7 +404,7 @@ mod tests {
     fn lag_baomer_5785() {
         // Lag Ba'Omer 5785 = day 33 = nightfall May 15, 2025
         let jd = gregorian_to_jd(2025, 5, 15, 20.0);
-        let day = omer_from_jd(jd).expect("should be Omer day 33");
+        let day = omer_from_jd(JulianDay::new(jd)).expect("should be Omer day 33");
         assert_eq!(day.day, 33);
         assert!(day.is_lag_baomer);
         assert_eq!(day.week_sefirah, "Hod");
@@ -410,7 +415,7 @@ mod tests {
     fn omer_day_49_5785() {
         // Day 49 = 5 Sivan 5785 = nightfall May 31, 2025 (eve of Shavuot June 1)
         let jd = gregorian_to_jd(2025, 5, 31, 20.0);
-        let day = omer_from_jd(jd).expect("should be Omer day 49");
+        let day = omer_from_jd(JulianDay::new(jd)).expect("should be Omer day 49");
         assert_eq!(day.day, 49);
         assert_eq!(day.week, 7);
         assert_eq!(day.day_of_week, 7);
@@ -422,7 +427,7 @@ mod tests {
     fn outside_omer_returns_none() {
         // Random date in October — not in Omer
         let jd = gregorian_to_jd(2025, 10, 1, 12.0);
-        assert!(omer_from_jd(jd).is_none());
+        assert!(omer_from_jd(JulianDay::new(jd)).is_none());
     }
 
     #[test]
@@ -455,7 +460,7 @@ mod tests {
     #[test]
     fn omer_period_5785() {
         let jd = gregorian_to_jd(2025, 5, 1, 12.0); // Mid-Omer
-        let p = omer_period(jd);
+        let p = omer_period(JulianDay::new(jd));
         assert_eq!(p.hebrew_year, 5785);
         assert!(p.start_jd < jd && jd < p.end_jd);
     }

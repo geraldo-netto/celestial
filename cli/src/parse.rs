@@ -12,6 +12,7 @@ use celestial_core::{
     CHIRON, JUPITER, MARS, MEAN_NODE, MERCURY, MOON, NEPTUNE, PLUTO, SATURN, SUN, TRUE_NODE,
     URANUS, VENUS,
 };
+use celestial_core::JulianDay;
 use std::str::FromStr;
 
 /// The single error type for every argument parser.
@@ -267,7 +268,7 @@ pub fn require_datetime(date_str: &str) -> Result<(), ParseError> {
 
 /// Format a Julian day as a `YYYY-MM-DD HH:MM UT` string.
 pub fn jd_to_str(jd: f64) -> String {
-    let d = revjul(jd, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
     let total_sec = (d.hour * 3600.0).round() as i32; // round to nearest second first
     let total_min = total_sec / 60; // truncate seconds from display
     let h = total_min / 60;

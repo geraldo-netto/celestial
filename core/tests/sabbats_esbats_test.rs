@@ -125,7 +125,7 @@ fn test_sabbat_samhain_sun_at_225() {
 fn test_sabbat_yule_in_december() {
     setup();
     let jd = sabbat_jd(2024, SabbatKind::Yule).unwrap();
-    let d = revjul(jd, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
     assert_eq!(
         d.month, 12,
         "Yule should be in December, got month {}",
@@ -142,7 +142,7 @@ fn test_sabbat_yule_in_december() {
 fn test_sabbat_ostara_in_march() {
     setup();
     let jd = sabbat_jd(2024, SabbatKind::Ostara).unwrap();
-    let d = revjul(jd, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
     assert_eq!(
         d.month, 3,
         "Ostara should be in March, got month {}",
@@ -159,7 +159,7 @@ fn test_sabbat_ostara_in_march() {
 fn test_sabbat_litha_in_june() {
     setup();
     let jd = sabbat_jd(2024, SabbatKind::Litha).unwrap();
-    let d = revjul(jd, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
     assert_eq!(d.month, 6, "Litha should be in June, got month {}", d.month);
     assert!(
         d.day >= 19 && d.day <= 23,
@@ -172,7 +172,7 @@ fn test_sabbat_litha_in_june() {
 fn test_sabbat_mabon_in_september() {
     setup();
     let jd = sabbat_jd(2024, SabbatKind::Mabon).unwrap();
-    let d = revjul(jd, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
     assert_eq!(
         d.month, 9,
         "Mabon should be in September, got month {}",
@@ -338,7 +338,7 @@ fn test_ostara_2000_known_date() {
     setup();
     // Spring equinox 2000: March 20, 07:35 UT
     let jd = sabbat_jd(2000, SabbatKind::Ostara).unwrap();
-    let d = revjul(jd, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
     assert_eq!(d.year, 2000);
     assert_eq!(d.month, 3);
     assert_eq!(d.day, 20);
@@ -349,7 +349,7 @@ fn test_litha_1992_known_date() {
     setup();
     // Summer solstice 1992: June 21, 03:14 UT
     let jd = sabbat_jd(1992, SabbatKind::Litha).unwrap();
-    let d = revjul(jd, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(jd), Calendar::Gregorian);
     assert_eq!(d.year, 1992);
     assert_eq!(d.month, 6);
     assert_eq!(d.day, 21);
@@ -613,7 +613,7 @@ fn test_full_moon_jan_2000_known_date() {
     // Full moon January 21, 2000 at ~04:40 UT
     let jd_start = julday(2000, 1, 20, 0.0, Calendar::Gregorian);
     let jd_fm = next_full_moon(jd_start).unwrap();
-    let d = revjul(jd_fm, Calendar::Gregorian);
+    let d = revjul(JulianDay::new(jd_fm), Calendar::Gregorian);
     assert_eq!(d.year, 2000);
     assert_eq!(d.month, 1);
     assert_eq!(d.day, 21);

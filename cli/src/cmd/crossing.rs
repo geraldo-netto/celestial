@@ -4,6 +4,8 @@ use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::{helio_cross_ut, mooncross_ut, solcross_ut};
+use celestial_core::JulianDay;
+use celestial_core::Longitude;
 use clap::Args;
 
 #[derive(Args)]
@@ -35,13 +37,13 @@ pub fn run(args: CrossingArgs) -> Result<(), CliError> {
     let lon = args.lon.rem_euclid(360.0);
 
     let result_jd = if args.helio {
-        helio_cross_ut(Body::from_raw(body), lon, jd, CalcFlags::BUILTIN, 1)
+        helio_cross_ut(Body::from_raw(body), Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN, 1)
             ?
     } else {
         match body {
-            0 => solcross_ut(lon, jd, CalcFlags::BUILTIN)?,
-            1 => mooncross_ut(lon, jd, CalcFlags::BUILTIN)?,
-            _ => helio_cross_ut(Body::from_raw(body), lon, jd, CalcFlags::BUILTIN, 1)
+            0 => solcross_ut(Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN)?,
+            1 => mooncross_ut(Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN)?,
+            _ => helio_cross_ut(Body::from_raw(body), Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN, 1)
                 ?,
         }
     };
