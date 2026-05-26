@@ -22,7 +22,7 @@ use std::fmt::Write;
 /// Build context for a 90° midpoint dial.
 /// All planet longitudes are reduced to 0–90° (the dial compresses all four
 /// quadrants). Midpoints are computed and planets that trigger them are listed.
-pub fn build_dial_context(
+pub(super) fn build_dial_context(
     jd: f64,
     lat: f64,
     lon: f64,
@@ -113,7 +113,7 @@ struct DialContext {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn build_composite_context(
+pub(super) fn build_composite_context(
     jd1: f64,
     jd2: f64,
     lat: f64,
@@ -182,7 +182,7 @@ pub fn build_composite_context(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn build_triwheel_context(
+pub(super) fn build_triwheel_context(
     jd1: f64,
     jd2: f64,
     jd3: f64,
@@ -246,7 +246,7 @@ pub fn build_triwheel_context(
     Ok(ctx)
 }
 
-pub fn render_triwheel_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_triwheel_svg(ctx: &ChartContext) -> String {
     let mut s = render_builtin_svg(ctx);
 
     let ring = super::svg_common::esc_var(&ctx["vars"], "ring_color", "#1a1a2e");
@@ -308,7 +308,7 @@ pub fn render_triwheel_svg(ctx: &ChartContext) -> String {
     s
 }
 
-pub fn build_graphic_ephemeris_context(
+pub(super) fn build_graphic_ephemeris_context(
     jd_start: f64,
     jd_end: f64,
     user_vars: BTreeMap<String, String>,
@@ -399,7 +399,7 @@ const GE_SIGN_GLYPHS: [&str; 12] = [
     "♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓",
 ];
 
-pub fn render_graphic_ephemeris_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_graphic_ephemeris_svg(ctx: &ChartContext) -> String {
     let SvgPalette {
         bg,
         accent: ring,
@@ -570,7 +570,7 @@ fn write_ge_x_axis_labels(
     }
 }
 
-pub fn build_local_space_context(
+pub(super) fn build_local_space_context(
     jd: f64,
     lat: f64,
     lon: f64,
@@ -753,7 +753,7 @@ fn write_ls_planet(s: &mut String, p: &Value, pfg: &str) {
     );
 }
 
-pub fn render_local_space_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_local_space_svg(ctx: &ChartContext) -> String {
     let SvgPalette {
         bg,
         accent: ring,
@@ -786,7 +786,7 @@ pub fn render_local_space_svg(ctx: &ChartContext) -> String {
 }
 
 /// Render a 90° midpoint dial SVG.
-pub fn render_dial_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_dial_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
     let SvgPalette {
         bg,

@@ -99,6 +99,15 @@ pub(super) fn panel_card(
     );
 }
 
+/// Snapshot of a [`HouseResult::cusps`](celestial_core::HouseResult) array
+/// into an owned `[f64; 13]`. `cusps` is already a `Copy` array — calling
+/// this helper documents the intent at the rendering layer (DUP-11).
+#[inline]
+#[must_use]
+pub(super) fn cusps_to_array(h: &celestial_core::HouseResult) -> [f64; 13] {
+    h.cusps
+}
+
 /// Year-axis gridlines for the horizontal timeline renderers (firdaria,
 /// vimśottarī daśā). Emits a 5-yearly `<line>`+`<text>` pair from the
 /// birth year to the end of `span`. Geometry (`lm`/`w`/`tm`/`axis_bottom`),

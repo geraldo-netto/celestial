@@ -5,6 +5,7 @@ use celestial_core::Latitude;
 use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
+use super::svg_common::cusps_to_array;
 use super::{build_context, jd_to_date_str, key_to_body, render_builtin_svg, wx, wy, CX, CY, RO};
 
 use celestial_core::monthly_profection;
@@ -18,7 +19,7 @@ use celestial_core::{annual_profection, calc_ut, houses_ex, sign_ruler};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
-pub fn build_hellenistic_context(
+pub(super) fn build_hellenistic_context(
     jd: f64,
     lat: f64,
     lon: f64,
@@ -35,11 +36,7 @@ pub fn build_hellenistic_context(
 
     let h = houses_ex(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
         ?;
-    let cusps_arr: [f64; 13] = {
-        let mut a = [0.0f64; 13];
-        a.copy_from_slice(&h.cusps);
-        a
-    };
+    let cusps_arr: [f64; 13] = cusps_to_array(&h);
 
     // Determine sect
     let sun_lon = ctx["planets"]
@@ -171,7 +168,7 @@ fn write_hell_planet_row(extra: &mut String, p: &Value, ry: f64, txt: &str) {
     }
 }
 
-pub fn render_hellenistic_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_hellenistic_svg(ctx: &ChartContext) -> String {
     // Delegate to the full natal SVG — the dignity5/term/decan fields
     // are in the context and visible via --print-context.
     // We add an extra dignities legend section below the normal wheel.
@@ -196,7 +193,7 @@ pub fn render_hellenistic_svg(ctx: &ChartContext) -> String {
     s
 }
 
-pub fn build_firdaria_context(
+pub(super) fn build_firdaria_context(
     jd: f64,
     lat: f64,
     lon: f64,
@@ -210,11 +207,7 @@ pub fn build_firdaria_context(
         .or_insert_with(|| "Firdaria Timeline".to_string());
 
     let h = houses_ex(JulianDay::new(jd), flags, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))?;
-    let cusps_arr: [f64; 13] = {
-        let mut a = [0.0f64; 13];
-        a.copy_from_slice(&h.cusps);
-        a
-    };
+    let cusps_arr: [f64; 13] = cusps_to_array(&h);
 
     let sun_pos = calc_ut(JulianDay::new(jd), Body::SUN, flags)?;
     let is_day = is_day_chart(Longitude::new(sun_pos.lon), &cusps_arr);
@@ -249,7 +242,7 @@ pub fn build_firdaria_context(
         )}))
 }
 
-pub fn render_firdaria_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_firdaria_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
     let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#fff");
     let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#0d0d1e");
@@ -412,7 +405,7 @@ fn render_firdaria_row<'a>(
     }
 }
 
-pub fn build_profection_context(
+pub(super) fn build_profection_context(
     jd: f64,
     lat: f64,
     lon: f64,
@@ -427,11 +420,7 @@ pub fn build_profection_context(
         .or_insert(format!("Annual Profection — Age {age}"));
 
     let h = houses_ex(JulianDay::new(jd), flags, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))?;
-    let cusps_arr: [f64; 13] = {
-        let mut a = [0.0f64; 13];
-        a.copy_from_slice(&h.cusps);
-        a
-    };
+    let cusps_arr: [f64; 13] = cusps_to_array(&h);
 
     let (house_num, prof_lon) = annual_profection(&cusps_arr, age);
     let (month_house, month_lon) = monthly_profection(&cusps_arr, age, 0);
@@ -447,7 +436,7 @@ pub fn build_profection_context(
     Ok(ctx)
 }
 
-pub fn render_profection_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_profection_svg(ctx: &ChartContext) -> String {
     // Start from the natal wheel, add a profection marker
     let mut s = render_builtin_svg(ctx);
 

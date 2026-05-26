@@ -20,7 +20,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fmt::Write;
 
-pub fn render_north_indian_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_north_indian_svg(ctx: &ChartContext) -> String {
     let pal = super::svg_common::SvgPalette::from_ctx(
         ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
     );
@@ -145,7 +145,7 @@ pub fn render_north_indian_svg(ctx: &ChartContext) -> String {
     s
 }
 
-pub fn build_ashtakavarga_context(
+pub(super) fn build_ashtakavarga_context(
     jd: f64,
     lat: f64,
     lon: f64,
@@ -360,7 +360,7 @@ fn write_av_totals_row(s: &mut String, totals: &[Value], ty: f64, border: &str, 
     }
 }
 
-pub fn render_ashtakavarga_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_ashtakavarga_svg(ctx: &ChartContext) -> String {
     let pal = super::svg_common::SvgPalette::from_ctx(
         ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
     );
@@ -394,7 +394,7 @@ pub fn render_ashtakavarga_svg(ctx: &ChartContext) -> String {
     s
 }
 
-pub fn build_shadbala_context(
+pub(super) fn build_shadbala_context(
     jd: f64,
     lat: f64,
     lon: f64,
@@ -499,7 +499,7 @@ struct ShadbalaContext {
     vars: Value,
 }
 
-pub fn render_shadbala_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_shadbala_svg(ctx: &ChartContext) -> String {
     let pal = super::svg_common::SvgPalette::from_ctx(
         ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
     );
@@ -669,7 +669,7 @@ fn render_shadbala_row(s: &mut String, row: &Value, ri: usize, c: ShadbalaRowCtx
     }
 }
 
-pub fn build_vedic_context(
+pub(super) fn build_vedic_context(
     jd: f64,
     lat: f64,
     lon: f64,
@@ -787,7 +787,7 @@ struct VedicContext {
     vars: Value,
 }
 
-pub fn render_navamsa_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_navamsa_svg(ctx: &ChartContext) -> String {
     // Navamsa uses the same South Indian grid layout but with navamsa positions
     let planets_orig = super::json_array(&ctx["planets"]);
     // Rebuild rasi_planets using navamsa index instead of rasi
@@ -813,7 +813,7 @@ pub fn render_navamsa_svg(ctx: &ChartContext) -> String {
     render_south_indian_svg(&ctx2)
 }
 
-pub fn render_dasha_svg(ctx: &ChartContext) -> String {
+pub(super) fn render_dasha_svg(ctx: &ChartContext) -> String {
     let bg = super::svg_common::esc_var(&ctx["vars"], "bg_color", "#ffffff");
     let txt = super::svg_common::esc_var(&ctx["vars"], "text_color", "#2a1a00");
     let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#1a3a7a");
