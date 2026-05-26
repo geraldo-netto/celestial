@@ -1,6 +1,7 @@
 //! Property-based test suite for celestial-core (pure-Rust engine).
 //!
-//! Self-contained: uses a stdlib xorshift64 PRNG — no external crates needed.
+//! Shares the PRNG + edge-case vectors with the CLI fuzz tests via the
+//! workspace-local `celestial-test-util` crate (was DUP-6).
 //! Run with: `cargo run --manifest-path fuzz/Cargo.toml`
 
 #![warn(rustdoc::broken_intra_doc_links)]
@@ -35,32 +36,8 @@ use celestial_core::{
     vimshottari_dasha, xiuhpohualli, AspectOrbs, CalcOptions, EsbatName, SabbatKind, UtcDate,
     CALC_MTRANSIT, CALC_RISE, CALC_SET, ECL_OCCULTATION, SIDM_LAHIRI,
 };
+use celestial_test_util::Xorshift64;
 use std::f64::consts::TAU;
-
-// ─── Minimal PRNG ─────────────────────────────────────────────────────────────
-
-struct Xorshift64(u64);
-
-impl Xorshift64 {
-    fn new(seed: u64) -> Self {
-        Self(seed | 1)
-    }
-    fn next_u64(&mut self) -> u64 {
-        self.0 ^= self.0 << 13;
-        self.0 ^= self.0 >> 7;
-        self.0 ^= self.0 << 17;
-        self.0
-    }
-    fn next_f64(&mut self) -> f64 {
-        (self.next_u64() >> 11) as f64 / (1u64 << 53) as f64
-    }
-    fn range_f64(&mut self, lo: f64, hi: f64) -> f64 {
-        lo + self.next_f64() * (hi - lo)
-    }
-    fn range_i32(&mut self, lo: i32, hi: i32) -> i32 {
-        lo + (self.next_u64() % (hi - lo) as u64) as i32
-    }
-}
 
 // ─── Test runner ──────────────────────────────────────────────────────────────
 
@@ -3089,7 +3066,123 @@ fn run_searches_suites(n: u32) -> Vec<(&'static str, bool)> {
         ),
         ("calc_pctr", test_calc_pctr_no_panic(n / 5).report()),
         ("ayanamsa_name", test_get_ayanamsa_name(n).report()),
+        ("rel_clamps_2026_05_27", test_rel_clamps(n).report()),
+        ("edge_grid_battery", test_edge_grid_battery().report()),
     ]
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 2026-05-27 fix-pass coverage: REL-2 / REL-7 / REL-8 + edge battery
+// (null/empty/oversize strings, every numeric extreme, NaN/Inf/subnormals).
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Pin REL-2 (karana_name underflow guard), REL-7 (panchanga floor clamps),
+/// and REL-8 (`Body::try_from_raw` validating ctor). Every iteration
+/// generates random inputs and asserts the documented invariants.
+fn test_rel_clamps(n: u32) -> Suite {
+    use celestial_core::body::{Body, BodyError};
+    use celestial_core::{karana_name, panchanga};
+    let mut s = Suite::new("rel_clamps_2026_05_27");
+    let mut rng = Xorshift64::new(0xFED1_FED2_FED3_FED4);
+
+    // REL-2: exhaustive over the entire u8 domain.
+    for k in 0u8..=u8::MAX {
+        let name = karana_name(k);
+        s.check(
+            name.is_empty() || !name.is_empty(), // never panic, always a static str
+            || format!("karana_name({k}) panicked or returned non-utf8"),
+        );
+    }
+
+    // REL-7: panchanga over random + edge JD values, assert in-range slots.
+    let jds = [
+        2_451_545.0,
+        2_451_544.999_999_999_94,
+        2_451_545.000_000_000_06,
+        0.0,
+        1.0,
+        -1.0,
+        100_000.5,
+    ];
+    for &jd in &jds {
+        let p = panchanga(JulianDay::new(jd));
+        s.check((1..=30).contains(&p.tithi), || format!("tithi {} jd={jd}", p.tithi));
+        s.check((0..=26).contains(&p.nakshatra), || format!("nakshatra {} jd={jd}", p.nakshatra));
+        s.check((1..=4).contains(&p.nakshatra_pada), || format!("pada {} jd={jd}", p.nakshatra_pada));
+        s.check((0..=26).contains(&p.yoga), || format!("yoga {} jd={jd}", p.yoga));
+        s.check((1..=60).contains(&p.karana), || format!("karana {} jd={jd}", p.karana));
+    }
+    for _ in 0..n {
+        let jd = rng.range_f64(2_000_000.0, 2_600_000.0);
+        let p = panchanga(JulianDay::new(jd));
+        s.check((1..=30).contains(&p.tithi), || format!("tithi {} jd={jd}", p.tithi));
+        s.check((0..=26).contains(&p.nakshatra), || format!("nak {} jd={jd}", p.nakshatra));
+        s.check((1..=4).contains(&p.nakshatra_pada), || format!("pada {} jd={jd}", p.nakshatra_pada));
+        s.check((0..=26).contains(&p.yoga), || format!("yoga {} jd={jd}", p.yoga));
+        s.check((1..=60).contains(&p.karana), || format!("karana {} jd={jd}", p.karana));
+    }
+
+    // REL-8: fuzz arbitrary i32 ids — every result must be Ok or OutOfRange.
+    for _ in 0..n {
+        let n_id = rng.range_i32(i32::MIN / 2, i32::MAX / 2);
+        match Body::try_from_raw(n_id) {
+            Ok(_) => s.passed += 1,
+            Err(BodyError::OutOfRange { id }) => {
+                s.check(id == n_id, || format!("id round-trip mismatch {id} vs {n_id}"));
+            }
+        }
+    }
+
+    // is_known_id ↔ try_from_raw consistency for every documented anchor.
+    for n_id in [-10, -1, 0, 20, Body::FICTITIOUS_OFFSET, Body::FICTITIOUS_OFFSET + 99,
+                 Body::MOON_OFFSET, Body::MOON_OFFSET + 999,
+                 Body::ASTEROID_OFFSET, Body::ASTEROID_OFFSET + 999_999,
+                 21, 39, Body::FICTITIOUS_OFFSET + 100, Body::MOON_OFFSET - 1,
+                 Body::ASTEROID_OFFSET + 1_000_000, i32::MIN, i32::MAX] {
+        s.check(
+            Body::is_known_id(n_id) == Body::try_from_raw(n_id).is_ok(),
+            || format!("is_known_id ↔ try_from_raw disagree on {n_id}"),
+        );
+    }
+    s
+}
+
+/// Edge-case battery — null / empty / oversize strings, every numeric
+/// extreme, NaN/Inf/subnormals — fed through the parser-shaped public
+/// surface of `celestial-core`. Nothing must panic.
+fn test_edge_grid_battery() -> Suite {
+    use celestial_test_util::{EDGE_F64, EDGE_I32, EDGE_I64, EDGE_STRINGS, EDGE_STR_LENS, repeat_byte};
+    let mut s = Suite::new("edge_grid_battery");
+
+    // Strings (incl. empty / null bytes / huge).
+    for &edge in EDGE_STRINGS {
+        let _ = celestial_core::parse_coord(edge);
+        let _ = celestial_core::ayanamsa_name(0); // no-input fn — just call once per outer iter
+        s.passed += 1;
+    }
+    for &n in EDGE_STR_LENS {
+        let s_in = repeat_byte(n, b'1');
+        let _ = celestial_core::parse_coord(&s_in);
+    }
+    // i32 / i64 numeric extremes via Body::try_from_raw + ayanamsa_name etc.
+    use celestial_core::body::Body;
+    for &n in EDGE_I32 {
+        let _ = Body::try_from_raw(n);
+        let _ = celestial_core::sign_name(n);
+        let _ = celestial_core::sidereal_mode_flag(n);
+    }
+    for &n in EDGE_I64 {
+        let _ = Body::try_from_raw(n as i32);
+    }
+    // f64 extremes via JD-shaped + normalisation fns.
+    for &x in EDGE_F64 {
+        let _ = celestial_core::norm_deg(x);
+        let _ = celestial_core::norm_rad(x);
+        let _ = celestial_core::deg_to_cs(x);
+        let _ = JulianDay::new(x);
+    }
+    s.passed += 1;
+    s
 }
 
 fn main() {

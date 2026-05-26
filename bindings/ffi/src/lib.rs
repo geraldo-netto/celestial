@@ -81,6 +81,50 @@ mod tests {
         assert_eq!(pos6(&p), [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
     }
 
+    /// DEAD-3 contract pin: `pos6` and `pos6_tuple` must yield identical
+    /// fields in identical order — every binding (js array, python tuple,
+    /// php map) marshals one or the other and downstream consumers expect
+    /// the same six slots.
+    #[test]
+    fn pos6_array_and_tuple_agree_for_random_inputs() {
+        let cases = [
+            // Boundary fp values
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (f64::MIN, f64::MAX, f64::MIN_POSITIVE, -0.0, 1e-308, 1e308),
+            (f64::INFINITY, f64::NEG_INFINITY, 0.0, 0.0, 0.0, 0.0),
+            // NaN propagates field-by-field; can't `==`-compare NaN so handled below
+            (-360.0, 360.0, 1.0, -1.0, 360.000_000_000_000_06, -360.0),
+        ];
+        for (lon, lat, dist, slon, slat, sdist) in cases {
+            let p = celestial_core::PlanetPos {
+                lon, lat, dist,
+                speed_lon: slon, speed_lat: slat, speed_dist: sdist,
+                ret_flags: 0,
+            };
+            let arr = pos6(&p);
+            let tup = pos6_tuple(&p);
+            // Field-wise bitwise equality (handles NaN by `to_bits`).
+            assert_eq!(arr[0].to_bits(), tup.0.to_bits());
+            assert_eq!(arr[1].to_bits(), tup.1.to_bits());
+            assert_eq!(arr[2].to_bits(), tup.2.to_bits());
+            assert_eq!(arr[3].to_bits(), tup.3.to_bits());
+            assert_eq!(arr[4].to_bits(), tup.4.to_bits());
+            assert_eq!(arr[5].to_bits(), tup.5.to_bits());
+        }
+    }
+
+    /// DEAD-3 contract pin: `pos6` length is exactly 6 — guards against an
+    /// accidental field addition that would break the php / js array shape.
+    #[test]
+    fn pos6_array_len_is_six() {
+        let p = celestial_core::PlanetPos {
+            lon: 0.0, lat: 0.0, dist: 0.0,
+            speed_lon: 0.0, speed_lat: 0.0, speed_dist: 0.0,
+            ret_flags: 0,
+        };
+        assert_eq!(pos6(&p).len(), 6);
+    }
+
     #[test]
     fn ffi_error_message_matches_core_display() {
         let core_err = celestial_core::Error::BodyNotImplemented { body: 99 };

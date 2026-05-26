@@ -4,40 +4,16 @@
 //! returning `Result::Err`. This file generates pseudo-random byte sequences
 //! and feeds them through each `parse_*` entry point.
 //!
-//! Self-contained: uses a stdlib xorshift64 PRNG, no external crates.
+//! PRNG + string/byte generators + edge-case vectors come from the shared
+//! `celestial-test-util` crate (was DUP-6: per-crate copies removed).
 
 use celestial_cli::parse::{
     body_name, hsys_name, jd_to_str, parse_body, parse_date, parse_hsys, parse_sid_mode,
 };
 use celestial_core::body::Body;
+use celestial_test_util::{random_string, Xorshift64};
 
 const N: u32 = 5_000;
-
-// ─── Minimal PRNG (matches the one in fuzz/src/main.rs) ──────────────────────
-
-struct Xorshift64(u64);
-
-impl Xorshift64 {
-    fn new(seed: u64) -> Self {
-        Self(seed | 1)
-    }
-    fn next_u64(&mut self) -> u64 {
-        self.0 ^= self.0 << 13;
-        self.0 ^= self.0 >> 7;
-        self.0 ^= self.0 << 17;
-        self.0
-    }
-}
-
-/// Generate a random ASCII string of length `len_max` ± from a printable subset.
-fn random_string(rng: &mut Xorshift64, len_max: usize) -> String {
-    let len = (rng.next_u64() as usize) % len_max;
-    let chars: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\
-                        0123456789 -:.,/+\xC2\xB0'\"NSEWnsew\t\n";
-    (0..len)
-        .map(|_| chars[(rng.next_u64() as usize) % chars.len()] as char)
-        .collect()
-}
 
 // ─── Fuzz tests ──────────────────────────────────────────────────────────────
 
@@ -387,5 +363,64 @@ fn cmd_run_inprocess_valid_paths() {
             json,
         })
         .is_ok());
+    }
+}
+
+// ─── Systematic edge-grid sweep using shared test util (DUP-6) ───────────────
+//
+// Feeds every entry of `EDGE_STRINGS` / `EDGE_STR_LENS` / `EDGE_I32` through
+// the public CLI parser surface so each parser is proven to handle every
+// documented extreme without panicking. Run once per parser per edge.
+
+#[test]
+fn edge_grid_every_parser_survives_every_edge_string() {
+    use celestial_cli::format::xml_escape;
+    use celestial_cli::parse::{
+        parse_body, parse_date, parse_hsys, parse_sid_mode, parse_tz_offset,
+    };
+    use celestial_test_util::EDGE_STRINGS;
+
+    for &s in EDGE_STRINGS {
+        let _ = parse_body(s);
+        let _ = parse_date(s);
+        let _ = parse_hsys(s);
+        let _ = parse_sid_mode(s);
+        let _ = parse_tz_offset(s);
+        // xml_escape must succeed on any input and the result must not
+        // contain the unescaped `<` or `&` characters.
+        let escaped = xml_escape(s);
+        for c in escaped.chars() {
+            if c == '<' || c == '>' || c == '&' || c == '"' || c == '\'' {
+                // Inside the output any of these would mean we missed an escape.
+                assert!(
+                    !escaped.contains('<') || escaped.contains("&lt;"),
+                    "raw `<` survived in {escaped:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn edge_grid_every_str_length_handled() {
+    use celestial_cli::parse::{parse_body, parse_date, parse_hsys, parse_sid_mode};
+    use celestial_test_util::{repeat_byte, EDGE_STR_LENS};
+
+    for &n in EDGE_STR_LENS {
+        let s = repeat_byte(n, b'x');
+        let _ = parse_body(&s);
+        let _ = parse_date(&s);
+        let _ = parse_hsys(&s);
+        let _ = parse_sid_mode(&s);
+    }
+}
+
+#[test]
+fn edge_grid_every_i32_extreme() {
+    use celestial_cli::parse::parse_body;
+    use celestial_test_util::EDGE_I32;
+
+    for &n in EDGE_I32 {
+        let _ = parse_body(&n.to_string());
     }
 }

@@ -574,6 +574,50 @@ foreach ($fx['medicine_wheel'] as $case) {
 }
 
 
+// ── DEAD-3: pos6 array contract for the php binding ─────────────────────────
+//
+// `celestial_ffi::pos6` flattens a `PlanetPos` into the documented
+// `[lon, lat, dist, speed_lon, speed_lat, speed_dist]` shape every php
+// `calc*` export returns. Pin the contract end-to-end so a regression in
+// either the Rust shim or the php marshalling fails this test.
+
+$jd = julday(2000, 1, 1, 12.0, Calendar::Gregorian);
+$pos = calc_ut($jd, SUN, FLG_BUILTIN | FLG_SPEED);
+assert_eq(count($pos),       6,   'DEAD-3 pos6: array length is 6');
+assert_eq(is_array($pos)?1:0, 1,  'DEAD-3 pos6: result is an array');
+for ($i = 0; $i < 6; $i++) {
+    assert_eq(is_float($pos[$i]) ? 1 : 0, 1, "DEAD-3 pos6: slot $i is float");
+    assert_eq(is_finite($pos[$i])  ? 1 : 0, 1, "DEAD-3 pos6: slot $i is finite");
+}
+// Field ordering pin — Sun's distance (slot 2) is ~1 AU, speed_lon (slot 3)
+// is small positive (~ +1 deg/day). Catches accidental field reorder.
+assert_eq($pos[2] > 0.95 && $pos[2] < 1.05 ? 1 : 0, 1, 'DEAD-3 pos6: slot 2 ≈ 1 AU (Sun distance)');
+assert_eq($pos[3] > 0.0  && $pos[3] < 2.0  ? 1 : 0, 1, 'DEAD-3 pos6: slot 3 ≈ Sun speed_lon');
+
+// REL-8 binding-seam guard: invalid body ids must raise an Exception, not
+// crash or return zeroed data.
+foreach ([21, 39, 5000, -2, -11, 1_010_000] as $bad) {
+    $threw = false;
+    try {
+        calc_ut($jd, $bad, FLG_BUILTIN);
+    } catch (Throwable $e) {
+        $threw = true;
+    }
+    assert_eq($threw ? 1 : 0, 1, "REL-8: invalid body id $bad must throw");
+}
+// Documented ids must still succeed.
+foreach ([SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO] as $good) {
+    $ok = false;
+    try {
+        $r = calc_ut($jd, $good, FLG_BUILTIN);
+        $ok = is_array($r) && count($r) === 6;
+    } catch (Throwable $e) {
+        // unreachable for documented ids
+    }
+    assert_eq($ok ? 1 : 0, 1, "REL-8: documented body id $good must succeed");
+}
+
+
 // ── Summary ────────────────────────────────────────────────────────────────────
 
 echo "\n";
