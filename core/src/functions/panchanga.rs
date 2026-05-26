@@ -195,15 +195,19 @@ pub struct Panchanga {
 use crate::norm_deg;
 
 /// Compute the Karana name for a given karana number (1–60).
+///
+/// Out-of-range input (`0` or `> 60`) returns `""` rather than panicking on
+/// the debug-only `0u8 - 2` underflow that was previously possible.
 #[must_use]
 pub fn karana_name(karana: u8) -> &'static str {
     match karana {
         1 => "Kimstughna",
         60 => "Abhijit",
-        k => {
-            let idx = ((k - 2) % 7) as usize;
+        2..=59 => {
+            let idx = ((karana - 2) % 7) as usize;
             KARANA_NAMES[idx]
         }
+        _ => "",
     }
 }
 
@@ -261,18 +265,21 @@ pub fn panchanga(jd: JulianDay) -> Panchanga {
     };
 
     // ── Nakshatra ─────────────────────────────────────────────────────────
+    // `rem_euclid(360.0)` returns `[0, 360)` but fp rounding around the
+    // boundary (e.g. `(360.0 / (360.0/27.0)).floor()`) can still produce 27.
+    // Clamp every index to its valid range to guarantee in-bounds slot lookup.
     let nak_size = 360.0 / 27.0; // 13.333...°
-    let nak_idx = (moon_lon / nak_size).floor() as u8;
+    let nak_idx = ((moon_lon / nak_size).floor() as u8).min(26);
     let nak_pada_raw = (moon_lon % nak_size) / (nak_size / 4.0);
-    let nak_pada = (nak_pada_raw.floor() as u8) + 1;
+    let nak_pada = ((nak_pada_raw.floor() as u8).min(3)) + 1;
 
     // ── Yoga ──────────────────────────────────────────────────────────────
     let yoga_sum = norm_deg(sun_lon + moon_lon);
-    let yoga = (yoga_sum / nak_size).floor() as u8 % 27;
+    let yoga = ((yoga_sum / nak_size).floor() as u8) % 27;
 
     // ── Karana ────────────────────────────────────────────────────────────
     let karana_raw = elongation / 6.0;
-    let karana = (karana_raw.floor() as u8) + 1; // 1-60
+    let karana = ((karana_raw.floor() as u8).min(59)) + 1; // 1-60
 
     // ── Vara ──────────────────────────────────────────────────────────────
     // JD 0.0 = Monday, so day_of_week = (jd + 1.5) % 7, 0=Sunday
