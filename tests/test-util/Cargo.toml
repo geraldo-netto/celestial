@@ -1,0 +1,9 @@
+[package]
+name        = "celestial-test-util"
+version     = "0.0.1"
+edition     = "2021"
+publish     = false
+description = "Shared RNG + edge-case vectors for celestial fuzz/property tests."
+
+[lib]
+path = "src/lib.rs"

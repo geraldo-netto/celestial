@@ -5,7 +5,8 @@ edition = "2021"
 publish = false
 
 [dependencies]
-celestial-core = { path = "../core", features = ["default"] }
+celestial-core      = { path = "../core", features = ["default"] }
+celestial-test-util = { path = "../tests/test-util" }
 
 [[bin]]
 name = "run_prop_tests"

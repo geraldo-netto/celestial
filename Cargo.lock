@@ -105,6 +105,7 @@ version = "0.2.0"
 dependencies = [
  "assert_cmd",
  "celestial-core",
+ "celestial-test-util",
  "clap",
  "minijinja",
  "predicates",
@@ -118,6 +119,7 @@ dependencies = [
 name = "celestial-core"
 version = "0.2.0"
 dependencies = [
+ "celestial-test-util",
  "serde",
 ]
 
@@ -134,6 +136,7 @@ name = "celestial-fuzz"
 version = "0.0.1"
 dependencies = [
  "celestial-core",
+ "celestial-test-util",
 ]
 
 [[package]]
@@ -153,6 +156,10 @@ dependencies = [
  "celestial-ffi",
  "pyo3",
 ]
+
+[[package]]
+name = "celestial-test-util"
+version = "0.0.1"
 
 [[package]]
 name = "cfg-if"

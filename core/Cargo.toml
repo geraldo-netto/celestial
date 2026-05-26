@@ -37,6 +37,8 @@ calendar-traditions = []
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 
+[dev-dependencies]
+celestial-test-util = { path = "../tests/test-util" }
 
 
 [[bench]]
