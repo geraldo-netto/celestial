@@ -18,6 +18,15 @@ fn to_napi(e: celestial::Error) -> napi::Error {
     napi::Error::from_reason(celestial_ffi::FfiError::from(e).message())
 }
 
+/// Validate-then-construct a [`Body`] at the FFI seam (REL-8 guard).
+///
+/// Rejects ids that do not match any documented range so a bad caller hits a
+/// clean `Error: body id …` instead of an internal `calc` failure deep in the
+/// pipeline.
+fn body_of(n: i32) -> napi::Result<Body> {
+    Body::try_from_raw(n).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
 // ─── Returned object shapes ───────────────────────────────────────────────────
 
 /// Planetary position vector returned by `calc` / `calcUt`.
@@ -205,7 +214,7 @@ pub fn close() {
 /// Calculate planetary positions (Ephemeris Time).
 #[napi]
 pub fn calc(tjdet: f64, planet: i32, flags: i32) -> napi::Result<PlanetPos> {
-    celestial::calc(JulianDay::new(tjdet), Body::from_raw(planet), CalcFlags(flags))
+    celestial::calc(JulianDay::new(tjdet), body_of(planet)?, CalcFlags(flags))
         .map(PlanetPos::from)
         .map_err(to_napi)
 }
@@ -213,7 +222,7 @@ pub fn calc(tjdet: f64, planet: i32, flags: i32) -> napi::Result<PlanetPos> {
 /// Calculate planetary positions (Universal Time).
 #[napi(js_name = "calcUt")]
 pub fn calc_ut(tjdut: f64, planet: i32, flags: i32) -> napi::Result<PlanetPos> {
-    celestial::calc_ut(JulianDay::new(tjdut), Body::from_raw(planet), CalcFlags(flags))
+    celestial::calc_ut(JulianDay::new(tjdut), body_of(planet)?, CalcFlags(flags))
         .map(PlanetPos::from)
         .map_err(to_napi)
 }
@@ -243,7 +252,10 @@ pub fn true_obliquity(jde: f64) -> f64 {
 /// Returns results in the same order as `planets`.
 #[napi(js_name = "calcMany")]
 pub fn calc_many(tjdet: f64, planets: Vec<i32>, flags: i32) -> napi::Result<Vec<PlanetPos>> {
-    let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
+    let bodies: Vec<Body> = planets
+        .iter()
+        .map(|&p| body_of(p))
+        .collect::<napi::Result<Vec<_>>>()?;
     celestial::calc_many(JulianDay::new(tjdet), &bodies, CalcFlags(flags))
         .into_iter()
         .map(|r| {
@@ -256,7 +268,10 @@ pub fn calc_many(tjdet: f64, planets: Vec<i32>, flags: i32) -> napi::Result<Vec<
 /// Compute positions for multiple bodies in parallel (UT input).
 #[napi(js_name = "calcUtMany")]
 pub fn calc_ut_many(tjdut: f64, planets: Vec<i32>, flags: i32) -> napi::Result<Vec<PlanetPos>> {
-    let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
+    let bodies: Vec<Body> = planets
+        .iter()
+        .map(|&p| body_of(p))
+        .collect::<napi::Result<Vec<_>>>()?;
     celestial::calc_ut_many(JulianDay::new(tjdut), &bodies, CalcFlags(flags))
         .into_iter()
         .map(|r| {
@@ -271,8 +286,8 @@ pub fn calc_ut_many(tjdut: f64, planets: Vec<i32>, flags: i32) -> napi::Result<V
 pub fn calc_pctr(tjdet: f64, planet: i32, center: i32, flags: i32) -> napi::Result<PlanetPos> {
     celestial::calc_pctr(
         JulianDay::new(tjdet),
-        Body::from_raw(planet),
-        Body::from_raw(center),
+        body_of(planet)?,
+        body_of(center)?,
         CalcFlags(flags),
     )
     .map(PlanetPos::from)
@@ -516,7 +531,7 @@ pub fn rise_trans(
         .map_err(|_| napi::Error::from_reason("geopos must have 3 elements"))?;
     celestial::rise_trans(
         JulianDay::new(tjdut),
-        Body::from_raw(planet),
+        body_of(planet)?,
         None,
         CalcFlags(ephe_flags),
         event_type,
@@ -701,6 +716,7 @@ pub struct MoonCrossNodeResult {
 /// Name of a house system.
 #[napi]
 pub fn planet_name(planet: i32) -> &'static str {
+    // Lenient: returns "Unknown" for out-of-range ids (no Result channel here).
     celestial::planet_name(Body::from_raw(planet))
 }
 
@@ -964,7 +980,7 @@ pub fn next_retro(
     flags: i32,
 ) -> Option<Vec<f64>> {
     celestial::next_retro(
-        Body::from_raw(planet),
+        body_of(planet).ok()?,
         jd_start,
         backward,
         stop_days,
@@ -985,7 +1001,7 @@ pub fn next_aspect(
     flags: i32,
 ) -> Option<Vec<f64>> {
     celestial::next_aspect(
-        Body::from_raw(planet),
+        body_of(planet).ok()?,
         aspect,
         fixed_pt,
         jd_start,
@@ -1008,9 +1024,9 @@ pub fn next_aspect_with(
     flags: i32,
 ) -> Option<Vec<f64>> {
     celestial::next_aspect_with(
-        Body::from_raw(planet),
+        body_of(planet).ok()?,
         aspect,
-        Body::from_raw(other),
+        body_of(other).ok()?,
         jd_start,
         backward,
         stop_days,
@@ -1237,7 +1253,7 @@ pub fn sign_ingress_ut(
     flags: i32,
     backward: bool,
 ) -> napi::Result<IngressResult> {
-    celestial::sign_ingress_ut(Body::from_raw(planet), JulianDay::new(jd), CalcFlags(flags), backward)
+    celestial::sign_ingress_ut(body_of(planet)?, JulianDay::new(jd), CalcFlags(flags), backward)
         .map(|(jd, sign)| IngressResult {
             jd,
             sign: sign as u32,
@@ -1254,7 +1270,7 @@ pub struct Stations {
 /// Find the next retrograde and direct stations for a body after `jd_start`.
 #[napi(js_name = "retrogradeStationUt")]
 pub fn retrograde_station_ut(planet: i32, jd: f64, flags: i32) -> napi::Result<Stations> {
-    celestial::retrograde_station_ut(Body::from_raw(planet), JulianDay::new(jd), CalcFlags(flags))
+    celestial::retrograde_station_ut(body_of(planet)?, JulianDay::new(jd), CalcFlags(flags))
         .map(|s| Stations {
             retrograde: s.retrograde,
             direct: s.direct,
@@ -1279,7 +1295,7 @@ pub fn transit_to_degree(
     backward: bool,
 ) -> napi::Result<f64> {
     celestial::transit_to_degree(
-        Body::from_raw(planet),
+        body_of(planet)?,
         target_lon,
         jd,
         CalcFlags(flags),
@@ -1301,7 +1317,7 @@ pub fn mc_transit_ut(
     backward: bool,
 ) -> napi::Result<f64> {
     celestial::mc_transit_ut(
-        Body::from_raw(planet),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -1973,6 +1989,7 @@ pub fn decan_ruler(lon: f64) -> i32 {
 #[napi]
 pub fn full_dignity(body_raw: i32, lon: f64, is_day: bool) -> Vec<napi::Either<String, i32>> {
     use celestial::body::Body;
+    // Lenient: full_dignity tolerates unknown ids by returning ("None", 0).
     let (dig, score) = celestial::full_dignity(Body::from_raw(body_raw), Longitude::new(lon), is_day);
     vec![
         napi::Either::A(dig.to_string()),
@@ -2363,7 +2380,7 @@ pub fn ic_transit_ut(
     backward: bool,
 ) -> napi::Result<f64> {
     celestial::ic_transit_ut(
-        Body::from_raw(planet),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -2387,7 +2404,7 @@ pub fn asc_transit_ut(
     backward: bool,
 ) -> napi::Result<f64> {
     celestial::asc_transit_ut(
-        Body::from_raw(planet),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -2411,7 +2428,7 @@ pub fn dsc_transit_ut(
     backward: bool,
 ) -> napi::Result<f64> {
     celestial::dsc_transit_ut(
-        Body::from_raw(planet),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -2436,6 +2453,7 @@ pub fn next_aspect_cusp(
     backward: bool,
     flags: i32,
 ) -> Option<Vec<f64>> {
+    // Lenient: Option return; invalid ids fall through to None via downstream.
     celestial::next_aspect_cusp(
         Body::from_raw(body),
         aspect,
@@ -2463,6 +2481,7 @@ pub fn next_aspect_cusp2(
     backward: bool,
     flags: i32,
 ) -> Option<Vec<f64>> {
+    // Lenient: Option return; invalid ids fall through to None via downstream.
     celestial::next_aspect_cusp2(
         Body::from_raw(body),
         aspect,

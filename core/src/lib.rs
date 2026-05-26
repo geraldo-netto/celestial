@@ -69,7 +69,7 @@ pub mod vedic;
 //   use celestial_core::position::calc_ut;
 //   use celestial_core::moon::moon_phase;
 pub use body::{
-    Body, CalcFlags, Calendar, HouseSystem, SiderealMode
+    Body, BodyError, CalcFlags, Calendar, HouseSystem, SiderealMode
 };
 #[cfg(feature = "calendar-traditions")]
 pub use calendar::{
@@ -246,7 +246,7 @@ pub mod prelude {
     //! let sun = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
     //! println!("Sun: {:.4}°", sun.lon);
     //! ```
-    pub use crate::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
+    pub use crate::body::{Body, BodyError, CalcFlags, Calendar, HouseSystem, SiderealMode};
     pub use crate::chart::AspectOrbs;
     pub use crate::chart::{
         calc_chart_aspects, calc_chart_aspects_auto, lunar_return_jd, solar_return_jd,

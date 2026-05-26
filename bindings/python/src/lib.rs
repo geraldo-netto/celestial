@@ -24,6 +24,14 @@ fn to_py(e: celestial::Error) -> PyErr {
     PyRuntimeError::new_err(celestial_ffi::FfiError::from(e).message())
 }
 
+/// Validate-then-construct a [`Body`] at the FFI seam (REL-8 guard).
+///
+/// Rejects ids outside every documented range so bad input fails fast with
+/// a clean `ValueError`-shaped message instead of an internal calc failure.
+fn body_of(n: i32) -> PyResult<Body> {
+    Body::try_from_raw(n).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+}
+
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 /// Set the path to Swiss Ephemeris data files.
@@ -72,7 +80,7 @@ fn close() {
 #[pyfunction]
 #[pyo3(signature = (tjdet, planet, flags = 258))]
 fn calc(py: Python<'_>, tjdet: f64, planet: i32, flags: i32) -> PyResult<PyObject> {
-    let pos = celestial::calc(JulianDay::new(tjdet), Body::from_raw(planet), CalcFlags(flags)).map_err(to_py)?;
+    let pos = celestial::calc(JulianDay::new(tjdet), body_of(planet)?, CalcFlags(flags)).map_err(to_py)?;
     let xx = celestial_ffi::pos6_tuple(&pos);
     Ok((xx, pos.ret_flags).into_py_any(py).unwrap())
 }
@@ -81,7 +89,7 @@ fn calc(py: Python<'_>, tjdet: f64, planet: i32, flags: i32) -> PyResult<PyObjec
 #[pyfunction]
 #[pyo3(signature = (tjdut, planet, flags = 258))]
 fn calc_ut(py: Python<'_>, tjdut: f64, planet: i32, flags: i32) -> PyResult<PyObject> {
-    let pos = celestial::calc_ut(JulianDay::new(tjdut), Body::from_raw(planet), CalcFlags(flags)).map_err(to_py)?;
+    let pos = celestial::calc_ut(JulianDay::new(tjdut), body_of(planet)?, CalcFlags(flags)).map_err(to_py)?;
     let xx = celestial_ffi::pos6_tuple(&pos);
     Ok((xx, pos.ret_flags).into_py_any(py).unwrap())
 }
@@ -119,7 +127,10 @@ fn true_obliquity(jde: f64) -> f64 {
 #[pyfunction]
 #[pyo3(signature = (tjdet, planets, flags = 258))]
 fn calc_many(py: Python<'_>, tjdet: f64, planets: Vec<i32>, flags: i32) -> PyResult<PyObject> {
-    let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
+    let bodies: Vec<Body> = planets
+        .iter()
+        .map(|&p| body_of(p))
+        .collect::<PyResult<Vec<_>>>()?;
     let results = celestial::calc_many(JulianDay::new(tjdet), &bodies, CalcFlags(flags));
     let list: Vec<PyObject> = results
         .into_iter()
@@ -136,7 +147,10 @@ fn calc_many(py: Python<'_>, tjdet: f64, planets: Vec<i32>, flags: i32) -> PyRes
 #[pyfunction]
 #[pyo3(signature = (tjdut, planets, flags = 258))]
 fn calc_ut_many(py: Python<'_>, tjdut: f64, planets: Vec<i32>, flags: i32) -> PyResult<PyObject> {
-    let bodies: Vec<_> = planets.iter().map(|&p| Body::from_raw(p)).collect();
+    let bodies: Vec<Body> = planets
+        .iter()
+        .map(|&p| body_of(p))
+        .collect::<PyResult<Vec<_>>>()?;
     let results = celestial::calc_ut_many(JulianDay::new(tjdut), &bodies, CalcFlags(flags));
     let list: Vec<PyObject> = results
         .into_iter()
@@ -161,8 +175,8 @@ fn calc_pctr(
 ) -> PyResult<PyObject> {
     let pos = celestial::calc_pctr(
         JulianDay::new(tjdet),
-        Body::from_raw(planet),
-        Body::from_raw(center),
+        body_of(planet)?,
+        body_of(center)?,
         CalcFlags(flags),
     )
     .map_err(to_py)?;
@@ -396,7 +410,7 @@ fn rise_trans(
 ) -> PyResult<PyObject> {
     let r = celestial::rise_trans(
         JulianDay::new(tjdut),
-        Body::from_raw(planet),
+        body_of(planet)?,
         None,
         CalcFlags(flags),
         event_type,
@@ -595,6 +609,7 @@ fn version() -> &'static str {
 /// Name of a planet / body.
 #[pyfunction]
 fn planet_name(planet: i32) -> &'static str {
+    // Lenient: returns "Unknown" for out-of-range ids (no Result channel here).
     celestial::planet_name(Body::from_raw(planet))
 }
 
@@ -811,6 +826,7 @@ fn next_retro(
     stop_days: f64,
     flags: i32,
 ) -> PyObject {
+    // Lenient: PyObject return — invalid ids surface as Python None via downstream.
     match celestial::next_retro(
         Body::from_raw(planet),
         jd_start,
@@ -837,6 +853,7 @@ fn next_aspect(
     stop_days: f64,
     flags: i32,
 ) -> PyObject {
+    // Lenient: PyObject return — invalid ids surface as Python None via downstream.
     match celestial::next_aspect(
         Body::from_raw(planet),
         aspect,
@@ -865,6 +882,7 @@ fn next_aspect_with(
     stop_days: f64,
     flags: i32,
 ) -> PyObject {
+    // Lenient: PyObject return — invalid ids surface as Python None via downstream.
     match celestial::next_aspect_with(
         Body::from_raw(planet),
         aspect,
@@ -887,7 +905,7 @@ fn next_aspect_with(
 #[pyfunction]
 #[pyo3(signature = (planet, jd, flags, backward=false))]
 fn sign_ingress_ut(planet: i32, jd: f64, flags: i32, backward: bool) -> PyResult<(f64, u8)> {
-    celestial::sign_ingress_ut(Body::from_raw(planet), JulianDay::new(jd), CalcFlags(flags), backward)
+    celestial::sign_ingress_ut(body_of(planet)?, JulianDay::new(jd), CalcFlags(flags), backward)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
 }
 
@@ -896,7 +914,7 @@ fn sign_ingress_ut(planet: i32, jd: f64, flags: i32, backward: bool) -> PyResult
 #[pyfunction]
 #[pyo3(signature = (planet, jd, flags))]
 fn retrograde_station_ut(py: Python<'_>, planet: i32, jd: f64, flags: i32) -> PyResult<PyObject> {
-    celestial::retrograde_station_ut(Body::from_raw(planet), JulianDay::new(jd), CalcFlags(flags))
+    celestial::retrograde_station_ut(body_of(planet)?, JulianDay::new(jd), CalcFlags(flags))
         .map(|s| (s.retrograde, s.direct).into_py_any(py).unwrap())
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
 }
@@ -920,7 +938,7 @@ fn transit_to_degree(
     backward: bool,
 ) -> PyResult<f64> {
     celestial::transit_to_degree(
-        Body::from_raw(planet),
+        body_of(planet)?,
         target_lon,
         jd,
         CalcFlags(flags),
@@ -945,7 +963,7 @@ fn mc_transit_ut(
     backward: bool,
 ) -> PyResult<f64> {
     celestial::mc_transit_ut(
-        Body::from_raw(planet),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -1162,6 +1180,7 @@ fn triplicity_rulers(py: Python<'_>, lon: f64) -> PyObject {
 #[pyfunction]
 fn full_dignity(py: Python<'_>, body_raw: i32, lon: f64, is_day: bool) -> PyObject {
     use celestial::body::Body;
+    // Lenient: full_dignity tolerates unknown ids by returning ("None", 0).
     let body = Body::from_raw(body_raw);
     let (dig, score) = celestial::full_dignity(body, Longitude::new(lon), is_day);
     (dig.to_string(), score).into_py_any(py).unwrap()
@@ -1376,6 +1395,7 @@ fn next_aspect_cusp2(
     backward: bool,
     flags: i32,
 ) -> PyObject {
+    // Lenient: PyObject return — invalid ids fall through to a None Python value via downstream.
     match celestial::next_aspect_cusp2(
         Body::from_raw(body),
         aspect,
@@ -1560,7 +1580,7 @@ fn ic_transit_ut(
     backward: bool,
 ) -> PyResult<f64> {
     celestial::ic_transit_ut(
-        Body::from_raw(planet),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -1585,7 +1605,7 @@ fn asc_transit_ut(
     backward: bool,
 ) -> PyResult<f64> {
     celestial::asc_transit_ut(
-        Body::from_raw(planet),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -1610,7 +1630,7 @@ fn dsc_transit_ut(
     backward: bool,
 ) -> PyResult<f64> {
     celestial::dsc_transit_ut(
-        Body::from_raw(planet),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -1636,7 +1656,7 @@ fn next_aspect_cusp(
     flags: i32,
 ) -> Option<(f64, f64)> {
     celestial::next_aspect_cusp(
-        Body::from_raw(body),
+        body_of(body).ok()?,
         aspect,
         cusp,
         jd_start,

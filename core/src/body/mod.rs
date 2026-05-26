@@ -102,6 +102,54 @@ impl Body {
         self.0
     }
 
+    /// Returns `true` if `n` falls in a documented body-id range.
+    ///
+    /// Recognised ranges:
+    /// * `-10` → fixed-star sentinel ([`FIXED_STAR`](Self::FIXED_STAR))
+    /// * `-1`  → ecliptic / nutation pseudo-body ([`ECL_NUT`](Self::ECL_NUT))
+    /// * `0..=20` → main planets + luminaries + classical asteroids
+    /// * `FICTITIOUS_OFFSET..FICTITIOUS_OFFSET + 100` → Uranian / Hamburg bodies
+    /// * `MOON_OFFSET..MOON_OFFSET + 1_000` → planetary moons
+    /// * `ASTEROID_OFFSET..ASTEROID_OFFSET + 1_000_000` → numbered asteroids
+    ///
+    /// Anything else is rejected by [`Body::try_from_raw`] so that FFI / CLI
+    /// callers fail fast instead of letting an obscure error surface inside
+    /// `calc_ut` (REL-8 defensive-depth guard).
+    #[must_use]
+    pub const fn is_known_id(n: i32) -> bool {
+        if n == -10 || n == -1 {
+            return true;
+        }
+        if n >= 0 && n <= 20 {
+            return true;
+        }
+        if n >= Self::FICTITIOUS_OFFSET && n < Self::FICTITIOUS_OFFSET + 100 {
+            return true;
+        }
+        if n >= Self::MOON_OFFSET && n < Self::MOON_OFFSET + 1_000 {
+            return true;
+        }
+        if n >= Self::ASTEROID_OFFSET && n < Self::ASTEROID_OFFSET + 1_000_000 {
+            return true;
+        }
+        false
+    }
+
+    /// Validating ctor — returns [`BodyError::OutOfRange`] for ids that fall
+    /// outside every documented range. Bindings call this at the FFI seam.
+    ///
+    /// `Body::from_raw` remains unchecked for hot paths and `const` use.
+    ///
+    /// # Errors
+    /// `BodyError::OutOfRange { id }` when `n` matches no known range.
+    pub const fn try_from_raw(n: i32) -> Result<Self, BodyError> {
+        if Self::is_known_id(n) {
+            Ok(Body(n))
+        } else {
+            Err(BodyError::OutOfRange { id: n })
+        }
+    }
+
     /// Returns `true` if this body is one of the nine classical planets or Moon.
     #[must_use]
     pub fn is_planet(self) -> bool {
@@ -197,6 +245,30 @@ impl Body {
             .unwrap_or("Unknown")
     }
 }
+
+/// Failure modes for [`Body::try_from_raw`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BodyError {
+    /// Raw integer did not match any documented body-id range.
+    OutOfRange {
+        /// The rejected raw id.
+        id: i32,
+    },
+}
+
+impl std::fmt::Display for BodyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BodyError::OutOfRange { id } => write!(
+                f,
+                "body id {id} is outside every documented range \
+                 (-10, -1, 0..=20, 40..140, 9000..10000, 10000..1010000)"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for BodyError {}
 
 impl From<i32> for Body {
     fn from(n: i32) -> Self {

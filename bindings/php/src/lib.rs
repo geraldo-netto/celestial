@@ -48,6 +48,15 @@ fn to_php(e: celestial::Error) -> PhpException {
     PhpException::default(celestial_ffi::FfiError::from(e).message())
 }
 
+/// Validate-then-construct a [`Body`] at the FFI seam (REL-8 guard).
+///
+/// PHP callers see a clean `Exception` instead of an obscure failure deep
+/// in `calc`. Lenient sites (those returning bare arrays / strings) keep
+/// the unchecked `body_of(n)?` shape and tolerate unknown ids upstream.
+fn body_of(n: i64) -> PhpResult<Body> {
+    Body::try_from_raw(n as i32).map_err(|e| PhpException::default(e.to_string()))
+}
+
 /// Flatten a core position into the PHP `[lon, lat, dist, speed_lon,
 /// speed_lat, speed_dist]` array shape used by every `calc*` export.
 fn pos_vec(p: &celestial::PlanetPos) -> Vec<f64> {
@@ -169,14 +178,14 @@ pub fn version() -> String {
 #[php_function]
 pub fn calc_ut(tjdut: f64, planet: i64, flags: i64) -> PhpResult<Vec<f64>> {
     let p =
-        celestial::calc_ut(JulianDay::new(tjdut), Body(planet as i32), CalcFlags(flags as i32)).map_err(to_php)?;
+        celestial::calc_ut(JulianDay::new(tjdut), body_of(planet)?, CalcFlags(flags as i32)).map_err(to_php)?;
     Ok(pos_vec(&p))
 }
 
 /// Geocentric position using Terrestrial Time (ET/TT).
 #[php_function]
 pub fn calc(tjdet: f64, planet: i64, flags: i64) -> PhpResult<Vec<f64>> {
-    let p = celestial::calc(JulianDay::new(tjdet), Body(planet as i32), CalcFlags(flags as i32)).map_err(to_php)?;
+    let p = celestial::calc(JulianDay::new(tjdet), body_of(planet)?, CalcFlags(flags as i32)).map_err(to_php)?;
     Ok(pos_vec(&p))
 }
 
@@ -207,7 +216,10 @@ pub fn true_obliquity(jde: f64) -> f64 {
 /// Returns an array of arrays, each [lon, lat, dist, speed_lon, speed_lat, speed_dist].
 #[php_function]
 pub fn calc_many(tjdet: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<Vec<f64>>> {
-    let bodies: Vec<_> = planets.iter().map(|&p| Body(p as i32)).collect();
+    let bodies: Vec<Body> = planets
+        .iter()
+        .map(|&p| body_of(p))
+        .collect::<PhpResult<Vec<_>>>()?;
     celestial::calc_many(JulianDay::new(tjdet), &bodies, CalcFlags(flags as i32))
         .into_iter()
         .map(|r| {
@@ -220,7 +232,10 @@ pub fn calc_many(tjdet: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<Vec
 /// Compute positions for multiple bodies in parallel (UT input).
 #[php_function]
 pub fn calc_ut_many(tjdut: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<Vec<f64>>> {
-    let bodies: Vec<_> = planets.iter().map(|&p| Body(p as i32)).collect();
+    let bodies: Vec<Body> = planets
+        .iter()
+        .map(|&p| body_of(p))
+        .collect::<PhpResult<Vec<_>>>()?;
     celestial::calc_ut_many(JulianDay::new(tjdut), &bodies, CalcFlags(flags as i32))
         .into_iter()
         .map(|r| {
@@ -234,8 +249,8 @@ pub fn calc_ut_many(tjdut: f64, planets: Vec<i64>, flags: i64) -> PhpResult<Vec<
 pub fn calc_pctr(tjdet: f64, planet: i64, center: i64, flags: i64) -> PhpResult<Vec<f64>> {
     let p = celestial::calc_pctr(
         JulianDay::new(tjdet),
-        Body(planet as i32),
-        Body(center as i32),
+        body_of(planet)?,
+        body_of(center)?,
         CalcFlags(flags as i32),
     )
     .map_err(to_php)?;
@@ -428,7 +443,7 @@ pub fn rise_trans(
         .ok_or_else(|| PhpException::default("geopos needs 3 elements".into()))?;
     let r = celestial::rise_trans(
         JulianDay::new(tjdut),
-        Body(planet as i32),
+        body_of(planet)?,
         None,
         CalcFlags(flags as i32),
         event_type as i32,
@@ -668,7 +683,7 @@ pub fn next_retro(
     flags: i64,
 ) -> Option<f64> {
     celestial::next_retro(
-        Body(planet as i32),
+        body_of(planet).ok()?,
         jd_start,
         backward,
         stop_days,
@@ -841,7 +856,7 @@ pub const SPLIT_DEG_ZODIACAL: i32 = celestial::SPLIT_DEG_ZODIACAL;
 /// Pass `backward=true` to find the previous ingress.
 #[php_function]
 pub fn sign_ingress_ut(planet: i64, jd: f64, flags: i64, backward: bool) -> PhpResult<Vec<f64>> {
-    celestial::sign_ingress_ut(Body(planet as i32), JulianDay::new(jd), CalcFlags(flags as i32), backward)
+    celestial::sign_ingress_ut(body_of(planet)?, JulianDay::new(jd), CalcFlags(flags as i32), backward)
         .map(|(jd, sign)| vec![jd, sign as f64])
         .map_err(|e| PhpException::from(e.to_string()))
 }
@@ -864,7 +879,7 @@ pub fn transit_to_degree(
     backward: bool,
 ) -> PhpResult<f64> {
     celestial::transit_to_degree(
-        Body(planet as i32),
+        body_of(planet)?,
         target_lon,
         jd,
         CalcFlags(flags as i32),
@@ -888,7 +903,7 @@ pub fn mc_transit_ut(
     backward: bool,
 ) -> PhpResult<f64> {
     celestial::mc_transit_ut(
-        Body(planet as i32),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -1563,7 +1578,10 @@ pub fn secondary_progressions(
     hsys: i64,
     flags: i64,
 ) -> PhpResult<Vec<Vec<f64>>> {
-    let body_list: Vec<Body> = bodies.iter().map(|&b| Body(b as i32)).collect();
+    let body_list: Vec<Body> = bodies
+        .iter()
+        .map(|&b| body_of(b))
+        .collect::<PhpResult<Vec<_>>>()?;
     let (positions, _houses) = celestial::secondary_progressions(
         JulianDay::new(jd_natal),
         years,
@@ -1706,7 +1724,7 @@ pub fn next_aspect_cusp(
     flags: i64,
 ) -> Option<Vec<f64>> {
     celestial::next_aspect_cusp(
-        Body(body as i32),
+        body_of(body).ok()?,
         aspect,
         cusp as usize,
         jd_start,
@@ -1732,7 +1750,7 @@ fn ic_transit_ut(
     backward: bool,
 ) -> PhpResult<f64> {
     celestial::ic_transit_ut(
-        Body(planet as i32),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -1757,7 +1775,7 @@ fn asc_transit_ut(
     backward: bool,
 ) -> PhpResult<f64> {
     celestial::asc_transit_ut(
-        Body(planet as i32),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -1782,7 +1800,7 @@ fn dsc_transit_ut(
     backward: bool,
 ) -> PhpResult<f64> {
     celestial::dsc_transit_ut(
-        Body(planet as i32),
+        body_of(planet)?,
         jd_natal,
         jd_start,
         lat,
@@ -1935,7 +1953,9 @@ pub fn fixstar_ut(star: String, tjdut: f64, flags: i64) -> PhpResult<Vec<f64>> {
 /// Essential dignity score. Returns [dignity_string, score_int].
 #[php_function]
 pub fn full_dignity(body: i64, lon: f64, is_day: bool) -> Vec<String> {
-    let (dig, score) = celestial::full_dignity(Body(body as i32), Longitude::new(lon), is_day);
+    // Lenient: bare Vec<String> return — invalid ids tolerated by core.
+    let (dig, score) =
+        celestial::full_dignity(Body(body as i32), Longitude::new(lon), is_day);
     vec![dig.to_string(), score.to_string()]
 }
 
@@ -2126,7 +2146,7 @@ pub fn next_aspect(
     flags: i64,
 ) -> Option<Vec<f64>> {
     celestial::next_aspect(
-        Body(planet as i32),
+        body_of(planet).ok()?,
         aspect,
         fixed_pt,
         jd_start,
@@ -2157,7 +2177,7 @@ pub fn next_aspect_cusp2(
     flags: i64,
 ) -> Option<Vec<f64>> {
     celestial::next_aspect_cusp2(
-        Body(body as i32),
+        body_of(body).ok()?,
         aspect,
         cusp as usize,
         jd_start,
@@ -2182,9 +2202,9 @@ pub fn next_aspect_with(
     flags: i64,
 ) -> Option<Vec<f64>> {
     celestial::next_aspect_with(
-        Body(planet as i32),
+        body_of(planet).ok()?,
         aspect,
-        Body(other as i32),
+        body_of(other).ok()?,
         jd_start,
         backward,
         stop_days,
@@ -2218,6 +2238,7 @@ pub fn parse_datetime(s: String) -> Option<Vec<i64>> {
 /// Planet name by index.
 #[php_function]
 pub fn planet_name(planet: i64) -> String {
+    // Lenient: returns "Unknown" for out-of-range ids (no Result channel here).
     celestial::planet_name(Body(planet as i32)).to_string()
 }
 
@@ -2258,7 +2279,7 @@ pub fn residential_strength(graha: f64, bm: Vec<f64>) -> PhpResult<f64> {
 /// Retrograde and direct station Julian Days. Returns [retrograde_jd, direct_jd].
 #[php_function]
 pub fn retrograde_station_ut(planet: i64, jd: f64, flags: i64) -> PhpResult<Vec<f64>> {
-    celestial::retrograde_station_ut(Body(planet as i32), JulianDay::new(jd), CalcFlags(flags as i32))
+    celestial::retrograde_station_ut(body_of(planet)?, JulianDay::new(jd), CalcFlags(flags as i32))
         .map(|s| vec![s.retrograde, s.direct])
         .map_err(|e| PhpException::from(e.to_string()))
 }
