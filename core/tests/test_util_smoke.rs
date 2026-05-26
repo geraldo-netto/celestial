@@ -79,20 +79,32 @@ fn repeat_byte_produces_ascii() {
 }
 
 #[test]
-fn edge_vectors_are_non_empty_and_distinct() {
-    assert!(!EDGE_STRINGS.is_empty());
-    assert!(!EDGE_STR_LENS.is_empty());
-    assert!(!EDGE_I32.is_empty());
-    assert!(!EDGE_I64.is_empty());
-    assert!(!EDGE_F64.is_empty());
-    // Documented critical anchors must be present.
-    assert!(EDGE_I32.contains(&-1));
-    assert!(EDGE_I32.contains(&0));
-    assert!(EDGE_I32.contains(&1));
-    assert!(EDGE_I32.contains(&i32::MIN));
-    assert!(EDGE_I32.contains(&i32::MAX));
-    assert!(EDGE_STR_LENS.contains(&0));
-    assert!(EDGE_STR_LENS.contains(&STR_LEN_MAX));
-    assert!(EDGE_F64.iter().any(|f| f.is_nan()));
-    assert!(EDGE_F64.iter().any(|f| f.is_infinite()));
+fn edge_vectors_are_non_empty() {
+    // Table-driven so CC stays at 2 even as the vector list grows.
+    let lens: [(&str, usize); 5] = [
+        ("EDGE_STRINGS", EDGE_STRINGS.len()),
+        ("EDGE_STR_LENS", EDGE_STR_LENS.len()),
+        ("EDGE_I32", EDGE_I32.len()),
+        ("EDGE_I64", EDGE_I64.len()),
+        ("EDGE_F64", EDGE_F64.len()),
+    ];
+    for (name, n) in lens {
+        assert!(n > 0, "{name} empty");
+    }
+}
+
+#[test]
+fn edge_i32_contains_required_anchors() {
+    let required = [-1, 0, 1, i32::MIN, i32::MAX];
+    for n in required {
+        assert!(EDGE_I32.contains(&n), "EDGE_I32 missing anchor {n}");
+    }
+}
+
+#[test]
+fn edge_str_lens_and_f64_anchors_present() {
+    assert!(EDGE_STR_LENS.contains(&0), "EDGE_STR_LENS missing 0");
+    assert!(EDGE_STR_LENS.contains(&STR_LEN_MAX), "missing STR_LEN_MAX");
+    assert!(EDGE_F64.iter().any(|f| f.is_nan()), "EDGE_F64 missing NaN");
+    assert!(EDGE_F64.iter().any(|f| f.is_infinite()), "EDGE_F64 missing Inf");
 }
