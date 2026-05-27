@@ -352,3 +352,15 @@ fn name_by_month(month: i32) -> EsbatName {
         _ => EsbatName::Blue,
     }
 }
+
+#[cfg(test)]
+mod cov_tests {
+    use super::*;
+
+    #[test]
+    fn bisect_fallback_full_moon_brackets_around_known_full() {
+        // Full moon near JD 2_451_553 (J2000 + ~8d). Use a 4-day window around it.
+        let jd = bisect_fallback_full_moon(2_451_551.0, 2_451_555.0).expect("bracket");
+        assert!(jd > 2_451_551.0 && jd < 2_451_555.0, "jd={jd}");
+    }
+}

@@ -155,3 +155,29 @@ pub fn chiron_geocentric(jde: f64) -> (f64, f64, f64) {
     let lat = (dz / dist).asin().to_degrees();
     (lon, lat, dist)
 }
+
+#[cfg(test)]
+mod cov_tests {
+    use super::*;
+
+    #[test]
+    fn norm360_wraps() {
+        assert!((norm360(361.0) - 1.0).abs() < 1e-9);
+        assert!((norm360(-1.0) - 359.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn chiron_geocentric_finite_j2000() {
+        let (lon, lat, dist) = chiron_geocentric(J2000);
+        assert!((0.0..360.0).contains(&lon), "lon={lon}");
+        assert!(lat.abs() < 20.0, "lat={lat}");
+        assert!(dist > 5.0 && dist < 25.0, "dist={dist} AU");
+    }
+
+    #[test]
+    fn chiron_speed_returned_pair_consistent() {
+        let (l0, _, _) = chiron_pos(JulianDay::new(J2000));
+        let (l1, _, _) = chiron_pos(JulianDay::new(J2000 + 100.0));
+        assert!((l1 - l0).abs() > 0.0, "Chiron should move across 100 days");
+    }
+}

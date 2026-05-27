@@ -529,3 +529,43 @@ pub fn saros(k_int: i64, is_solar: bool) -> (i32, i32) {
     let member = (k_int / 223).abs() as i32;
     (series_approx, member)
 }
+
+#[cfg(test)]
+mod cov_tests {
+    use super::*;
+
+    #[test]
+    fn saros_solar_k0_returns_series_1_member_0() {
+        assert_eq!(saros(0, true), (1, 0));
+    }
+
+    #[test]
+    fn saros_lunar_k0_returns_series_12_member_0() {
+        assert_eq!(saros(0, false), (12, 0));
+    }
+
+    #[test]
+    fn saros_member_advances_per_223_cycle() {
+        let (_, m2) = saros(446, true);
+        assert_eq!(m2, 2);
+        let (_, mn) = saros(-223, true);
+        assert_eq!(mn, 1);
+    }
+
+    #[test]
+    fn eclipse_result_default_is_zeroed() {
+        let r = EclipseResult::default();
+        assert_eq!(r.ret_flags, 0);
+        assert_eq!(r.tret, [0.0; 10]);
+        assert_eq!(r.geolon, 0.0);
+        assert_eq!(r.geolat, 0.0);
+        assert!(matches!(r.kind, EclipseKind::None));
+    }
+
+    #[test]
+    fn norm360_wraps_positive_and_negative() {
+        assert!((norm360(361.0) - 1.0).abs() < 1e-9);
+        assert!((norm360(-1.0) - 359.0).abs() < 1e-9);
+        assert!((norm360(0.0)).abs() < 1e-9);
+    }
+}

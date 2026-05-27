@@ -1085,3 +1085,40 @@ pub use crate::functions::chinese::*;
 pub use crate::functions::hellenistic::*;
 pub use crate::functions::indigenous::*;
 pub use crate::functions::mesoamerican::*;
+
+#[cfg(test)]
+mod cov_tests {
+    use super::*;
+
+    #[test]
+    fn bisect_zero_converges_on_linear_zero() {
+        let root = bisect_zero(-1.0, 1.0, -1.0, 1e-9, |x| x);
+        assert!(root.abs() < 1e-6, "root={root}");
+    }
+
+    #[test]
+    fn bisect_zero_returns_value_in_bracket_on_no_convergence() {
+        // Constant-positive f never crosses zero; bisector collapses to lo bound.
+        let r = bisect_zero(0.0, 1.0, 1.0, 1e-12, |_| 1.0);
+        assert!((0.0..=1.0).contains(&r), "r={r} out of bracket");
+    }
+
+    #[test]
+    fn scan_retrograde_stations_finds_sign_change() {
+        // Off-grid root at t≈4.99 so prev*curr is strictly negative on a step boundary.
+        let (_retro, direct) = scan_retrograde_stations(
+            10.0,
+            0.5,
+            0.0,
+            |t| Some(t - 4.99),
+        );
+        assert!(direct.is_some(), "direct station expected near t=5");
+    }
+
+    #[test]
+    fn scan_retrograde_stations_no_crossing_returns_none() {
+        let (retro, direct) = scan_retrograde_stations(5.0, 0.5, 0.0, |_| Some(1.0));
+        assert!(retro.is_none());
+        assert!(direct.is_none());
+    }
+}

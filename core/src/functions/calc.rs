@@ -457,3 +457,30 @@ impl<'a> MultiCalc<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod cov_tests {
+    use super::*;
+
+    #[test]
+    fn parallel_calc_short_input_sequential_path() {
+        // ≤ 2 bodies trips the sequential fast-path.
+        let bodies = [Body::SUN, Body::MOON];
+        let out = parallel_calc(&bodies, |b| {
+            calc_ut(JulianDay::new(2_451_545.0), b, CalcFlags::BUILTIN)
+        });
+        assert_eq!(out.len(), 2);
+        assert!(out.iter().all(Result::is_ok));
+    }
+
+    #[test]
+    fn parallel_calc_threaded_path() {
+        // > 2 bodies trips the scoped-thread path.
+        let bodies = [Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS, Body::MARS];
+        let out = parallel_calc(&bodies, |b| {
+            calc_ut(JulianDay::new(2_451_545.0), b, CalcFlags::BUILTIN)
+        });
+        assert_eq!(out.len(), 5);
+        assert!(out.iter().all(Result::is_ok));
+    }
+}

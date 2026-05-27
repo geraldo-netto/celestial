@@ -871,6 +871,53 @@ fn bisect_diff_zero<F: Fn(f64) -> f64>(lo_in: f64, hi_in: f64, dlo_in: f64, diff
     (lo + hi) / 2.0
 }
 
+#[cfg(test)]
+mod cov_tests {
+    use super::*;
+
+    #[test]
+    fn bisect_zero_fallible_finds_linear_root() {
+        let root = bisect_zero_fallible(-1.0, 1.0, -1.0, 1e-9, 40, Some);
+        assert!(root.is_some());
+        assert!(root.unwrap().abs() < 1e-6);
+    }
+
+    #[test]
+    fn bisect_zero_fallible_propagates_none() {
+        let r = bisect_zero_fallible(-1.0, 1.0, -1.0, 1e-9, 40, |_| None::<f64>);
+        assert!(r.is_none());
+    }
+
+    #[test]
+    fn bisect_diff_zero_converges_on_linear() {
+        let r = bisect_diff_zero(-1.0, 1.0, -1.0, &|x| x);
+        assert!(r.abs() < 1e-6, "r={r}");
+    }
+
+    #[test]
+    fn bisect_diff_zero_returns_value_in_bracket_on_no_convergence() {
+        let r = bisect_diff_zero(0.0, 1.0, 1.0, &|_| 1.0);
+        assert!((0.0..=1.0).contains(&r), "r={r} out of bracket");
+    }
+
+    #[test]
+    fn bisect_retro_station_finds_zero_speed() {
+        // Synthesise pos function with speed_lon linear in time, zero at t=5
+        let pos_at = |t: f64| -> Option<crate::PlanetPos> {
+            Some(crate::PlanetPos {
+                lon: 0.0, lat: 0.0, dist: 1.0,
+                speed_lon: t - 5.0, speed_lat: 0.0, speed_dist: 0.0,
+                ret_flags: 0,
+            })
+        };
+        let p_hi = pos_at(10.0).unwrap();
+        let r = bisect_retro_station(0.0, 10.0, -5.0, p_hi, &pos_at);
+        assert!(r.is_some());
+        let r = r.unwrap();
+        assert!((r.jd - 5.0).abs() < 0.5, "jd={}", r.jd);
+    }
+}
+
 // ── SearchOptions builder ─────────────────────────────────────────────────────
 
 /// Builder for aspect and angle transit searches.

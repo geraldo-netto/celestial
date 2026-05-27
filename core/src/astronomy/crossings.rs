@@ -347,3 +347,33 @@ pub(crate) fn find_crossing_window(
     }
     None
 }
+
+#[cfg(test)]
+mod cov_tests {
+    use super::*;
+    use crate::astronomy::flag::FLG_BUILTIN;
+
+    #[test]
+    fn helio_cross_ut_thin_wrapper_matches_et() {
+        let jd = JulianDay::new(2_451_545.0);
+        let a = helio_cross(2, 90.0, jd, FLG_BUILTIN as i32, true);
+        let b = helio_cross_ut(2, 90.0, jd, FLG_BUILTIN as i32, true);
+        match (a, b) {
+            (Some(x), Some(y)) => assert!((x - y).abs() < 1e-9, "x={x} y={y}"),
+            (None, None) => {}
+            other => panic!("helio_cross/_ut disagree: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn mooncross_node_ut_thin_wrapper_matches_et() {
+        let jd = JulianDay::new(2_451_545.0);
+        let a = mooncross_node(jd, FLG_BUILTIN as i32);
+        let b = mooncross_node_ut(jd, FLG_BUILTIN as i32);
+        match (a, b) {
+            (Some(x), Some(y)) => assert!((x.jd_cross - y.jd_cross).abs() < 1e-9),
+            (None, None) => {}
+            other => panic!("mooncross_node/_ut disagree: {other:?}"),
+        }
+    }
+}

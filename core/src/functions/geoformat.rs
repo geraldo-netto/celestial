@@ -247,3 +247,28 @@ pub fn centisec_to_time_str(t: i32, sep: char, suppress_zero: bool) -> String {
         format!("{h:02}{sep}{m:02}{sep}{s:02}")
     }
 }
+
+#[cfg(test)]
+mod cov_tests {
+    use super::*;
+
+    #[test]
+    fn diff_deg_unsigned_in_zero_to_360() {
+        assert!((diff_deg(10.0, 20.0) - 10.0).abs() < 1e-9);
+        assert!((diff_deg(350.0, 10.0) - 20.0).abs() < 1e-9);
+        assert!((diff_deg(10.0, 350.0) - 340.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn diff_deg_signed_in_neg180_to_180() {
+        assert!((diff_deg_signed(10.0, 20.0) - 10.0).abs() < 1e-9);
+        assert!((diff_deg_signed(10.0, 350.0) - (-20.0)).abs() < 1e-9);
+        assert!((diff_deg_signed(0.0, 180.0)).abs() <= 180.0);
+    }
+
+    #[test]
+    fn norm360_helper_wraps() {
+        assert!((norm360(361.0) - 1.0).abs() < 1e-9);
+        assert!((norm360(-1.0) - 359.0).abs() < 1e-9);
+    }
+}

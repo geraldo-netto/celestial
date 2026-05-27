@@ -613,6 +613,17 @@ mod tests {
     }
 
     #[test]
+    fn calc_flags_from_i32_roundtrip() {
+        let n: i32 = 0x4242;
+        let f: CalcFlags = n.into();
+        let back: i32 = f.into();
+        assert_eq!(back, n);
+        let zero: CalcFlags = 0.into();
+        let zero_back: i32 = zero.into();
+        assert_eq!(zero_back, 0);
+    }
+
+    #[test]
     fn house_system_names() {
         assert_eq!(HouseSystem::PLACIDUS.name(), "Placidus");
         assert_eq!(HouseSystem::KOCH.name(), "Koch");
