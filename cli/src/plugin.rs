@@ -289,4 +289,18 @@ mod tests {
             );
         });
     }
+
+    /// Direct call to `do_exec` with a non-existent path → `ENOENT`.
+    /// `cmd.exec()` returns the `io::Error` instead of replacing the test
+    /// runner, which is the only return path we can exercise in-process.
+    #[test]
+    fn do_exec_returns_error_for_missing_path() {
+        let p = std::path::Path::new("/nonexistent/celestial-doesnotexist-xyz");
+        let err = do_exec(p, &[]);
+        assert!(
+            err.kind() == std::io::ErrorKind::NotFound
+                || err.kind() == std::io::ErrorKind::PermissionDenied,
+            "expected NotFound/PermissionDenied, got: {err:?}"
+        );
+    }
 }

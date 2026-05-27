@@ -78,20 +78,20 @@ jobs:
         # fuzz/xtask/binding-tests/generated tables are excluded from
         # the floor, not the report.
         #
-        # `--fail-under-functions` is set to 85 (not 90) because llvm-cov
-        # counts mangled-name fn *instantiations*. Each test/binary that
-        # links celestial-core gets its own core monomorphization context;
-        # fns not called from a given binary stay at count 0 there, even
-        # if covered elsewhere. After dedup-by-source-location only 18 of
-        # ~1500 distinct fns are genuinely uncov (see COV-1 in TODO.md);
-        # the 14-pt gap to 100% is structural multi-binary noise.
+        # `llvm-cov clean` first — stale profraw from prior CI builds
+        # inflates the missed-fn count (old monomorphizations from
+        # before refactors stay counted). Source-level coverage after
+        # clean is ~95%/95%; only `aspects::match_core::<_>` (covered
+        # via pub callers, residual is closure-monomorph noise) keeps
+        # us from 100%. See COV-1 in TODO.md.
         run: |
+          cargo llvm-cov clean --workspace
           cargo llvm-cov --no-report --workspace
           cargo llvm-cov run --no-report --release \
             --manifest-path fuzz/Cargo.toml --bin run_prop_tests
           cargo llvm-cov report --lcov --output-path lcov.info
-          cargo llvm-cov report --fail-under-lines 80 \
-            --fail-under-functions 85 \
+          cargo llvm-cov report --fail-under-lines 93 \
+            --fail-under-functions 93 \
             --ignore-filename-regex '(fuzz/|xtask/|/tests/|bindings/|astronomy/vsop87\.rs)'
 
       - name: Upload coverage artifact

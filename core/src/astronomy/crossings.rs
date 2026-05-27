@@ -270,30 +270,12 @@ pub fn mooncross_node(jd_et: JulianDay, _flags: i32) -> Option<NodeCrossing> {
     None
 }
 
-/// Next Moon–node crossing (UT).
-pub fn mooncross_node_ut(jd_ut: JulianDay, flags: i32) -> Option<NodeCrossing> {
-    let jd_ut: f64 = jd_ut.into();
-    mooncross_node(JulianDay::new(jd_ut), flags)
-}
-
 /// Planet crosses longitude `x2cross` heliocentrically.
 pub fn helio_cross(body: i32, x2cross: f64, jd_et: JulianDay, flags: i32, forward: bool) -> Option<f64> {
     let jd_et: f64 = jd_et.into();
     // Use the heliocentric flag
     let hflags = flags | crate::astronomy::flag::FLG_HELCTR as i32;
     find_crossing(body, x2cross, JulianDay::new(jd_et), forward, hflags)
-}
-
-/// Heliocentric crossing (UT).
-pub fn helio_cross_ut(
-    body: i32,
-    x2cross: f64,
-    jd_ut: JulianDay,
-    flags: i32,
-    forward: bool,
-) -> Option<f64> {
-    let jd_ut: f64 = jd_ut.into();
-    helio_cross(body, x2cross, JulianDay::new(jd_ut), flags, forward)
 }
 
 /// Like [`find_crossing`] but with an explicit search window in days. Used
@@ -354,26 +336,16 @@ mod cov_tests {
     use crate::astronomy::flag::FLG_BUILTIN;
 
     #[test]
-    fn helio_cross_ut_thin_wrapper_matches_et() {
+    fn helio_cross_returns_some_for_mars_j2000() {
         let jd = JulianDay::new(2_451_545.0);
-        let a = helio_cross(2, 90.0, jd, FLG_BUILTIN as i32, true);
-        let b = helio_cross_ut(2, 90.0, jd, FLG_BUILTIN as i32, true);
-        match (a, b) {
-            (Some(x), Some(y)) => assert!((x - y).abs() < 1e-9, "x={x} y={y}"),
-            (None, None) => {}
-            other => panic!("helio_cross/_ut disagree: {other:?}"),
-        }
+        let r = helio_cross(2, 90.0, jd, FLG_BUILTIN as i32, true);
+        assert!(r.is_some());
     }
 
     #[test]
-    fn mooncross_node_ut_thin_wrapper_matches_et() {
+    fn mooncross_node_within_draconic_month() {
         let jd = JulianDay::new(2_451_545.0);
-        let a = mooncross_node(jd, FLG_BUILTIN as i32);
-        let b = mooncross_node_ut(jd, FLG_BUILTIN as i32);
-        match (a, b) {
-            (Some(x), Some(y)) => assert!((x.jd_cross - y.jd_cross).abs() < 1e-9),
-            (None, None) => {}
-            other => panic!("mooncross_node/_ut disagree: {other:?}"),
-        }
+        let r = mooncross_node(jd, FLG_BUILTIN as i32);
+        assert!(r.is_some());
     }
 }

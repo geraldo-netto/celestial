@@ -518,39 +518,9 @@ pub fn lunar_eclipse_attr(k_int: i64) -> [f64; 20] {
     attr
 }
 
-/// Compute the Saros series for a given syzygy k.
-/// Returns (saros_number, saros_member) — simplified algorithm.
-#[must_use]
-pub fn saros(k_int: i64, is_solar: bool) -> (i32, i32) {
-    // The Saros cycle is 223 synodic months; member within series advances by 1 each cycle.
-    // Approximate: use k modulo 223 to estimate series
-    let k_abs = k_int.abs() as i32;
-    let series_approx = k_abs % 223 + if is_solar { 1 } else { 12 };
-    let member = (k_int / 223).abs() as i32;
-    (series_approx, member)
-}
-
 #[cfg(test)]
 mod cov_tests {
     use super::*;
-
-    #[test]
-    fn saros_solar_k0_returns_series_1_member_0() {
-        assert_eq!(saros(0, true), (1, 0));
-    }
-
-    #[test]
-    fn saros_lunar_k0_returns_series_12_member_0() {
-        assert_eq!(saros(0, false), (12, 0));
-    }
-
-    #[test]
-    fn saros_member_advances_per_223_cycle() {
-        let (_, m2) = saros(446, true);
-        assert_eq!(m2, 2);
-        let (_, mn) = saros(-223, true);
-        assert_eq!(mn, 1);
-    }
 
     #[test]
     fn eclipse_result_default_is_zeroed() {
