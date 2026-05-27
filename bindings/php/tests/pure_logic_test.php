@@ -581,7 +581,7 @@ foreach ($fx['medicine_wheel'] as $case) {
 // `calc*` export returns. Pin the contract end-to-end so a regression in
 // either the Rust shim or the php marshalling fails this test.
 
-$jd = julday(2000, 1, 1, 12.0, Calendar::Gregorian);
+$jd = julday(2000, 1, 1, 12.0, GREG_CAL);
 $pos = calc_ut($jd, SUN, FLG_BUILTIN | FLG_SPEED);
 assert_eq(count($pos),       6,   'DEAD-3 pos6: array length is 6');
 assert_eq(is_array($pos)?1:0, 1,  'DEAD-3 pos6: result is an array');
