@@ -23,9 +23,9 @@
 //! Full moons are found by bisecting the Moon–Sun elongation function to the
 //! exact moment when elongation = 180°, accurate to within a few seconds.
 
-use crate::units::{JulianDay, Longitude};
 use crate::body::{Body, CalcFlags, Calendar};
 use crate::error::{Error, Result};
+use crate::units::{JulianDay, Longitude};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

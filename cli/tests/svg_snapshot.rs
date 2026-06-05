@@ -98,6 +98,9 @@ fn svg_renderers_byte_identical_to_golden() {
         );
         let want = fs::read_to_string(&golden)
             .unwrap_or_else(|_| panic!("missing golden fixture: {golden}"));
-        assert_eq!(got, want, "SVG output drifted for chart-type '{chart_type}'");
+        assert_eq!(
+            got, want,
+            "SVG output drifted for chart-type '{chart_type}'"
+        );
     }
 }

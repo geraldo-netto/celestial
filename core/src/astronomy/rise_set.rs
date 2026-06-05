@@ -56,7 +56,12 @@ enum BodyKind {
 
 /// Compute rise, transit or set time for the Sun on a given UT date.
 #[inline]
-pub fn sun_rise_set(jd_ut: JulianDay, geolat: Latitude, geolon: Longitude, event: RiseSetEvent) -> RiseSetResult {
+pub fn sun_rise_set(
+    jd_ut: JulianDay,
+    geolat: Latitude,
+    geolon: Longitude,
+    event: RiseSetEvent,
+) -> RiseSetResult {
     let jd_ut: f64 = jd_ut.into();
     let geolat: f64 = geolat.into();
     let geolon: f64 = geolon.into();
@@ -65,7 +70,12 @@ pub fn sun_rise_set(jd_ut: JulianDay, geolat: Latitude, geolon: Longitude, event
 
 /// Compute rise, transit or set time for the Moon on a given UT date.
 #[inline]
-pub fn moon_rise_set(jd_ut: JulianDay, geolat: Latitude, geolon: Longitude, event: RiseSetEvent) -> RiseSetResult {
+pub fn moon_rise_set(
+    jd_ut: JulianDay,
+    geolat: Latitude,
+    geolon: Longitude,
+    event: RiseSetEvent,
+) -> RiseSetResult {
     let jd_ut: f64 = jd_ut.into();
     let geolat: f64 = geolat.into();
     let geolon: f64 = geolon.into();
@@ -238,7 +248,12 @@ mod tests {
     fn sun_rise_boston_approx() {
         // 2002 Jan 1 — Boston, MA (lat 42.36°, lon -71.06°)
         let jd = 2_452_275.5;
-        let r = sun_rise_set(JulianDay::new(jd), Latitude::new(42.36), Longitude::new(-71.06), RiseSetEvent::Rise);
+        let r = sun_rise_set(
+            JulianDay::new(jd),
+            Latitude::new(42.36),
+            Longitude::new(-71.06),
+            RiseSetEvent::Rise,
+        );
         assert!(r.found, "Sun should rise in Boston");
         // Sunrise ~12:00 UTC (07:00 EST) ± 30 min
         // JD epoch is at noon, so UT_hours = ((jd + 0.5).fract()) * 24
@@ -252,7 +267,12 @@ mod tests {
     #[test]
     fn sun_transit_reasonable() {
         let jd = 2_452_275.5;
-        let r = sun_rise_set(JulianDay::new(jd), Latitude::new(51.5), Longitude::new(-0.1), RiseSetEvent::Transit);
+        let r = sun_rise_set(
+            JulianDay::new(jd),
+            Latitude::new(51.5),
+            Longitude::new(-0.1),
+            RiseSetEvent::Transit,
+        );
         assert!(r.found);
         // London solar noon: anywhere in the 6h window 09:00–15:00 UTC is plausible
         // (pure-engine accuracy is ~minutes; iterative convergence may put it close)
@@ -268,7 +288,12 @@ mod tests {
     fn circumpolar_never_rises_at_pole() {
         // At geographic north pole (lat 90°), all objects are circumpolar or never rise
         let jd = 2_451_545.0;
-        let r = sun_rise_set(JulianDay::new(jd), Latitude::new(89.9), Longitude::new(0.0), RiseSetEvent::Rise);
+        let r = sun_rise_set(
+            JulianDay::new(jd),
+            Latitude::new(89.9),
+            Longitude::new(0.0),
+            RiseSetEvent::Rise,
+        );
         // During polar day/night the sun may not rise/set — we just check it doesn't panic
         let _ = r;
     }

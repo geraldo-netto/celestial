@@ -28,9 +28,21 @@ mod hellenistic_dignities {
     #[test]
     fn decan_rulers_cycle_correctly() {
         // 36 decans of 10° each; ruler at 0° should be Mars (Aries decan 1)
-        assert_eq!(decan_ruler(Longitude::new(0.0)), Body::MARS, "Aries 1st decan = Mars");
-        assert_eq!(decan_ruler(Longitude::new(10.0)), Body::SUN, "Aries 2nd decan = Sun");
-        assert_eq!(decan_ruler(Longitude::new(20.0)), Body::VENUS, "Aries 3rd decan = Venus");
+        assert_eq!(
+            decan_ruler(Longitude::new(0.0)),
+            Body::MARS,
+            "Aries 1st decan = Mars"
+        );
+        assert_eq!(
+            decan_ruler(Longitude::new(10.0)),
+            Body::SUN,
+            "Aries 2nd decan = Sun"
+        );
+        assert_eq!(
+            decan_ruler(Longitude::new(20.0)),
+            Body::VENUS,
+            "Aries 3rd decan = Venus"
+        );
         assert_eq!(
             decan_ruler(Longitude::new(30.0)),
             Body::MERCURY,
@@ -230,7 +242,13 @@ mod profections {
     #[test]
     fn annual_profection_age_0_is_house_1() {
         let jd = 2_451_545.0;
-        let h = houses(JulianDay::new(jd), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
+        let h = houses(
+            JulianDay::new(jd),
+            Latitude::new(48.85),
+            Longitude::new(2.35),
+            HouseSystem::PLACIDUS,
+        )
+        .unwrap();
         let cusps: [f64; 13] = {
             let mut a = [0.0f64; 13];
             a.copy_from_slice(&h.cusps);
@@ -247,7 +265,13 @@ mod profections {
     #[test]
     fn annual_profection_age_12_returns_to_house_1() {
         let jd = 2_451_545.0;
-        let h = houses(JulianDay::new(jd), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
+        let h = houses(
+            JulianDay::new(jd),
+            Latitude::new(48.85),
+            Longitude::new(2.35),
+            HouseSystem::PLACIDUS,
+        )
+        .unwrap();
         let cusps: [f64; 13] = {
             let mut a = [0.0f64; 13];
             a.copy_from_slice(&h.cusps);
@@ -261,7 +285,13 @@ mod profections {
     #[test]
     fn annual_profection_house_number_in_range() {
         let jd = 2_451_545.0;
-        let h = houses(JulianDay::new(jd), Latitude::new(0.0), Longitude::new(0.0), HouseSystem::PLACIDUS).unwrap();
+        let h = houses(
+            JulianDay::new(jd),
+            Latitude::new(0.0),
+            Longitude::new(0.0),
+            HouseSystem::PLACIDUS,
+        )
+        .unwrap();
         let cusps: [f64; 13] = {
             let mut a = [0.0f64; 13];
             a.copy_from_slice(&h.cusps);
@@ -297,7 +327,10 @@ mod is_day_chart {
         assert_eq!(egyptian_terms_ruler(Longitude::new(9.0)), Body::VENUS);
         assert_eq!(egyptian_terms_ruler(Longitude::new(15.0)), Body::MERCURY);
         // Wraps at 360°
-        assert_eq!(egyptian_terms_ruler(Longitude::new(360.0)), egyptian_terms_ruler(Longitude::new(0.0)));
+        assert_eq!(
+            egyptian_terms_ruler(Longitude::new(360.0)),
+            egyptian_terms_ruler(Longitude::new(0.0))
+        );
     }
 
     #[test]

@@ -46,7 +46,11 @@ pub(crate) fn palette_vars(
     user_vars
         .entry("title".to_string())
         .or_insert_with(|| title_default.to_string());
-    Value::Object(palette_with_defaults(defaults, &user_vars).into_iter().collect())
+    Value::Object(
+        palette_with_defaults(defaults, &user_vars)
+            .into_iter()
+            .collect(),
+    )
 }
 
 /// DUP-7: `palette_with_defaults` + `Value::Object(… .collect())` in

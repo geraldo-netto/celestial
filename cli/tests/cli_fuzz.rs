@@ -205,12 +205,10 @@ fn boundary_numeric_overflow_and_sign() {
 #[test]
 fn boundary_zero_and_wrong_sign_fields() {
     use celestial_cli::cmd::render::RenderArgs;
-    let mk = |lat: f64, lon: f64| {
-        RenderArgs {
-            lat,
-            lon,
-            ..RenderArgs::default()
-        }
+    let mk = |lat: f64, lon: f64| RenderArgs {
+        lat,
+        lon,
+        ..RenderArgs::default()
     };
     assert!(mk(0.0, 0.0).validate().is_ok()); // zero is valid for lat/lon
     assert!(mk(-23.5, -46.6).validate().is_ok()); // negatives valid here
@@ -229,10 +227,7 @@ fn boundary_empty_null_and_oversize_strings() {
     use celestial_cli::parse::{
         parse_body, parse_date, parse_hsys, parse_sid_mode, parse_tz_offset, require_datetime,
     };
-    for f in [
-        parse_date,
-        parse_tz_offset,
-    ] {
+    for f in [parse_date, parse_tz_offset] {
         assert!(f("").is_err(), "empty string must Err");
         assert!(f("null").is_err());
         assert!(f("   ").is_err());

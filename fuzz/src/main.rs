@@ -6,11 +6,11 @@
 
 #![warn(rustdoc::broken_intra_doc_links)]
 
-use celestial_core::Longitude;
-use celestial_core::Latitude;
-use celestial_core::JulianDay;
-use celestial_core::Degrees;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
+use celestial_core::Degrees;
+use celestial_core::JulianDay;
+use celestial_core::Latitude;
+use celestial_core::Longitude;
 use celestial_core::{
     almuten, annual_profection, arabic_parts_seven, ayanamsa, azalt, bahai_holy_days, calc,
     calc_many, calc_ut, centisec_to_deg_str, centisec_to_lonlat_str, centisec_to_time_str,
@@ -197,9 +197,10 @@ fn test_time(n: u32) -> Suite {
         s.check((0..=6).contains(&dow), || format!("day_of_week={dow}"));
 
         // 7-day cycle
-        s.check(day_of_week(JulianDay::new(jd)) == day_of_week(JulianDay::new(jd + 7.0)), || {
-            "7-day cycle broken".to_string()
-        });
+        s.check(
+            day_of_week(JulianDay::new(jd)) == day_of_week(JulianDay::new(jd + 7.0)),
+            || "7-day cycle broken".to_string(),
+        );
 
         // deltat plausible (1900–2100);
         let yr2 = rng.range_i32(1900, 2101);
@@ -266,7 +267,12 @@ fn test_houses(n: u32) -> Suite {
         let lon = rng.range_f64(-180.0, 180.0);
         let sys_i = (rng.next_u64() % HOUSE_SYSTEMS.len() as u64) as usize;
         let hsys = HouseSystem(HOUSE_SYSTEMS[sys_i]);
-        let Ok(r) = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), hsys) else {
+        let Ok(r) = houses(
+            JulianDay::new(jd),
+            Latitude::new(lat),
+            Longitude::new(lon),
+            hsys,
+        ) else {
             continue;
         };
 
@@ -315,7 +321,11 @@ fn test_vsop87(n: u32) -> Suite {
         let pi = (rng.next_u64() % PLANETS.len() as u64) as usize;
         let (body, lo, hi) = PLANETS[pi];
 
-        let Ok(pos) = calc_ut(JulianDay::new(jde), body, CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC) else {
+        let Ok(pos) = calc_ut(
+            JulianDay::new(jde),
+            body,
+            CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC,
+        ) else {
             s.passed += 1;
             continue;
         };
@@ -510,7 +520,11 @@ fn test_nodes(n: u32) -> Suite {
     for _ in 0..n {
         let jde = 2_451_545.0 + rng.range_f64(-73050.0, 73050.0); // ±200yr
         for &body in &[Body::MEAN_NODE, Body::TRUE_NODE, Body::CHIRON] {
-            if let Ok(p) = calc_ut(JulianDay::new(jde), body, CalcFlags::BUILTIN | CalcFlags::SPEED) {
+            if let Ok(p) = calc_ut(
+                JulianDay::new(jde),
+                body,
+                CalcFlags::BUILTIN | CalcFlags::SPEED,
+            ) {
                 s.check(p.lon >= 0.0 && p.lon < 360.0, || {
                     format!("body={body} lon={}", p.lon)
                 });
@@ -519,7 +533,11 @@ fn test_nodes(n: u32) -> Suite {
             }
         }
         // Mean node retrograde
-        if let Ok(p) = calc_ut(JulianDay::new(jde), Body::MEAN_NODE, CalcFlags::BUILTIN | CalcFlags::SPEED) {
+        if let Ok(p) = calc_ut(
+            JulianDay::new(jde),
+            Body::MEAN_NODE,
+            CalcFlags::BUILTIN | CalcFlags::SPEED,
+        ) {
             s.check(p.speed_lon < 0.0, || {
                 format!("Mean node not retrograde: {}", p.speed_lon)
             });
@@ -585,7 +603,11 @@ fn test_crossings(n: u32) -> Suite {
     for _ in 0..n {
         let jd_start = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         let target = rng.range_f64(0.0, 360.0);
-        if let Ok(jd) = solcross(Longitude::new(target), JulianDay::new(jd_start), CalcFlags::BUILTIN) {
+        if let Ok(jd) = solcross(
+            Longitude::new(target),
+            JulianDay::new(jd_start),
+            CalcFlags::BUILTIN,
+        ) {
             check_body_crossing(
                 &mut s,
                 "solcross",
@@ -597,7 +619,11 @@ fn test_crossings(n: u32) -> Suite {
                 0.5,
             );
         }
-        if let Ok(jd) = mooncross(Longitude::new(target), JulianDay::new(jd_start), CalcFlags::BUILTIN) {
+        if let Ok(jd) = mooncross(
+            Longitude::new(target),
+            JulianDay::new(jd_start),
+            CalcFlags::BUILTIN,
+        ) {
             check_body_crossing(
                 &mut s,
                 "mooncross",
@@ -624,7 +650,8 @@ fn test_eclipses(n: u32) -> Suite {
         // fewer because each search takes ~60 months;
         let jd_start = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         // Solar eclipse: found within ~5 years
-        if let Ok(r) = sol_eclipse_when_glob(JulianDay::new(jd_start), CalcFlags::BUILTIN, 0, false) {
+        if let Ok(r) = sol_eclipse_when_glob(JulianDay::new(jd_start), CalcFlags::BUILTIN, 0, false)
+        {
             s.check(r.tret[0] > jd_start, || "solar eclipse before start".into());
             s.check(r.tret[0] < jd_start + 2000.0, || {
                 "solar eclipse too far".into()
@@ -684,7 +711,13 @@ fn test_house_speeds(n: u32) -> Suite {
         let lat = rng.range_f64(-83.0, 83.0);
         let lon = rng.range_f64(-180.0, 180.0);
         let sys = SYSTEMS[(rng.next_u64() as usize) % SYSTEMS.len()];
-        if let Ok(r) = houses_ex2(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(sys)) {
+        if let Ok(r) = houses_ex2(
+            JulianDay::new(jd),
+            CalcFlags::BUILTIN,
+            Latitude::new(lat),
+            Longitude::new(lon),
+            HouseSystem(sys),
+        ) {
             // All cusp speeds must be finite
             for (i, &sp) in r.cusp_speeds.iter().enumerate() {
                 s.check(sp.is_finite(), || {
@@ -1313,7 +1346,17 @@ fn test_arabic_parts(n: u32) -> Suite {
         let ven = rng.range_f64(0.0, 360.0);
 
         for &is_day in &[true, false] {
-            let parts = arabic_parts_seven(Degrees::new(asc), Longitude::new(sun), Longitude::new(moon), Longitude::new(sat), Longitude::new(mar), Longitude::new(jup), Longitude::new(mer), Longitude::new(ven), is_day);
+            let parts = arabic_parts_seven(
+                Degrees::new(asc),
+                Longitude::new(sun),
+                Longitude::new(moon),
+                Longitude::new(sat),
+                Longitude::new(mar),
+                Longitude::new(jup),
+                Longitude::new(mer),
+                Longitude::new(ven),
+                is_day,
+            );
             s.check(parts.len() == 7, || {
                 format!("expected 7 parts, got {}", parts.len())
             });
@@ -1439,9 +1482,13 @@ fn test_progressions(n: u32) -> Suite {
             .collect();
         let nat_mc = 0.0_f64;
 
-        if let Ok((arc, directed, _mc)) =
-            solar_arc_directions(JulianDay::new(jd_natal), age, &nat_pos, Degrees::new(nat_mc), CalcFlags::BUILTIN)
-        {
+        if let Ok((arc, directed, _mc)) = solar_arc_directions(
+            JulianDay::new(jd_natal),
+            age,
+            &nat_pos,
+            Degrees::new(nat_mc),
+            CalcFlags::BUILTIN,
+        ) {
             s.check((0.0..360.0).contains(&arc), || {
                 format!("solar arc {arc:.4}° out of [0,360)")
             });
@@ -1868,7 +1915,11 @@ fn test_vedic_dasha_panchanga(n: u32) -> Suite {
         let moon_lon = rng.range_f64(0.0, 360.0);
         let years_ahead = rng.range_f64(0.0, 90.0);
 
-        let dashas = vimshottari_dasha(JulianDay::new(jd_birth), Longitude::new(moon_lon), years_ahead);
+        let dashas = vimshottari_dasha(
+            JulianDay::new(jd_birth),
+            Longitude::new(moon_lon),
+            years_ahead,
+        );
         s.check(!dashas.is_empty(), || {
             "vimshottari_dasha returned no periods".into()
         });
@@ -2012,7 +2063,9 @@ fn test_profections(n: u32) -> Suite {
 }
 
 fn check_calc_options_single(s: &mut Suite, jd: f64, flags: CalcFlags) {
-    let via_builder = CalcOptions::ut(JulianDay::new(jd), flags).body(Body::SUN).get();
+    let via_builder = CalcOptions::ut(JulianDay::new(jd), flags)
+        .body(Body::SUN)
+        .get();
     let direct = calc_ut(JulianDay::new(jd), Body::SUN, flags);
     match (via_builder, direct) {
         (Ok(b), Ok(d)) => {
@@ -2032,7 +2085,9 @@ fn check_calc_options_single(s: &mut Suite, jd: f64, flags: CalcFlags) {
 
 fn check_calc_options_multi(s: &mut Suite, jd: f64, flags: CalcFlags) {
     let bodies = [Body::SUN, Body::MOON, Body::MERCURY];
-    let multi = CalcOptions::ut(JulianDay::new(jd), flags).bodies(&bodies).get_many();
+    let multi = CalcOptions::ut(JulianDay::new(jd), flags)
+        .bodies(&bodies)
+        .get_many();
     s.check(multi.len() == bodies.len(), || {
         format!(
             "CalcOptions multi: expected {} results, got {}",
@@ -2124,7 +2179,11 @@ fn test_secondary_progressions_midpoints(n: u32) -> Suite {
         // midpoint_table: all midpoints must be finite, in [0,360)
         let positions: Vec<(Body, f64)> = bodies
             .iter()
-            .filter_map(|&b| calc_ut(JulianDay::new(jd_natal), b, flags).ok().map(|p| (b, p.lon)))
+            .filter_map(|&b| {
+                calc_ut(JulianDay::new(jd_natal), b, flags)
+                    .ok()
+                    .map(|p| (b, p.lon))
+            })
             .collect();
         if positions.len() >= 2 {
             let table = midpoint_table(&positions, 2.0);
@@ -2160,7 +2219,14 @@ fn test_local_space(n: u32) -> Suite {
         let geopos = [lon, lat, 0.0_f64];
 
         if let Ok(sun) = calc(JulianDay::new(jd), Body::SUN, flags) {
-            let az = azalt(JulianDay::new(jd), 0, geopos, 0.0, 10.0, [sun.lon, sun.lat, sun.dist]);
+            let az = azalt(
+                JulianDay::new(jd),
+                0,
+                geopos,
+                0.0,
+                10.0,
+                [sun.lon, sun.lat, sun.dist],
+            );
             s.check(az.azimuth >= 0.0 && az.azimuth < 360.0, || {
                 format!("azimuth {:.4} outside [0,360)", az.azimuth)
             });
@@ -2577,7 +2643,7 @@ fn test_maya_long_count(n: u32) -> Suite {
         let jd = rng.range_f64(1_721_423.5, 2_816_787.5);
 
         let (_b, k, t, u, ki) = maya_long_count(JulianDay::new(jd)); // baktun unused in per-iter checks
-                                                     // Field ranges: kin 0..20, uinal 0..18, tun 0..20, katun 0..20, baktun unbounded
+                                                                     // Field ranges: kin 0..20, uinal 0..18, tun 0..20, katun 0..20, baktun unbounded
         s.check(ki < 20, || format!("kin={ki}"));
         s.check(u < 18, || format!("uinal={u}"));
         s.check(t < 20, || format!("tun={t}"));
@@ -3106,20 +3172,40 @@ fn test_rel_clamps(n: u32) -> Suite {
     ];
     for &jd in &jds {
         let p = panchanga(JulianDay::new(jd));
-        s.check((1..=30).contains(&p.tithi), || format!("tithi {} jd={jd}", p.tithi));
-        s.check((0..=26).contains(&p.nakshatra), || format!("nakshatra {} jd={jd}", p.nakshatra));
-        s.check((1..=4).contains(&p.nakshatra_pada), || format!("pada {} jd={jd}", p.nakshatra_pada));
-        s.check((0..=26).contains(&p.yoga), || format!("yoga {} jd={jd}", p.yoga));
-        s.check((1..=60).contains(&p.karana), || format!("karana {} jd={jd}", p.karana));
+        s.check((1..=30).contains(&p.tithi), || {
+            format!("tithi {} jd={jd}", p.tithi)
+        });
+        s.check((0..=26).contains(&p.nakshatra), || {
+            format!("nakshatra {} jd={jd}", p.nakshatra)
+        });
+        s.check((1..=4).contains(&p.nakshatra_pada), || {
+            format!("pada {} jd={jd}", p.nakshatra_pada)
+        });
+        s.check((0..=26).contains(&p.yoga), || {
+            format!("yoga {} jd={jd}", p.yoga)
+        });
+        s.check((1..=60).contains(&p.karana), || {
+            format!("karana {} jd={jd}", p.karana)
+        });
     }
     for _ in 0..n {
         let jd = rng.range_f64(2_000_000.0, 2_600_000.0);
         let p = panchanga(JulianDay::new(jd));
-        s.check((1..=30).contains(&p.tithi), || format!("tithi {} jd={jd}", p.tithi));
-        s.check((0..=26).contains(&p.nakshatra), || format!("nak {} jd={jd}", p.nakshatra));
-        s.check((1..=4).contains(&p.nakshatra_pada), || format!("pada {} jd={jd}", p.nakshatra_pada));
-        s.check((0..=26).contains(&p.yoga), || format!("yoga {} jd={jd}", p.yoga));
-        s.check((1..=60).contains(&p.karana), || format!("karana {} jd={jd}", p.karana));
+        s.check((1..=30).contains(&p.tithi), || {
+            format!("tithi {} jd={jd}", p.tithi)
+        });
+        s.check((0..=26).contains(&p.nakshatra), || {
+            format!("nak {} jd={jd}", p.nakshatra)
+        });
+        s.check((1..=4).contains(&p.nakshatra_pada), || {
+            format!("pada {} jd={jd}", p.nakshatra_pada)
+        });
+        s.check((0..=26).contains(&p.yoga), || {
+            format!("yoga {} jd={jd}", p.yoga)
+        });
+        s.check((1..=60).contains(&p.karana), || {
+            format!("karana {} jd={jd}", p.karana)
+        });
     }
 
     // REL-8: fuzz arbitrary i32 ids — every result must be Ok or OutOfRange.
@@ -3128,17 +3214,33 @@ fn test_rel_clamps(n: u32) -> Suite {
         match Body::try_from_raw(n_id) {
             Ok(_) => s.passed += 1,
             Err(BodyError::OutOfRange { id }) => {
-                s.check(id == n_id, || format!("id round-trip mismatch {id} vs {n_id}"));
+                s.check(id == n_id, || {
+                    format!("id round-trip mismatch {id} vs {n_id}")
+                });
             }
         }
     }
 
     // is_known_id ↔ try_from_raw consistency for every documented anchor.
-    for n_id in [-10, -1, 0, 20, Body::FICTITIOUS_OFFSET, Body::FICTITIOUS_OFFSET + 99,
-                 Body::MOON_OFFSET, Body::MOON_OFFSET + 999,
-                 Body::ASTEROID_OFFSET, Body::ASTEROID_OFFSET + 999_999,
-                 21, 39, Body::FICTITIOUS_OFFSET + 100, Body::MOON_OFFSET - 1,
-                 Body::ASTEROID_OFFSET + 1_000_000, i32::MIN, i32::MAX] {
+    for n_id in [
+        -10,
+        -1,
+        0,
+        20,
+        Body::FICTITIOUS_OFFSET,
+        Body::FICTITIOUS_OFFSET + 99,
+        Body::MOON_OFFSET,
+        Body::MOON_OFFSET + 999,
+        Body::ASTEROID_OFFSET,
+        Body::ASTEROID_OFFSET + 999_999,
+        21,
+        39,
+        Body::FICTITIOUS_OFFSET + 100,
+        Body::MOON_OFFSET - 1,
+        Body::ASTEROID_OFFSET + 1_000_000,
+        i32::MIN,
+        i32::MAX,
+    ] {
         s.check(
             Body::is_known_id(n_id) == Body::try_from_raw(n_id).is_ok(),
             || format!("is_known_id ↔ try_from_raw disagree on {n_id}"),
@@ -3151,7 +3253,9 @@ fn test_rel_clamps(n: u32) -> Suite {
 /// extreme, NaN/Inf/subnormals — fed through the parser-shaped public
 /// surface of `celestial-core`. Nothing must panic.
 fn test_edge_grid_battery() -> Suite {
-    use celestial_test_util::{EDGE_F64, EDGE_I32, EDGE_I64, EDGE_STRINGS, EDGE_STR_LENS, repeat_byte};
+    use celestial_test_util::{
+        repeat_byte, EDGE_F64, EDGE_I32, EDGE_I64, EDGE_STRINGS, EDGE_STR_LENS,
+    };
     let mut s = Suite::new("edge_grid_battery");
 
     // Strings (incl. empty / null bytes / huge).
@@ -3259,9 +3363,10 @@ fn test_calc_ut_many_consistency(n: u32) -> Suite {
             format!("calc_ut_many length: {}", many.len())
         });
         // First (Sun) should match a separate calc_ut call
-        if let (Some(Ok(via_many)), Ok(via_one)) =
-            (many.first(), calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN))
-        {
+        if let (Some(Ok(via_many)), Ok(via_one)) = (
+            many.first(),
+            calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN),
+        ) {
             s.check((via_many.lon - via_one.lon).abs() < 1e-9, || {
                 format!(
                     "Sun lon mismatch jd={jd}: many={} one={}",
@@ -3281,7 +3386,11 @@ fn test_arabic_part_range(n: u32) -> Suite {
         let asc = rng.range_f64(0.0, 360.0);
         let sun = rng.range_f64(0.0, 360.0);
         let moon = rng.range_f64(0.0, 360.0);
-        let pof = celestial_core::arabic_part(Degrees::new(asc), Longitude::new(moon), Longitude::new(sun));
+        let pof = celestial_core::arabic_part(
+            Degrees::new(asc),
+            Longitude::new(moon),
+            Longitude::new(sun),
+        );
         s.check(pof.is_finite() && (0.0..360.0).contains(&pof), || {
             format!("Part of Fortune: {pof} (asc={asc}, sun={sun}, moon={moon})")
         });
@@ -3448,6 +3557,17 @@ fn test_get_ayanamsa_name(_n: u32) -> Suite {
 fn test_polar_houses(n: u32) -> Suite {
     let mut s = Suite::new("polar_houses");
     let mut rng = Xorshift64::new(0xAABBCCDDEEFF0011);
+    for &lat in &[-90.0, 90.0] {
+        for &sys in b"PKEOCRWXMBHT" {
+            let _ = houses(
+                JulianDay::new(2_451_545.0),
+                Latitude::new(lat),
+                Longitude::new(2.35),
+                HouseSystem(sys),
+            );
+        }
+        s.passed += 1;
+    }
     for _ in 0..n {
         let jd = 2_415_021.0 + rng.range_f64(0.0, 73049.0);
         // Full range including polar latitudes
@@ -3455,7 +3575,12 @@ fn test_polar_houses(n: u32) -> Suite {
         let lon = rng.range_f64(-180.0, 180.0);
         for &sys in b"PKEOCRWXMBHT" {
             // Must not panic — any result is acceptable
-            let _ = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), HouseSystem(sys));
+            let _ = houses(
+                JulianDay::new(jd),
+                Latitude::new(lat),
+                Longitude::new(lon),
+                HouseSystem(sys),
+            );
         }
         s.passed += 1;
     }
@@ -3513,7 +3638,11 @@ fn test_equatorial_mode(n: u32) -> Suite {
             s.passed += 1;
             continue;
         };
-        let Ok(eq) = calc_ut(JulianDay::new(jd), bodies[bi], CalcFlags::BUILTIN | CalcFlags::EQUATORIAL) else {
+        let Ok(eq) = calc_ut(
+            JulianDay::new(jd),
+            bodies[bi],
+            CalcFlags::BUILTIN | CalcFlags::EQUATORIAL,
+        ) else {
             s.passed += 1;
             continue;
         };
@@ -3541,7 +3670,11 @@ fn test_sidereal_all_modes(n: u32) -> Suite {
         let jd = 1_000_000.0 + rng.range_f64(0.0, 3_000_000.0);
         let mode = (rng.next_u64() % 36) as i32;
         set_sid_mode(SiderealMode(mode), 0.0, 0.0);
-        let Ok(sid) = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN | CalcFlags::SIDEREAL) else {
+        let Ok(sid) = calc_ut(
+            JulianDay::new(jd),
+            Body::SUN,
+            CalcFlags::BUILTIN | CalcFlags::SIDEREAL,
+        ) else {
             s.passed += 1;
             continue;
         };
@@ -3571,7 +3704,11 @@ fn test_backward_searches(n: u32) -> Suite {
         let target = rng.range_f64(0.0, 360.0);
 
         // Backwards solcross_back_ut: result must be BEFORE jd
-        match solcross_back_ut(Longitude::new(target), JulianDay::new(jd), CalcFlags::BUILTIN) {
+        match solcross_back_ut(
+            Longitude::new(target),
+            JulianDay::new(jd),
+            CalcFlags::BUILTIN,
+        ) {
             Ok(prev) => {
                 s.check(
                     prev < jd + 0.1, // result should be before start
@@ -3582,7 +3719,11 @@ fn test_backward_searches(n: u32) -> Suite {
                     || format!("solcross_back_ut {prev:.2} too far from start {jd:.2}"),
                 );
                 // Forward search from result should give a crossing close to jd
-                if let Ok(fwd) = solcross_ut(Longitude::new(target), JulianDay::new(prev - 0.1), CalcFlags::BUILTIN) {
+                if let Ok(fwd) = solcross_ut(
+                    Longitude::new(target),
+                    JulianDay::new(prev - 0.1),
+                    CalcFlags::BUILTIN,
+                ) {
                     s.check((fwd - jd).abs() < 400.0, || {
                         format!("forward cross {fwd:.2} far from original {jd:.2}")
                     });
@@ -3596,7 +3737,11 @@ fn test_backward_searches(n: u32) -> Suite {
         }
 
         // Backwards mooncross_back_ut: result before jd, within 30 days (lunar period)
-        match mooncross_back_ut(Longitude::new(target), JulianDay::new(jd), CalcFlags::BUILTIN) {
+        match mooncross_back_ut(
+            Longitude::new(target),
+            JulianDay::new(jd),
+            CalcFlags::BUILTIN,
+        ) {
             Ok(prev) => {
                 s.check(prev < jd + 0.1, || {
                     format!("mooncross_back_ut {prev:.2} not before start {jd:.2}")
@@ -3672,7 +3817,14 @@ fn test_occultation_search(n: u32) -> Suite {
     for _ in 0..n {
         let jd = 2_451_545.0 + rng.range_f64(-3650.0, 3650.0); // ±10 years
         let pi = (rng.next_u64() % planets.len() as u64) as usize;
-        match lun_occult_when_glob(JulianDay::new(jd), planets[pi], None, CalcFlags::BUILTIN, 0, false) {
+        match lun_occult_when_glob(
+            JulianDay::new(jd),
+            planets[pi],
+            None,
+            CalcFlags::BUILTIN,
+            0,
+            false,
+        ) {
             Ok(r) => {
                 s.check(r.tret[0] > jd - 1.0, || {
                     format!(
@@ -3705,7 +3857,12 @@ fn test_house_invariants(n: u32) -> Suite {
         let lat = rng.range_f64(-66.0, 66.0); // avoid polar failure zone
         let lon = rng.range_f64(-180.0, 180.0);
         for &sys in systems {
-            let Ok(r) = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), HouseSystem(sys)) else {
+            let Ok(r) = houses(
+                JulianDay::new(jd),
+                Latitude::new(lat),
+                Longitude::new(lon),
+                HouseSystem(sys),
+            ) else {
                 s.passed += 1;
                 continue;
             };
@@ -3756,7 +3913,11 @@ fn test_topocentric_parallax(n: u32) -> Suite {
             s.passed += 1;
             continue;
         };
-        let Ok(topo) = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC) else {
+        let Ok(topo) = calc_ut(
+            JulianDay::new(jd),
+            Body::MOON,
+            CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC,
+        ) else {
             s.passed += 1;
             continue;
         };
@@ -3778,8 +3939,11 @@ fn test_topocentric_parallax(n: u32) -> Suite {
             continue;
         };
         set_topo(Longitude::new(lon), Latitude::new(lat), alt);
-        let Ok(sun_topo) = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC)
-        else {
+        let Ok(sun_topo) = calc_ut(
+            JulianDay::new(jd),
+            Body::SUN,
+            CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC,
+        ) else {
             s.passed += 1;
             continue;
         };
@@ -3957,7 +4121,9 @@ fn check_day_of_week_boundaries(s: &mut Suite) {
         f64::NAN,
     ] {
         let r = catch_unwind(|| day_of_week(JulianDay::new(jd)));
-        s.check(r.is_ok(), || format!("day_of_week(JulianDay::new({jd})) panicked"));
+        s.check(r.is_ok(), || {
+            format!("day_of_week(JulianDay::new({jd})) panicked")
+        });
     }
 }
 
@@ -3982,7 +4148,9 @@ fn check_hijri_from_jd_boundaries(s: &mut Suite) {
     use std::panic::catch_unwind;
     for &jd in &[0.0_f64, 1_721_424.0, 1e8, f64::MAX, f64::INFINITY] {
         let r = catch_unwind(|| hijri_from_jd(JulianDay::new(jd)));
-        s.check(r.is_ok(), || format!("hijri_from_jd(JulianDay::new({jd})) panicked"));
+        s.check(r.is_ok(), || {
+            format!("hijri_from_jd(JulianDay::new({jd})) panicked")
+        });
     }
 }
 
@@ -4127,7 +4295,12 @@ fn check_house_systems_invariants(s: &mut Suite) {
         let lat = rng.range_f64(-65.0, 65.0);
         let lon = rng.range_f64(-180.0, 180.0);
         for &sys in systems {
-            let Ok(h) = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), HouseSystem(sys)) else {
+            let Ok(h) = houses(
+                JulianDay::new(jd),
+                Latitude::new(lat),
+                Longitude::new(lon),
+                HouseSystem(sys),
+            ) else {
                 s.passed += 1;
                 continue;
             };
@@ -4203,7 +4376,12 @@ fn check_house_polar_invariants(s: &mut Suite) {
             rng.range_f64(-88.0, -70.0)
         };
         let lon = rng.range_f64(-180.0, 180.0);
-        let Ok(h) = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), HouseSystem(b'W')) else {
+        let Ok(h) = houses(
+            JulianDay::new(jd),
+            Latitude::new(lat),
+            Longitude::new(lon),
+            HouseSystem(b'W'),
+        ) else {
             s.passed += 1;
             continue;
         };
@@ -4330,12 +4508,16 @@ fn check_solar_cycle_boundaries(s: &mut Suite) {
     ];
     for &jd in &outside_jds {
         let r = catch_unwind(|| celestial_core::solar_cycle(JulianDay::new(jd)));
-        s.check(r.is_ok(), || format!("solar_cycle(JulianDay::new({jd})) panicked"));
+        s.check(r.is_ok(), || {
+            format!("solar_cycle(JulianDay::new({jd})) panicked")
+        });
         if let Ok(Some(_)) = r {
             // Some(_) inside out-of-range zone is only OK for finite JDs that
             // happen to land in the table; NaN/Inf must never yield Some.
             if !jd.is_finite() {
-                s.check(false, || format!("solar_cycle(JulianDay::new({jd})) returned Some"));
+                s.check(false, || {
+                    format!("solar_cycle(JulianDay::new({jd})) returned Some")
+                });
             }
         }
     }
@@ -4370,13 +4552,17 @@ fn check_solar_cycle_boundaries(s: &mut Suite) {
                     format!("solar_cycle(JulianDay::new({jd})) returned None (expected Some)")
                 });
             }
-            Err(_) => s.check(false, || format!("solar_cycle(JulianDay::new({jd})) panicked")),
+            Err(_) => s.check(false, || {
+                format!("solar_cycle(JulianDay::new({jd})) panicked")
+            }),
         }
     }
     // grand_solar_epoch — must not panic for any input, including non-finite.
     for &jd in &outside_jds {
         let r = catch_unwind(|| celestial_core::grand_solar_epoch(JulianDay::new(jd)));
-        s.check(r.is_ok(), || format!("grand_solar_epoch(JulianDay::new({jd})) panicked"));
+        s.check(r.is_ok(), || {
+            format!("grand_solar_epoch(JulianDay::new({jd})) panicked")
+        });
     }
 }
 
@@ -4412,11 +4598,16 @@ fn test_solcross_back(n: u32) -> Suite {
         let jd = 2_415_021.0 + rng.range_f64(100.0, 73000.0);
         let lon = rng.range_f64(0.0, 360.0);
         // Forward then back should bracket the same crossing
-        let Ok(fwd) = solcross_ut(Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN) else {
+        let Ok(fwd) = solcross_ut(Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN)
+        else {
             s.passed += 1;
             continue;
         };
-        let Ok(back) = solcross_back_ut(Longitude::new(lon), JulianDay::new(fwd + 0.5), CalcFlags::BUILTIN) else {
+        let Ok(back) = solcross_back_ut(
+            Longitude::new(lon),
+            JulianDay::new(fwd + 0.5),
+            CalcFlags::BUILTIN,
+        ) else {
             s.passed += 1;
             continue;
         };
@@ -4427,11 +4618,16 @@ fn test_solcross_back(n: u32) -> Suite {
             format!("back={back:.3} far from fwd={fwd:.3}")
         });
         // Moon crossing: must be within 30 days
-        let Ok(mfwd) = mooncross_ut(Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN) else {
+        let Ok(mfwd) = mooncross_ut(Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN)
+        else {
             s.passed += 1;
             continue;
         };
-        let Ok(mback) = mooncross_back_ut(Longitude::new(lon), JulianDay::new(mfwd + 0.5), CalcFlags::BUILTIN) else {
+        let Ok(mback) = mooncross_back_ut(
+            Longitude::new(lon),
+            JulianDay::new(mfwd + 0.5),
+            CalcFlags::BUILTIN,
+        ) else {
             s.passed += 1;
             continue;
         };
@@ -4466,14 +4662,26 @@ const HELIO_BODIES: [Body; 8] = [
 const HELIO_X2: [f64; 6] = [0.0, 360.0, -30.0, 720.0, 180.0, f64::NAN];
 
 fn check_one_helio(s: &mut Suite, body: Body, x2: f64, jd: f64, dir: i32) {
-    let Ok(et) = helio_cross(body, Longitude::new(x2), JulianDay::new(jd), CalcFlags::BUILTIN, dir) else {
+    let Ok(et) = helio_cross(
+        body,
+        Longitude::new(x2),
+        JulianDay::new(jd),
+        CalcFlags::BUILTIN,
+        dir,
+    ) else {
         s.passed += 1;
         return;
     };
     s.check(et.is_finite(), || {
         format!("helio_cross et NaN x2={x2} jd={jd}")
     });
-    let Ok(ut) = helio_cross_ut(body, Longitude::new(x2), JulianDay::new(jd), CalcFlags::BUILTIN, dir) else {
+    let Ok(ut) = helio_cross_ut(
+        body,
+        Longitude::new(x2),
+        JulianDay::new(jd),
+        CalcFlags::BUILTIN,
+        dir,
+    ) else {
         s.passed += 1;
         return;
     };

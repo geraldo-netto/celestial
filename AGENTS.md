@@ -42,17 +42,37 @@ the behavior defined here when interacting with this workspace.
   rationale so future passes don't re-pick the same items.
 - When making major changes, rescan the whole project and create or update `TODO.md` with one table per review category.
   Each table should use the format: `id | status | effort | description | notes`.
-  - security
-  - performance
-  - scalability
-  - concurrency
+  - adaptability
+  - architecture/modularity/SOLID
+  - business/design patterns/DDD
+  - CLI / option integrity
   - code complexity
   - code duplication
-  - architecture/modularity/SOLID
+  - composition
+  - concurrency
+  - configuration discoverability
+  - data structure
   - decoupling
-  - business/design patterns/DDD
-  - reliability/correctness
+  - dependency
+  - design thinking
+  - documentation
+  - legacy / deprecation
+  - multithreading
   - observability when the application has it
+  - okr
+  - pdca
+  - performance
+  - platform
+  - plugin extensibility
+  - product engineering
+  - purpose
+  - reliability/correctness
+  - robustness / recovery
+  - scalability
+  - security
+  - state machine integrity
+  - UI / UX
+  - vectorization
   - wiring gaps — modules/helpers/cfg knobs that exist + pass tests but have no real production call site (orphan exports, cfg flags never read, advertised backends not wired in). A shipped feature is only "shipped" when the dispatcher actually invokes it.
   - unused functions/methods — public-shaped callables (no leading `_`) imported by no production code, no tests, no plugins. Different from wiring gaps: these aren't half-wired, they're fully dead. Includes `__init__.py` re-exports that no caller pulls and class methods only ever called from one private site. Each finding: keep / inline / delete decision recorded in `notes`.
 

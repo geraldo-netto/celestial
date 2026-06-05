@@ -2,8 +2,8 @@
 
 use super::ChartContext;
 use crate::error::CliError;
-use celestial_core::{calendar_round, haab, tonalpohualli, tzolkin, xiuhpohualli};
 use celestial_core::JulianDay;
+use celestial_core::{calendar_round, haab, tonalpohualli, tzolkin, xiuhpohualli};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -14,13 +14,11 @@ pub fn build_mesoamerican_context(
     date_str: &str,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
-
     let (trecena, sign_idx, tonal_name, tonal_en) = tonalpohualli(JulianDay::new(jd));
     let (xiu_month, xiu_day, xiu_month_name, xiu_month_en) = xiuhpohualli(JulianDay::new(jd));
     let (tzol_trecena, tzol_idx, tzol_name, tzol_en) = tzolkin(JulianDay::new(jd));
     let (haab_month, haab_day, haab_month_name) = haab(JulianDay::new(jd));
     let (cr_trecena, cr_sign, cr_haab_day, cr_haab_month) = calendar_round(JulianDay::new(jd));
-
 
     // ARCH-9/DP-5: typed per-tradition context. Serializes to a JSON
     // object byte-for-byte equivalent to the previous `json!` (field
@@ -99,7 +97,11 @@ pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
     let pal = super::svg_common::SvgPalette::from_ctx(
-        ctx, "#1a0a00", "border_color", "#d4a800", "#f0e0c0",
+        ctx,
+        "#1a0a00",
+        "border_color",
+        "#d4a800",
+        "#f0e0c0",
     );
     let (bg, gold, txt) = (pal.bg, pal.accent, pal.text);
     let title = crate::format::xml_escape(
@@ -137,8 +139,15 @@ pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
     // Tonalpohualli panel (left)
     s.push_str("\n  <!-- Aztec Tonalpohualli -->");
     super::svg_common::panel_card(
-        &mut s, 20.0, 65.0, 310.0, 130.0, &gold, ".6",
-        "Tonalpohualli (Aztec 260-day)", &gold,
+        &mut s,
+        20.0,
+        65.0,
+        310.0,
+        130.0,
+        &gold,
+        ".6",
+        "Tonalpohualli (Aztec 260-day)",
+        &gold,
     );
     let _ = writeln!(
         s,
@@ -157,8 +166,15 @@ pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
     // Xiuhpohualli panel (right)
     s.push_str("\n  <!-- Aztec Xiuhpohualli -->");
     super::svg_common::panel_card(
-        &mut s, 370.0, 65.0, 310.0, 130.0, &gold, ".6",
-        "Xiuhpohualli (Aztec 365-day)", &gold,
+        &mut s,
+        370.0,
+        65.0,
+        310.0,
+        130.0,
+        &gold,
+        ".6",
+        "Xiuhpohualli (Aztec 365-day)",
+        &gold,
     );
     let _ = writeln!(
         s,
@@ -178,8 +194,15 @@ pub fn render_mesoamerican_svg(ctx: &ChartContext) -> String {
     // Calendar Round (bottom centre)
     s.push_str("\n  <!-- Calendar Round (52-year cycle) -->");
     super::svg_common::panel_card(
-        &mut s, 150.0, 365.0, 400.0, 80.0, &gold, ".5",
-        "Calendar Round (52-year cycle)", &gold,
+        &mut s,
+        150.0,
+        365.0,
+        400.0,
+        80.0,
+        &gold,
+        ".5",
+        "Calendar Round (52-year cycle)",
+        &gold,
     );
     let _ = writeln!(
         s,

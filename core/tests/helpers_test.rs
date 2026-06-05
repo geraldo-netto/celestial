@@ -621,7 +621,11 @@ mod midpoint_helpers {
 
     #[test]
     fn exact_hit_returns_zero_orb() {
-        let hit = planet_on_midpoint(celestial_core::Longitude::new(30.0), celestial_core::Longitude::new(30.0), 2.0);
+        let hit = planet_on_midpoint(
+            celestial_core::Longitude::new(30.0),
+            celestial_core::Longitude::new(30.0),
+            2.0,
+        );
         assert!(hit.is_some());
         assert!(hit.unwrap().abs() < 1e-9);
     }
@@ -629,20 +633,33 @@ mod midpoint_helpers {
     #[test]
     fn within_orb_returns_signed_distance() {
         // Planet at 31°, midpoint at 30° → orb = 1°
-        let hit = planet_on_midpoint(celestial_core::Longitude::new(31.0), celestial_core::Longitude::new(30.0), 2.0);
+        let hit = planet_on_midpoint(
+            celestial_core::Longitude::new(31.0),
+            celestial_core::Longitude::new(30.0),
+            2.0,
+        );
         assert!(hit.is_some());
         assert!((hit.unwrap() - 1.0).abs() < 0.001);
     }
 
     #[test]
     fn outside_orb_returns_none() {
-        assert!(planet_on_midpoint(celestial_core::Longitude::new(35.0), celestial_core::Longitude::new(30.0), 2.0).is_none());
+        assert!(planet_on_midpoint(
+            celestial_core::Longitude::new(35.0),
+            celestial_core::Longitude::new(30.0),
+            2.0
+        )
+        .is_none());
     }
 
     #[test]
     fn midpoint_wraps_across_0_360() {
         // Midpoint near 0°/360° boundary
-        let hit = planet_on_midpoint(celestial_core::Longitude::new(359.5), celestial_core::Longitude::new(0.0), 1.0);
+        let hit = planet_on_midpoint(
+            celestial_core::Longitude::new(359.5),
+            celestial_core::Longitude::new(0.0),
+            1.0,
+        );
         assert!(hit.is_some(), "should find hit across 0°/360° boundary");
     }
 }

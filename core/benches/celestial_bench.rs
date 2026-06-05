@@ -4,10 +4,10 @@
 //! Run:  cargo bench --package celestial-core
 
 #![allow(unused_must_use)]
-use celestial_core::Longitude;
-use celestial_core::Latitude;
-use celestial_core::JulianDay;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem};
+use celestial_core::JulianDay;
+use celestial_core::Latitude;
+use celestial_core::Longitude;
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -198,15 +198,21 @@ fn bench_calendar_vedic(all: &mut Vec<R>) {
         black_box(celestial_core::jewish_holidays(5785));
     }));
     all.push(bench("calendar::hijri_from_jd", 1000, || {
-        black_box(celestial_core::hijri_from_jd(black_box(JulianDay::new(J2000))));
+        black_box(celestial_core::hijri_from_jd(black_box(JulianDay::new(
+            J2000,
+        ))));
     }));
 
     hdr("vedic");
     all.push(bench("vedic::long_to_nakshatra", 5000, || {
-        black_box(celestial_core::long_to_nakshatra(black_box(Longitude::new(123.456))));
+        black_box(celestial_core::long_to_nakshatra(black_box(
+            Longitude::new(123.456),
+        )));
     }));
     all.push(bench("vedic::long_to_navamsa", 5000, || {
-        black_box(celestial_core::long_to_navamsa(black_box(Longitude::new(123.456))));
+        black_box(celestial_core::long_to_navamsa(black_box(Longitude::new(
+            123.456,
+        ))));
     }));
     all.push(bench("vedic::panchanga", 200, || {
         black_box(celestial_core::panchanga(black_box(JulianDay::new(J2000))));
@@ -272,13 +278,19 @@ fn bench_searches(all: &mut Vec<R>, fb: CalcFlags) {
 fn bench_hellenistic(all: &mut Vec<R>) {
     hdr("hellenistic / persian (phase 5)");
     all.push(bench("hellenistic::egyptian_terms_ruler", 5000, || {
-        black_box(celestial_core::egyptian_terms_ruler(black_box(Longitude::new(123.456))));
+        black_box(celestial_core::egyptian_terms_ruler(black_box(
+            Longitude::new(123.456),
+        )));
     }));
     all.push(bench("hellenistic::decan_ruler", 5000, || {
-        black_box(celestial_core::decan_ruler(black_box(Longitude::new(123.456))));
+        black_box(celestial_core::decan_ruler(black_box(Longitude::new(
+            123.456,
+        ))));
     }));
     all.push(bench("hellenistic::triplicity_rulers", 5000, || {
-        black_box(celestial_core::triplicity_rulers(black_box(Longitude::new(123.456))));
+        black_box(celestial_core::triplicity_rulers(black_box(
+            Longitude::new(123.456),
+        )));
     }));
     all.push(bench("hellenistic::full_dignity_sun", 5000, || {
         black_box(celestial_core::full_dignity(
@@ -288,10 +300,17 @@ fn bench_hellenistic(all: &mut Vec<R>) {
         ));
     }));
     all.push(bench("hellenistic::almuten", 5000, || {
-        black_box(celestial_core::almuten(black_box(Longitude::new(123.456)), true));
+        black_box(celestial_core::almuten(
+            black_box(Longitude::new(123.456)),
+            true,
+        ));
     }));
     all.push(bench("hellenistic::firdaria_75y", 500, || {
-        black_box(celestial_core::firdaria(black_box(JulianDay::new(J2000)), true, 75.0));
+        black_box(celestial_core::firdaria(
+            black_box(JulianDay::new(J2000)),
+            true,
+            75.0,
+        ));
     }));
     all.push(bench("hellenistic::annual_profection", 10000, || {
         let cusps = [
@@ -311,7 +330,9 @@ fn bench_traditions(all: &mut Vec<R>) {
         ));
     }));
     all.push(bench("chinese::solar_term_position", 10000, || {
-        black_box(celestial_core::solar_term_position(black_box(Longitude::new(123.456))));
+        black_box(celestial_core::solar_term_position(black_box(
+            Longitude::new(123.456),
+        )));
     }));
     all.push(bench("chinese::sexagenary_name", 10000, || {
         black_box(celestial_core::sexagenary_name(black_box(42)));
@@ -319,10 +340,14 @@ fn bench_traditions(all: &mut Vec<R>) {
 
     hdr("mesoamerican calendars (phase 7)");
     all.push(bench("mesoamerican::tonalpohualli", 10000, || {
-        black_box(celestial_core::tonalpohualli(black_box(JulianDay::new(J2000))));
+        black_box(celestial_core::tonalpohualli(black_box(JulianDay::new(
+            J2000,
+        ))));
     }));
     all.push(bench("mesoamerican::xiuhpohualli", 10000, || {
-        black_box(celestial_core::xiuhpohualli(black_box(JulianDay::new(J2000))));
+        black_box(celestial_core::xiuhpohualli(black_box(JulianDay::new(
+            J2000,
+        ))));
     }));
     all.push(bench("mesoamerican::tzolkin", 10000, || {
         black_box(celestial_core::tzolkin(black_box(JulianDay::new(J2000))));
@@ -331,15 +356,21 @@ fn bench_traditions(all: &mut Vec<R>) {
         black_box(celestial_core::haab(black_box(JulianDay::new(J2000))));
     }));
     all.push(bench("mesoamerican::calendar_round", 10000, || {
-        black_box(celestial_core::calendar_round(black_box(JulianDay::new(J2000))));
+        black_box(celestial_core::calendar_round(black_box(JulianDay::new(
+            J2000,
+        ))));
     }));
 
     hdr("indigenous / egyptian (phase 8)");
     all.push(bench("indigenous::medicine_wheel_totem", 10000, || {
-        black_box(celestial_core::medicine_wheel_totem(black_box(Longitude::new(123.456))));
+        black_box(celestial_core::medicine_wheel_totem(black_box(
+            Longitude::new(123.456),
+        )));
     }));
     all.push(bench("indigenous::egyptian_decan", 10000, || {
-        black_box(celestial_core::egyptian_decan(black_box(Longitude::new(123.456))));
+        black_box(celestial_core::egyptian_decan(black_box(Longitude::new(
+            123.456,
+        ))));
     }));
 }
 

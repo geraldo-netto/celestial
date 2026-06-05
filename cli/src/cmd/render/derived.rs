@@ -4,9 +4,9 @@
 //! (progressions, solar arc) or from two charts overlaid (biwheel).
 //! Extracted from `mod.rs` to group related logic.
 
-use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
+use celestial_core::JulianDay;
 use std::collections::BTreeMap;
 
 use celestial_core::body::{Body, CalcFlags};
@@ -106,9 +106,9 @@ pub(super) fn build_biwheel_context(
     vars1.insert("ring2_date".to_string(), date2.to_string());
     let inner = build_context(jd1, lat1, lon1, date1, hsys, vars1)?;
     let vars2 = user_vars;
-    let outer = build_context(jd2, lat2, lon2, date2, hsys, vars2)?;
+    let mut outer = build_context(jd2, lat2, lon2, date2, hsys, vars2)?;
     let mut ctx = inner;
-    let op = outer["planets"].clone();
+    let op = outer["planets"].take();
     ctx["ring2_planets"] = op.clone();
     ctx["outer_planets"] = op;
     ctx["ring2_date"] = serde_json::json!(date2);

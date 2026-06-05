@@ -34,9 +34,9 @@
 //! ring_color   = "#1a1a2e"    dark navy for rings and labels
 //! ```
 
+use crate::error::CliError;
 #[cfg(test)]
 use celestial_core::JulianDay;
-use crate::error::CliError;
 use std::collections::BTreeMap;
 
 use celestial_core::body::CalcFlags;
@@ -75,7 +75,8 @@ mod registry;
 mod south_indian;
 
 pub use args::RenderArgs;
-pub use pipeline::run;
+pub(crate) use chart_context::ChartContext;
+pub(crate) use config::*;
 pub(crate) use dignity::{
     antiscion_lon, body_color, contra_antiscion_lon, key_to_body, planet_dignity, ASPECT_DEFS,
     BODIES,
@@ -83,13 +84,12 @@ pub(crate) use dignity::{
 pub(crate) use format::{fmt_lon_dms, jd_to_date_str, moon_phase_str};
 pub(crate) use geometry::{spread_labels, wheel_angle, wx, wy};
 pub(crate) use palette::{palette_obj, palette_vars, CX, CY, RC, RH, RI, RM, RO, RP};
+pub use pipeline::run;
+pub(crate) use pipeline::*;
+pub(crate) use registry::*;
 pub(crate) use south_indian::{
     render_south_indian_svg, sarvashtakavarga, NI_CELLS, RASI_GLYPHS, RASI_NAMES,
 };
-pub(crate) use chart_context::ChartContext;
-pub(crate) use config::*;
-pub(crate) use pipeline::*;
-pub(crate) use registry::*;
 
 use builtin_svg::render_builtin_svg;
 use context::build_context;
@@ -97,8 +97,6 @@ use derived::{
     build_biwheel_context, build_progressed_context, build_solar_arc_context, render_biwheel_svg,
     render_cosmogram_svg, render_progressed_svg,
 };
-
-
 
 // ─── JSON helper ───────────────────────────────────────────────────────────────
 
@@ -216,7 +214,10 @@ mod tests {
         let x = wx(cx, r, ic, asc);
         let y = wy(cy, r, ic, asc);
         assert!((x - cx).abs() < 1e-9, "IC x should be cx, got {x}");
-        assert!((y - (cy + r)).abs() < 1e-9, "IC should be at bottom, got {y}");
+        assert!(
+            (y - (cy + r)).abs() < 1e-9,
+            "IC should be at bottom, got {y}"
+        );
     }
 
     #[test]
@@ -270,7 +271,9 @@ mod tests {
         let jd = 2_460_482.5;
         let ctx = calendar_wheel::build_sabbat_wheel_context(jd, std::collections::BTreeMap::new())
             .unwrap();
-        let svg = calendar_wheel::render_sabbat_wheel_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg = calendar_wheel::render_sabbat_wheel_svg(&crate::cmd::render::ChartContext::from(
+            ctx.clone(),
+        ));
         assert!(svg.starts_with("<?xml"), "SVG should start with <?xml");
         assert!(svg.contains("<svg "), "should contain <svg> tag");
         assert!(svg.ends_with("</svg>\n"), "should close </svg>");
@@ -958,7 +961,12 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         use celestial_core::{body::CalcFlags, lunar_return_jd};
         let jd_natal = 2_451_545.0;
         let jd_start = jd_natal + 365.0; // one year later
-        let lr = lunar_return_jd(JulianDay::new(jd_natal), JulianDay::new(jd_start), CalcFlags::BUILTIN).unwrap();
+        let lr = lunar_return_jd(
+            JulianDay::new(jd_natal),
+            JulianDay::new(jd_start),
+            CalcFlags::BUILTIN,
+        )
+        .unwrap();
         assert!(
             lr >= jd_start,
             "lunar return {lr} should be >= start {jd_start}"
@@ -1142,7 +1150,9 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let jd_end = jd_start + 60.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_graphic_ephemeris_context(jd_start, jd_end, vars).unwrap();
-        let svg = specialist::render_graphic_ephemeris_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg = specialist::render_graphic_ephemeris_svg(
+            &crate::cmd::render::ChartContext::from(ctx.clone()),
+        );
         assert!(svg.contains("<path"), "no paths in ephemeris SVG");
         assert!(svg.contains("</svg>"), "SVG not closed");
     }
@@ -1169,7 +1179,9 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_local_space_context(jd, 48.85, 2.35, "2000-01-01", vars).unwrap();
-        let svg = specialist::render_local_space_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg = specialist::render_local_space_svg(&crate::cmd::render::ChartContext::from(
+            ctx.clone(),
+        ));
         assert!(svg.contains(">N<"), "N direction missing");
         assert!(svg.contains(">S<"), "S direction missing");
         assert!(svg.contains(">E<"), "E direction missing");
@@ -1271,7 +1283,7 @@ mod tests_vedic {
         // At least some planets should have a different navamsa vs rasi sign
         let jd = 2_451_545.0;
         use celestial_core::body::{Body, CalcFlags};
-use celestial_core::Longitude;
+        use celestial_core::Longitude;
         let flags = CalcFlags::BUILTIN | CalcFlags(64); // sidereal
         if let Ok(sun) = celestial_core::calc_ut(JulianDay::new(jd), Body::SUN, flags) {
             let rasi = long_to_rasi(Longitude::new(sun.lon));
@@ -1344,7 +1356,8 @@ use celestial_core::Longitude;
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_vedic_context(jd, 13.08, 80.27, "2000-01-01", vars, "Rasi").unwrap();
-        let svg = vedic::render_north_indian_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg =
+            vedic::render_north_indian_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         // All 12 house numbers (1..=12) should appear
         for h in 1..=12u32 {
             assert!(
@@ -1360,7 +1373,8 @@ use celestial_core::Longitude;
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_vedic_context(jd, 0.0, 0.0, "2000-01-01", vars, "Rasi").unwrap();
-        let svg = vedic::render_north_indian_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg =
+            vedic::render_north_indian_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         // At least Aries glyph should appear
         assert!(svg.contains('\u{2648}'), "Aries glyph missing");
     }
@@ -1421,7 +1435,8 @@ use celestial_core::Longitude;
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_ashtakavarga_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
-        let svg = vedic::render_ashtakavarga_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg =
+            vedic::render_ashtakavarga_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("Sun"), "Sun row missing from Ashtakavarga SVG");
         assert!(svg.contains("Moon"), "Moon row missing");
         assert!(svg.contains("Total"), "Total row missing");
@@ -1531,7 +1546,9 @@ use celestial_core::Longitude;
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_hellenistic_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
-        let svg = hellenistic::render_hellenistic_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg = hellenistic::render_hellenistic_svg(&crate::cmd::render::ChartContext::from(
+            ctx.clone(),
+        ));
         assert!(
             svg.contains("Hellenistic Dignities"),
             "dignity table heading missing"
@@ -1562,7 +1579,8 @@ use celestial_core::Longitude;
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_firdaria_context(jd, 48.85, 2.35, "2000-01-01", 'P', vars).unwrap();
-        let svg = hellenistic::render_firdaria_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg =
+            hellenistic::render_firdaria_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
         assert!(svg.contains("<rect"), "no bars in Firdaria SVG");
         assert!(svg.contains("</svg>"), "SVG not closed");
     }
@@ -1585,7 +1603,9 @@ use celestial_core::Longitude;
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_profection_context(jd, 48.85, 2.35, "2000-01-01", 'P', 30, vars).unwrap();
-        let svg = hellenistic::render_profection_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg = hellenistic::render_profection_svg(&crate::cmd::render::ChartContext::from(
+            ctx.clone(),
+        ));
         assert!(svg.contains("profection"), "profection annotation missing");
         assert!(svg.contains("</svg>"), "SVG not closed");
     }
@@ -1687,7 +1707,9 @@ use celestial_core::Longitude;
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_mesoamerican_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
-        let svg = mesoamerican::render_mesoamerican_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg = mesoamerican::render_mesoamerican_svg(&crate::cmd::render::ChartContext::from(
+            ctx.clone(),
+        ));
         assert!(svg.contains("Tonalpohualli"), "Aztec label missing");
         assert!(svg.contains("Tzolkin"), "Maya label missing");
         assert!(svg.contains("</svg>"), "SVG not closed");
@@ -1711,7 +1733,9 @@ use celestial_core::Longitude;
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
         let ctx = build_medicine_wheel_context(jd, 0.0, 0.0, "2000-01-01", vars).unwrap();
-        let svg = indigenous::render_medicine_wheel_svg(&crate::cmd::render::ChartContext::from(ctx.clone()));
+        let svg = indigenous::render_medicine_wheel_svg(&crate::cmd::render::ChartContext::from(
+            ctx.clone(),
+        ));
         // Cardinal directions
         for dir in ["N", "E", "S", "W"] {
             assert!(

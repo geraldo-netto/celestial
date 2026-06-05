@@ -48,10 +48,7 @@ impl CalendarKind {
 /// immediately with the valid list instead of after argument handling.
 fn parse_chart_type(s: &str) -> Result<String, String> {
     let key = s.trim().to_lowercase();
-    if super::registered_chart_types()
-        .split(' ')
-        .any(|a| a == key)
-    {
+    if super::registered_chart_types().split(' ').any(|a| a == key) {
         Ok(key)
     } else {
         Err(format!(

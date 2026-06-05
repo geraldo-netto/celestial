@@ -1,9 +1,9 @@
 //! `celestial calc` — geocentric planetary positions.
 
-use celestial_core::JulianDay;
 use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::{Body, CalcFlags, SiderealMode};
+use celestial_core::JulianDay;
 use celestial_core::{calc_ut, set_sid_mode};
 use clap::Args;
 

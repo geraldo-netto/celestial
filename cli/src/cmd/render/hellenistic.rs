@@ -1,12 +1,12 @@
 //! Hellenistic chart builders — split from render.rs.
 
-use celestial_core::Longitude;
-use celestial_core::Latitude;
-use celestial_core::JulianDay;
-use super::ChartContext;
-use crate::error::CliError;
 use super::svg_common::cusps_to_array;
+use super::ChartContext;
 use super::{build_context, jd_to_date_str, key_to_body, render_builtin_svg, wx, wy, CX, CY, RO};
+use crate::error::CliError;
+use celestial_core::JulianDay;
+use celestial_core::Latitude;
+use celestial_core::Longitude;
 
 use celestial_core::monthly_profection;
 
@@ -34,8 +34,13 @@ pub(super) fn build_hellenistic_context(
     // Start from the standard context
     let mut ctx = build_context(jd, lat, lon, date_str, hsys, vars)?;
 
-    let h = houses_ex(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
-        ?;
+    let h = houses_ex(
+        JulianDay::new(jd),
+        CalcFlags::BUILTIN,
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(hsys as u8),
+    )?;
     let cusps_arr: [f64; 13] = cusps_to_array(&h);
 
     // Determine sect
@@ -206,7 +211,13 @@ pub(super) fn build_firdaria_context(
     vars.entry("title".to_string())
         .or_insert_with(|| "Firdaria Timeline".to_string());
 
-    let h = houses_ex(JulianDay::new(jd), flags, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))?;
+    let h = houses_ex(
+        JulianDay::new(jd),
+        flags,
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(hsys as u8),
+    )?;
     let cusps_arr: [f64; 13] = cusps_to_array(&h);
 
     let sun_pos = calc_ut(JulianDay::new(jd), Body::SUN, flags)?;
@@ -228,18 +239,18 @@ pub(super) fn build_firdaria_context(
         .collect();
 
     Ok(json!({
-        "date": date_str, "jd": jd, "lat": lat, "lon": lon,
-        "is_day": is_day,
-        "firdaria": period_vals,
-        "vars": super::palette_obj(
-            &vars,
-            &[
-                ("bg_color", "#ffffff"),
-                ("ring_color", "#1a1a2e"),
-                ("text_color", "#0d0d1e"),
-                ("planet_color", "#0d0d1e"),
-            ],
-        )}))
+    "date": date_str, "jd": jd, "lat": lat, "lon": lon,
+    "is_day": is_day,
+    "firdaria": period_vals,
+    "vars": super::palette_obj(
+        &vars,
+        &[
+            ("bg_color", "#ffffff"),
+            ("ring_color", "#1a1a2e"),
+            ("text_color", "#0d0d1e"),
+            ("planet_color", "#0d0d1e"),
+        ],
+    )}))
 }
 
 pub(super) fn render_firdaria_svg(ctx: &ChartContext) -> String {
@@ -419,7 +430,13 @@ pub(super) fn build_profection_context(
     vars.entry("title".to_string())
         .or_insert(format!("Annual Profection — Age {age}"));
 
-    let h = houses_ex(JulianDay::new(jd), flags, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))?;
+    let h = houses_ex(
+        JulianDay::new(jd),
+        flags,
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(hsys as u8),
+    )?;
     let cusps_arr: [f64; 13] = cusps_to_array(&h);
 
     let (house_num, prof_lon) = annual_profection(&cusps_arr, age);

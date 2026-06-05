@@ -2,8 +2,8 @@
 
 use crate::error::CliError;
 use crate::{format as fmt, parse};
-use celestial_core::{omer_days, omer_declaration, omer_from_jd, omer_period};
 use celestial_core::JulianDay;
+use celestial_core::{omer_days, omer_declaration, omer_from_jd, omer_period};
 use clap::Args;
 
 #[derive(Args)]

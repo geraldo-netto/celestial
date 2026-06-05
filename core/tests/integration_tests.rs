@@ -283,7 +283,13 @@ fn test_cotrans_poles() {
 
 #[test]
 fn test_houses_placidus_equator() {
-    let r = houses(JulianDay::new(2452275.499_255_786), Latitude::new(0.0), Longitude::new(0.0), HouseSystem::PLACIDUS).unwrap();
+    let r = houses(
+        JulianDay::new(2452275.499_255_786),
+        Latitude::new(0.0),
+        Longitude::new(0.0),
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
     // 12 cusps indexed [1..=12], plus index 0 unused
     assert!(
         r.cusps[1] >= 0.0 && r.cusps[1] < 360.0,
@@ -301,7 +307,13 @@ fn test_houses_placidus_equator() {
 
 #[test]
 fn test_houses_equal_30_apart() {
-    let r = houses(JulianDay::new(2451545.0), Latitude::new(51.5), Longitude::new(-0.1), HouseSystem::EQUAL).unwrap();
+    let r = houses(
+        JulianDay::new(2451545.0),
+        Latitude::new(51.5),
+        Longitude::new(-0.1),
+        HouseSystem::EQUAL,
+    )
+    .unwrap();
     for h in 1..12 {
         let diff = (r.cusps[h + 1] - r.cusps[h] + 360.0) % 360.0;
         assert!(
@@ -314,7 +326,13 @@ fn test_houses_equal_30_apart() {
 
 #[test]
 fn test_houses_whole_sign_on_boundary() {
-    let r = houses(JulianDay::new(2451545.0), Latitude::new(40.0), Longitude::new(-74.0), HouseSystem::WHOLE_SIGN).unwrap();
+    let r = houses(
+        JulianDay::new(2451545.0),
+        Latitude::new(40.0),
+        Longitude::new(-74.0),
+        HouseSystem::WHOLE_SIGN,
+    )
+    .unwrap();
     for h in 1..=12 {
         assert!(
             r.cusps[h] % 30.0 < 0.001 || (r.cusps[h] % 30.0 - 30.0).abs() < 0.001,
@@ -338,7 +356,13 @@ fn test_houses_all_systems_valid_range() {
         HouseSystem(b'X'),
         HouseSystem(b'B'),
     ] {
-        let r = houses(JulianDay::new(2451545.0), Latitude::new(51.5), Longitude::new(-0.1), sys).unwrap();
+        let r = houses(
+            JulianDay::new(2451545.0),
+            Latitude::new(51.5),
+            Longitude::new(-0.1),
+            sys,
+        )
+        .unwrap();
         for h in 1..=12 {
             assert!(
                 r.cusps[h] >= 0.0 && r.cusps[h] < 360.0,
@@ -461,7 +485,12 @@ fn test_calc_ut_unknown_body_errors() {
 
 #[test]
 fn test_calc_ut_speed_nonzero() {
-    let pos = calc_ut(JulianDay::new(2451545.0), Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let pos = calc_ut(
+        JulianDay::new(2451545.0),
+        Body::SUN,
+        CalcFlags::BUILTIN | CalcFlags::SPEED,
+    )
+    .unwrap();
     assert!(
         pos.speed_lon != 0.0,
         "Sun speed should be non-zero with CalcFlags::SPEED"
@@ -610,7 +639,12 @@ fn test_close_is_safe() {
 fn test_calc_ut_sun_exact() {
     // C-library reference: lon=280.382968, diff=0.008° (27 arcsec) — VSOP87 vs SE
     setup();
-    let pos = calc_ut(JulianDay::new(2452275.5), Body::SUN, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let pos = calc_ut(
+        JulianDay::new(2452275.5),
+        Body::SUN,
+        CalcFlags::BUILTIN | CalcFlags::SPEED,
+    )
+    .unwrap();
     // Updated for IAU 2000B nutation + IAU 2006 obliquity (more accurate)
     assert_approx!(pos.lon, 280.390_607_728_379_6);
     assert_approx!(pos.lat, 0.000_142_242_172_615_266);
@@ -639,7 +673,12 @@ fn test_calc_et_matches_ut_approx() {
 fn test_fixstar_sirius() {
     // C-library reference: 104.112150, diff=0.003° (11 arcsec)
     setup();
-    let r = fixstar("Sirius", JulianDay::new(2452275.5), CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let r = fixstar(
+        "Sirius",
+        JulianDay::new(2452275.5),
+        CalcFlags::BUILTIN | CalcFlags::SPEED,
+    )
+    .unwrap();
     assert_approx!(r.xx[0], 104.109_116_968_327_37);
     assert_eq!(r.star_name, "Sirius,alCMa");
 }
@@ -758,7 +797,11 @@ fn check_solcross_baselines(jd_2002: f64, j2000: f64, f: CalcFlags, tol: f64) {
         (0.0, j2000, 2451623.810232319),
     ];
     for (target, start, expected) in cases {
-        assert_approx_tol!(solcross(Longitude::new(target), JulianDay::new(start), f).unwrap(), expected, tol);
+        assert_approx_tol!(
+            solcross(Longitude::new(target), JulianDay::new(start), f).unwrap(),
+            expected,
+            tol
+        );
     }
 }
 
@@ -785,13 +828,22 @@ fn precision_search_root_finder_baselines() {
     let j2000 = 2_451_545.0_f64;
 
     check_solcross_baselines(jd_2002, j2000, f, TOL);
-    assert_approx_tol!(mooncross(Longitude::new(45.0), JulianDay::new(jd_2002), f).unwrap(), 2452297.335581569, TOL);
+    assert_approx_tol!(
+        mooncross(Longitude::new(45.0), JulianDay::new(jd_2002), f).unwrap(),
+        2452297.335581569,
+        TOL
+    );
     check_sign_ingress_baselines(j2000, f, TOL);
 
     let sr = solar_return_jd(JulianDay::new(j2000), 2001, f).unwrap();
     assert_approx_tol!(sr, 2452275.485449128, TOL);
 
-    let sun = calc_ut(JulianDay::new(solcross(Longitude::new(0.0), JulianDay::new(jd_2002), f).unwrap()), Body::SUN, f).unwrap();
+    let sun = calc_ut(
+        JulianDay::new(solcross(Longitude::new(0.0), JulianDay::new(jd_2002), f).unwrap()),
+        Body::SUN,
+        f,
+    )
+    .unwrap();
     let lon_err = sun.lon.min(360.0 - sun.lon);
     assert!(
         lon_err < 1.0e-6,
@@ -1138,7 +1190,13 @@ fn precision_deltat_historical() {
 fn precision_houses_placidus_reference() {
     // ASC/MC/house cusps for a reference chart
     // 2000-01-01 12:00 UT, Paris (48.85°N, 2.35°E)
-    let r = houses(JulianDay::new(2_451_545.0), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
+    let r = houses(
+        JulianDay::new(2_451_545.0),
+        Latitude::new(48.85),
+        Longitude::new(2.35),
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
     // MC and ASC should be in roughly known positions for this time/place
     let mc = r.ascmc[1];
     let asc = r.ascmc[0];
@@ -1179,7 +1237,12 @@ fn precision_topocentric_moon_parallax() {
     let jde = 2_448_724.5;
     let geo = calc(JulianDay::new(jde), Body::MOON, CalcFlags::BUILTIN).unwrap();
     set_topo(Longitude::new(2.35), Latitude::new(48.85), 35.0);
-    let topo = calc(JulianDay::new(jde), Body::MOON, CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC).unwrap();
+    let topo = calc(
+        JulianDay::new(jde),
+        Body::MOON,
+        CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC,
+    )
+    .unwrap();
     set_topo(Longitude::new(0.0), Latitude::new(0.0), 0.0);
     let shift = (topo.lon - geo.lon).abs();
     let shift = if shift > 180.0 { 360.0 - shift } else { shift };
@@ -1193,7 +1256,15 @@ fn heliacal_pheno_ut_smoke() {
     let geo = [2.35_f64, 48.85, 35.0];
     let atm = [1013.25_f64, 15.0, 50.0, 0.25];
     let dobs = [0.0_f64; 6];
-    let r = heliacal_pheno_ut(JulianDay::new(2_451_545.0), geo, atm, dobs, "Venus", 0, CalcFlags::BUILTIN);
+    let r = heliacal_pheno_ut(
+        JulianDay::new(2_451_545.0),
+        geo,
+        atm,
+        dobs,
+        "Venus",
+        0,
+        CalcFlags::BUILTIN,
+    );
     if let Ok(v) = r {
         for &x in &v {
             assert!(x.is_finite(), "non-finite in heliacal_pheno_ut");
@@ -1226,7 +1297,9 @@ fn solar_return_jd_lands_in_correct_year() {
     let natal_sun = calc_ut(JulianDay::new(JD_NATAL), Body::SUN, CalcFlags::BUILTIN)
         .unwrap()
         .lon;
-    let ret_sun = calc_ut(JulianDay::new(sr), Body::SUN, CalcFlags::BUILTIN).unwrap().lon;
+    let ret_sun = calc_ut(JulianDay::new(sr), Body::SUN, CalcFlags::BUILTIN)
+        .unwrap()
+        .lon;
     assert!(
         (natal_sun - ret_sun)
             .abs()
@@ -1254,8 +1327,15 @@ fn lunar_return_jd_moon_lon_matches() {
     let natal_moon = calc_ut(JulianDay::new(JD_NATAL), Body::MOON, CalcFlags::BUILTIN)
         .unwrap()
         .lon;
-    let lr = lunar_return_jd(JulianDay::new(JD_NATAL), JulianDay::new(JD_2025), CalcFlags::BUILTIN).unwrap();
-    let ret_moon = calc_ut(JulianDay::new(lr), Body::MOON, CalcFlags::BUILTIN).unwrap().lon;
+    let lr = lunar_return_jd(
+        JulianDay::new(JD_NATAL),
+        JulianDay::new(JD_2025),
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
+    let ret_moon = calc_ut(JulianDay::new(lr), Body::MOON, CalcFlags::BUILTIN)
+        .unwrap()
+        .lon;
     let diff = (natal_moon - ret_moon)
         .abs()
         .min((natal_moon - ret_moon + 360.0).abs())
@@ -1268,7 +1348,12 @@ fn lunar_return_jd_moon_lon_matches() {
 
 #[test]
 fn lunar_return_jd_is_after_search_start() {
-    let lr = lunar_return_jd(JulianDay::new(JD_NATAL), JulianDay::new(JD_2025), CalcFlags::BUILTIN).unwrap();
+    let lr = lunar_return_jd(
+        JulianDay::new(JD_NATAL),
+        JulianDay::new(JD_2025),
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
     assert!(
         lr >= JD_2025,
         "Lunar return JD {lr:.2} should be after search start {JD_2025}"
@@ -1358,10 +1443,22 @@ fn solar_arc_directions_sun_advances_one_degree_per_year() {
             (b, p.lon)
         })
         .collect();
-    let (arc_35, pos_35, _) =
-        solar_arc_directions(JulianDay::new(JD_NATAL), 35.0, &natal_pairs, Degrees::new(mc), CalcFlags::BUILTIN).unwrap();
-    let (arc_36, _, _) =
-        solar_arc_directions(JulianDay::new(JD_NATAL), 36.0, &natal_pairs, Degrees::new(mc), CalcFlags::BUILTIN).unwrap();
+    let (arc_35, pos_35, _) = solar_arc_directions(
+        JulianDay::new(JD_NATAL),
+        35.0,
+        &natal_pairs,
+        Degrees::new(mc),
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
+    let (arc_36, _, _) = solar_arc_directions(
+        JulianDay::new(JD_NATAL),
+        36.0,
+        &natal_pairs,
+        Degrees::new(mc),
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
     // Solar arc ≈ 1°/year
     assert!(
         (arc_35 - 35.0).abs() < 3.0,
@@ -1566,7 +1663,10 @@ fn tonalpohualli_j2000_known_values() {
     let (t, s, name, _) = tonalpohualli(JulianDay::new(JD_J2000));
     assert_eq!(t, 11, "J2000 trecena should be 11, got {t}");
     assert_eq!(s, 1, "J2000 sign should be 1 (Ehecatl), got {s}");
-    assert_eq!(name, "Ehecatl", "J2000 sign name should be Ehecatl, got {name}");
+    assert_eq!(
+        name, "Ehecatl",
+        "J2000 sign name should be Ehecatl, got {name}"
+    );
 }
 
 #[test]

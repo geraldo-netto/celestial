@@ -263,7 +263,14 @@ fn azalt_rev_roundtrip_equatorial() {
     let geopos = [12.1_f64, 49.0, 330.0];
     let pos = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
     // Forward: ecliptic → horizontal
-    let az = azalt(JulianDay::new(jd), 0, geopos, 1010.0, 15.0, [pos.lon, pos.lat, pos.dist]);
+    let az = azalt(
+        JulianDay::new(jd),
+        0,
+        geopos,
+        1010.0,
+        15.0,
+        [pos.lon, pos.lat, pos.dist],
+    );
     // Inverse: horizontal → equatorial (flag=1)
     let back = azalt_rev(JulianDay::new(jd), 1, geopos, [az.azimuth, az.true_alt]);
     // Round-trip via equatorial → ecliptic through coord_transform is not tested here,
@@ -285,7 +292,14 @@ fn azalt_rev_roundtrip_ecliptic() {
     let jd = 2454503.06_f64;
     let geopos = [12.1_f64, 49.0, 330.0];
     let pos = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap();
-    let az = azalt(JulianDay::new(jd), 0, geopos, 1010.0, 15.0, [pos.lon, pos.lat, pos.dist]);
+    let az = azalt(
+        JulianDay::new(jd),
+        0,
+        geopos,
+        1010.0,
+        15.0,
+        [pos.lon, pos.lat, pos.dist],
+    );
     let back = azalt_rev(JulianDay::new(jd), 0, geopos, [az.azimuth, az.true_alt]);
     // Sun ecliptic longitude should round-trip to within ~0.05°
     let diff = (back[0] - pos.lon).abs();
@@ -338,7 +352,12 @@ fn test_tt_to_ut() {
 fn test_heliocentric_mars() {
     use celestial_core::{calc_ut, Body, CalcFlags};
     let jd = 2451545.0;
-    let pos = calc_ut(JulianDay::new(jd), Body::MARS, CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC).unwrap();
+    let pos = calc_ut(
+        JulianDay::new(jd),
+        Body::MARS,
+        CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC,
+    )
+    .unwrap();
     // Mars heliocentric distance: 1.38–1.67 AU
     assert!(
         pos.dist > 1.2 && pos.dist < 1.8,
@@ -352,14 +371,20 @@ fn test_heliocentric_mars() {
 fn test_houses_from_armc() {
     use celestial_core::houses_from_armc;
     // ARMC=0, lat=0, obliquity=23.44, Placidus
-    let h = houses_from_armc(Degrees::new(0.0), Latitude::new(0.0), Degrees::new(23.4393), HouseSystem::PLACIDUS);
+    let h = houses_from_armc(
+        Degrees::new(0.0),
+        Latitude::new(0.0),
+        Degrees::new(23.4393),
+        HouseSystem::PLACIDUS,
+    );
     assert!(h.ascmc[0] >= 0.0 && h.ascmc[0] < 360.0, "ASC out of range");
 }
 
 #[test]
 fn test_orbital_elements_fields() {
     use celestial_core::{get_orbital_elements, Body, CalcFlags};
-    let el = get_orbital_elements(JulianDay::new(2451545.0), Body::MARS, CalcFlags::BUILTIN).unwrap();
+    let el =
+        get_orbital_elements(JulianDay::new(2451545.0), Body::MARS, CalcFlags::BUILTIN).unwrap();
     // Mars semi-major axis ≈ 1.524 AU
     assert!(
         (el.semi_major_axis - 1.524).abs() < 0.1,
@@ -382,13 +407,21 @@ fn test_motion_functions() {
     let cross = solcross_ut(Longitude::new(0.0), JulianDay::new(jd), CalcFlags::BUILTIN).unwrap();
     assert!(cross > jd, "crossing must be in the future");
     // Moon crossing 0°
-    let moon_cross = mooncross_ut(Longitude::new(0.0), JulianDay::new(jd), CalcFlags::BUILTIN).unwrap();
+    let moon_cross =
+        mooncross_ut(Longitude::new(0.0), JulianDay::new(jd), CalcFlags::BUILTIN).unwrap();
     assert!(moon_cross > jd);
     // Moon/node crossing
     let node_cross = mooncross_node_ut(JulianDay::new(jd), CalcFlags::BUILTIN).unwrap();
     assert!(node_cross.jd_cross > jd);
     // Mars heliocentric crossing 0°
-    let helio = helio_cross_ut(Body::MARS, Longitude::new(0.0), JulianDay::new(jd), CalcFlags::BUILTIN, 1).unwrap();
+    let helio = helio_cross_ut(
+        Body::MARS,
+        Longitude::new(0.0),
+        JulianDay::new(jd),
+        CalcFlags::BUILTIN,
+        1,
+    )
+    .unwrap();
     assert!(helio > jd);
 }
 #[test]
@@ -433,24 +466,41 @@ fn test_phenomena() {
 #[test]
 fn houses_arctic_latitude() {
     // Placidus fails above ~66° — should return an error, not panic
-    let result = houses(JulianDay::new(J2000), Latitude::new(89.9), Longitude::new(0.0), HouseSystem::PLACIDUS);
+    let result = houses(
+        JulianDay::new(J2000),
+        Latitude::new(89.9),
+        Longitude::new(0.0),
+        HouseSystem::PLACIDUS,
+    );
     // Either Ok (fallback) or Err — must NOT panic
     let _ = result;
 }
 
 #[test]
 fn houses_polar_all_systems() {
-    // All house systems must not panic at lat=89.9°
+    // All house systems must not panic at polar latitudes.
     for &sys in b"PKEOCRWXMBHT" {
-        let _ = houses(JulianDay::new(J2000), Latitude::new(89.9), Longitude::new(2.35), HouseSystem(sys));
-        let _ = houses(JulianDay::new(J2000), Latitude::new(-89.9), Longitude::new(2.35), HouseSystem(sys));
+        for lat in [-90.0, -89.9, 89.9, 90.0] {
+            let _ = houses(
+                JulianDay::new(J2000),
+                Latitude::new(lat),
+                Longitude::new(2.35),
+                HouseSystem(sys),
+            );
+        }
     }
 }
 
 #[test]
 fn houses_equator() {
     // Equator: ASC = 90° or 270° for most systems
-    let r = houses(JulianDay::new(J2000), Latitude::new(0.0), Longitude::new(0.0), HouseSystem::PLACIDUS).unwrap();
+    let r = houses(
+        JulianDay::new(J2000),
+        Latitude::new(0.0),
+        Longitude::new(0.0),
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
     assert!(r.ascmc[0] >= 0.0 && r.ascmc[0] < 360.0);
 }
 
@@ -497,7 +547,12 @@ fn julday_revjul_negative_year() {
 #[test]
 fn calc_ut_equatorial_flag() {
     let geo = calc_ut(JulianDay::new(J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
-    let eq = calc_ut(JulianDay::new(J2000), Body::SUN, CalcFlags::BUILTIN | CalcFlags::EQUATORIAL).unwrap();
+    let eq = calc_ut(
+        JulianDay::new(J2000),
+        Body::SUN,
+        CalcFlags::BUILTIN | CalcFlags::EQUATORIAL,
+    )
+    .unwrap();
     // Equatorial lon = RA, lat = Dec — should differ from ecliptic
     // RA is in [0,360), Dec is in (-90, 90)
     assert!(eq.lon >= 0.0 && eq.lon < 360.0);
@@ -540,7 +595,7 @@ fn set_topo_changes_moon_position() {
     )
     .unwrap();
     set_topo(Longitude::new(0.0), Latitude::new(0.0), 0.0); // reset
-                             // Topocentric correction should shift Moon by up to ~1°
+                                                            // Topocentric correction should shift Moon by up to ~1°
     let diff = (topo.lon - geo.lon).abs();
     assert!(
         diff < 1.5,
@@ -601,8 +656,10 @@ fn cotrans_sp_roundtrip() {
     let out = coord_transform_with_speed(coords, Degrees::new(23.439));
     assert!(out[0].is_finite() && out[1].is_finite());
     // Round-trip: apply twice with opposite obliquity
-    let back =
-        coord_transform_with_speed([out[0], out[1], out[2], out[3], out[4], out[5]], Degrees::new(-23.439));
+    let back = coord_transform_with_speed(
+        [out[0], out[1], out[2], out[3], out[4], out[5]],
+        Degrees::new(-23.439),
+    );
     assert!(
         (back[0] - coords[0]).abs() < 0.001,
         "coord_transform_with_speed round-trip lon {:.4} vs {:.4}",
@@ -679,13 +736,26 @@ fn refrac_extended_smoke() {
 
 #[test]
 fn houses_armc_ex2_smoke() {
-    let r = houses_armc_ex2(Degrees::new(45.0), Latitude::new(48.85), Degrees::new(23.439), HouseSystem::PLACIDUS).unwrap();
+    let r = houses_armc_ex2(
+        Degrees::new(45.0),
+        Latitude::new(48.85),
+        Degrees::new(23.439),
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
     assert!(r.cusps[1] >= 0.0 && r.cusps[1] < 360.0);
 }
 
 #[test]
 fn houses_ex_smoke() {
-    let r = houses_ex(JulianDay::new(J2000), CalcFlags::BUILTIN, Latitude::new(48.85), Longitude::new(2.35), HouseSystem::KOCH).unwrap();
+    let r = houses_ex(
+        JulianDay::new(J2000),
+        CalcFlags::BUILTIN,
+        Latitude::new(48.85),
+        Longitude::new(2.35),
+        HouseSystem::KOCH,
+    )
+    .unwrap();
     assert!(r.cusps[1] >= 0.0 && r.cusps[1] < 360.0);
     assert!(r.cusps[10] >= 0.0 && r.cusps[10] < 360.0);
 }
@@ -701,7 +771,8 @@ fn sol_eclipse_when_loc_smoke() {
 #[test]
 fn sol_eclipse_how_smoke() {
     // Find a known eclipse then call how()
-    let eclipse = sol_eclipse_when_glob(JulianDay::new(J2000), CalcFlags::BUILTIN, 0, false).unwrap();
+    let eclipse =
+        sol_eclipse_when_glob(JulianDay::new(J2000), CalcFlags::BUILTIN, 0, false).unwrap();
     let geopos = [0.0_f64, 51.5, 0.0]; // London
     let how = sol_eclipse_how(JulianDay::new(eclipse.tret[0]), CalcFlags::BUILTIN, geopos).unwrap();
     assert!(how.attr[0].is_finite()); // magnitude
@@ -758,9 +829,19 @@ fn years_diff_smoke() {
 #[test]
 fn solcross_back_finds_previous_crossing() {
     // Forward cross from J2000 finds next Aries point (~79 days later)
-    let fwd = solcross_ut(Longitude::new(0.0), JulianDay::new(J2000), CalcFlags::BUILTIN).unwrap();
+    let fwd = solcross_ut(
+        Longitude::new(0.0),
+        JulianDay::new(J2000),
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
     // Backward from slightly after that crossing should return to near J2000
-    let back = solcross_back_ut(Longitude::new(0.0), JulianDay::new(fwd + 1.0), CalcFlags::BUILTIN).unwrap();
+    let back = solcross_back_ut(
+        Longitude::new(0.0),
+        JulianDay::new(fwd + 1.0),
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
     assert!(
         (back - fwd).abs() < 2.0,
         "back {back:.2} should be near fwd {fwd:.2}"
@@ -773,8 +854,18 @@ fn solcross_back_finds_previous_crossing() {
 
 #[test]
 fn mooncross_back_finds_previous_crossing() {
-    let fwd = mooncross_ut(Longitude::new(180.0), JulianDay::new(J2000), CalcFlags::BUILTIN).unwrap();
-    let back = mooncross_back_ut(Longitude::new(180.0), JulianDay::new(fwd + 0.5), CalcFlags::BUILTIN).unwrap();
+    let fwd = mooncross_ut(
+        Longitude::new(180.0),
+        JulianDay::new(J2000),
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
+    let back = mooncross_back_ut(
+        Longitude::new(180.0),
+        JulianDay::new(fwd + 0.5),
+        CalcFlags::BUILTIN,
+    )
+    .unwrap();
     assert!((back - fwd).abs() < 1.0);
     assert!(back < fwd + 0.5);
 }
@@ -784,7 +875,13 @@ fn mooncross_back_finds_previous_crossing() {
 #[test]
 fn houses_opposite_cusps_are_180_apart() {
     for &sys in b"PKEOCRWXMBHT" {
-        let r = houses(JulianDay::new(J2000), Latitude::new(48.85), Longitude::new(2.35), HouseSystem(sys)).unwrap();
+        let r = houses(
+            JulianDay::new(J2000),
+            Latitude::new(48.85),
+            Longitude::new(2.35),
+            HouseSystem(sys),
+        )
+        .unwrap();
         for h in 1..=6 {
             let diff = (r.cusps[h] - r.cusps[h + 6]).rem_euclid(360.0);
             // diff should be 180° (opposite houses)
@@ -831,7 +928,12 @@ fn orbital_elements_eccentricity_valid() {
 #[test]
 fn speed_matches_numerical_diff() {
     // Speed flag should match (pos[t+0.5] - pos[t-0.5]) / 1.0 within 10%
-    let with_speed = calc_ut(JulianDay::new(J2000), Body::MARS, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let with_speed = calc_ut(
+        JulianDay::new(J2000),
+        Body::MARS,
+        CalcFlags::BUILTIN | CalcFlags::SPEED,
+    )
+    .unwrap();
     let plus = calc_ut(JulianDay::new(J2000 + 0.5), Body::MARS, CalcFlags::BUILTIN).unwrap();
     let minus = calc_ut(JulianDay::new(J2000 - 0.5), Body::MARS, CalcFlags::BUILTIN).unwrap();
     let numerical = {
@@ -980,10 +1082,22 @@ fn geoformat_cs2_functions() {
 #[test]
 fn houses_armc_matches_houses() {
     // houses_armc with explicit ARMC should match houses() result
-    let r = houses(JulianDay::new(J2000), Latitude::new(48.85), Longitude::new(2.35), HouseSystem::PLACIDUS).unwrap();
+    let r = houses(
+        JulianDay::new(J2000),
+        Latitude::new(48.85),
+        Longitude::new(2.35),
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
     let armc = r.ascmc[2]; // index 2 is ARMC
     let eps = mean_obliquity(JulianDay::new(J2000));
-    let r2 = houses_armc(Degrees::new(armc), Latitude::new(48.85), Degrees::new(eps), HouseSystem::PLACIDUS).unwrap();
+    let r2 = houses_armc(
+        Degrees::new(armc),
+        Latitude::new(48.85),
+        Degrees::new(eps),
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
     // Cusps should be very close (small rounding differences are OK)
     for h in 1..=12 {
         let diff = (r.cusps[h] - r2.cusps[h]).abs();
@@ -1004,7 +1118,15 @@ fn heliacal_ut_smoke() {
     let geo = [2.35_f64, 48.85, 35.0];
     let atm = [1013.25_f64, 15.0, 50.0, 0.25]; // pressure, temp, humidity, age
     let dobs = [0.0_f64; 6]; // observer data (age, Snellen, etc) — defaults
-    let r = heliacal_ut(JulianDay::new(J2000), geo, atm, dobs, "Venus", 0, CalcFlags::BUILTIN);
+    let r = heliacal_ut(
+        JulianDay::new(J2000),
+        geo,
+        atm,
+        dobs,
+        "Venus",
+        0,
+        CalcFlags::BUILTIN,
+    );
     if let Ok(jds) = r {
         for &jd in &jds {
             assert!(jd.is_finite() || jd == 0.0);
@@ -1095,7 +1217,16 @@ mod builder_tests {
             .event(1) // CALC_RISE
             .flags(CalcFlags::BUILTIN)
             .search();
-        let direct = rise_trans(JulianDay::new(JD), Body::SUN, None, CalcFlags::BUILTIN, 1, geopos, 0.0, 0.0);
+        let direct = rise_trans(
+            JulianDay::new(JD),
+            Body::SUN,
+            None,
+            CalcFlags::BUILTIN,
+            1,
+            geopos,
+            0.0,
+            0.0,
+        );
         match (via_builder, direct) {
             (Ok(b), Ok(d)) => assert!((b.tret - d.tret).abs() < 1e-9, "tret mismatch"),
             (Err(_), Err(_)) => {} // both failed is acceptable
@@ -1241,7 +1372,10 @@ mod calc_options_tests {
 
     #[test]
     fn single_body_ut_matches_calc_ut() {
-        let via_builder = CalcOptions::ut(JulianDay::new(JD), FLAGS).body(Body::SUN).get().unwrap();
+        let via_builder = CalcOptions::ut(JulianDay::new(JD), FLAGS)
+            .body(Body::SUN)
+            .get()
+            .unwrap();
         let direct = calc_ut(JulianDay::new(JD), Body::SUN, FLAGS).unwrap();
         assert!((via_builder.lon - direct.lon).abs() < 1e-9);
         assert!((via_builder.dist - direct.dist).abs() < 1e-12);
@@ -1249,7 +1383,10 @@ mod calc_options_tests {
 
     #[test]
     fn single_body_tt_matches_calc_tt() {
-        let via_builder = CalcOptions::tt(JulianDay::new(JD), FLAGS).body(Body::MOON).get().unwrap();
+        let via_builder = CalcOptions::tt(JulianDay::new(JD), FLAGS)
+            .body(Body::MOON)
+            .get()
+            .unwrap();
         let direct = calc(JulianDay::new(JD), Body::MOON, FLAGS).unwrap();
         assert!((via_builder.lon - direct.lon).abs() < 1e-9);
     }
@@ -1263,7 +1400,9 @@ mod calc_options_tests {
             Body::VENUS,
             Body::MARS,
         ];
-        let results = CalcOptions::ut(JulianDay::new(JD), FLAGS).bodies(&bodies).get_many();
+        let results = CalcOptions::ut(JulianDay::new(JD), FLAGS)
+            .bodies(&bodies)
+            .get_many();
         assert_eq!(results.len(), bodies.len());
         for (i, &body) in bodies.iter().enumerate() {
             let direct = calc_ut(JulianDay::new(JD), body, FLAGS).unwrap();
@@ -1311,7 +1450,9 @@ mod calc_options_tests {
             Body::VENUS,
             Body::MARS,
         ];
-        let auto_res = CalcOptions::ut(JulianDay::new(JD), FLAGS).bodies(&bodies).get_many();
+        let auto_res = CalcOptions::ut(JulianDay::new(JD), FLAGS)
+            .bodies(&bodies)
+            .get_many();
         let par_res = CalcOptions::ut(JulianDay::new(JD), FLAGS)
             .strategy(CalcStrategy::Parallel)
             .bodies(&bodies)
@@ -1327,7 +1468,9 @@ mod calc_options_tests {
     fn strategy_auto_uses_sequential_for_small_list() {
         // Auto with 2 bodies should use sequential path
         let bodies = [Body::SUN, Body::MOON];
-        let auto_res = CalcOptions::ut(JulianDay::new(JD), FLAGS).bodies(&bodies).get_many();
+        let auto_res = CalcOptions::ut(JulianDay::new(JD), FLAGS)
+            .bodies(&bodies)
+            .get_many();
         let seq_res = CalcOptions::ut(JulianDay::new(JD), FLAGS)
             .strategy(CalcStrategy::Sequential)
             .bodies(&bodies)
@@ -1339,15 +1482,22 @@ mod calc_options_tests {
 
     #[test]
     fn empty_bodies_returns_empty_vec() {
-        let results = CalcOptions::ut(JulianDay::new(JD), FLAGS).bodies(&[]).get_many();
+        let results = CalcOptions::ut(JulianDay::new(JD), FLAGS)
+            .bodies(&[])
+            .get_many();
         assert!(results.is_empty());
     }
 
     #[test]
     fn single_body_in_multi_path() {
         let bodies = [Body::SATURN];
-        let multi = CalcOptions::ut(JulianDay::new(JD), FLAGS).bodies(&bodies).get_many();
-        let single = CalcOptions::ut(JulianDay::new(JD), FLAGS).body(Body::SATURN).get().unwrap();
+        let multi = CalcOptions::ut(JulianDay::new(JD), FLAGS)
+            .bodies(&bodies)
+            .get_many();
+        let single = CalcOptions::ut(JulianDay::new(JD), FLAGS)
+            .body(Body::SATURN)
+            .get()
+            .unwrap();
         let m = multi[0].as_ref().unwrap();
         assert!((m.lon - single.lon).abs() < 1e-9);
     }
@@ -1438,8 +1588,11 @@ mod error_type_tests {
     #[test]
     fn structured_error_emitted_for_bad_star() {
         use celestial_core::body::CalcFlags;
-        let result =
-            celestial_core::fixstar_ut("NONEXISTENT_STAR_XYZ", celestial_core::JulianDay::new(2_451_545.0), CalcFlags::BUILTIN);
+        let result = celestial_core::fixstar_ut(
+            "NONEXISTENT_STAR_XYZ",
+            celestial_core::JulianDay::new(2_451_545.0),
+            CalcFlags::BUILTIN,
+        );
         assert!(result.is_err());
         match result.unwrap_err() {
             Error::StarNotFound { name } => assert!(name.contains("NONEXISTENT")),
@@ -2052,7 +2205,10 @@ mod islamic_helper_tests {
     fn hijri_new_year_jd_in_correct_gregorian_year() {
         // 1446 AH new year fell in July 2024
         let jd = hijri_new_year_jd(1446);
-        let cal = revjul(JulianDay::new(jd), celestial_core::body::Calendar::Gregorian);
+        let cal = revjul(
+            JulianDay::new(jd),
+            celestial_core::body::Calendar::Gregorian,
+        );
         assert_eq!(
             cal.year, 2024,
             "1446 AH new year should be in 2024, got {}",
@@ -2173,7 +2329,10 @@ mod hebrew_helper_tests {
     fn hebrew_new_year_jd_in_september_or_october() {
         for year in 5780..5790 {
             let jd = hebrew_new_year_jd(year) as f64;
-            let cal = revjul(JulianDay::new(jd), celestial_core::body::Calendar::Gregorian);
+            let cal = revjul(
+                JulianDay::new(jd),
+                celestial_core::body::Calendar::Gregorian,
+            );
             assert!(
                 cal.month == 9 || cal.month == 10,
                 "Rosh Hashanah {year} AM: expected Sep/Oct, got month {}",
@@ -2239,8 +2398,14 @@ mod omer_helper_tests {
         let p = omer_period(JulianDay::new(start + 1.0));
         let before = p.start_jd - 5.0_f64;
         let after = p.end_jd + 5.0_f64;
-        assert!(omer_from_jd(JulianDay::new(before)).is_none(), "before Omer should be None");
-        assert!(omer_from_jd(JulianDay::new(after)).is_none(), "after Omer should be None");
+        assert!(
+            omer_from_jd(JulianDay::new(before)).is_none(),
+            "before Omer should be None"
+        );
+        assert!(
+            omer_from_jd(JulianDay::new(after)).is_none(),
+            "after Omer should be None"
+        );
     }
 
     #[cfg(feature = "calendar-traditions")]
@@ -2622,7 +2787,12 @@ mod accuracy_references {
     #[test]
     fn moon_is_fastest_body() {
         let jd = 2451545.0;
-        let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+        let moon = calc_ut(
+            JulianDay::new(jd),
+            Body::MOON,
+            CalcFlags::BUILTIN | CalcFlags::SPEED,
+        )
+        .unwrap();
         for body in [
             Body::MERCURY,
             Body::VENUS,
@@ -2633,7 +2803,12 @@ mod accuracy_references {
             Body::NEPTUNE,
             Body::PLUTO,
         ] {
-            let p = calc_ut(JulianDay::new(jd), body, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+            let p = calc_ut(
+                JulianDay::new(jd),
+                body,
+                CalcFlags::BUILTIN | CalcFlags::SPEED,
+            )
+            .unwrap();
             assert!(
                 moon.speed_lon.abs() > p.speed_lon.abs() * 5.0,
                 "Moon speed ({:.3}) should be >> body {:?} speed ({:.3})",
@@ -2863,13 +3038,18 @@ fn sidereal_mode_id_reference() {
 fn sign_lord_all_signs_reference() {
     // sign → classical ruler planet id (Sun0 Moon1 Mer2 Ven3 Mar4 Jup5 Sat6)
     let want = [
-        (0, 4), (7, 4),  // Aries/Scorpio → Mars
-        (1, 3), (6, 3),  // Taurus/Libra → Venus
-        (2, 2), (5, 2),  // Gemini/Virgo → Mercury
-        (3, 1),          // Cancer → Moon
-        (4, 0),          // Leo → Sun
-        (8, 5), (11, 5), // Sag/Pisces → Jupiter
-        (9, 6), (10, 6), // Cap/Aqu → Saturn
+        (0, 4),
+        (7, 4), // Aries/Scorpio → Mars
+        (1, 3),
+        (6, 3), // Taurus/Libra → Venus
+        (2, 2),
+        (5, 2), // Gemini/Virgo → Mercury
+        (3, 1), // Cancer → Moon
+        (4, 0), // Leo → Sun
+        (8, 5),
+        (11, 5), // Sag/Pisces → Jupiter
+        (9, 6),
+        (10, 6), // Cap/Aqu → Saturn
     ];
     for (sign, lord) in want {
         assert_eq!(sign_lord(sign), Some(lord), "sign_lord({sign})");
@@ -2911,7 +3091,7 @@ fn house_system_name_all_variants() {
 fn years_diff_three_branches_reference() {
     let f = CalcFlags::BUILTIN;
     let j = 2_451_545.0_f64; // J2000
-    // equal jd → exactly 0
+                             // equal jd → exactly 0
     assert_eq!(years_diff(j, j, f).unwrap(), 0.0);
     // +1 tropical year forward ≈ +1.0
     let one = years_diff(j, j + 365.2422, f).unwrap();
@@ -2989,7 +3169,11 @@ fn helio_cross_ut_is_self_consistent() {
     )
     .unwrap();
     let d = diff_deg_signed(pos.lon, target).abs();
-    assert!(d < 0.5, "Mars helio lon at crossing = {}, want {target}", pos.lon);
+    assert!(
+        d < 0.5,
+        "Mars helio lon at crossing = {}, want {target}",
+        pos.lon
+    );
 }
 
 #[test]
@@ -3078,7 +3262,10 @@ fn solar_eclipse_2017_08_21_when_and_where() {
     let e = sol_eclipse_when_glob(JulianDay::new(start), CalcFlags::BUILTIN, 0, false).unwrap();
     let jmax = e.tret[0];
     let want = julday(2017, 8, 21, 18.0 + 25.0 / 60.0, Calendar::Gregorian);
-    assert!((jmax - want).abs() < 0.05, "eclipse max jd {jmax}, want ~{want}");
+    assert!(
+        (jmax - want).abs() < 0.05,
+        "eclipse max jd {jmax}, want ~{want}"
+    );
     let w = sol_eclipse_where(JulianDay::new(jmax), CalcFlags::BUILTIN).unwrap();
     assert!(
         w.geopos[1].is_finite() && (0.0..60.0).contains(&w.geopos[1]),
@@ -3097,11 +3284,22 @@ fn next_aspect_with2_finds_2017_08_21_new_moon() {
     // Sun–Moon conjunction = new moon; the 2017-08-21 new moon is
     // 18:30 UT (same event as the eclipse above).
     let start = julday(2017, 8, 10, 0.0, Calendar::Gregorian);
-    let r =
-        next_aspect_with2(Body::MOON, 0.0, Body::SUN, start, false, 40.0, CalcFlags::BUILTIN)
-            .expect("conjunction found");
+    let r = next_aspect_with2(
+        Body::MOON,
+        0.0,
+        Body::SUN,
+        start,
+        false,
+        40.0,
+        CalcFlags::BUILTIN,
+    )
+    .expect("conjunction found");
     let want = julday(2017, 8, 21, 18.5, Calendar::Gregorian);
-    assert!((r.jd - want).abs() < 0.15, "new-moon jd {}, want ~{want}", r.jd);
+    assert!(
+        (r.jd - want).abs() < 0.15,
+        "new-moon jd {}, want ~{want}",
+        r.jd
+    );
     let sep = ((r.pos1[0] - r.pos2[0] + 540.0) % 360.0 - 180.0).abs();
     assert!(sep < 0.1, "Sun–Moon separation at conjunction = {sep}°");
 }
@@ -3157,8 +3355,8 @@ fn perf1_analytic_speed_matches_finite_difference() {
     let helio = CalcFlags::BUILTIN | CalcFlags::HELIOCENTRIC;
     let speed = helio | CalcFlags::SPEED;
     let h = 0.05_f64; // days
-    // Earth heliocentric is degenerate in the geocentric engine (excluded,
-    // same as helio_cross) — validate the other VSOP planets.
+                      // Earth heliocentric is degenerate in the geocentric engine (excluded,
+                      // same as helio_cross) — validate the other VSOP planets.
     let bodies = [
         Body::MERCURY,
         Body::VENUS,

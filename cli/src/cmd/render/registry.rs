@@ -54,7 +54,10 @@ pub(crate) fn dispatch_solar_return(
 ) -> Result<(ChartContext, ChartRenderer), CliError> {
     let year = args.return_year.unwrap_or_else(|| {
         let today_jd = crate::parse::parse_date("now").unwrap_or(2_451_545.0);
-        let d = celestial_core::revjul(JulianDay::new(today_jd), celestial_core::body::Calendar::Gregorian);
+        let d = celestial_core::revjul(
+            JulianDay::new(today_jd),
+            celestial_core::body::Calendar::Gregorian,
+        );
         d.year as i32
     });
     let sr_jd = solar_return_jd(JulianDay::new(jd), year, CalcFlags::BUILTIN)?;
@@ -82,7 +85,11 @@ pub(crate) fn dispatch_lunar_return(
         .map(crate::parse::parse_date)
         .transpose()?
         .unwrap_or(jd);
-    let lr_jd = lunar_return_jd(JulianDay::new(jd), JulianDay::new(start), CalcFlags::BUILTIN)?;
+    let lr_jd = lunar_return_jd(
+        JulianDay::new(jd),
+        JulianDay::new(start),
+        CalcFlags::BUILTIN,
+    )?;
     let lr_date = jd_to_date_str(lr_jd);
     let mut v = user_vars.clone();
     v.insert("title".to_string(), "Lunar Return".to_string());
@@ -146,7 +153,8 @@ pub(crate) fn dispatch_biwheel(
     Ok((
         build_biwheel_context(
             jd, jd2, args.lat, args.lon, lat2, lon2, &args.date, date2, args.hsys, v,
-        )?.into(),
+        )?
+        .into(),
         render_biwheel_svg,
     ))
 }
@@ -165,7 +173,8 @@ pub(crate) fn dispatch_composite(
     Ok((
         specialist::build_composite_context(
             jd, jd2, args.lat, args.lon, &args.date, date2, args.hsys, v,
-        )?.into(),
+        )?
+        .into(),
         render_builtin_svg,
     ))
 }
@@ -189,7 +198,8 @@ pub(crate) fn dispatch_triwheel(
     Ok((
         specialist::build_triwheel_context(
             jd, jd2, jd3, args.lat, args.lon, &args.date, date2, date3, args.hsys, v,
-        )?.into(),
+        )?
+        .into(),
         specialist::render_triwheel_svg,
     ))
 }
@@ -225,7 +235,8 @@ pub(crate) fn dispatch_profection(
     Ok((
         hellenistic::build_profection_context(
             jd, args.lat, args.lon, &args.date, args.hsys, age, v,
-        )?.into(),
+        )?
+        .into(),
         hellenistic::render_profection_svg,
     ))
 }
@@ -347,8 +358,11 @@ pub(crate) fn dispatch_calendar(
 // and the unknown-type error message both derive from this table, so there's
 // nothing else to keep in sync.
 
-pub(crate) type ChartBuilder =
-    fn(f64, &RenderArgs, &BTreeMap<String, String>) -> Result<(ChartContext, ChartRenderer), CliError>;
+pub(crate) type ChartBuilder = fn(
+    f64,
+    &RenderArgs,
+    &BTreeMap<String, String>,
+) -> Result<(ChartContext, ChartRenderer), CliError>;
 
 pub(crate) struct ChartEntry {
     aliases: &'static [&'static str],

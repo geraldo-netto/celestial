@@ -255,7 +255,6 @@ pub(crate) fn write_or_print(output: &str, path: Option<&PathBuf>) -> Result<(),
     Ok(())
 }
 
-
 /// Where a [`compute`] result should go. `Stdout` is the verbatim
 /// payload for the `--print-*` modes (always stdout, ignoring `--out`,
 /// as before); `Out` honours `--out` via `write_or_print`.
@@ -266,10 +265,7 @@ pub(crate) fn write_or_print(output: &str, path: Option<&PathBuf>) -> Result<(),
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum RenderOutput {
     Stdout(String),
-    Out {
-        body: String,
-        path: Option<PathBuf>,
-    },
+    Out { body: String, path: Option<PathBuf> },
 }
 
 /// Thin IO wrapper: compute the payload, then emit it.
@@ -307,8 +303,7 @@ pub(crate) fn compute(mut args: RenderArgs) -> Result<RenderOutput, CliError> {
     // already unambiguous in UT, and `--chart-type calendar` only uses the
     // date for its month, so those skip the requirement.
     let trimmed = date_str.trim();
-    let is_now_or_jd =
-        trimmed.eq_ignore_ascii_case("now") || trimmed.parse::<f64>().is_ok();
+    let is_now_or_jd = trimmed.eq_ignore_ascii_case("now") || trimmed.parse::<f64>().is_ok();
     // `tz_label` / `date_local` describe the *input* civil time so the chart
     // can state it explicitly alongside the derived UT (`ctx["date"]`).
     let (jd, tz_label, date_local) = if chart_type != "calendar" && !is_now_or_jd {
@@ -341,8 +336,11 @@ pub(crate) fn compute(mut args: RenderArgs) -> Result<RenderOutput, CliError> {
     // into the typed `ChartContext` at the render / serialize boundary.
     let mut ctx = ctx.into_value();
 
-    let overlay_cals: Vec<String> =
-        args.calendars.iter().map(|c| c.as_str().to_string()).collect();
+    let overlay_cals: Vec<String> = args
+        .calendars
+        .iter()
+        .map(|c| c.as_str().to_string())
+        .collect();
     apply_universal_overlays(&mut ctx, jd, &overlay_cals);
 
     // Expose the input timezone + local civil time to templates and the
@@ -392,7 +390,6 @@ pub(crate) const EXAMPLE_TEMPLATE: &str = include_str!("../../../templates/examp
 /// `--template` files. Printed by `--print-schema` for fast template-author
 /// onboarding (no chart computation required).
 pub(crate) const CONTEXT_SCHEMA: &str = include_str!("../../../templates/context_schema.txt");
-
 
 #[cfg(test)]
 mod tests {
@@ -458,7 +455,10 @@ mod tests {
         a.out = Some(std::path::PathBuf::from("/tmp/celestial_test_unused.svg"));
         match compute(a).unwrap() {
             RenderOutput::Out { path, .. } => {
-                assert_eq!(path, Some(std::path::PathBuf::from("/tmp/celestial_test_unused.svg")));
+                assert_eq!(
+                    path,
+                    Some(std::path::PathBuf::from("/tmp/celestial_test_unused.svg"))
+                );
             }
             o => panic!("expected Out, got {o:?}"),
         }
@@ -471,11 +471,30 @@ mod tests {
     #[test]
     fn compute_covers_all_chart_families() {
         let types = [
-            "natal", "cosmogram", "solar-return", "lunar-return", "biwheel",
-            "composite", "dial", "graphic-ephemeris", "local-space", "rasi",
-            "navamsa", "dasha", "north-indian", "ashtakavarga", "shadbala",
-            "hellenistic", "firdaria", "profection", "bazi", "mesoamerican",
-            "medicine-wheel", "wheel-of-year", "omer-grid", "calendar",
+            "natal",
+            "cosmogram",
+            "solar-return",
+            "lunar-return",
+            "biwheel",
+            "composite",
+            "dial",
+            "graphic-ephemeris",
+            "local-space",
+            "rasi",
+            "navamsa",
+            "dasha",
+            "north-indian",
+            "ashtakavarga",
+            "shadbala",
+            "hellenistic",
+            "firdaria",
+            "profection",
+            "bazi",
+            "mesoamerican",
+            "medicine-wheel",
+            "wheel-of-year",
+            "omer-grid",
+            "calendar",
         ];
         for ct in types {
             let mut a = natal_args();

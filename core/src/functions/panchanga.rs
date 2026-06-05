@@ -20,9 +20,9 @@
 //! assert!(p.nakshatra <= 26);
 //! ```
 
-use crate::units::JulianDay;
 use crate::body::{Body, CalcFlags, Calendar};
 use crate::calc_ut;
+use crate::units::JulianDay;
 
 /// The 30 Tithis in order.
 pub const TITHI_NAMES: [&str; 30] = [
@@ -571,7 +571,13 @@ mod tests {
         // Caller picks Raman; panchanga internally switches to Lahiri.
         crate::set_sid_mode(SiderealMode::RAMAN, 0.0, 0.0);
         assert_eq!(current_sid_mode(), SiderealMode::RAMAN.as_raw());
-        let p = panchanga(JulianDay::new(julday(2000, 1, 1, 12.0, crate::body::Calendar::Gregorian)));
+        let p = panchanga(JulianDay::new(julday(
+            2000,
+            1,
+            1,
+            12.0,
+            crate::body::Calendar::Gregorian,
+        )));
         assert!(p.tithi >= 1 && p.tithi <= 30, "panchanga still valid");
         assert_eq!(
             current_sid_mode(),
@@ -581,7 +587,13 @@ mod tests {
 
         // Also from the default (Fagan-Bradley = 0).
         crate::set_sid_mode(SiderealMode::FAGAN_BRADLEY, 0.0, 0.0);
-        let _ = panchanga(JulianDay::new(julday(1986, 5, 30, 9.0, crate::body::Calendar::Gregorian)));
+        let _ = panchanga(JulianDay::new(julday(
+            1986,
+            5,
+            30,
+            9.0,
+            crate::body::Calendar::Gregorian,
+        )));
         assert_eq!(current_sid_mode(), SiderealMode::FAGAN_BRADLEY.as_raw());
     }
 }

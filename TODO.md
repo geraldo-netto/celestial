@@ -1,9 +1,11 @@
 # Celestial — TODO
 
-Rescan: **2026-05-27** (post-d163f8b newtype-threading refactor; categories per `AGENTS.md` §Rules).
-2026-05-27 fix pass cleared: REL-2, REL-7, REL-8, DUP-6, DUP-11, VIS-1 (partial), VIS-2, DEAD-3 — rows removed per AGENTS.md.
-2026-05-27 second-pass rescan post-fix: 3 new test fns refactored to satisfy CC ≤ 10 (was 11/11/15); WIRE-2/3 reviewed → KEEP; DUP-2/DUP-3/CC-7 logged DECIDED.
-2026-05-27 COV-1: added inline `cov_tests` for 18 truly-uncov source fns, deleted 3 dead pub orphans (`saros`, `crossings::{helio_cross,mooncross_node}_ut`), added `do_exec` direct test, prepended `llvm-cov clean` to CI workflow, raised gate 85→93 (now lines 95.43% / fns 95.65%) — see Test coverage table.
+Rescan: **2026-05-28** (5-agent parallel scan across all categories; categories per `AGENTS.md` §Rules).
+2026-06-05 fix pass cleared: REL-9, PERF-10 — rows removed per AGENTS.md.
+2026-05-28 rescan: 3 NEW findings logged — REL-9 (pole-lat div-by-zero in `ecl_to_equ`/`aberration`/`campanus`), PERF-10 (derived.rs double-clone), PERF-11 (calendar_overlays per-day `iso_date` alloc). All other categories holding at prior DECIDED state.
+Prior 2026-05-27 fix pass cleared: REL-2, REL-7, REL-8, DUP-6, DUP-11, VIS-1 (partial), VIS-2, DEAD-3 — rows removed per AGENTS.md.
+Prior 2026-05-27 second-pass rescan post-fix: 3 new test fns refactored to satisfy CC ≤ 10 (was 11/11/15); WIRE-2/3 reviewed → KEEP; DUP-2/DUP-3/CC-7 logged DECIDED.
+Prior 2026-05-27 COV-1: added inline `cov_tests` for 18 truly-uncov source fns, deleted 3 dead pub orphans (`saros`, `crossings::{helio_cross,mooncross_node}_ut`), added `do_exec` direct test, prepended `llvm-cov clean` to CI workflow, raised gate 85→93 (now lines 95.43% / fns 95.65%) — see Test coverage table.
 Prior rescan 2026-05-25 cleared SEC-12, TEST-6, DOC-5, DEAD-2, DUP-9, DUP-10, DDD-1.
 
 ## Security
@@ -18,7 +20,7 @@ Prior rescan 2026-05-25 cleared SEC-12, TEST-6, DOC-5, DEAD-2, DUP-9, DUP-10, DD
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-(no findings — REL-2/REL-7/REL-8 fixed 2026-05-27; clamps + `Body::try_from_raw` validated at FFI seam, 9 new core tests + 88 fuzz suites green.)
+(REL-2/REL-7/REL-8 fixed 2026-05-27.)
 
 ## Wiring gaps
 
@@ -64,6 +66,7 @@ Prior rescan 2026-05-25 cleared SEC-12, TEST-6, DOC-5, DEAD-2, DUP-9, DUP-10, DD
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
+| PERF-11 | OPEN | S | `cli/src/cmd/render/calendar_overlays.rs:242, 303, 361` — `day["iso_date"].as_str().map(str::to_string)` allocates one `String` per day per overlay (omer + sabbat + moon). ~366 × 3 ≈ 1100 transient allocs per annual calendar render. Allocation needed because `by_iso.get(&iso)` borrows from `day`, blocking later `day[...] = ...` mut. | Fix: `let iso = day["iso_date"].as_str()?.to_owned()` once outside the borrow, OR restructure to collect keys first then mutate in second pass. One-shot per render — not hot path. Acceptable defer. |
 | PERF-8 | DECIDED | S | `svg_common::svg_doc_open` chains 3 `String::replace` + 2 `format!` per chart (~6 allocs for preamble). | One call per chart; not hot. Combining needs a build-time concat or tiny templater. Net-neutral. |
 | PERF-9 | DECIDED | S | `parse_chart_type` (`args.rs:49`) calls `registered_chart_types()` twice — each call joins all aliases into one `String` then splits it. | One-shot at CLI start; <1µs. Cosmetic micro-perf. |
 | PERF-2/3 | DECIDED | — | `searches.rs` post-bisect `calc_ut`/`houses` full-flag re-eval is authoritative, not redundant (scan strips SPEED). | Locked by `perf2345_search_regression_lock`. |

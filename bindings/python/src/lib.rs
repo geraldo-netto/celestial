@@ -3,11 +3,11 @@
 //! Build with `maturin develop` (dev install) or `maturin build` (wheel).
 //! The module is exposed as `celestial_py`.
 
-use celestial::Longitude;
-use celestial::Latitude;
-use celestial::JulianDay;
-use celestial::Degrees;
 use celestial::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
+use celestial::Degrees;
+use celestial::JulianDay;
+use celestial::Latitude;
+use celestial::Longitude;
 use celestial_ffi as celestial;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -80,7 +80,8 @@ fn close() {
 #[pyfunction]
 #[pyo3(signature = (tjdet, planet, flags = 258))]
 fn calc(py: Python<'_>, tjdet: f64, planet: i32, flags: i32) -> PyResult<PyObject> {
-    let pos = celestial::calc(JulianDay::new(tjdet), body_of(planet)?, CalcFlags(flags)).map_err(to_py)?;
+    let pos = celestial::calc(JulianDay::new(tjdet), body_of(planet)?, CalcFlags(flags))
+        .map_err(to_py)?;
     let xx = celestial_ffi::pos6_tuple(&pos);
     Ok((xx, pos.ret_flags).into_py_any(py).unwrap())
 }
@@ -89,7 +90,8 @@ fn calc(py: Python<'_>, tjdet: f64, planet: i32, flags: i32) -> PyResult<PyObjec
 #[pyfunction]
 #[pyo3(signature = (tjdut, planet, flags = 258))]
 fn calc_ut(py: Python<'_>, tjdut: f64, planet: i32, flags: i32) -> PyResult<PyObject> {
-    let pos = celestial::calc_ut(JulianDay::new(tjdut), body_of(planet)?, CalcFlags(flags)).map_err(to_py)?;
+    let pos = celestial::calc_ut(JulianDay::new(tjdut), body_of(planet)?, CalcFlags(flags))
+        .map_err(to_py)?;
     let xx = celestial_ffi::pos6_tuple(&pos);
     Ok((xx, pos.ret_flags).into_py_any(py).unwrap())
 }
@@ -240,7 +242,13 @@ fn fixstar2_mag(star: &str) -> PyResult<f64> {
 #[pyfunction]
 #[pyo3(signature = (tjdut, lat, lon, hsys = b'P'))]
 fn houses(py: Python<'_>, tjdut: f64, lat: f64, lon: f64, hsys: u8) -> PyResult<PyObject> {
-    let r = celestial::houses(JulianDay::new(tjdut), Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys)).map_err(to_py)?;
+    let r = celestial::houses(
+        JulianDay::new(tjdut),
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(hsys),
+    )
+    .map_err(to_py)?;
     // cusps[0] is unused in SE convention; return cusps[1..=12] (12 real cusps)
     // ascmc[0..8] is the SE standard (skip our extra IC/DSC at [8],[9])
     let cusps: Vec<f64> = r.cusps[1..].to_vec();
@@ -259,8 +267,14 @@ fn houses_ex(
     hsys: u8,
     flags: i32,
 ) -> PyResult<PyObject> {
-    let r = celestial::houses_ex(JulianDay::new(tjdut), CalcFlags(flags), Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys))
-        .map_err(to_py)?;
+    let r = celestial::houses_ex(
+        JulianDay::new(tjdut),
+        CalcFlags(flags),
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(hsys),
+    )
+    .map_err(to_py)?;
     let cusps: Vec<f64> = r.cusps[1..].to_vec();
     let ascmc: Vec<f64> = r.ascmc[..8].to_vec();
     Ok((cusps, ascmc).into_py_any(py).unwrap())
@@ -277,22 +291,36 @@ fn houses_ex2(
     hsys: u8,
     flags: i32,
 ) -> PyResult<PyObject> {
-    let r = celestial::houses_ex2(JulianDay::new(tjdut), CalcFlags(flags), Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys))
-        .map_err(to_py)?;
+    let r = celestial::houses_ex2(
+        JulianDay::new(tjdut),
+        CalcFlags(flags),
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(hsys),
+    )
+    .map_err(to_py)?;
     Ok((
         r.cusps[1..].to_vec(),
         r.ascmc[..8].to_vec(),
         r.cusp_speeds[1..].to_vec(),
         r.ascmc_speeds[..8].to_vec(),
     )
-        .into_py_any(py).unwrap())
+        .into_py_any(py)
+        .unwrap())
 }
 
 /// Calculate house position of a point.
 #[pyfunction]
 #[pyo3(signature = (armc, lat, eps, hsys = b'P', lon = 0.0, lat_body = 0.0))]
 fn house_pos(armc: f64, lat: f64, eps: f64, hsys: u8, lon: f64, lat_body: f64) -> PyResult<f64> {
-    celestial::house_pos(Degrees::new(armc), Latitude::new(lat), Degrees::new(eps), HouseSystem(hsys), [lon, lat_body]).map_err(to_py)
+    celestial::house_pos(
+        Degrees::new(armc),
+        Latitude::new(lat),
+        Degrees::new(eps),
+        HouseSystem(hsys),
+        [lon, lat_body],
+    )
+    .map_err(to_py)
 }
 
 /// Name of a house system given its byte code.
@@ -313,8 +341,13 @@ fn sol_eclipse_when_glob(
     ecl_type: i32,
     backwards: bool,
 ) -> PyResult<PyObject> {
-    let r = celestial::sol_eclipse_when_glob(JulianDay::new(tjd_start), CalcFlags(flags), ecl_type, backwards)
-        .map_err(to_py)?;
+    let r = celestial::sol_eclipse_when_glob(
+        JulianDay::new(tjd_start),
+        CalcFlags(flags),
+        ecl_type,
+        backwards,
+    )
+    .map_err(to_py)?;
     Ok((r.ret_flags, r.tret.to_vec()).into_py_any(py).unwrap())
 }
 
@@ -328,16 +361,24 @@ fn sol_eclipse_when_loc(
     flags: i32,
     backwards: bool,
 ) -> PyResult<PyObject> {
-    let r = celestial::sol_eclipse_when_loc(JulianDay::new(tjd_start), CalcFlags(flags), geopos, backwards)
-        .map_err(to_py)?;
-    Ok((r.ret_flags, r.tret.to_vec(), r.attr.to_vec()).into_py_any(py).unwrap())
+    let r = celestial::sol_eclipse_when_loc(
+        JulianDay::new(tjd_start),
+        CalcFlags(flags),
+        geopos,
+        backwards,
+    )
+    .map_err(to_py)?;
+    Ok((r.ret_flags, r.tret.to_vec(), r.attr.to_vec())
+        .into_py_any(py)
+        .unwrap())
 }
 
 /// How a solar eclipse looks from a location. Returns `(ret_flags, (attr...))`.
 #[pyfunction]
 #[pyo3(signature = (jd_ut, geopos, flags = 2))]
 fn sol_eclipse_how(py: Python<'_>, jd_ut: f64, geopos: [f64; 3], flags: i32) -> PyResult<PyObject> {
-    let r = celestial::sol_eclipse_how(JulianDay::new(jd_ut), CalcFlags(flags), geopos).map_err(to_py)?;
+    let r = celestial::sol_eclipse_how(JulianDay::new(jd_ut), CalcFlags(flags), geopos)
+        .map_err(to_py)?;
     Ok((r.ret_flags, r.attr.to_vec()).into_py_any(py).unwrap())
 }
 
@@ -346,7 +387,9 @@ fn sol_eclipse_how(py: Python<'_>, jd_ut: f64, geopos: [f64; 3], flags: i32) -> 
 #[pyo3(signature = (tjd, flags = 2))]
 fn sol_eclipse_where(py: Python<'_>, tjd: f64, flags: i32) -> PyResult<PyObject> {
     let r = celestial::sol_eclipse_where(JulianDay::new(tjd), CalcFlags(flags)).map_err(to_py)?;
-    Ok((r.ret_flags, r.geopos.to_vec(), r.attr.to_vec()).into_py_any(py).unwrap())
+    Ok((r.ret_flags, r.geopos.to_vec(), r.attr.to_vec())
+        .into_py_any(py)
+        .unwrap())
 }
 
 /// Find next lunar eclipse (UT). Returns `(ret_flags, (tret...))`.
@@ -359,8 +402,13 @@ fn lun_eclipse_when(
     ecl_type: i32,
     backwards: bool,
 ) -> PyResult<PyObject> {
-    let r = celestial::lun_eclipse_when(JulianDay::new(tjd_start), CalcFlags(flags), ecl_type, backwards)
-        .map_err(to_py)?;
+    let r = celestial::lun_eclipse_when(
+        JulianDay::new(tjd_start),
+        CalcFlags(flags),
+        ecl_type,
+        backwards,
+    )
+    .map_err(to_py)?;
     Ok((r.ret_flags, r.tret.to_vec()).into_py_any(py).unwrap())
 }
 
@@ -374,9 +422,16 @@ fn lun_eclipse_when_loc(
     flags: i32,
     backwards: bool,
 ) -> PyResult<PyObject> {
-    let r = celestial::lun_eclipse_when_loc(JulianDay::new(tjd_start), CalcFlags(flags), geopos, backwards)
-        .map_err(to_py)?;
-    Ok((r.ret_flags, r.tret.to_vec(), r.attr.to_vec()).into_py_any(py).unwrap())
+    let r = celestial::lun_eclipse_when_loc(
+        JulianDay::new(tjd_start),
+        CalcFlags(flags),
+        geopos,
+        backwards,
+    )
+    .map_err(to_py)?;
+    Ok((r.ret_flags, r.tret.to_vec(), r.attr.to_vec())
+        .into_py_any(py)
+        .unwrap())
 }
 
 /// Lunar eclipse attributes. Returns `(ret_flags, (attr...))`.
@@ -388,7 +443,8 @@ fn lun_eclipse_how(
     geopos: Option<[f64; 3]>,
     flags: i32,
 ) -> PyResult<PyObject> {
-    let r = celestial::lun_eclipse_how(JulianDay::new(jd_ut), CalcFlags(flags), geopos).map_err(to_py)?;
+    let r = celestial::lun_eclipse_how(JulianDay::new(jd_ut), CalcFlags(flags), geopos)
+        .map_err(to_py)?;
     Ok((r.ret_flags, r.attr.to_vec()).into_py_any(py).unwrap())
 }
 
@@ -544,7 +600,9 @@ fn split_deg(py: Python<'_>, deg: f64, round_flag: i32) -> PyObject {
 /// Coordinate transform ecliptic ↔ equatorial.
 #[pyfunction]
 fn coord_transform(py: Python<'_>, coord: [f64; 3], eps: f64) -> PyObject {
-    celestial::coord_transform(coord, Degrees::new(eps)).into_py_any(py).unwrap()
+    celestial::coord_transform(coord, Degrees::new(eps))
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Azimuth and altitude from ecliptic/equatorial coordinates.
@@ -558,8 +616,17 @@ fn azalt(
     temp_c: f64,
     xin: [f64; 3],
 ) -> PyObject {
-    let r = celestial::azalt(JulianDay::new(tjdut), calc_flag, geopos, pressure_mb, temp_c, xin);
-    (r.azimuth, r.true_alt, r.apparent_alt).into_py_any(py).unwrap()
+    let r = celestial::azalt(
+        JulianDay::new(tjdut),
+        calc_flag,
+        geopos,
+        pressure_mb,
+        temp_c,
+        xin,
+    );
+    (r.azimuth, r.true_alt, r.apparent_alt)
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Reverse azimuth/altitude to coordinates. Returns `(lon, lat)`.
@@ -628,7 +695,9 @@ fn match_aspect(
     orb: f64,
 ) -> PyObject {
     let r = celestial::match_aspect(pos0, speed0, pos1, speed1, aspect, orb);
-    (r.diff, r.speed, r.factor, r.matched as i32).into_py_any(py).unwrap()
+    (r.diff, r.speed, r.factor, r.matched as i32)
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Like match_aspect but aspect in [0,180].
@@ -644,7 +713,9 @@ fn match_aspect2(
     orb: f64,
 ) -> PyObject {
     let r = celestial::match_aspect2(pos0, speed0, pos1, speed1, aspect, orb);
-    (r.diff, r.speed, r.factor, r.matched as i32).into_py_any(py).unwrap()
+    (r.diff, r.speed, r.factor, r.matched as i32)
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Aspect with applying/separating/stationary orbs. Returns `(diff, speed, factor, matched)`.
@@ -665,7 +736,9 @@ fn match_aspect3(
     let r = celestial::match_aspect3(
         pos0, speed0, pos1, speed1, aspect, app_orb, sep_orb, def_orb,
     );
-    (r.diff, r.speed, r.factor, r.matched as i32).into_py_any(py).unwrap()
+    (r.diff, r.speed, r.factor, r.matched as i32)
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Like match_aspect3 but aspect in [0,180].
@@ -685,14 +758,18 @@ fn match_aspect4(
     let r = celestial::match_aspect4(
         pos0, speed0, pos1, speed1, aspect, app_orb, sep_orb, def_orb,
     );
-    (r.diff, r.speed, r.factor, r.matched as i32).into_py_any(py).unwrap()
+    (r.diff, r.speed, r.factor, r.matched as i32)
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Compute antiscion and contrantiscion. Returns `(antiscion[6], contrantiscion[6])`.
 #[pyfunction]
 fn antiscion(py: Python<'_>, pos: [f64; 6], axis: f64) -> PyObject {
     let a = celestial::antiscion(pos, axis);
-    (a.antiscion.to_vec(), a.contrantiscion.to_vec()).into_py_any(py).unwrap()
+    (a.antiscion.to_vec(), a.contrantiscion.to_vec())
+        .into_py_any(py)
+        .unwrap()
 }
 
 // ─── Datetime helpers ────────────────────────────────────────────────────────
@@ -708,7 +785,8 @@ fn jdnow() -> f64 {
 fn revjul_hms(py: Python<'_>, jd: f64, calendar: i32) -> PyObject {
     celestial::revjul_hms(JulianDay::new(jd), Calendar::from(calendar))
         .to_vec()
-        .into_py_any(py).unwrap()
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Parse ISO datetime string to [y,mo,d,h,mi,s].
@@ -725,7 +803,8 @@ fn parse_datetime(py: Python<'_>, s: &str) -> PyObject {
 fn jd_duration(py: Python<'_>, jd_start: f64, jd_end: f64) -> PyObject {
     celestial::jd_duration(JulianDay::new(jd_start), JulianDay::new(jd_end))
         .to_vec()
-        .into_py_any(py).unwrap()
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Format JD as ISO string "YYYY-MM-DD HH:MM:SS UTC".
@@ -788,7 +867,8 @@ fn nakshatra_name(n: i32) -> Option<&'static str> {
 fn raman_houses(py: Python<'_>, asc: f64, mc: f64, sandhi: bool) -> PyObject {
     celestial::raman_houses(Degrees::new(asc), Degrees::new(mc), sandhi)
         .to_vec()
-        .into_py_any(py).unwrap()
+        .into_py_any(py)
+        .unwrap()
 }
 /// Naisargika (permanent) relation between two planets. Returns 1/0/-1.
 #[pyfunction]
@@ -803,7 +883,9 @@ fn ochchabala(graha: i32, sputha: f64) -> Option<f64> {
 /// Residential strength in [0,1].
 #[pyfunction]
 fn residential_strength(py: Python<'_>, graha: f64, bm: [f64; 12]) -> PyObject {
-    celestial::residential_strength(graha, &bm).into_py_any(py).unwrap()
+    celestial::residential_strength(graha, &bm)
+        .into_py_any(py)
+        .unwrap()
 }
 /// Saturn 4-Stars index (Halbronn). Returns [sat, ald, reg, ant, fom, index].
 #[pyfunction]
@@ -892,7 +974,9 @@ fn next_aspect_with(
         stop_days,
         CalcFlags(flags),
     ) {
-        Some(r) => (r.jd, r.pos1.to_vec(), r.pos2.to_vec()).into_py_any(py).unwrap(),
+        Some(r) => (r.jd, r.pos1.to_vec(), r.pos2.to_vec())
+            .into_py_any(py)
+            .unwrap(),
         None => py.None(),
     }
 }
@@ -905,8 +989,13 @@ fn next_aspect_with(
 #[pyfunction]
 #[pyo3(signature = (planet, jd, flags, backward=false))]
 fn sign_ingress_ut(planet: i32, jd: f64, flags: i32, backward: bool) -> PyResult<(f64, u8)> {
-    celestial::sign_ingress_ut(body_of(planet)?, JulianDay::new(jd), CalcFlags(flags), backward)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+    celestial::sign_ingress_ut(
+        body_of(planet)?,
+        JulianDay::new(jd),
+        CalcFlags(flags),
+        backward,
+    )
+    .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
 }
 
 /// Find the next retrograde and direct stations for a body after `jd_start`.
@@ -923,7 +1012,11 @@ fn retrograde_station_ut(py: Python<'_>, planet: i32, jd: f64, flags: i32) -> Py
 /// For Lot of Fortune: `arabic_part(asc, moon_lon, sun_lon)`.
 #[pyfunction]
 fn arabic_part(asc: f64, body2: f64, body1: f64) -> f64 {
-    celestial::arabic_part(Degrees::new(asc), Longitude::new(body2), Longitude::new(body1))
+    celestial::arabic_part(
+        Degrees::new(asc),
+        Longitude::new(body2),
+        Longitude::new(body1),
+    )
 }
 
 /// Next time a transiting body reaches `target_lon` degrees after `jd`.
@@ -937,14 +1030,8 @@ fn transit_to_degree(
     flags: i32,
     backward: bool,
 ) -> PyResult<f64> {
-    celestial::transit_to_degree(
-        body_of(planet)?,
-        target_lon,
-        jd,
-        CalcFlags(flags),
-        backward,
-    )
-    .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+    celestial::transit_to_degree(body_of(planet)?, target_lon, jd, CalcFlags(flags), backward)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -987,8 +1074,12 @@ fn solar_return_jd(jd_natal: f64, return_year: i32, flags: i32) -> PyResult<f64>
 /// The lunar return is when transiting Moon returns to its natal longitude.
 #[pyfunction]
 fn lunar_return_jd(jd_natal: f64, jd_start: f64, flags: i32) -> PyResult<f64> {
-    celestial::lunar_return_jd(JulianDay::new(jd_natal), JulianDay::new(jd_start), CalcFlags(flags))
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+    celestial::lunar_return_jd(
+        JulianDay::new(jd_natal),
+        JulianDay::new(jd_start),
+        CalcFlags(flags),
+    )
+    .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
 }
 
 /// Shortest-arc midpoint between two ecliptic longitudes (degrees).
@@ -1059,10 +1150,18 @@ fn vimshottari_dasha(
     moon_lon_sidereal: f64,
     years_ahead: f64,
 ) -> PyObject {
-    let dashas = celestial::vimshottari_dasha(JulianDay::new(jd_birth), Longitude::new(moon_lon_sidereal), years_ahead);
+    let dashas = celestial::vimshottari_dasha(
+        JulianDay::new(jd_birth),
+        Longitude::new(moon_lon_sidereal),
+        years_ahead,
+    );
     let result: Vec<PyObject> = dashas
         .iter()
-        .map(|d| (d.body.as_raw(), d.start, d.end, d.years).into_py_any(py).unwrap())
+        .map(|d| {
+            (d.body.as_raw(), d.start, d.end, d.years)
+                .into_py_any(py)
+                .unwrap()
+        })
         .collect();
     result.into_py_any(py).unwrap()
 }
@@ -1086,7 +1185,8 @@ fn omer_from_jd(py: Python<'_>, jd: f64) -> PyObject {
             d.is_lag_baomer,
             d.jd,
         )
-            .into_py_any(py).unwrap(),
+            .into_py_any(py)
+            .unwrap(),
         None => py.None(),
     }
 }
@@ -1124,7 +1224,8 @@ fn omer_days(py: Python<'_>, hebrew_year: i32) -> PyObject {
                 d.is_lag_baomer,
                 d.jd,
             )
-                .into_py_any(py).unwrap()
+                .into_py_any(py)
+                .unwrap()
         })
         .collect();
     result.into_py_any(py).unwrap()
@@ -1135,7 +1236,9 @@ fn omer_days(py: Python<'_>, hebrew_year: i32) -> PyObject {
 #[pyfunction]
 fn omer_period(py: Python<'_>, jd: f64) -> PyObject {
     let p = celestial::omer_period(JulianDay::new(jd));
-    (p.start_jd, p.end_jd, p.hebrew_year).into_py_any(py).unwrap()
+    (p.start_jd, p.end_jd, p.hebrew_year)
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Return the full declaration string for the given Omer day (1–49).
@@ -1172,7 +1275,9 @@ fn decan_ruler(lon: f64) -> i32 {
 #[pyfunction]
 fn triplicity_rulers(py: Python<'_>, lon: f64) -> PyObject {
     let (d, n, p) = celestial::triplicity_rulers(Longitude::new(lon));
-    (d.as_raw(), n.as_raw(), p.as_raw()).into_py_any(py).unwrap()
+    (d.as_raw(), n.as_raw(), p.as_raw())
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Full dignity for a planet at a longitude.
@@ -1222,7 +1327,8 @@ fn firdaria(py: Python<'_>, jd_birth: f64, is_day: bool, span_years: f64) -> PyO
                 p.end,
                 p.years,
             )
-                .into_py_any(py).unwrap()
+                .into_py_any(py)
+                .unwrap()
         })
         .collect();
     result.into_py_any(py).unwrap()
@@ -1247,7 +1353,8 @@ fn four_pillars(py: Python<'_>, jd_ut: f64, hour_ut: f64, sun_lon: f64) -> PyObj
                     let _ = d.set_item("branch_element", p.branch_element);
                     let _ = d.set_item("yang", p.yang);
                 })
-                .into_py_any(py).unwrap()
+                .into_py_any(py)
+                .unwrap()
         })
         .collect();
     result.into_py_any(py).unwrap()
@@ -1337,7 +1444,8 @@ fn solar_cycle(py: Python<'_>, jd: f64) -> Option<PyObject> {
             info.nickname.unwrap_or(""),
             info.grand_epoch.map_or("", |g| g.name()),
         )
-            .into_py_any(py).unwrap(),
+            .into_py_any(py)
+            .unwrap(),
     )
 }
 
@@ -1450,7 +1558,12 @@ fn next_sabbat_name(jd_from: f64) -> PyResult<String> {
 
 #[pyfunction]
 fn solcross_ut(x2cross: f64, jd_ut: f64, flags: i32) -> PyResult<f64> {
-    celestial::solcross_ut(Longitude::new(x2cross), JulianDay::new(jd_ut), CalcFlags(flags)).map_err(to_py)
+    celestial::solcross_ut(
+        Longitude::new(x2cross),
+        JulianDay::new(jd_ut),
+        CalcFlags(flags),
+    )
+    .map_err(to_py)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1460,7 +1573,9 @@ fn solcross_ut(x2cross: f64, jd_ut: f64, flags: i32) -> PyResult<f64> {
 
 #[pyfunction]
 fn iso_week(py: Python<'_>, jd: f64) -> PyObject {
-    celestial::iso_week(JulianDay::new(jd)).into_py_any(py).unwrap()
+    celestial::iso_week(JulianDay::new(jd))
+        .into_py_any(py)
+        .unwrap()
 }
 
 #[pyfunction]
@@ -1475,7 +1590,9 @@ fn weeks_in_iso_year(year: i32) -> u32 {
 
 #[pyfunction]
 fn maya_long_count(py: Python<'_>, jd: f64) -> PyObject {
-    celestial::maya_long_count(JulianDay::new(jd)).into_py_any(py).unwrap()
+    celestial::maya_long_count(JulianDay::new(jd))
+        .into_py_any(py)
+        .unwrap()
 }
 
 #[pyfunction]
@@ -1513,7 +1630,9 @@ fn coptic_to_jd(year: i32, month: u32, day: u32) -> f64 {
 #[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn jd_to_coptic(py: Python<'_>, jd: f64) -> PyObject {
-    celestial::jd_to_coptic(JulianDay::new(jd)).into_py_any(py).unwrap()
+    celestial::jd_to_coptic(JulianDay::new(jd))
+        .into_py_any(py)
+        .unwrap()
 }
 
 #[cfg(feature = "calendar-traditions")]
@@ -1525,7 +1644,9 @@ fn ethiopic_to_jd(year: i32, month: u32, day: u32) -> f64 {
 #[cfg(feature = "calendar-traditions")]
 #[pyfunction]
 fn jd_to_ethiopic(py: Python<'_>, jd: f64) -> PyObject {
-    celestial::jd_to_ethiopic(JulianDay::new(jd)).into_py_any(py).unwrap()
+    celestial::jd_to_ethiopic(JulianDay::new(jd))
+        .into_py_any(py)
+        .unwrap()
 }
 
 #[cfg(feature = "calendar-traditions")]
@@ -1674,7 +1795,10 @@ fn next_aspect_cusp(
 fn sabbats_for_year(py: Python<'_>, year: i32) -> PyResult<PyObject> {
     let sabbats =
         celestial::sabbats_for_year(year).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-    let result: Vec<PyObject> = sabbats.iter().map(|s| (s.name, s.jd).into_py_any(py).unwrap()).collect();
+    let result: Vec<PyObject> = sabbats
+        .iter()
+        .map(|s| (s.name, s.jd).into_py_any(py).unwrap())
+        .collect();
     Ok(result.into_py_any(py).unwrap())
 }
 
@@ -1749,7 +1873,11 @@ fn secondary_progressions(
     .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
     let pos_list: Vec<PyObject> = positions
         .iter()
-        .map(|(b, p)| (b.as_raw(), p.lon, p.lat, p.dist, p.speed_lon).into_py_any(py).unwrap())
+        .map(|(b, p)| {
+            (b.as_raw(), p.lon, p.lat, p.dist, p.speed_lon)
+                .into_py_any(py)
+                .unwrap()
+        })
         .collect();
     let cusps: Vec<f64> = houses.cusps.to_vec();
     Ok((pos_list, cusps).into_py_any(py).unwrap())
@@ -1818,7 +1946,8 @@ fn calc_chart_aspects(
                 a.orb,
                 a.applying,
             )
-                .into_py_any(py).unwrap()
+                .into_py_any(py)
+                .unwrap()
         })
         .collect();
     result.into_py_any(py).unwrap()
@@ -1844,7 +1973,8 @@ fn calc_chart_aspects_auto(
                 a.orb,
                 a.applying,
             )
-                .into_py_any(py).unwrap()
+                .into_py_any(py)
+                .unwrap()
         })
         .collect();
     result.into_py_any(py).unwrap()
@@ -1923,7 +2053,11 @@ fn moon_phases_for_month(py: Python<'_>, year: i32, month: i32) -> PyResult<PyOb
     let events = celestial::moon_phases_for_month(year, month as u8).map_err(to_py)?;
     let result: Vec<PyObject> = events
         .into_iter()
-        .map(|e| (e.phase.name(), e.jd, e.elongation).into_py_any(py).unwrap())
+        .map(|e| {
+            (e.phase.name(), e.jd, e.elongation)
+                .into_py_any(py)
+                .unwrap()
+        })
         .collect();
     Ok(result.into_py_any(py).unwrap())
 }
@@ -1945,7 +2079,8 @@ fn moon_phase_info(py: Python<'_>, jd: f64) -> PyResult<PyObject> {
         info.next_phase_jd,
         info.age_days,
     )
-        .into_py_any(py).unwrap())
+        .into_py_any(py)
+        .unwrap())
 }
 
 fn register_setup_fns(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -2318,7 +2453,8 @@ fn jewish_holidays(py: Python<'_>, hebrew_year: i32) -> PyObject {
                 h.days as i32,
                 cat,
             )
-                .into_py_any(py).unwrap()
+                .into_py_any(py)
+                .unwrap()
         })
         .collect();
     result.into_py_any(py).unwrap()
@@ -2394,7 +2530,8 @@ fn christian_feasts(py: Python<'_>, year: i32) -> PyObject {
                 f.month as i32,
                 f.day as i32,
             )
-                .into_py_any(py).unwrap()
+                .into_py_any(py)
+                .unwrap()
         })
         .collect();
     result.into_py_any(py).unwrap()
@@ -2406,7 +2543,11 @@ fn christian_feasts(py: Python<'_>, year: i32) -> PyObject {
 fn christian_fixed_feasts(py: Python<'_>, year: i32) -> PyObject {
     let result: Vec<PyObject> = celestial::christian_fixed_feasts(year)
         .into_iter()
-        .map(|f| (f.name, f.jd, f.year, f.month as i32, f.day as i32).into_py_any(py).unwrap())
+        .map(|f| {
+            (f.name, f.jd, f.year, f.month as i32, f.day as i32)
+                .into_py_any(py)
+                .unwrap()
+        })
         .collect();
     result.into_py_any(py).unwrap()
 }
@@ -2451,7 +2592,8 @@ fn islamic_observances(py: Python<'_>, hijri_year: i32) -> PyObject {
                 o.jd,
                 o.days as i32,
             )
-                .into_py_any(py).unwrap()
+                .into_py_any(py)
+                .unwrap()
         })
         .collect();
     result.into_py_any(py).unwrap()
@@ -2562,7 +2704,9 @@ fn naw_ruz_jd(bahai_year: i32) -> f64 {
 #[pyfunction]
 fn jd_to_bahai(py: Python<'_>, jd: f64) -> PyObject {
     let b = celestial::jd_to_bahai(JulianDay::new(jd));
-    (b.year, b.month as i32, b.day as i32, b.month_name).into_py_any(py).unwrap()
+    (b.year, b.month as i32, b.day as i32, b.month_name)
+        .into_py_any(py)
+        .unwrap()
 }
 
 /// Bahá'í holy days for the given Bahá'í year.
@@ -2580,7 +2724,8 @@ fn bahai_holy_days(py: Python<'_>, bahai_year: i32) -> PyObject {
                 h.bahai_day as i32,
                 h.jd,
             )
-                .into_py_any(py).unwrap()
+                .into_py_any(py)
+                .unwrap()
         })
         .collect();
     result.into_py_any(py).unwrap()

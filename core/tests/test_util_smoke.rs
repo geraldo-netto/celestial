@@ -13,7 +13,11 @@ fn xorshift_is_deterministic_and_non_trivial() {
     let mut a = Xorshift64::new(42);
     let mut b = Xorshift64::new(42);
     for _ in 0..1_000 {
-        assert_eq!(a.next_u64(), b.next_u64(), "PRNG not deterministic for seed=42");
+        assert_eq!(
+            a.next_u64(),
+            b.next_u64(),
+            "PRNG not deterministic for seed=42"
+        );
     }
     // Zero seed must not lock the state.
     let mut z = Xorshift64::new(0);
@@ -106,5 +110,8 @@ fn edge_str_lens_and_f64_anchors_present() {
     assert!(EDGE_STR_LENS.contains(&0), "EDGE_STR_LENS missing 0");
     assert!(EDGE_STR_LENS.contains(&STR_LEN_MAX), "missing STR_LEN_MAX");
     assert!(EDGE_F64.iter().any(|f| f.is_nan()), "EDGE_F64 missing NaN");
-    assert!(EDGE_F64.iter().any(|f| f.is_infinite()), "EDGE_F64 missing Inf");
+    assert!(
+        EDGE_F64.iter().any(|f| f.is_infinite()),
+        "EDGE_F64 missing Inf"
+    );
 }

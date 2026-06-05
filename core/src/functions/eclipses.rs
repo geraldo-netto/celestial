@@ -1,9 +1,9 @@
 //! Eclipse and occultation search functions.
 
-use crate::units::JulianDay;
 use crate::astronomy::eclipses as ae;
 use crate::body::{Body, CalcFlags};
 use crate::error::{Error, Result};
+use crate::units::JulianDay;
 
 // ─── Return types ─────────────────────────────────────────────────────────────
 
@@ -95,7 +95,11 @@ pub fn sol_eclipse_when_loc(
 /// Solar eclipse attributes at a specific time and location.
 ///
 /// Returns magnitude, obscuration, and contact times in the `attr` array.
-pub fn sol_eclipse_how(jd_ut: JulianDay, _flags: CalcFlags, geopos: [f64; 3]) -> Result<EclipseHow> {
+pub fn sol_eclipse_how(
+    jd_ut: JulianDay,
+    _flags: CalcFlags,
+    geopos: [f64; 3],
+) -> Result<EclipseHow> {
     let jd_ut: f64 = jd_ut.into();
     let attr = ae::solar_eclipse_attr(JulianDay::new(jd_ut), geopos);
     let ret_flags = if attr[1] > 0.0 {
@@ -244,9 +248,7 @@ fn ecl_to_eq(lon_deg: f64, lat_deg: f64, eps: f64) -> (f64, f64) {
     let ra = (-lat.tan())
         .mul_add(sin_eps, sin_lon * cos_eps)
         .atan2(cos_lon);
-    let dec = sin_lat
-        .mul_add(cos_eps, cos_lat * sin_eps * sin_lon)
-        .asin();
+    let dec = sin_lat.mul_add(cos_eps, cos_lat * sin_eps * sin_lon).asin();
     (ra, dec)
 }
 
@@ -287,7 +289,13 @@ fn refine_separation_minimum(jd_mid: f64, step: f64, body: Body) -> (f64, f64) {
 /// One step of the occultation search. Returns `Some(EclipseResult)` if the
 /// scanned interval contains a refined occultation within the disc-diameter
 /// threshold; `None` if no occultation here.
-fn try_refine_occultation(jd: f64, step: f64, prev: f64, curr: f64, body: Body) -> Option<EclipseResult> {
+fn try_refine_occultation(
+    jd: f64,
+    step: f64,
+    prev: f64,
+    curr: f64,
+    body: Body,
+) -> Option<EclipseResult> {
     const THRESHOLD: f64 = 1.5;
     const OCC_DISC: f64 = 0.27;
     let next = moon_body_separation(jd + step, body).unwrap_or(180.0);
@@ -301,7 +309,10 @@ fn try_refine_occultation(jd: f64, step: f64, prev: f64, curr: f64, body: Body) 
     }
     let mut tret = [0.0f64; 10];
     tret[0] = jd_occ;
-    Some(EclipseResult { ret_flags: 64, tret })
+    Some(EclipseResult {
+        ret_flags: 64,
+        tret,
+    })
 }
 
 /// Next occultation of `body` by the Moon, searching globally from `tjd_start`.
@@ -363,7 +374,8 @@ pub fn lun_occult_when_loc(
 
     // Compute Moon altitude at the occultation time from the given location
     let moon_alt = {
-        let moon = crate::calc_ut(JulianDay::new(jd_occ), Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
+        let moon = crate::calc_ut(JulianDay::new(jd_occ), Body::MOON, CalcFlags::BUILTIN)
+            .unwrap_or_default();
         // Hour angle = LST - RA (approximate: use geographic longitude for LST)
         let lst_deg = crate::sidtime(JulianDay::new(jd_occ)) * 15.0 + geopos[0];
         let ha_deg = lst_deg - moon.lon; // rough HA using ecliptic lon ≈ RA

@@ -18,11 +18,11 @@
 //! works without the user having to compute lookups themselves.
 
 use super::ChartContext;
+use celestial_core::JulianDay;
 use celestial_core::{
     julday, moon_illumination, moon_phases_for_month, omer_days, omer_period, revjul,
     sabbats_for_year, Calendar, PrincipalPhase,
 };
-use celestial_core::JulianDay;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 

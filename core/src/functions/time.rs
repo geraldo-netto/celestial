@@ -310,9 +310,7 @@ pub fn time_equ(jd_ut: JulianDay) -> Result<f64> {
     let m_r = m.to_radians();
 
     // Equation of centre (degrees)
-    let c = 1.9146_f64
-        .mul_add(m_r.sin(), 0.020 * (2.0 * m_r).sin())
-        + 0.0003 * (3.0 * m_r).sin();
+    let c = 1.9146_f64.mul_add(m_r.sin(), 0.020 * (2.0 * m_r).sin()) + 0.0003 * (3.0 * m_r).sin();
 
     // Sun's true longitude (degrees)
     let sun_lon = (l0 + c).rem_euclid(360.0);
@@ -519,8 +517,20 @@ pub fn day_of_year(year: i32, month: u32, day: u32) -> u32 {
 /// An ISO year has 53 weeks iff Jan 1 or Dec 31 falls on a Thursday.
 #[must_use]
 pub fn weeks_in_iso_year(year: i32) -> u32 {
-    let jan1 = day_of_week(JulianDay::new(julday(year, 1, 1, 12.0, Calendar::Gregorian)));
-    let dec31 = day_of_week(JulianDay::new(julday(year, 12, 31, 12.0, Calendar::Gregorian)));
+    let jan1 = day_of_week(JulianDay::new(julday(
+        year,
+        1,
+        1,
+        12.0,
+        Calendar::Gregorian,
+    )));
+    let dec31 = day_of_week(JulianDay::new(julday(
+        year,
+        12,
+        31,
+        12.0,
+        Calendar::Gregorian,
+    )));
     // day_of_week returns 0=Monday..6=Sunday — Thursday = 3
     if jan1 == 3 || dec31 == 3 {
         53

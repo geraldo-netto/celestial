@@ -4,11 +4,11 @@
 //! generating aspect tables, secondary progressions, solar/lunar returns,
 //! solar arc directions, midpoints, Arabic parts, and planetary stations.
 
-use crate::units::{Degrees, JulianDay, Latitude, Longitude};
 use crate::body::{Body, CalcFlags, Calendar, HouseSystem};
 use crate::diff_deg_signed;
 use crate::error::{Error, Result};
 use crate::functions::{calc::calc_ut, houses::houses};
+use crate::units::{Degrees, JulianDay, Latitude, Longitude};
 
 /// Solar arc direction result: (arc_degrees, directed_positions, directed_mc)
 pub type SolarArcResult = (f64, Vec<(Body, f64)>, f64);
@@ -255,14 +255,21 @@ where
 ///   `Body::MOON`, `Body::EARTH` — these never go retrograde from Earth's
 ///   POV)
 /// - No station is found within the search window
-pub fn retrograde_station_ut(body: Body, jd_start: JulianDay, flags: CalcFlags) -> Result<Stations> {
+pub fn retrograde_station_ut(
+    body: Body,
+    jd_start: JulianDay,
+    flags: CalcFlags,
+) -> Result<Stations> {
     let jd_start: f64 = jd_start.into();
     // Step size: 0.5d — stations last hours to a day; this gives good resolution
     let step = 0.5_f64;
     let flags_speed = flags | CalcFlags::SPEED;
 
-    let speed_at =
-        |jd: f64| -> Option<f64> { calc_ut(JulianDay::new(jd), body, flags_speed).ok().map(|p| p.speed_lon) };
+    let speed_at = |jd: f64| -> Option<f64> {
+        calc_ut(JulianDay::new(jd), body, flags_speed)
+            .ok()
+            .map(|p| p.speed_lon)
+    };
 
     let window = body.retrograde_search_window();
     let (retrograde_jd, direct_jd) = scan_retrograde_stations(window, step, jd_start, speed_at);
@@ -322,7 +329,13 @@ fn scan_retrograde_stations(
             let station_jd = bisect_zero(jd - step, jd, prev_speed, 1e-6, |t| {
                 speed_at(t).unwrap_or(0.0)
             });
-            classify_station(prev_speed, curr, station_jd, &mut retrograde_jd, &mut direct_jd);
+            classify_station(
+                prev_speed,
+                curr,
+                station_jd,
+                &mut retrograde_jd,
+                &mut direct_jd,
+            );
             if retrograde_jd.is_some() && direct_jd.is_some() {
                 break;
             }
@@ -434,7 +447,11 @@ pub fn arabic_parts_seven(
             } else {
                 "ASC + Sun − Moon"
             },
-            degree: arabic_part(Degrees::new(asc), Longitude::new(fortune_b2), Longitude::new(fortune_b1)),
+            degree: arabic_part(
+                Degrees::new(asc),
+                Longitude::new(fortune_b2),
+                Longitude::new(fortune_b1),
+            ),
         },
         ArabicPart {
             name: "Lot of Spirit",
@@ -443,7 +460,11 @@ pub fn arabic_parts_seven(
             } else {
                 "ASC + Moon − Sun"
             },
-            degree: arabic_part(Degrees::new(asc), Longitude::new(spirit_b2), Longitude::new(spirit_b1)),
+            degree: arabic_part(
+                Degrees::new(asc),
+                Longitude::new(spirit_b2),
+                Longitude::new(spirit_b1),
+            ),
         },
         ArabicPart {
             name: "Lot of Love",
@@ -515,7 +536,12 @@ pub fn secondary_progressions(
         let pos = calc_ut(JulianDay::new(jd_progressed), body, flags)?;
         positions.push((body, pos));
     }
-    let prog_chart = houses(JulianDay::new(jd_progressed), Latitude::new(lat), Longitude::new(lon), hsys)?;
+    let prog_chart = houses(
+        JulianDay::new(jd_progressed),
+        Latitude::new(lat),
+        Longitude::new(lon),
+        hsys,
+    )?;
     Ok((positions, prog_chart))
 }
 
@@ -694,7 +720,10 @@ pub fn midpoint_table(positions: &[(Body, f64)], orb: f64) -> Vec<MidpointEntry>
             let on_mid: Vec<(Body, f64)> = positions
                 .iter()
                 .filter(|&&(b, _)| b != b1 && b != b2)
-                .filter_map(|&(b, lon)| planet_on_midpoint(Longitude::new(lon), Longitude::new(mid), orb).map(|o| (b, o)))
+                .filter_map(|&(b, lon)| {
+                    planet_on_midpoint(Longitude::new(lon), Longitude::new(mid), orb)
+                        .map(|o| (b, o))
+                })
                 .collect();
             result.push((b1, b2, mid, on_mid));
         }
@@ -1106,12 +1135,7 @@ mod cov_tests {
     #[test]
     fn scan_retrograde_stations_finds_sign_change() {
         // Off-grid root at t≈4.99 so prev*curr is strictly negative on a step boundary.
-        let (_retro, direct) = scan_retrograde_stations(
-            10.0,
-            0.5,
-            0.0,
-            |t| Some(t - 4.99),
-        );
+        let (_retro, direct) = scan_retrograde_stations(10.0, 0.5, 0.0, |t| Some(t - 4.99));
         assert!(direct.is_some(), "direct station expected near t=5");
     }
 

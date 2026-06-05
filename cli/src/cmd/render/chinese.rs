@@ -1,11 +1,11 @@
 //! Chinese chart builders — split from render.rs.
 
-use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
-use celestial_core::{calc_ut, four_pillars, solar_term_position, SOLAR_TERMS};
+use celestial_core::JulianDay;
 use celestial_core::Longitude;
+use celestial_core::{calc_ut, four_pillars, solar_term_position, SOLAR_TERMS};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
@@ -44,7 +44,8 @@ pub fn build_bazi_context(
         .collect();
 
     // Solar term context
-    let (current_term, deg_into, next_term, deg_to) = solar_term_position(Longitude::new(sun_pos.lon));
+    let (current_term, deg_into, next_term, deg_to) =
+        solar_term_position(Longitude::new(sun_pos.lon));
     let (ct_pinyin, ct_english) = (SOLAR_TERMS[current_term].1, SOLAR_TERMS[current_term].2);
     let (nt_pinyin, nt_english) = (SOLAR_TERMS[next_term].1, SOLAR_TERMS[next_term].2);
 
@@ -66,7 +67,6 @@ pub fn build_bazi_context(
         .zip(element_counts.iter())
         .map(|(&name, &count)| json!({ "element": name, "count": count }))
         .collect();
-
 
     // ARCH-9/DP-5: typed top-level context (inner pillar/element arrays
     // stay `Vec<Value>` so the serialized object is byte-identical).
@@ -260,7 +260,11 @@ pub fn render_bazi_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
     let pal = super::svg_common::SvgPalette::from_ctx(
-        ctx, "#ffffff", "border_color", "#8b0000", "#1a0a00",
+        ctx,
+        "#ffffff",
+        "border_color",
+        "#8b0000",
+        "#1a0a00",
     );
     let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
     let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#2a1a60");

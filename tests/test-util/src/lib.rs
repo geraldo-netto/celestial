@@ -85,34 +85,34 @@ pub fn random_bytes(rng: &mut Xorshift64, len_max: usize) -> Vec<u8> {
 ///
 /// Order is stable: tests are allowed to reference the row count.
 pub const EDGE_STRINGS: &[&str] = &[
-    "",                                                // null/empty
-    " ",                                               // whitespace only
-    "\t\n\r",                                          // control whitespace
-    "\0",                                              // embedded null
-    "abc\0def",                                        // null in the middle
-    "\u{FEFF}",                                        // BOM
-    "\u{200B}",                                        // zero-width space
-    "ümlaut",                                          // non-ASCII
-    "日本語",                                          // CJK
-    "🌑🌒🌓🌔🌕",                                      // emoji (moon phases)
-    "-1",                                              // negative
-    "0",                                               // zero
-    "1",                                               // one
-    "9223372036854775807",                             // i64::MAX
-    "-9223372036854775808",                            // i64::MIN
-    "18446744073709551615",                            // u64::MAX
-    "999999999999999999999999999999",                  // > u64
-    "1e308",                                           // near f64::MAX
-    "-1e308",                                          // near f64::MIN
-    "1e-323",                                          // subnormal
-    "NaN",                                             // NaN literal
-    "inf",                                             // ±Inf
+    "",                               // null/empty
+    " ",                              // whitespace only
+    "\t\n\r",                         // control whitespace
+    "\0",                             // embedded null
+    "abc\0def",                       // null in the middle
+    "\u{FEFF}",                       // BOM
+    "\u{200B}",                       // zero-width space
+    "ümlaut",                         // non-ASCII
+    "日本語",                         // CJK
+    "🌑🌒🌓🌔🌕",                     // emoji (moon phases)
+    "-1",                             // negative
+    "0",                              // zero
+    "1",                              // one
+    "9223372036854775807",            // i64::MAX
+    "-9223372036854775808",           // i64::MIN
+    "18446744073709551615",           // u64::MAX
+    "999999999999999999999999999999", // > u64
+    "1e308",                          // near f64::MAX
+    "-1e308",                         // near f64::MIN
+    "1e-323",                         // subnormal
+    "NaN",                            // NaN literal
+    "inf",                            // ±Inf
     "-inf",
-    "0.0/0.0",                                         // div-by-zero phrasing
-    "0x7fffffff",                                      // hex i32::MAX
-    "-2147483648",                                     // i32::MIN
-    "2147483647",                                      // i32::MAX
-    "2147483648",                                      // i32::MAX + 1 (wraps)
+    "0.0/0.0",     // div-by-zero phrasing
+    "0x7fffffff",  // hex i32::MAX
+    "-2147483648", // i32::MIN
+    "2147483647",  // i32::MAX
+    "2147483648",  // i32::MAX + 1 (wraps)
 ];
 
 /// Length tiers covering tiny / typical / max / over-max strings.

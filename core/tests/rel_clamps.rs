@@ -46,14 +46,14 @@ fn karana_name_never_panics_on_any_byte() {
 /// Single-row check kept outside the loop so the test fn stays CC ≤ 10.
 fn assert_panchanga_slots_in_range(p: &celestial_core::Panchanga, jd: f64) {
     let checks: [(&str, bool); 8] = [
-        ("tithi",          (1..=30).contains(&p.tithi)),
-        ("nakshatra",      (0..=26).contains(&p.nakshatra)),
+        ("tithi", (1..=30).contains(&p.tithi)),
+        ("nakshatra", (0..=26).contains(&p.nakshatra)),
         ("nakshatra_pada", (1..=4).contains(&p.nakshatra_pada)),
-        ("yoga",           (0..=26).contains(&p.yoga)),
-        ("karana",         (1..=60).contains(&p.karana)),
-        ("tithi_name",     !p.tithi_name.is_empty()),
+        ("yoga", (0..=26).contains(&p.yoga)),
+        ("karana", (1..=60).contains(&p.karana)),
+        ("tithi_name", !p.tithi_name.is_empty()),
         ("nakshatra_name", !p.nakshatra_name.is_empty()),
-        ("karana_name",    !p.karana_name.is_empty()),
+        ("karana_name", !p.karana_name.is_empty()),
     ];
     for (label, ok) in checks {
         assert!(ok, "panchanga slot `{label}` out of range at jd={jd}");
@@ -65,9 +65,9 @@ fn panchanga_clamps_are_in_range() {
     use celestial_core::panchanga;
     use celestial_core::JulianDay;
     let jds = [
-        2_451_545.0,                    // J2000
-        2_451_544.999_999_999_94,       // 1 ulp below
-        2_451_545.000_000_000_06,       // 1 ulp above
+        2_451_545.0,              // J2000
+        2_451_544.999_999_999_94, // 1 ulp below
+        2_451_545.000_000_000_06, // 1 ulp above
         0.0,
         1.0,
         -1.0,
@@ -86,10 +86,14 @@ fn body_try_from_raw_accepts_documented_ids() {
     // Build the full accept set table-driven; one assert per id.
     let mut ids: Vec<i32> = (0..=20).collect();
     ids.extend([
-        -1, -10,
-        Body::FICTITIOUS_OFFSET, Body::FICTITIOUS_OFFSET + 99,
-        Body::MOON_OFFSET, Body::MOON_OFFSET + 999,
-        Body::ASTEROID_OFFSET, Body::ASTEROID_OFFSET + 999_999,
+        -1,
+        -10,
+        Body::FICTITIOUS_OFFSET,
+        Body::FICTITIOUS_OFFSET + 99,
+        Body::MOON_OFFSET,
+        Body::MOON_OFFSET + 999,
+        Body::ASTEROID_OFFSET,
+        Body::ASTEROID_OFFSET + 999_999,
     ]);
     for n in ids {
         assert!(Body::try_from_raw(n).is_ok(), "documented id rejected: {n}");
@@ -100,7 +104,10 @@ fn body_try_from_raw_accepts_documented_ids() {
 fn body_try_from_raw_rejects_garbage_and_gaps() {
     let garbage = [
         // Gap between Vesta (20) and FICTITIOUS_OFFSET (40)
-        21, 22, 30, 39,
+        21,
+        22,
+        30,
+        39,
         // Gap between FICTITIOUS_OFFSET window (..140) and MOON_OFFSET (9000)
         Body::FICTITIOUS_OFFSET + 100, // 140 — first rejected
         141,
@@ -110,8 +117,14 @@ fn body_try_from_raw_rejects_garbage_and_gaps() {
         Body::ASTEROID_OFFSET + 1_000_000, // 1_010_000 — exclusive
         Body::ASTEROID_OFFSET + 2_000_000,
         // Deep garbage
-        -2, -11, -100, -1_000_000,
-        i32::MIN, i32::MIN + 1, i32::MAX, i32::MAX - 1,
+        -2,
+        -11,
+        -100,
+        -1_000_000,
+        i32::MIN,
+        i32::MIN + 1,
+        i32::MAX,
+        i32::MAX - 1,
     ];
     for n in garbage {
         let r = Body::try_from_raw(n);

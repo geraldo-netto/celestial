@@ -25,10 +25,10 @@
 //! assert!(illum < 0.15); // near new moon, low illumination
 //! ```
 
-use crate::units::JulianDay;
 use crate::body::{Body, CalcFlags, Calendar};
 use crate::calc_ut;
 use crate::error::{Error, Result};
+use crate::units::JulianDay;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

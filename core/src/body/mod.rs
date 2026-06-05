@@ -723,11 +723,11 @@ mod tests {
     #[test]
     fn body_methods_positive_finite_for_all_codes() {
         for code in [
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9,            // planets
-            10, 11, 12, 13,                          // nodes / apsides
-            14,                                      // Earth
-            15, 16, 17, 18, 19, 20,                  // asteroids
-            -1, 50, 100, 10_000,                     // sentinels + numbered asteroids
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, // planets
+            10, 11, 12, 13, // nodes / apsides
+            14, // Earth
+            15, 16, 17, 18, 19, 20, // asteroids
+            -1, 50, 100, 10_000, // sentinels + numbered asteroids
         ] {
             let b = Body::from_raw(code);
             assert!(b.retrograde_search_window().is_finite());
@@ -745,13 +745,23 @@ mod tests {
     #[test]
     fn ingress_window_non_decreasing_outer_planets() {
         let bodies = [
-            Body::JUPITER, Body::SATURN, Body::URANUS, Body::NEPTUNE, Body::PLUTO,
+            Body::JUPITER,
+            Body::SATURN,
+            Body::URANUS,
+            Body::NEPTUNE,
+            Body::PLUTO,
         ];
         for pair in bodies.windows(2) {
             let a = pair[0].ingress_search_window();
             let b = pair[1].ingress_search_window();
-            assert!(b >= a, "ingress not monotone: {:?}→{:?} ({} → {})",
-                pair[0], pair[1], a, b);
+            assert!(
+                b >= a,
+                "ingress not monotone: {:?}→{:?} ({} → {})",
+                pair[0],
+                pair[1],
+                a,
+                b
+            );
         }
     }
 
@@ -759,16 +769,29 @@ mod tests {
     #[test]
     fn orb_weight_non_increasing_luminaries_to_outers() {
         let ordered = [
-            Body::SUN, Body::MOON,         // 2.0
-            Body::MERCURY, Body::VENUS, Body::MARS, // 1.5
-            Body::JUPITER, Body::SATURN,   // 1.0
-            Body::URANUS, Body::NEPTUNE, Body::PLUTO, Body::CHIRON, // 0.75
+            Body::SUN,
+            Body::MOON, // 2.0
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS, // 1.5
+            Body::JUPITER,
+            Body::SATURN, // 1.0
+            Body::URANUS,
+            Body::NEPTUNE,
+            Body::PLUTO,
+            Body::CHIRON, // 0.75
         ];
         for pair in ordered.windows(2) {
             let a = pair[0].orb_weight();
             let b = pair[1].orb_weight();
-            assert!(b <= a, "orb weight not monotone: {:?}→{:?} ({} → {})",
-                pair[0], pair[1], a, b);
+            assert!(
+                b <= a,
+                "orb weight not monotone: {:?}→{:?} ({} → {})",
+                pair[0],
+                pair[1],
+                a,
+                b
+            );
         }
     }
 

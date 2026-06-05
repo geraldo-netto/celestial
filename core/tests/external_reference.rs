@@ -18,24 +18,21 @@
 //! ORDER-OF-MAGNITUDE sanity checks, not micro-precision pins. Specific
 //! precision pins live in `integration_tests.rs`.
 
-use celestial_core::Longitude;
-use celestial_core::Latitude;
-use celestial_core::JulianDay;
-use celestial_core::Degrees;
 use celestial_core::body::{Body, CalcFlags, Calendar, HouseSystem, SiderealMode};
+use celestial_core::Degrees;
+use celestial_core::JulianDay;
+use celestial_core::Latitude;
+use celestial_core::Longitude;
 use celestial_core::{
-    almuten, annual_profection, antiscion, azalt, ayanamsa_ut, best_time_method, calc, calc_ut,
-    calendar_round, coord_transform, day_of_week,
-    decan_ruler, deltat, egyptian_terms_ruler,
-    firdaria, fixstar_mag, four_pillars, full_dignity, haab,
-    hindu_festivals,
-    is_day_chart, iso_week, julday, long_to_nakshatra,
-    long_to_navamsa, long_to_rasi, lunar_return_jd, maya_long_count,
-    mean_sidereal_time_deg, midpoint_deg, next_first_quarter, next_new_moon,
-    nutation, panchanga, same_sect, secondary_progressions,
-    set_sid_mode, sidereal_time_deg, sol_eclipse_when_glob, solar_arc_directions, solar_return_jd,
-    solcross_ut, time_equ, tonalpohualli, triplicity_rulers, true_obliquity,
-    tzolkin, vietnamese_month_start_jd, vimshottari_dasha, yallop_q, Dignity,
+    almuten, annual_profection, antiscion, ayanamsa_ut, azalt, best_time_method, calc, calc_ut,
+    calendar_round, coord_transform, day_of_week, decan_ruler, deltat, egyptian_terms_ruler,
+    firdaria, fixstar_mag, four_pillars, full_dignity, haab, hindu_festivals, is_day_chart,
+    iso_week, julday, long_to_nakshatra, long_to_navamsa, long_to_rasi, lunar_return_jd,
+    maya_long_count, mean_sidereal_time_deg, midpoint_deg, next_first_quarter, next_new_moon,
+    nutation, panchanga, same_sect, secondary_progressions, set_sid_mode, sidereal_time_deg,
+    sol_eclipse_when_glob, solar_arc_directions, solar_return_jd, solcross_ut, time_equ,
+    tonalpohualli, triplicity_rulers, true_obliquity, tzolkin, vietnamese_month_start_jd,
+    vimshottari_dasha, yallop_q, Dignity,
 };
 #[cfg(feature = "calendar-traditions")]
 use celestial_core::{
@@ -81,9 +78,9 @@ fn diana_chart_planet_positions() {
         (Body::VENUS, 54.40, 0.05),
         (Body::MARS, 151.67, 0.1),
         (Body::JUPITER, 305.10, 0.5),
-        (Body::SATURN, 297.80, 0.5),   // tightened after VSOP87 L0[2] fix
-        (Body::URANUS, 145.04, 2.0),   // 25°02' Leo per published Diana chart
-        (Body::NEPTUNE, 218.62, 2.0),  // 8°37' Scorpio
+        (Body::SATURN, 297.80, 0.5),  // tightened after VSOP87 L0[2] fix
+        (Body::URANUS, 145.04, 2.0),  // 25°02' Leo per published Diana chart
+        (Body::NEPTUNE, 218.62, 2.0), // 8°37' Scorpio
     ];
     for &(body, expected, tol) in cases {
         let pos = calc_ut(JulianDay::new(jd), body, FLG).unwrap();
@@ -136,9 +133,9 @@ fn sun_at_j2000_meeus() {
 fn chiron_multi_date_consistency() {
     let cases: &[(i32, u32, u32, f64, f64, f64)] = &[
         // (year, month, day, hour_ut, expected_lon_deg, tol_deg)
-        (2000, 1, 1, 12.0, 253.60, 5.0),   // J2000: 13°36' Sgr
-        (1961, 7, 1, 18.75, 336.00, 2.0),   // Diana: ~6° Pis
-        (2024, 1, 1, 0.0, 16.00, 5.0),       // 2024: ~16° Ari
+        (2000, 1, 1, 12.0, 253.60, 5.0),  // J2000: 13°36' Sgr
+        (1961, 7, 1, 18.75, 336.00, 2.0), // Diana: ~6° Pis
+        (2024, 1, 1, 0.0, 16.00, 5.0),    // 2024: ~16° Ari
     ];
     for &(y, m, d, h, expected, tol) in cases {
         let jd = julday(y, m as i32, d as i32, h, Calendar::Gregorian);
@@ -166,9 +163,9 @@ fn saturn_multi_date_consistency() {
     let cases: &[(i32, u32, u32, f64, f64, f64)] = &[
         // (year, month, day, hour_ut, expected_lon_deg, tol_deg)
         (1961, 7, 1, 18.75, 297.80, 1.0), // Princess Diana (Capricorn)
-        (1986, 5, 30, 9.0, 246.23, 1.0),   // Geraldo Netto PDF (Sagittarius)
-        (2000, 1, 1, 12.0, 40.42, 1.0),    // J2000.0 (Taurus)
-        (2024, 1, 1, 0.0, 333.55, 1.0),    // 2024 (Pisces)
+        (1986, 5, 30, 9.0, 246.23, 1.0),  // Geraldo Netto PDF (Sagittarius)
+        (2000, 1, 1, 12.0, 40.42, 1.0),   // J2000.0 (Taurus)
+        (2024, 1, 1, 0.0, 333.55, 1.0),   // 2024 (Pisces)
     ];
     for &(y, m, d, h, expected, tol) in cases {
         let jd = julday(y, m as i32, d as i32, h, Calendar::Gregorian);
@@ -245,9 +242,9 @@ fn refraction_monotonic_with_altitude() {
 fn delta_t_reference_values() {
     let cases: &[(f64, f64, f64)] = &[
         // (JD, expected ΔT seconds, tolerance seconds)
-        (2_415_021.0, -2.79, 2.0),    // 1900-01-01
-        (2_451_545.0, 63.83, 1.0),     // J2000.0
-        (2_460_311.0, 69.18, 5.0),     // 2024-01-01 (rough — extrapolated)
+        (2_415_021.0, -2.79, 2.0), // 1900-01-01
+        (2_451_545.0, 63.83, 1.0), // J2000.0
+        (2_460_311.0, 69.18, 5.0), // 2024-01-01 (rough — extrapolated)
     ];
     for &(jd, expected, tol) in cases {
         let dt_days = deltat(JulianDay::new(jd));
@@ -266,7 +263,8 @@ fn delta_t_reference_values() {
 #[test]
 fn vernal_equinox_2024() {
     let jd_start = julday(2024, 1, 1, 0.0, Calendar::Gregorian);
-    let jd = solcross_ut(Longitude::new(0.0), JulianDay::new(jd_start), FLG).expect("solcross found");
+    let jd =
+        solcross_ut(Longitude::new(0.0), JulianDay::new(jd_start), FLG).expect("solcross found");
     let expected = 2_460_389.629_5;
     assert!(
         (jd - expected).abs() < 0.01,
@@ -312,7 +310,13 @@ fn hijri_known_dates() {
     );
 
     // 2022-07-30 ≈ start of Hijri year 1444.
-    let (y2, m2, _d2) = hijri_from_jd(JulianDay::new(julday(2022, 7, 30, 0.0, Calendar::Gregorian)));
+    let (y2, m2, _d2) = hijri_from_jd(JulianDay::new(julday(
+        2022,
+        7,
+        30,
+        0.0,
+        Calendar::Gregorian,
+    )));
     assert!(
         (1443..=1444).contains(&y2),
         "Hijri year at 2022-07-30 = {y2}, expected ≈ 1444",
@@ -442,9 +446,17 @@ fn yallop_q_class_boundaries() {
 fn panchanga_field_ranges() {
     for &jd in &[2_451_545.0_f64, 2_460_000.0, 2_446_580.875] {
         let p = panchanga(JulianDay::new(jd));
-        assert!((1..=30).contains(&p.tithi), "tithi {} out of range at jd {jd}", p.tithi);
+        assert!(
+            (1..=30).contains(&p.tithi),
+            "tithi {} out of range at jd {jd}",
+            p.tithi
+        );
         assert!(p.vara <= 6, "vara {} out of range at jd {jd}", p.vara);
-        assert!(p.nakshatra < 27, "nakshatra {} out of range at jd {jd}", p.nakshatra);
+        assert!(
+            p.nakshatra < 27,
+            "nakshatra {} out of range at jd {jd}",
+            p.nakshatra
+        );
     }
 }
 
@@ -598,17 +610,13 @@ fn nakshatra_boundary_anchors() {
 ///   λ ∈ [6.667°,10.000°) → Gemini (2)
 #[test]
 fn navamsa_within_aries() {
-    let cases: &[(f64, i32)] = &[
-        (0.0, 0),
-        (3.0, 0),
-        (3.5, 1),
-        (6.5, 1),
-        (7.0, 2),
-        (10.0, 3),
-    ];
+    let cases: &[(f64, i32)] = &[(0.0, 0), (3.0, 0), (3.5, 1), (6.5, 1), (7.0, 2), (10.0, 3)];
     for &(lon, expected) in cases {
         let nav = long_to_navamsa(Longitude::new(lon));
-        assert_eq!(nav, expected, "Navamsa at {lon}° = {nav}, expected {expected}");
+        assert_eq!(
+            nav, expected,
+            "Navamsa at {lon}° = {nav}, expected {expected}"
+        );
     }
 }
 
@@ -697,12 +705,21 @@ fn nowruz_2024_at_vernal_equinox() {
 #[test]
 fn sabbats_2024_solstices_and_equinoxes() {
     let sabbats = sabbats_for_year(2024).unwrap();
-    assert_eq!(sabbats.len(), 8, "expected 8 sabbats per year, got {}", sabbats.len());
+    assert_eq!(
+        sabbats.len(),
+        8,
+        "expected 8 sabbats per year, got {}",
+        sabbats.len()
+    );
 
     // All sabbats fall in 2024.
     for s in &sabbats {
         let d = celestial_core::revjul(JulianDay::new(s.jd), Calendar::Gregorian);
-        assert_eq!(d.year, 2024, "sabbat {:?} JD {:.4} not in 2024", s.kind, s.jd);
+        assert_eq!(
+            d.year, 2024,
+            "sabbat {:?} JD {:.4} not in 2024",
+            s.kind, s.jd
+        );
     }
 }
 
@@ -719,7 +736,11 @@ fn esbats_2024_count_and_year_bounds() {
     );
     for e in &esbats {
         let d = celestial_core::revjul(JulianDay::new(e.jd), Calendar::Gregorian);
-        assert_eq!(d.year, 2024, "esbat {:?} JD {:.4} not in 2024", e.name, e.jd);
+        assert_eq!(
+            d.year, 2024,
+            "esbat {:?} JD {:.4} not in 2024",
+            e.name, e.jd
+        );
     }
 }
 
@@ -784,7 +805,10 @@ fn hebrew_new_year_ordering() {
     let jd_5783 = hebrew_new_year_jd(5783);
     let jd_5784 = hebrew_new_year_jd(5784);
     let jd_5785 = hebrew_new_year_jd(5785);
-    assert!(jd_5783 < jd_5784 && jd_5784 < jd_5785, "Hebrew NY must be ordered");
+    assert!(
+        jd_5783 < jd_5784 && jd_5784 < jd_5785,
+        "Hebrew NY must be ordered"
+    );
     // Hebrew year length: 353, 354, 355, 383, 384, or 385 days.
     let d1 = jd_5784 - jd_5783;
     let d2 = jd_5785 - jd_5784;
@@ -848,7 +872,9 @@ fn coptic_to_jd_round_trip() {
     assert!(
         d_greg.year == 2023 && d_greg.month == 9 && (10..=12).contains(&(d_greg.day as i32)),
         "Coptic 1740-01-01 should be ~2023-09-11, got {}-{}-{}",
-        d_greg.year, d_greg.month, d_greg.day,
+        d_greg.year,
+        d_greg.month,
+        d_greg.day,
     );
 }
 
@@ -916,7 +942,13 @@ fn quadrant_house_systems_invariants() {
     // don't preserve ASC/MC at h1/h10.
     let systems: &[u8] = b"PKORCB";
     for &sys in systems {
-        let h = celestial_core::houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), HouseSystem(sys)).unwrap();
+        let h = celestial_core::houses(
+            JulianDay::new(jd),
+            Latitude::new(lat),
+            Longitude::new(lon),
+            HouseSystem(sys),
+        )
+        .unwrap();
         let asc = h.ascmc[0];
         let mc = h.ascmc[1];
         for i in 1..=12 {
@@ -929,13 +961,21 @@ fn quadrant_house_systems_invariants() {
         }
         let diff_asc = ((h.cusps[1] - asc + 540.0) % 360.0 - 180.0).abs();
         let diff_mc = ((h.cusps[10] - mc + 540.0) % 360.0 - 180.0).abs();
-        assert!(diff_asc < 0.001, "{} h1 != ASC: diff {diff_asc}", sys as char);
+        assert!(
+            diff_asc < 0.001,
+            "{} h1 != ASC: diff {diff_asc}",
+            sys as char
+        );
         assert!(diff_mc < 0.001, "{} h10 != MC: diff {diff_mc}", sys as char);
 
         let diff_ic = ((h.cusps[4] - (mc + 180.0) + 540.0) % 360.0 - 180.0).abs();
         let diff_dsc = ((h.cusps[7] - (asc + 180.0) + 540.0) % 360.0 - 180.0).abs();
         assert!(diff_ic < 0.001, "{} h4 != IC: diff {diff_ic}", sys as char);
-        assert!(diff_dsc < 0.001, "{} h7 != DSC: diff {diff_dsc}", sys as char);
+        assert!(
+            diff_dsc < 0.001,
+            "{} h7 != DSC: diff {diff_dsc}",
+            sys as char
+        );
     }
 }
 
@@ -945,7 +985,13 @@ fn quadrant_house_systems_invariants() {
 #[test]
 fn whole_sign_houses_30_apart() {
     let jd = julday(1986, 5, 30, 9.0, Calendar::Gregorian);
-    let h = celestial_core::houses(JulianDay::new(jd), Latitude::new(-23.5333), Longitude::new(-46.6333), HouseSystem(b'W')).unwrap();
+    let h = celestial_core::houses(
+        JulianDay::new(jd),
+        Latitude::new(-23.5333),
+        Longitude::new(-46.6333),
+        HouseSystem(b'W'),
+    )
+    .unwrap();
     let h1 = h.cusps[1];
     assert!(
         (h1 % 30.0).abs() < 0.001 || (h1 % 30.0 - 30.0).abs() < 0.001,
@@ -953,7 +999,11 @@ fn whole_sign_houses_30_apart() {
     );
     for i in 1..12 {
         let diff = ((h.cusps[i + 1] - h.cusps[i] + 540.0) % 360.0 - 180.0).abs();
-        assert!((diff - 30.0).abs() < 0.001, "Whole-Sign cusp {i}→{}: Δ = {diff}", i + 1);
+        assert!(
+            (diff - 30.0).abs() < 0.001,
+            "Whole-Sign cusp {i}→{}: Δ = {diff}",
+            i + 1
+        );
     }
 }
 
@@ -962,7 +1012,13 @@ fn whole_sign_houses_30_apart() {
 #[test]
 fn equal_houses_30_apart_from_asc() {
     let jd = julday(1986, 5, 30, 9.0, Calendar::Gregorian);
-    let h = celestial_core::houses(JulianDay::new(jd), Latitude::new(-23.5333), Longitude::new(-46.6333), HouseSystem(b'E')).unwrap();
+    let h = celestial_core::houses(
+        JulianDay::new(jd),
+        Latitude::new(-23.5333),
+        Longitude::new(-46.6333),
+        HouseSystem(b'E'),
+    )
+    .unwrap();
     let asc = h.ascmc[0];
     for i in 1..=12 {
         let expected = (asc + 30.0 * (i - 1) as f64) % 360.0;
@@ -989,10 +1045,10 @@ fn equal_houses_30_apart_from_asc() {
 fn day_of_week_known_anchors() {
     let cases: &[(i32, u32, u32, i32)] = &[
         (1969, 7, 20, 6), // Sunday
-        (2000, 1, 1, 5),   // Saturday
-        (2024, 1, 1, 0),   // Monday
-        (1986, 5, 30, 4),  // Friday
-        (2025, 4, 20, 6),  // Easter Sunday 2025
+        (2000, 1, 1, 5),  // Saturday
+        (2024, 1, 1, 0),  // Monday
+        (1986, 5, 30, 4), // Friday
+        (2025, 4, 20, 6), // Easter Sunday 2025
     ];
     for &(y, m, d, expected) in cases {
         let jd = julday(y, m as i32, d as i32, 12.0, Calendar::Gregorian);
@@ -1110,14 +1166,19 @@ fn almuten_at_leo_includes_sun() {
 fn mercury_first_2024_station() {
     use celestial_core::retrograde_station_ut;
     let jd_start = julday(2024, 1, 1, 0.0, Calendar::Gregorian);
-    let st = retrograde_station_ut(celestial_core::body::Body::MERCURY, JulianDay::new(jd_start), FLG);
+    let st = retrograde_station_ut(
+        celestial_core::body::Body::MERCURY,
+        JulianDay::new(jd_start),
+        FLG,
+    );
     if let Ok(stations) = st {
         let retro_apr = julday(2024, 4, 1, 0.0, Calendar::Gregorian);
         let diff = (stations.retrograde - retro_apr).abs();
         assert!(
             diff < 5.0, // within 5 days
             "Mercury retrograde 2024 #1: got JD {}, expected ≈ 2024-04-01 (diff {} d)",
-            stations.retrograde, diff,
+            stations.retrograde,
+            diff,
         );
     }
 }
@@ -1179,8 +1240,8 @@ fn rosh_hashanah_matches_new_year() {
 #[cfg(feature = "calendar-traditions")]
 #[test]
 fn sabbat_jd_matches_yearly_list() {
-    use celestial_core::SabbatKind;
     use celestial_core::sabbat_jd as celestial_sabbat_jd;
+    use celestial_core::SabbatKind;
     let year = 2024;
     let list = sabbats_for_year(year).unwrap();
     for s in list {
@@ -1188,7 +1249,8 @@ fn sabbat_jd_matches_yearly_list() {
         assert!(
             (jd_indiv - s.jd).abs() < 0.1,
             "sabbat_jd({year}, {:?}) = {jd_indiv}, list says {}",
-            s.kind, s.jd,
+            s.kind,
+            s.jd,
         );
     }
     let _ = SabbatKind::Yule;
@@ -1269,11 +1331,31 @@ fn triplicity_rulers_dorothean() {
 /// Taurus 0-10 = Mercury. Leo 10-20 = Jupiter.
 #[test]
 fn decan_rulers_chaldean() {
-    assert_eq!(decan_ruler(Longitude::new(5.0)), Body::MARS, "Aries 0-10° decan");
-    assert_eq!(decan_ruler(Longitude::new(15.0)), Body::SUN, "Aries 10-20° decan");
-    assert_eq!(decan_ruler(Longitude::new(25.0)), Body::VENUS, "Aries 20-30° decan");
-    assert_eq!(decan_ruler(Longitude::new(35.0)), Body::MERCURY, "Taurus 0-10° decan");
-    assert_eq!(decan_ruler(Longitude::new(135.0)), Body::JUPITER, "Leo 10-20° decan");
+    assert_eq!(
+        decan_ruler(Longitude::new(5.0)),
+        Body::MARS,
+        "Aries 0-10° decan"
+    );
+    assert_eq!(
+        decan_ruler(Longitude::new(15.0)),
+        Body::SUN,
+        "Aries 10-20° decan"
+    );
+    assert_eq!(
+        decan_ruler(Longitude::new(25.0)),
+        Body::VENUS,
+        "Aries 20-30° decan"
+    );
+    assert_eq!(
+        decan_ruler(Longitude::new(35.0)),
+        Body::MERCURY,
+        "Taurus 0-10° decan"
+    );
+    assert_eq!(
+        decan_ruler(Longitude::new(135.0)),
+        Body::JUPITER,
+        "Leo 10-20° decan"
+    );
 }
 
 /// Egyptian terms (Ptolemy, Tetrabiblos I.21).
@@ -1347,9 +1429,14 @@ fn hebrew_year_lengths_valid() {
 fn hijri_month_lengths_valid() {
     for m in 1..=12u8 {
         let days = hijri_month_days(1444, m);
-        assert!(days == 29 || days == 30, "Hijri 1444 month {m}: {days} days");
+        assert!(
+            days == 29 || days == 30,
+            "Hijri 1444 month {m}: {days} days"
+        );
     }
-    let total: u32 = (1..=12u8).map(|m| u32::from(hijri_month_days(1444, m))).sum();
+    let total: u32 = (1..=12u8)
+        .map(|m| u32::from(hijri_month_days(1444, m)))
+        .sum();
     assert!(total == 354 || total == 355, "Hijri year length = {total}");
 }
 
@@ -1396,7 +1483,11 @@ fn sabbat_sun_longitudes_2024() {
         assert!(
             diff < 0.5,
             "Sabbat {:?} JD {:.4}: Sun lon = {:.4}°, expected {:.1}° (diff {:.4}°)",
-            s.kind, s.jd, sun.lon, expected_lon, diff,
+            s.kind,
+            s.jd,
+            sun.lon,
+            expected_lon,
+            diff,
         );
     }
 }
@@ -1431,7 +1522,8 @@ fn jewish_holidays_5785_count() {
         assert!(
             h.jd >= ny - 5.0 && h.jd <= ny_next + 5.0,
             "Jewish holiday {} JD {} outside 5785 year",
-            h.name, h.jd,
+            h.name,
+            h.jd,
         );
     }
 }
@@ -1459,7 +1551,10 @@ fn christian_feasts_2024_count() {
 #[test]
 fn midpoint_canonical_cases() {
     let m1 = midpoint_deg(50.0, 10.0);
-    assert!((m1 - 30.0).abs() < 0.001, "midpoint(50, 10) = {m1}, expected 30");
+    assert!(
+        (m1 - 30.0).abs() < 0.001,
+        "midpoint(50, 10) = {m1}, expected 30"
+    );
 
     // 350° and 10° — midpoint should wrap to 0° (shorter arc).
     let m2 = midpoint_deg(10.0, 350.0);
@@ -1512,7 +1607,9 @@ fn coord_transform_round_trip() {
         assert!(
             (input[i] - back[i]).abs() < 1e-9,
             "coord_transform round-trip differs at index {i}: {} → {} → {}",
-            input[i], forward[i], back[i],
+            input[i],
+            forward[i],
+            back[i],
         );
     }
 }
@@ -1558,13 +1655,15 @@ fn fixed_star_magnitudes() {
 fn yallop_classes_traversal() {
     let sd = 15.5; // typical lunar semi-diameter at modest distance
     let arcl = 10.0; // moderate elongation
-    let classes_seen: std::collections::HashSet<char> =
-        (1..30).map(|i| yallop_q(f64::from(i) * 0.6, arcl, sd).1).collect();
+    let classes_seen: std::collections::HashSet<char> = (1..30)
+        .map(|i| yallop_q(f64::from(i) * 0.6, arcl, sd).1)
+        .collect();
     // We should see at least 2 different classes as ARCV traverses.
     assert!(
         classes_seen.len() >= 2,
         "expected ≥2 Yallop classes as ARCV grows from 0.6 to 17.4°, got {} ({:?})",
-        classes_seen.len(), classes_seen,
+        classes_seen.len(),
+        classes_seen,
     );
     // Top class should be 'A' for large arc-v.
     let (_, big_class) = yallop_q(15.0, 12.0, sd);
@@ -1626,7 +1725,12 @@ fn vietnamese_month_start_within_synodic() {
 #[test]
 fn consecutive_lunar_returns_sidereal_month() {
     let jd_natal = julday(2000, 1, 1, 12.0, Calendar::Gregorian);
-    let lr1 = lunar_return_jd(JulianDay::new(jd_natal), JulianDay::new(jd_natal + 1.0), FLG).unwrap();
+    let lr1 = lunar_return_jd(
+        JulianDay::new(jd_natal),
+        JulianDay::new(jd_natal + 1.0),
+        FLG,
+    )
+    .unwrap();
     let lr2 = lunar_return_jd(JulianDay::new(jd_natal), JulianDay::new(lr1 + 1.0), FLG).unwrap();
     let dt = lr2 - lr1;
     assert!(
@@ -1643,12 +1747,14 @@ fn consecutive_lunar_returns_sidereal_month() {
 fn solar_arc_30_years_about_30_degrees() {
     use celestial_core::body::Body;
     let jd_natal = julday(1985, 7, 14, 12.0, Calendar::Gregorian);
-    let natal_positions = [
-        (Body::SUN, 100.0),
-        (Body::MOON, 200.0),
-        (Body::MARS, 300.0),
-    ];
-    let result = solar_arc_directions(JulianDay::new(jd_natal), 30.0, &natal_positions, Degrees::new(30.0), FLG);
+    let natal_positions = [(Body::SUN, 100.0), (Body::MOON, 200.0), (Body::MARS, 300.0)];
+    let result = solar_arc_directions(
+        JulianDay::new(jd_natal),
+        30.0,
+        &natal_positions,
+        Degrees::new(30.0),
+        FLG,
+    );
     if let Ok((arc, _directed, _mc_arc)) = result {
         // Solar arc after 30 tropical years ≈ 29-31° (varies by sun speed).
         assert!(
@@ -1670,7 +1776,13 @@ fn secondary_progression_30_years() {
     let bodies = [Body::SUN, Body::MOON];
     let natal_sun = calc_ut(JulianDay::new(jd_natal), Body::SUN, FLG).unwrap();
     let result = secondary_progressions(
-        JulianDay::new(jd_natal), 30.0, &bodies, Latitude::new(0.0), Longitude::new(0.0), HouseSystem::PLACIDUS, FLG,
+        JulianDay::new(jd_natal),
+        30.0,
+        &bodies,
+        Latitude::new(0.0),
+        Longitude::new(0.0),
+        HouseSystem::PLACIDUS,
+        FLG,
     );
     if let Ok((positions, _cusps)) = result {
         let prog_sun_lon = positions[0].1.lon;
@@ -1757,7 +1869,12 @@ fn moon_speed_always_in_band() {
 #[test]
 fn mean_node_at_j2000() {
     let flg = CalcFlags::BUILTIN | CalcFlags::SPEED;
-    let pos = calc_ut(JulianDay::new(2_451_545.0), celestial_core::body::Body::MEAN_NODE, flg).unwrap();
+    let pos = calc_ut(
+        JulianDay::new(2_451_545.0),
+        celestial_core::body::Body::MEAN_NODE,
+        flg,
+    )
+    .unwrap();
     assert_lon_within!(pos.lon, 125.045, 0.05, "Mean Node J2000");
     assert!(
         pos.speed_lon < 0.0,
@@ -1776,21 +1893,33 @@ fn mean_node_at_j2000() {
 fn arabic_part_lot_of_fortune() {
     use celestial_core::arabic_part;
     // Asc=0, Moon=90, Sun=120: Asc + Moon - Sun = 0 + 90 - 120 = -30 → 330.
-    let p = arabic_part(Degrees::new(0.0), Longitude::new(90.0), Longitude::new(120.0));
+    let p = arabic_part(
+        Degrees::new(0.0),
+        Longitude::new(90.0),
+        Longitude::new(120.0),
+    );
     assert!(
         (p - 330.0).abs() < 0.001,
         "arabic_part(0, 90, 120) = {p}, expected 330",
     );
 
     // Wrap: Asc=350, Moon=10, Sun=5 → 350+10-5 = 355.
-    let p = arabic_part(Degrees::new(350.0), Longitude::new(10.0), Longitude::new(5.0));
+    let p = arabic_part(
+        Degrees::new(350.0),
+        Longitude::new(10.0),
+        Longitude::new(5.0),
+    );
     assert!(
         (p - 355.0).abs() < 0.001,
         "arabic_part(350, 10, 5) = {p}, expected 355",
     );
 
     // Negative wrap: Asc=10, Moon=20, Sun=50 → 10+20-50 = -20 → 340.
-    let p = arabic_part(Degrees::new(10.0), Longitude::new(20.0), Longitude::new(50.0));
+    let p = arabic_part(
+        Degrees::new(10.0),
+        Longitude::new(20.0),
+        Longitude::new(50.0),
+    );
     assert!(
         (p - 340.0).abs() < 0.001,
         "arabic_part(10, 20, 50) = {p}, expected 340 (mod 360)",
@@ -1853,13 +1982,20 @@ fn mercury_speed_within_extreme_range() {
 fn omer_days_count_is_49() {
     use celestial_core::omer_days;
     let days = omer_days(5785);
-    assert_eq!(days.len(), 49, "Omer count must be 49 days, got {}", days.len());
+    assert_eq!(
+        days.len(),
+        49,
+        "Omer count must be 49 days, got {}",
+        days.len()
+    );
     // Day numbers must be 1..=49 in order.
     for (i, d) in days.iter().enumerate() {
         assert_eq!(
-            d.day as usize, i + 1,
+            d.day as usize,
+            i + 1,
             "Omer day at index {i}: expected day {}, got {}",
-            i + 1, d.day,
+            i + 1,
+            d.day,
         );
     }
 }
@@ -1889,7 +2025,12 @@ fn placidus_at_arctic_circle_no_panic() {
     use celestial_core::body::HouseSystem;
     let jd = julday(2024, 6, 21, 12.0, Calendar::Gregorian); // summer solstice
     for lat in [66.0_f64, 70.0, 80.0, 85.0] {
-        let result = celestial_core::houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(0.0), HouseSystem::PLACIDUS);
+        let result = celestial_core::houses(
+            JulianDay::new(jd),
+            Latitude::new(lat),
+            Longitude::new(0.0),
+            HouseSystem::PLACIDUS,
+        );
         if let Ok(h) = result {
             for i in 1..=12 {
                 assert!(
@@ -1909,7 +2050,13 @@ fn whole_sign_at_poles() {
     use celestial_core::body::HouseSystem;
     let jd = julday(2024, 6, 21, 12.0, Calendar::Gregorian);
     for lat in [88.0_f64, -88.0] {
-        let h = celestial_core::houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(0.0), HouseSystem(b'W')).unwrap();
+        let h = celestial_core::houses(
+            JulianDay::new(jd),
+            Latitude::new(lat),
+            Longitude::new(0.0),
+            HouseSystem(b'W'),
+        )
+        .unwrap();
         for i in 1..=12 {
             assert!(
                 h.cusps[i].is_finite() && (0.0..360.0).contains(&h.cusps[i]),
@@ -2030,17 +2177,20 @@ fn day_of_year_canonical() {
     let cases: &[(i32, u32, u32, u32)] = &[
         (2023, 1, 1, 1),
         (2023, 2, 28, 59),
-        (2023, 3, 1, 60),     // non-leap
-        (2024, 3, 1, 61),     // leap
-        (2024, 2, 29, 60),    // leap day
+        (2023, 3, 1, 60),  // non-leap
+        (2024, 3, 1, 61),  // leap
+        (2024, 2, 29, 60), // leap day
         (2023, 12, 31, 365),
         (2024, 12, 31, 366),
-        (1900, 12, 31, 365),  // not a leap year (centurial /400 exception)
-        (2000, 12, 31, 366),  // 2000 is leap (4-cycle and 400-cycle)
+        (1900, 12, 31, 365), // not a leap year (centurial /400 exception)
+        (2000, 12, 31, 366), // 2000 is leap (4-cycle and 400-cycle)
     ];
     for &(y, m, d, expected) in cases {
         let doy = day_of_year(y, m, d);
-        assert_eq!(doy, expected, "day_of_year({y}, {m}, {d}) = {doy}, expected {expected}");
+        assert_eq!(
+            doy, expected,
+            "day_of_year({y}, {m}, {d}) = {doy}, expected {expected}"
+        );
     }
 }
 
@@ -2059,7 +2209,10 @@ fn hebrew_months_per_year() {
     }
     let total: i32 = (5780..=5798).map(months_in_hebrew_year).sum();
     // 19-year cycle: 12·12 normal + 7·13 leap = 144 + 91 = 235 months.
-    assert_eq!(total, 235, "19-year Hebrew cycle: {total} months, expected 235");
+    assert_eq!(
+        total, 235,
+        "19-year Hebrew cycle: {total} months, expected 235"
+    );
 }
 
 // ─── Coptic month days ──────────────────────────────────────────────────────
@@ -2072,15 +2225,22 @@ fn coptic_month_lengths() {
     use celestial_core::coptic_month_days;
     for m in 1..=12 {
         assert_eq!(
-            coptic_month_days(1740, m), 30,
+            coptic_month_days(1740, m),
+            30,
             "Coptic month {m} should have 30 days",
         );
     }
     let leap = coptic_month_days(1739, 13);
     let normal = coptic_month_days(1740, 13);
     // 1739 mod 4 == 3 → leap; 1740 mod 4 != 3 → normal.
-    assert_eq!(leap, 6, "Coptic 1739 month 13 (leap): {leap} days, expected 6");
-    assert_eq!(normal, 5, "Coptic 1740 month 13 (normal): {normal} days, expected 5");
+    assert_eq!(
+        leap, 6,
+        "Coptic 1739 month 13 (leap): {leap} days, expected 6"
+    );
+    assert_eq!(
+        normal, 5,
+        "Coptic 1740 month 13 (normal): {normal} days, expected 5"
+    );
 }
 
 // ─── Ethiopic calendar ──────────────────────────────────────────────────────
@@ -2098,7 +2258,9 @@ fn ethiopic_round_trip_2017_ee() {
     assert!(
         gd.year == 2024 && gd.month == 9 && (10..=12).contains(&(gd.day as i32)),
         "Ethiopic 2017-01-01 ≈ 2024-09-11, got {}-{}-{}",
-        gd.year, gd.month, gd.day,
+        gd.year,
+        gd.month,
+        gd.day,
     );
 }
 
@@ -2114,7 +2276,10 @@ fn bahai_holy_days_count() {
     assert!(!days.is_empty(), "BE 181 holy days empty");
     let nr = celestial_core::naw_ruz_jd(181);
     let bd = jd_to_bahai(JulianDay::new(nr));
-    assert!(bd.year == 181 || bd.year == 180, "Naw-Rúz 181 should land in BE 181 (or just before)");
+    assert!(
+        bd.year == 181 || bd.year == 180,
+        "Naw-Rúz 181 should land in BE 181 (or just before)"
+    );
 }
 
 // ─── ISO week-year boundaries ──────────────────────────────────────────────
@@ -2141,7 +2306,8 @@ fn iso_week_year_boundaries() {
         let jd = julday(y, m as i32, d as i32, 0.0, Calendar::Gregorian);
         let (iy, iw) = iso_week(JulianDay::new(jd));
         assert_eq!(
-            (iy, iw), (iy_exp, iw_exp),
+            (iy, iw),
+            (iy_exp, iw_exp),
             "ISO week {y}-{m:02}-{d:02} = ({iy}, {iw}), expected ({iy_exp}, {iw_exp})",
         );
     }
@@ -2182,7 +2348,10 @@ fn calendar_round_period() {
     assert_eq!(cr0, cr1, "Calendar Round must repeat at 18980 days");
     // Not earlier:
     let cr_minus_1 = calendar_round(JulianDay::new(jd0 + 18_979.0));
-    assert_ne!(cr0, cr_minus_1, "Calendar Round must NOT repeat at 18979 days");
+    assert_ne!(
+        cr0, cr_minus_1,
+        "Calendar Round must NOT repeat at 18979 days"
+    );
 }
 
 // ─── Hellenistic firdaria ───────────────────────────────────────────────────
@@ -2212,8 +2381,15 @@ fn firdaria_total_span_75_years() {
 #[test]
 fn long_to_rasi_boundaries() {
     let cases: &[(f64, i32)] = &[
-        (0.0, 0), (29.999, 0), (30.0, 1), (59.0, 1), (60.0, 2), (179.0, 5), (270.0, 9),
-        (330.0, 11), (359.5, 11),
+        (0.0, 0),
+        (29.999, 0),
+        (30.0, 1),
+        (59.0, 1),
+        (60.0, 2),
+        (179.0, 5),
+        (270.0, 9),
+        (330.0, 11),
+        (359.5, 11),
     ];
     for &(lon, expected) in cases {
         let r = long_to_rasi(Longitude::new(lon));
@@ -2278,7 +2454,10 @@ fn tzolkin_4_ahau_at_2012_solstice() {
     let jd = julday(2012, 12, 22, 0.0, Calendar::Gregorian);
     let (trecena, sign, _, _) = tzolkin(JulianDay::new(jd));
     assert_eq!(trecena, 4, "trecena at 13.0.0.0.0 = {trecena}, expected 4");
-    assert_eq!(sign, 19, "Tzolkin sign at 13.0.0.0.0 = {sign}, expected 19 (Ahau)");
+    assert_eq!(
+        sign, 19,
+        "Tzolkin sign at 13.0.0.0.0 = {sign}, expected 19 (Ahau)"
+    );
 }
 
 /// 2012-12-22 = 3 Kankin in the Haab (final day of Kankin, the 14th
@@ -2293,10 +2472,7 @@ fn haab_3_kankin_at_2012_solstice() {
     );
     // Sanity only: a real reference table cross-check needs careful
     // GMT-correlation consistency between Long Count, Tzolkin and Haab.
-    assert!(
-        (1..=20).contains(&day),
-        "Haab day {day} out of range",
-    );
+    assert!((1..=20).contains(&day), "Haab day {day} out of range",);
 }
 
 // ─── Hellenistic dignity — extended dignity-score pins ───────────────────────
@@ -2306,24 +2482,48 @@ fn haab_3_kankin_at_2012_solstice() {
 #[test]
 fn full_dignity_classical_scores() {
     // Sun in Leo (domicile)
-    assert_eq!(full_dignity(Body::SUN, Longitude::new(130.0), true), (Dignity::Domicile, 5));
+    assert_eq!(
+        full_dignity(Body::SUN, Longitude::new(130.0), true),
+        (Dignity::Domicile, 5)
+    );
     // Sun in Aquarius (detriment)
-    assert_eq!(full_dignity(Body::SUN, Longitude::new(310.0), true), (Dignity::Detriment, -5));
+    assert_eq!(
+        full_dignity(Body::SUN, Longitude::new(310.0), true),
+        (Dignity::Detriment, -5)
+    );
     // Sun in Aries 19° (exaltation)
-    assert_eq!(full_dignity(Body::SUN, Longitude::new(19.0), true), (Dignity::Exaltation, 4));
+    assert_eq!(
+        full_dignity(Body::SUN, Longitude::new(19.0), true),
+        (Dignity::Exaltation, 4)
+    );
     // Sun in Libra 19° (fall)
-    assert_eq!(full_dignity(Body::SUN, Longitude::new(199.0), true), (Dignity::Fall, -4));
+    assert_eq!(
+        full_dignity(Body::SUN, Longitude::new(199.0), true),
+        (Dignity::Fall, -4)
+    );
 }
 
 /// Egyptian-term spot-checks across multiple signs (Ptolemy bound table).
 #[test]
 fn egyptian_terms_multi_sign_pins() {
     // Pisces 12-16 = Jupiter
-    assert_eq!(egyptian_terms_ruler(Longitude::new(343.0)), Body::JUPITER, "Pisces 13°");
+    assert_eq!(
+        egyptian_terms_ruler(Longitude::new(343.0)),
+        Body::JUPITER,
+        "Pisces 13°"
+    );
     // Sagittarius 0-12 = Jupiter (long opening segment)
-    assert_eq!(egyptian_terms_ruler(Longitude::new(245.0)), Body::JUPITER, "Sagittarius 5°");
+    assert_eq!(
+        egyptian_terms_ruler(Longitude::new(245.0)),
+        Body::JUPITER,
+        "Sagittarius 5°"
+    );
     // Capricorn 0-7 = Mercury
-    assert_eq!(egyptian_terms_ruler(Longitude::new(273.0)), Body::MERCURY, "Capricorn 3°");
+    assert_eq!(
+        egyptian_terms_ruler(Longitude::new(273.0)),
+        Body::MERCURY,
+        "Capricorn 3°"
+    );
 }
 
 /// Almuten of Aries 1° in a day chart must be one of the planets with a claim
@@ -2331,7 +2531,10 @@ fn egyptian_terms_multi_sign_pins() {
 #[test]
 fn almuten_aries_1deg_day() {
     let (lord, score) = almuten(Longitude::new(1.0), true);
-    assert!(score > 0 && score < 30, "almuten score out of band: {score}");
+    assert!(
+        score > 0 && score < 30,
+        "almuten score out of band: {score}"
+    );
     assert!(
         [Body::MARS, Body::SUN, Body::JUPITER].contains(&lord),
         "almuten of Aries 1° expected ∈ {{Mars, Sun, Jupiter}}, got {lord:?}",
@@ -2350,7 +2553,10 @@ fn parallactic_angle_canonical_geometries() {
     use celestial_core::parallactic_angle;
     // At meridian, body south of zenith
     let q0 = parallactic_angle(Degrees::new(0.0), Degrees::new(0.0), Latitude::new(45.0));
-    assert!(q0.abs() < 1e-9, "q at meridian (lat>dec) = {q0}, expected 0");
+    assert!(
+        q0.abs() < 1e-9,
+        "q at meridian (lat>dec) = {q0}, expected 0"
+    );
 
     // East of meridian (rising), equator observer, dec=0
     let q_east = parallactic_angle(Degrees::new(-90.0), Degrees::new(0.0), Latitude::new(0.0));
@@ -2464,7 +2670,12 @@ fn great_american_eclipse_2017() {
 fn mercury_transit_2019_inferior_conjunction() {
     let jd = julday(2019, 11, 11, 15.0 + 21.0 / 60.0, Calendar::Gregorian);
     let sun = calc_ut(JulianDay::new(jd), Body::SUN, FLG).unwrap();
-    let merc = calc_ut(JulianDay::new(jd), Body::MERCURY, CalcFlags::BUILTIN | CalcFlags::SPEED).unwrap();
+    let merc = calc_ut(
+        JulianDay::new(jd),
+        Body::MERCURY,
+        CalcFlags::BUILTIN | CalcFlags::SPEED,
+    )
+    .unwrap();
     assert_lon_within!(sun.lon, 228.93, 0.05, "Sun at Mercury transit");
     assert_lon_within!(merc.lon, 228.93, 0.1, "Mercury at transit");
     assert!(
@@ -2529,7 +2740,13 @@ fn saturn_pluto_conjunction_2020() {
 fn diana_asc_mc_placidus_pin() {
     use celestial_core::houses;
     let jd = julday(1961, 7, 1, 18.75, Calendar::Gregorian);
-    let result = houses(JulianDay::new(jd), Latitude::new(52.83), Longitude::new(0.50), HouseSystem::PLACIDUS).unwrap();
+    let result = houses(
+        JulianDay::new(jd),
+        Latitude::new(52.83),
+        Longitude::new(0.50),
+        HouseSystem::PLACIDUS,
+    )
+    .unwrap();
     let asc = result.ascmc[0];
     let mc = result.ascmc[1];
     assert_lon_within!(asc, 258.40, 0.05, "Diana ASC");

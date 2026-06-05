@@ -32,7 +32,12 @@ pub fn calc_ut(jd_ut: JulianDay, body: Body, flags: CalcFlags) -> Result<PlanetP
 }
 
 /// Planetocentric position: body as seen from `center` instead of Earth.
-pub fn calc_pctr(jd_et: JulianDay, body: Body, center: Body, flags: CalcFlags) -> Result<PlanetPos> {
+pub fn calc_pctr(
+    jd_et: JulianDay,
+    body: Body,
+    center: Body,
+    flags: CalcFlags,
+) -> Result<PlanetPos> {
     use crate::astronomy::calc_ut as au;
     let body_pos =
         au(jd_et, body.as_raw(), flags.as_raw()).map_err(|e| Error::Calc(e.to_string()))?;
@@ -178,10 +183,14 @@ fn nod_aps_impl(jd: f64, body: Body, flags: CalcFlags, _method: i32) -> Result<N
 ///
 /// Returns [`OrbitalElements`] with named fields: `semi_major_axis`, `eccentricity`,
 /// `inclination`, `ascending_node`, `arg_perihelion`, `mean_anomaly`, etc.
-pub fn get_orbital_elements(jd_et: JulianDay, body: Body, _flags: CalcFlags) -> Result<OrbitalElements> {
+pub fn get_orbital_elements(
+    jd_et: JulianDay,
+    body: Body,
+    _flags: CalcFlags,
+) -> Result<OrbitalElements> {
     let jd_et: f64 = jd_et.into();
-    let el =
-        crate::astronomy::nodes::planet_mean_elements(body.as_raw(), JulianDay::new(jd_et)).ok_or_else(|| {
+    let el = crate::astronomy::nodes::planet_mean_elements(body.as_raw(), JulianDay::new(jd_et))
+        .ok_or_else(|| {
             Error::Calc(format!(
                 "orbital elements not available for body {}",
                 body.as_raw()
@@ -209,8 +218,8 @@ pub fn orbit_max_min_true_distance(
     _flags: CalcFlags,
 ) -> Result<OrbitalDistances> {
     let jd_et: f64 = jd_et.into();
-    let el =
-        crate::astronomy::nodes::planet_mean_elements(body.as_raw(), JulianDay::new(jd_et)).ok_or_else(|| {
+    let el = crate::astronomy::nodes::planet_mean_elements(body.as_raw(), JulianDay::new(jd_et))
+        .ok_or_else(|| {
             Error::Calc(format!(
                 "orbital elements not available for body {}",
                 body.as_raw()
@@ -447,7 +456,10 @@ impl<'a> MultiCalc<'a> {
             let jd = self.opts.jd;
             let flags = self.opts.flags;
             if self.opts.use_ut {
-                self.bodies.iter().map(|&b| calc_ut(JulianDay::new(jd), b, flags)).collect()
+                self.bodies
+                    .iter()
+                    .map(|&b| calc_ut(JulianDay::new(jd), b, flags))
+                    .collect()
             } else {
                 self.bodies
                     .iter()
@@ -476,7 +488,13 @@ mod cov_tests {
     #[test]
     fn parallel_calc_threaded_path() {
         // > 2 bodies trips the scoped-thread path.
-        let bodies = [Body::SUN, Body::MOON, Body::MERCURY, Body::VENUS, Body::MARS];
+        let bodies = [
+            Body::SUN,
+            Body::MOON,
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS,
+        ];
         let out = parallel_calc(&bodies, |b| {
             calc_ut(JulianDay::new(2_451_545.0), b, CalcFlags::BUILTIN)
         });

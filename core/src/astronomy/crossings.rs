@@ -271,7 +271,13 @@ pub fn mooncross_node(jd_et: JulianDay, _flags: i32) -> Option<NodeCrossing> {
 }
 
 /// Planet crosses longitude `x2cross` heliocentrically.
-pub fn helio_cross(body: i32, x2cross: f64, jd_et: JulianDay, flags: i32, forward: bool) -> Option<f64> {
+pub fn helio_cross(
+    body: i32,
+    x2cross: f64,
+    jd_et: JulianDay,
+    flags: i32,
+    forward: bool,
+) -> Option<f64> {
     let jd_et: f64 = jd_et.into();
     // Use the heliocentric flag
     let hflags = flags | crate::astronomy::flag::FLG_HELCTR as i32;

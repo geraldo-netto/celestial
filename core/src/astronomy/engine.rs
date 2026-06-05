@@ -194,9 +194,9 @@ fn topocentric_lon(
     let sin_pi = 6_378.137 / dist_km;
     let horiz_parallax_r = sin_pi.asin();
 
-    let gst_deg =
-        crate::functions::time::sidtime(JulianDay::new(jde - crate::astronomy::delta_t::delta_t(JulianDay::new(jde)) / 86400.0))
-            * 15.0;
+    let gst_deg = crate::functions::time::sidtime(JulianDay::new(
+        jde - crate::astronomy::delta_t::delta_t(JulianDay::new(jde)) / 86400.0,
+    )) * 15.0;
     let ha_deg = (gst_deg + obs_lon - geo.ra).rem_euclid(360.0);
     let ha_r = ha_deg.to_radians();
 
@@ -282,8 +282,20 @@ pub(crate) fn body_position(body_num: i32, jde: f64) -> Result<(f64, f64, f64)> 
         body::URANUS => apparent_planet(Planet::Uranus, jde),
         body::NEPTUNE => apparent_planet(Planet::Neptune, jde),
         body::MOON => apparent_moon(jde),
-        body::MEAN_NODE => return Ok((crate::astronomy::nodes::moon_mean_node(JulianDay::new(jde)), 0.0, 1.0)),
-        body::TRUE_NODE => return Ok((crate::astronomy::nodes::moon_true_node(JulianDay::new(jde)), 0.0, 1.0)),
+        body::MEAN_NODE => {
+            return Ok((
+                crate::astronomy::nodes::moon_mean_node(JulianDay::new(jde)),
+                0.0,
+                1.0,
+            ))
+        }
+        body::TRUE_NODE => {
+            return Ok((
+                crate::astronomy::nodes::moon_true_node(JulianDay::new(jde)),
+                0.0,
+                1.0,
+            ))
+        }
         body::CHIRON => {
             let (l, b, r) = crate::astronomy::chiron::chiron_pos(JulianDay::new(jde));
             return Ok((l, b, r));

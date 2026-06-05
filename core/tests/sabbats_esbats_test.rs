@@ -18,7 +18,9 @@ fn setup() {
 
 /// Helper: Sun's ecliptic longitude at a given JD.
 fn sun_lon(jd: f64) -> f64 {
-    calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap().lon
+    calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN)
+        .unwrap()
+        .lon
 }
 
 /// Helper: Sun longitude difference (shortest arc, signed).

@@ -16,9 +16,9 @@
 //! assert!(jd > 2460000.0);
 //! ```
 
-use crate::units::JulianDay;
 use crate::body::{Body, CalcFlags, Calendar};
 use crate::norm_deg;
+use crate::units::JulianDay;
 use crate::{calc_ut, julday};
 
 /// Find the next full moon at or after `jd_start`.

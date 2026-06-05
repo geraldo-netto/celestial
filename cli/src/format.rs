@@ -127,8 +127,10 @@ mod tests {
             xml_escape("a&b<c>d\"e'f"),
             "a&amp;b&lt;c&gt;d&quot;e&apos;f"
         );
-        assert_eq!(xml_escape("<a href=\"x&y\">'z'</a>"),
-            "&lt;a href=&quot;x&amp;y&quot;&gt;&apos;z&apos;&lt;/a&gt;");
+        assert_eq!(
+            xml_escape("<a href=\"x&y\">'z'</a>"),
+            "&lt;a href=&quot;x&amp;y&quot;&gt;&apos;z&apos;&lt;/a&gt;"
+        );
     }
 
     #[test]
@@ -194,10 +196,7 @@ mod tests {
     #[test]
     fn json_obj_numeric_and_string_values() {
         assert_eq!(json_obj(&[]), "{\n\n}");
-        assert_eq!(
-            json_obj(&[("n", "1.5".to_string())]),
-            "{\n  \"n\": 1.5\n}"
-        );
+        assert_eq!(json_obj(&[("n", "1.5".to_string())]), "{\n  \"n\": 1.5\n}");
         assert_eq!(
             json_obj(&[("s", "hello".to_string())]),
             "{\n  \"s\": \"hello\"\n}"

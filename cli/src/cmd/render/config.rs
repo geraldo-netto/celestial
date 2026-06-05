@@ -149,4 +149,3 @@ pub(crate) fn merge_date_and_time(date: &str, time: Option<&str>) -> String {
         format!("{base} {t}")
     }
 }
-

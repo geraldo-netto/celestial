@@ -45,9 +45,8 @@ struct Palette {
 
 impl Palette {
     fn from(vars: &Value) -> Self {
-        let esc = |k: &str, default: &str| {
-            crate::format::xml_escape(vars[k].as_str().unwrap_or(default))
-        };
+        let esc =
+            |k: &str, default: &str| crate::format::xml_escape(vars[k].as_str().unwrap_or(default));
         Self {
             bg: esc("bg_color", "#ffffff"),
             ring: esc("ring_color", "#1a1a2e"),
@@ -434,7 +433,11 @@ fn write_aspect(s: &mut String, pal: &Palette, asp: &Value) {
     let orb = asp["orb"].as_f64().unwrap_or(8.0);
     let hard = asp["is_hard"].as_bool().unwrap_or(false);
     let minor = asp["is_minor"].as_bool().unwrap_or(false);
-    let col = if hard { pal.hard_c.as_str() } else { pal.soft_c.as_str() };
+    let col = if hard {
+        pal.hard_c.as_str()
+    } else {
+        pal.soft_c.as_str()
+    };
     let (sw, op, dash) = aspect_style(orb, minor);
     let _ = writeln!(
         s,
@@ -682,7 +685,11 @@ fn write_aspect_legend_row(s: &mut String, pal: &Palette, asp: &Value, c3x: f64,
     let b1 = asp["body1"].as_str().unwrap_or("");
     let b2 = asp["body2"].as_str().unwrap_or("");
     let hard = asp["is_hard"].as_bool().unwrap_or(false);
-    let col = if hard { pal.hard_c.as_str() } else { pal.soft_c.as_str() };
+    let col = if hard {
+        pal.hard_c.as_str()
+    } else {
+        pal.soft_c.as_str()
+    };
     let aind = if appl { "&#9650;app" } else { "&#9660;sep" };
     // SEC-3: take the first N *chars* (not bytes) — a byte slice can
     // split a multibyte UTF-8 body/aspect name and panic.

@@ -38,14 +38,7 @@ impl FfiError {
 /// excluded — bindings surface it as a separate typed field.
 #[inline]
 pub fn pos6(p: &celestial_core::PlanetPos) -> [f64; 6] {
-    [
-        p.lon,
-        p.lat,
-        p.dist,
-        p.speed_lon,
-        p.speed_lat,
-        p.speed_dist,
-    ]
+    [p.lon, p.lat, p.dist, p.speed_lon, p.speed_lat, p.speed_dist]
 }
 
 /// Same six fields as [`pos6`] but as a **tuple** — for bindings (e.g.
@@ -53,14 +46,7 @@ pub fn pos6(p: &celestial_core::PlanetPos) -> [f64; 6] {
 /// the field order lives in exactly one place (DUP-8).
 #[inline]
 pub fn pos6_tuple(p: &celestial_core::PlanetPos) -> (f64, f64, f64, f64, f64, f64) {
-    (
-        p.lon,
-        p.lat,
-        p.dist,
-        p.speed_lon,
-        p.speed_lat,
-        p.speed_dist,
-    )
+    (p.lon, p.lat, p.dist, p.speed_lon, p.speed_lat, p.speed_dist)
 }
 
 #[cfg(test)]
@@ -97,8 +83,12 @@ mod tests {
         ];
         for (lon, lat, dist, slon, slat, sdist) in cases {
             let p = celestial_core::PlanetPos {
-                lon, lat, dist,
-                speed_lon: slon, speed_lat: slat, speed_dist: sdist,
+                lon,
+                lat,
+                dist,
+                speed_lon: slon,
+                speed_lat: slat,
+                speed_dist: sdist,
                 ret_flags: 0,
             };
             let arr = pos6(&p);
@@ -118,8 +108,12 @@ mod tests {
     #[test]
     fn pos6_array_len_is_six() {
         let p = celestial_core::PlanetPos {
-            lon: 0.0, lat: 0.0, dist: 0.0,
-            speed_lon: 0.0, speed_lat: 0.0, speed_dist: 0.0,
+            lon: 0.0,
+            lat: 0.0,
+            dist: 0.0,
+            speed_lon: 0.0,
+            speed_lat: 0.0,
+            speed_dist: 0.0,
             ret_flags: 0,
         };
         assert_eq!(pos6(&p).len(), 6);

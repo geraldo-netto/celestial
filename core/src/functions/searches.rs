@@ -1,8 +1,8 @@
 //! Iterative aspect and retrograde search functions.
 
-use crate::units::{JulianDay, Latitude, Longitude};
 use crate::body::{Body, CalcFlags, HouseSystem};
 use crate::functions::houses::houses;
+use crate::units::{JulianDay, Latitude, Longitude};
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -194,7 +194,13 @@ pub fn next_aspect(
     // We want: lon + aspect ≡ fixed_pt (mod 360)
     // → lon ≡ fixed_pt - aspect (mod 360)
     let target = norm360(fixed_pt - aspect);
-    let jd = find_crossing(body.as_raw(), target, JulianDay::new(jd_start), !backward, flags.as_raw())?;
+    let jd = find_crossing(
+        body.as_raw(),
+        target,
+        JulianDay::new(jd_start),
+        !backward,
+        flags.as_raw(),
+    )?;
 
     // Check stop limit
     if stop_days > 0.0 {
@@ -405,7 +411,13 @@ pub fn next_aspect_cusp(
 
     let mut diff_at = |jd: f64| -> Option<f64> {
         let p = calc_ut(JulianDay::new(jd), body, scan_flags).ok()?.lon;
-        let hr = houses(JulianDay::new(jd), Latitude::new(lat), Longitude::new(lon), hsys).ok()?;
+        let hr = houses(
+            JulianDay::new(jd),
+            Latitude::new(lat),
+            Longitude::new(lon),
+            hsys,
+        )
+        .ok()?;
         Some(diff_deg_signed(p + aspect, hr.cusps[cusp]))
     };
 
@@ -423,7 +435,13 @@ pub fn next_aspect_cusp(
         if d0 * d1 <= 0.0 && (d1 - d0).abs() < 180.0 {
             let jd_ret = bisect_zero_fallible(jd - dir, jd, d0, 1e-8, 60, &mut diff_at)?;
             let p = calc_ut(JulianDay::new(jd_ret), body, flags).ok()?;
-            let hr = houses(JulianDay::new(jd_ret), Latitude::new(lat), Longitude::new(lon), hsys).ok()?;
+            let hr = houses(
+                JulianDay::new(jd_ret),
+                Latitude::new(lat),
+                Longitude::new(lon),
+                hsys,
+            )
+            .ok()?;
             return Some(AspectCuspResult {
                 jd: jd_ret,
                 pos: pos_to_arr(&p),
@@ -482,8 +500,12 @@ pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
         let dec = diff_deg(sun2, sun1) / 360.0;
         let mut jd = jd1;
         loop {
-            let r = crate::functions::motion::solcross(Longitude::new(sun1), JulianDay::new(jd + 1e-5), CalcFlags::BUILTIN)
-                .map_err(|e| crate::error::Error::Calc(e.to_string()))?;
+            let r = crate::functions::motion::solcross(
+                Longitude::new(sun1),
+                JulianDay::new(jd + 1e-5),
+                CalcFlags::BUILTIN,
+            )
+            .map_err(|e| crate::error::Error::Calc(e.to_string()))?;
             if r <= jd2 {
                 years += 1.0;
                 jd = r;
@@ -499,8 +521,12 @@ pub fn years_diff(jd1: f64, jd2: f64, flags: CalcFlags) -> crate::Result<f64> {
             // Sanity-check that a Sun crossing of `sun1` exists in the search
             // neighbourhood before walking backward. Result intentionally
             // discarded — only the propagated error is consumed.
-            let _ = crate::functions::motion::solcross(Longitude::new(sun1), JulianDay::new(jd - 1e-5), CalcFlags::BUILTIN)
-                .map_err(|e| crate::error::Error::Calc(e.to_string()))?;
+            let _ = crate::functions::motion::solcross(
+                Longitude::new(sun1),
+                JulianDay::new(jd - 1e-5),
+                CalcFlags::BUILTIN,
+            )
+            .map_err(|e| crate::error::Error::Calc(e.to_string()))?;
             // solcross searches forward; for the backward branch we use
             // find_crossing with `forward=false` to walk into the past.
             let rb = crate::astronomy::crossings::find_crossing(
@@ -606,8 +632,13 @@ pub fn mc_transit_ut(
     flags: CalcFlags,
     backward: bool,
 ) -> crate::Result<f64> {
-    let chart = crate::functions::houses::houses(JulianDay::new(jd_natal), Latitude::new(lat), Longitude::new(lon), hsys)
-        .map_err(|e| crate::Error::Calc(format!("mc_transit_ut: {e}")))?;
+    let chart = crate::functions::houses::houses(
+        JulianDay::new(jd_natal),
+        Latitude::new(lat),
+        Longitude::new(lon),
+        hsys,
+    )
+    .map_err(|e| crate::Error::Calc(format!("mc_transit_ut: {e}")))?;
     let natal_mc = chart.ascmc[1]; // true MC
     transit_to_degree(body, natal_mc, jd_start, flags, backward)
 }
@@ -626,8 +657,13 @@ pub fn ic_transit_ut(
     flags: CalcFlags,
     backward: bool,
 ) -> crate::Result<f64> {
-    let chart = crate::functions::houses::houses(JulianDay::new(jd_natal), Latitude::new(lat), Longitude::new(lon), hsys)
-        .map_err(|e| crate::Error::Calc(format!("ic_transit_ut: {e}")))?;
+    let chart = crate::functions::houses::houses(
+        JulianDay::new(jd_natal),
+        Latitude::new(lat),
+        Longitude::new(lon),
+        hsys,
+    )
+    .map_err(|e| crate::Error::Calc(format!("ic_transit_ut: {e}")))?;
     let natal_ic = (chart.ascmc[1] + 180.0).rem_euclid(360.0);
     transit_to_degree(body, natal_ic, jd_start, flags, backward)
 }
@@ -644,8 +680,13 @@ pub fn asc_transit_ut(
     flags: CalcFlags,
     backward: bool,
 ) -> crate::Result<f64> {
-    let chart = crate::functions::houses::houses(JulianDay::new(jd_natal), Latitude::new(lat), Longitude::new(lon), hsys)
-        .map_err(|e| crate::Error::Calc(format!("asc_transit_ut: {e}")))?;
+    let chart = crate::functions::houses::houses(
+        JulianDay::new(jd_natal),
+        Latitude::new(lat),
+        Longitude::new(lon),
+        hsys,
+    )
+    .map_err(|e| crate::Error::Calc(format!("asc_transit_ut: {e}")))?;
     let natal_asc = chart.ascmc[0];
     transit_to_degree(body, natal_asc, jd_start, flags, backward)
 }
@@ -664,8 +705,13 @@ pub fn dsc_transit_ut(
     flags: CalcFlags,
     backward: bool,
 ) -> crate::Result<f64> {
-    let chart = crate::functions::houses::houses(JulianDay::new(jd_natal), Latitude::new(lat), Longitude::new(lon), hsys)
-        .map_err(|e| crate::Error::Calc(format!("dsc_transit_ut: {e}")))?;
+    let chart = crate::functions::houses::houses(
+        JulianDay::new(jd_natal),
+        Latitude::new(lat),
+        Longitude::new(lon),
+        hsys,
+    )
+    .map_err(|e| crate::Error::Calc(format!("dsc_transit_ut: {e}")))?;
     let natal_dsc = (chart.ascmc[0] + 180.0).rem_euclid(360.0);
     transit_to_degree(body, natal_dsc, jd_start, flags, backward)
 }
@@ -905,8 +951,12 @@ mod cov_tests {
         // Synthesise pos function with speed_lon linear in time, zero at t=5
         let pos_at = |t: f64| -> Option<crate::PlanetPos> {
             Some(crate::PlanetPos {
-                lon: 0.0, lat: 0.0, dist: 1.0,
-                speed_lon: t - 5.0, speed_lat: 0.0, speed_dist: 0.0,
+                lon: 0.0,
+                lat: 0.0,
+                dist: 1.0,
+                speed_lon: t - 5.0,
+                speed_lat: 0.0,
+                speed_dist: 0.0,
                 ret_flags: 0,
             })
         };

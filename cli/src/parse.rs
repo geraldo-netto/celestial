@@ -7,12 +7,12 @@
 //! a [`ParseError`] into [`crate::error::CliError`] via `From`.
 
 use celestial_core::body::{Body, Calendar, HouseSystem};
+use celestial_core::JulianDay;
 use celestial_core::{jdnow, julday, revjul};
 use celestial_core::{
     CHIRON, JUPITER, MARS, MEAN_NODE, MERCURY, MOON, NEPTUNE, PLUTO, SATURN, SUN, TRUE_NODE,
     URANUS, VENUS,
 };
-use celestial_core::JulianDay;
 use std::str::FromStr;
 
 /// The single error type for every argument parser.
@@ -81,7 +81,9 @@ impl FromStr for DateJd {
         // Parse YYYY-MM-DD
         let dp: Vec<&str> = date_s.split('-').collect();
         if dp.len() != 3 {
-            return Err(ParseError::Date(format!("expected YYYY-MM-DD, got: {date_s}")));
+            return Err(ParseError::Date(format!(
+                "expected YYYY-MM-DD, got: {date_s}"
+            )));
         }
         let year: i32 = dp[0]
             .parse()
@@ -169,8 +171,7 @@ impl FromStr for Tz {
                         parse_numeric_offset(&z.offset.to_ascii_uppercase().replace("UTC", ""))
                             .unwrap_or(
                                 z.hours as f64
-                                    + (z.minutes as f64) / 60.0
-                                        * z.hours.signum().max(1) as f64,
+                                    + (z.minutes as f64) / 60.0 * z.hours.signum().max(1) as f64,
                             )
                     })
                     .collect();
@@ -430,8 +431,8 @@ mod tests {
         assert!(parse_tz_offset("").is_err());
         assert!(parse_tz_offset("+99:99").is_err()); // out of range
         assert!(parse_tz_offset("x05").is_err()); // bad sign
-        // REL-3: a non-ASCII char after the sign is 4 bytes — must Err, not
-        // panic slicing mid-codepoint in the HHMM branch.
+                                                  // REL-3: a non-ASCII char after the sign is 4 bytes — must Err, not
+                                                  // panic slicing mid-codepoint in the HHMM branch.
         assert!(parse_tz_offset("+\u{1F600}").is_err()); // "+😀"
         assert!(parse_tz_offset("-a£b").is_err()); // 4-byte mixed, non-ASCII
     }
@@ -463,8 +464,20 @@ mod tests {
     #[test]
     fn parse_body_names_and_numbers() {
         for n in [
-            "sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune",
-            "pluto", "node", "mean_node", "true_node", "chiron",
+            "sun",
+            "moon",
+            "mercury",
+            "venus",
+            "mars",
+            "jupiter",
+            "saturn",
+            "uranus",
+            "neptune",
+            "pluto",
+            "node",
+            "mean_node",
+            "true_node",
+            "chiron",
         ] {
             assert!(parse_body(n).is_ok(), "{n}");
         }
@@ -477,8 +490,16 @@ mod tests {
     #[test]
     fn parse_hsys_names_letters_bad() {
         for n in [
-            "placidus", "koch", "equal", "whole", "porphyry", "regio", "campanus", "morinus",
-            "alcabitus", "axial",
+            "placidus",
+            "koch",
+            "equal",
+            "whole",
+            "porphyry",
+            "regio",
+            "campanus",
+            "morinus",
+            "alcabitus",
+            "axial",
         ] {
             assert!(parse_hsys(n).is_ok(), "{n}");
         }

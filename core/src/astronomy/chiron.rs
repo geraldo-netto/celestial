@@ -52,14 +52,14 @@ pub fn chiron_pos(jd: JulianDay) -> (f64, f64, f64) {
     let inc = to_rad(6.930_2_f64);
     let node = to_rad(209.386_7_f64); // ascending node
     let peri = to_rad(339.534_3_f64); // argument of perihelion (from node)
-    // Mean anomaly at J2000.0 in degrees.
-    // Chiron perihelion was JD 2450162.0 (1996-02-14). At J2000.0 the
-    // time since perihelion is 1383 d → M = n·1383 ≈ 27.0° where the
-    // mean motion n = 360° / (50.45 y · 365.25 d/y) = 0.01956°/d.
-    // The previous value 48.5° was ~21° ahead of orbit (caused ~26° too
-    // far advanced in ecliptic longitude at all dates).
+                                      // Mean anomaly at J2000.0 in degrees.
+                                      // Chiron perihelion was JD 2450162.0 (1996-02-14). At J2000.0 the
+                                      // time since perihelion is 1383 d → M = n·1383 ≈ 27.0° where the
+                                      // mean motion n = 360° / (50.45 y · 365.25 d/y) = 0.01956°/d.
+                                      // The previous value 48.5° was ~21° ahead of orbit (caused ~26° too
+                                      // far advanced in ecliptic longitude at all dates).
     let m0 = to_rad(27.0_f64);
-                               // Orbital period: P = sqrt(a³) years
+    // Orbital period: P = sqrt(a³) years
     let period = a.powf(1.5) * 365.25; // days
     let n = TWO_PI / period; // mean motion rad/day
 

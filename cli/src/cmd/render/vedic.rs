@@ -1,14 +1,14 @@
 //! Vedic chart builders — split from render.rs.
 
-use celestial_core::Longitude;
-use celestial_core::Latitude;
-use celestial_core::JulianDay;
 use super::ChartContext;
-use crate::error::CliError;
 use super::{
     fmt_lon_dms, jd_to_date_str, render_south_indian_svg, sarvashtakavarga, BODIES, NI_CELLS,
     RASI_GLYPHS, RASI_NAMES,
 };
+use crate::error::CliError;
+use celestial_core::JulianDay;
+use celestial_core::Latitude;
+use celestial_core::Longitude;
 
 use celestial_core::body::{Body, CalcFlags, HouseSystem};
 use celestial_core::{calc_ut, houses_ex};
@@ -22,7 +22,11 @@ use std::fmt::Write;
 
 pub(super) fn render_north_indian_svg(ctx: &ChartContext) -> String {
     let pal = super::svg_common::SvgPalette::from_ctx(
-        ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
+        ctx,
+        "#ffffff",
+        "border_color",
+        "#5c3a00",
+        "#2a1a00",
     );
     let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
     let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#1a3a7a");
@@ -157,8 +161,13 @@ pub(super) fn build_ashtakavarga_context(
     vars.entry("title".to_string())
         .or_insert_with(|| "Ashtakavarga".to_string());
 
-    let h = houses_ex(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(b'P'))
-        ?;
+    let h = houses_ex(
+        JulianDay::new(jd),
+        CalcFlags::BUILTIN,
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(b'P'),
+    )?;
     let asc_lon = h.ascmc[0];
     let asc_rasi = (asc_lon % 360.0 / 30.0) as usize % 12;
 
@@ -362,7 +371,11 @@ fn write_av_totals_row(s: &mut String, totals: &[Value], ty: f64, border: &str, 
 
 pub(super) fn render_ashtakavarga_svg(ctx: &ChartContext) -> String {
     let pal = super::svg_common::SvgPalette::from_ctx(
-        ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
+        ctx,
+        "#ffffff",
+        "border_color",
+        "#5c3a00",
+        "#2a1a00",
     );
     let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
     let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#1a3a7a");
@@ -501,7 +514,11 @@ struct ShadbalaContext {
 
 pub(super) fn render_shadbala_svg(ctx: &ChartContext) -> String {
     let pal = super::svg_common::SvgPalette::from_ctx(
-        ctx, "#ffffff", "border_color", "#5c3a00", "#2a1a00",
+        ctx,
+        "#ffffff",
+        "border_color",
+        "#5c3a00",
+        "#2a1a00",
     );
     let (bg, border, txt) = (pal.bg, pal.accent, pal.text);
     let pcol = super::svg_common::esc_var(&ctx["vars"], "planet_color", "#1a3a7a");
@@ -712,20 +729,21 @@ pub(super) fn build_vedic_context(
     }
 
     // Vimshottari dasha (next 120 years)
-    let dashas: Vec<Value> = vimshottari_dasha(JulianDay::new(jd), Longitude::new(moon_sid_lon), 120.0)
-        .iter()
-        .map(|d| {
-            let start = jd_to_date_str(d.start);
-            let end = jd_to_date_str(d.end);
-            json!({
+    let dashas: Vec<Value> =
+        vimshottari_dasha(JulianDay::new(jd), Longitude::new(moon_sid_lon), 120.0)
+            .iter()
+            .map(|d| {
+                let start = jd_to_date_str(d.start);
+                let end = jd_to_date_str(d.end);
+                json!({
                 "body": format!("{:?}", d.body),
                 "years": (d.years * 100.0).round() / 100.0,
                 "start": start,
                 "end":   end,
                 "start_jd": d.start,
                 "end_jd":   d.end})
-        })
-        .collect();
+            })
+            .collect();
 
     // Ochchabala (exaltation strength 0–60)
     let strengths: Vec<Value> = (0i32..7)

@@ -2,8 +2,8 @@
 
 use crate::error::CliError;
 use crate::{format as fmt, parse};
-use celestial_core::{lun_eclipse_when, sol_eclipse_when_glob, CalcFlags};
 use celestial_core::JulianDay;
+use celestial_core::{lun_eclipse_when, sol_eclipse_when_glob, CalcFlags};
 use clap::Args;
 
 #[derive(Args)]
@@ -30,13 +30,21 @@ pub fn run(args: EclipseArgs) -> Result<(), CliError> {
 
     match args.r#type.to_lowercase().as_str() {
         "solar" | "sol" | "s" => {
-            let r = sol_eclipse_when_glob(JulianDay::new(jd_start), CalcFlags::BUILTIN, 0, args.backwards)
-                ?;
+            let r = sol_eclipse_when_glob(
+                JulianDay::new(jd_start),
+                CalcFlags::BUILTIN,
+                0,
+                args.backwards,
+            )?;
             print_eclipse_result("Solar eclipse", &r.tret, args.json)
         }
         "lunar" | "lun" | "l" => {
-            let r = lun_eclipse_when(JulianDay::new(jd_start), CalcFlags::BUILTIN, 0, args.backwards)
-                ?;
+            let r = lun_eclipse_when(
+                JulianDay::new(jd_start),
+                CalcFlags::BUILTIN,
+                0,
+                args.backwards,
+            )?;
             print_eclipse_result("Lunar eclipse", &r.tret, args.json)
         }
         t => Err(CliError::Parse(format!(

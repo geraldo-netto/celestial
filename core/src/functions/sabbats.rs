@@ -185,8 +185,12 @@ pub fn sabbat_jd(year: i32, kind: SabbatKind) -> Result<f64> {
     let month = kind.approx_month();
     let jd_start = crate::julday(year, month, 1, 0.0, Calendar::Gregorian) - 20.0;
 
-    crate::functions::motion::solcross_ut(Longitude::new(lon), JulianDay::new(jd_start), CalcFlags::BUILTIN)
-        .map_err(|_| Error::Calc(format!("could not find {} for year {year}", kind.name())))
+    crate::functions::motion::solcross_ut(
+        Longitude::new(lon),
+        JulianDay::new(jd_start),
+        CalcFlags::BUILTIN,
+    )
+    .map_err(|_| Error::Calc(format!("could not find {} for year {year}", kind.name())))
 }
 
 /// All eight sabbats for a given Gregorian year, sorted chronologically.

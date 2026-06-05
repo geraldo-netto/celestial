@@ -3,8 +3,8 @@
 use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::Calendar;
-use celestial_core::{esbats_for_year, jdnow, next_esbat, next_sabbat, revjul, sabbats_for_year};
 use celestial_core::JulianDay;
+use celestial_core::{esbats_for_year, jdnow, next_esbat, next_sabbat, revjul, sabbats_for_year};
 use clap::Args;
 
 // ─── Sabbats ──────────────────────────────────────────────────────────────────
@@ -180,26 +180,51 @@ mod tests {
 
     #[test]
     fn run_sabbats_year_text_ok() {
-        assert!(run_sabbats(SabbatsArgs { year: Some(2000), next: false, json: false }).is_ok());
+        assert!(run_sabbats(SabbatsArgs {
+            year: Some(2000),
+            next: false,
+            json: false
+        })
+        .is_ok());
     }
 
     #[test]
     fn run_sabbats_json_ok() {
-        assert!(run_sabbats(SabbatsArgs { year: Some(2000), next: false, json: true }).is_ok());
+        assert!(run_sabbats(SabbatsArgs {
+            year: Some(2000),
+            next: false,
+            json: true
+        })
+        .is_ok());
     }
 
     #[test]
     fn run_sabbats_next_ok() {
-        assert!(run_sabbats(SabbatsArgs { year: None, next: true, json: false }).is_ok());
+        assert!(run_sabbats(SabbatsArgs {
+            year: None,
+            next: true,
+            json: false
+        })
+        .is_ok());
     }
 
     #[test]
     fn run_esbats_year_ok() {
-        assert!(run_esbats(EsbatsArgs { year: Some(2000), next: false, json: false }).is_ok());
+        assert!(run_esbats(EsbatsArgs {
+            year: Some(2000),
+            next: false,
+            json: false
+        })
+        .is_ok());
     }
 
     #[test]
     fn run_esbats_next_json_ok() {
-        assert!(run_esbats(EsbatsArgs { year: None, next: true, json: true }).is_ok());
+        assert!(run_esbats(EsbatsArgs {
+            year: None,
+            next: true,
+            json: true
+        })
+        .is_ok());
     }
 }

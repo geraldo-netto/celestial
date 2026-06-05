@@ -1,7 +1,7 @@
 //! Vedic/Jyotish helpers.
 
-use crate::units::{Degrees, JulianDay, Longitude};
 use crate::body::{Body, CalcFlags};
+use crate::units::{Degrees, JulianDay, Longitude};
 use crate::{diff_deg_signed, norm_deg};
 
 #[inline]

@@ -3,8 +3,8 @@
 use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::Calendar;
-use celestial_core::{deltat, revjul, sidtime};
 use celestial_core::JulianDay;
+use celestial_core::{deltat, revjul, sidtime};
 use clap::Args;
 
 #[derive(Args)]

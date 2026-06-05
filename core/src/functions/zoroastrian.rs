@@ -48,7 +48,12 @@ pub const GATHA_DAYS: [&str; 5] = [
 pub fn fasli_nowruz_jd(gregorian_year: i32) -> Option<f64> {
     // Search from March 19 — the equinox falls within a few days
     let jd_approx = julday(gregorian_year, 3, 19, 0.0, crate::body::Calendar::Gregorian);
-    solcross_ut(Longitude::new(0.0), JulianDay::new(jd_approx), CalcFlags::BUILTIN).ok()
+    solcross_ut(
+        Longitude::new(0.0),
+        JulianDay::new(jd_approx),
+        CalcFlags::BUILTIN,
+    )
+    .ok()
 }
 
 /// Convert a Julian Day to a Fasli date: `(fasli_year, month_index, day)`.

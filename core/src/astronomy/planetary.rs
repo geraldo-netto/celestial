@@ -91,7 +91,11 @@ pub fn apparent_planet(planet: Planet, jde: f64) -> GeocentricPos {
     // true_obliquity recompute the same 77-term series. Byte-identical:
     // true_obliquity(jde) == mean_obliquity(jde) + nut.deps / 3600.0.
     let eps = mean_obliquity(jde) + nut.deps / 3600.0;
-    let (ra, dec) = ecl_to_equ(Longitude::new(lon_deg), Latitude::new(lat_deg), Degrees::new(eps));
+    let (ra, dec) = ecl_to_equ(
+        Longitude::new(lon_deg),
+        Latitude::new(lat_deg),
+        Degrees::new(eps),
+    );
 
     GeocentricPos {
         lon: lon_deg,
@@ -133,7 +137,11 @@ pub fn apparent_sun(jde: f64) -> GeocentricPos {
     // true_obliquity recompute the same 77-term series. Byte-identical:
     // true_obliquity(jde) == mean_obliquity(jde) + nut.deps / 3600.0.
     let eps = mean_obliquity(jde) + nut.deps / 3600.0;
-    let (ra, dec) = ecl_to_equ(Longitude::new(lon_deg), Latitude::new(lat_deg), Degrees::new(eps));
+    let (ra, dec) = ecl_to_equ(
+        Longitude::new(lon_deg),
+        Latitude::new(lat_deg),
+        Degrees::new(eps),
+    );
 
     GeocentricPos {
         lon: lon_deg,
@@ -158,7 +166,11 @@ pub fn apparent_moon(jde: f64) -> GeocentricPos {
     // true_obliquity recompute the same 77-term series. Byte-identical:
     // true_obliquity(jde) == mean_obliquity(jde) + nut.deps / 3600.0.
     let eps = mean_obliquity(jde) + nut.deps / 3600.0;
-    let (ra, dec) = ecl_to_equ(Longitude::new(lon_deg), Latitude::new(lat_deg), Degrees::new(eps));
+    let (ra, dec) = ecl_to_equ(
+        Longitude::new(lon_deg),
+        Latitude::new(lat_deg),
+        Degrees::new(eps),
+    );
 
     GeocentricPos {
         lon: lon_deg,
@@ -192,10 +204,11 @@ pub fn ecl_to_equ(lon: Longitude, lat: Latitude, eps: Degrees) -> (f64, f64) {
     let eps_r = to_rad(eps);
     let (sin_lon, cos_lon) = lon_r.sin_cos();
     let (sin_lat, cos_lat) = lat_r.sin_cos();
+    let cos_lat_denom = cos_lat.abs().max(1e-10).copysign(cos_lat);
     let (sin_eps, cos_eps) = eps_r.sin_cos();
 
     let ra = norm_deg(to_deg(
-        (sin_lon * cos_eps - sin_lat / cos_lat * sin_eps).atan2(cos_lon),
+        (sin_lon * cos_eps - sin_lat / cos_lat_denom * sin_eps).atan2(cos_lon),
     ));
     let dec = to_deg((sin_lat * cos_eps + cos_lat * sin_eps * sin_lon).asin());
     (ra, dec)
@@ -223,13 +236,15 @@ fn aberration(lon: f64, lat: f64, jde: f64) -> (f64, f64) {
     // Aberration formulas only need cos(lon) (no sin_lon term) and both sin/cos(lat).
     let cos_lon = lon.cos();
     let (sin_lat, cos_lat) = lat.sin_cos();
+    let cos_lat_denom = cos_lat.abs().max(1e-10).copysign(cos_lat);
     let sin_l0 = l0.sin();
     let sin_pi = pi.sin();
     let sin_om = omega.sin();
     let aberr_const = to_rad(0.000_478 / 3600.0);
 
     let delta_lon =
-        (-kappa * cos_lon * sin_l0 + e * kappa * cos_lon * sin_pi + aberr_const * sin_om) / cos_lat;
+        (-kappa * cos_lon * sin_l0 + e * kappa * cos_lon * sin_pi + aberr_const * sin_om)
+            / cos_lat_denom;
     let delta_lat =
         -kappa * (cos_lon * sin_lat * sin_l0 - sin_lat * sin_pi + aberr_const * sin_om * cos_lat);
 
@@ -287,5 +302,30 @@ mod tests {
         assert!(pos.lon.is_finite());
         assert!(pos.lat.is_finite());
         assert!(pos.dist > 0.0);
+    }
+
+    #[test]
+    fn ecl_to_equ_poles_are_finite() {
+        for lat in [-90.0, 90.0] {
+            let (ra, dec) = ecl_to_equ(
+                Longitude::new(123.0),
+                Latitude::new(lat),
+                Degrees::new(23.4393),
+            );
+            assert!(ra.is_finite(), "ra={ra} lat={lat}");
+            assert!(dec.is_finite(), "dec={dec} lat={lat}");
+        }
+    }
+
+    #[test]
+    fn aberration_poles_are_finite() {
+        for lat in [-90.0, 90.0] {
+            let (lon, corrected_lat) = aberration(to_rad(123.0), to_rad(lat), 2_451_545.0);
+            assert!(lon.is_finite(), "lon={lon} lat={lat}");
+            assert!(
+                corrected_lat.is_finite(),
+                "corrected_lat={corrected_lat} lat={lat}"
+            );
+        }
     }
 }

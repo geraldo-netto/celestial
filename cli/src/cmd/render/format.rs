@@ -4,8 +4,8 @@
 //! so call sites keep the short `super::fmt_lon_dms` names.
 
 use celestial_core::body::Calendar;
-use celestial_core::{lon_to_sign, moon_phase, revjul, MoonPhase};
 use celestial_core::JulianDay;
+use celestial_core::{lon_to_sign, moon_phase, revjul, MoonPhase};
 
 pub(crate) fn fmt_lon_dms(lon: f64) -> String {
     let (sign_idx, deg_in_sign) = lon_to_sign(lon);

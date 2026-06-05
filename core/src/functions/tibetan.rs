@@ -32,7 +32,12 @@ pub fn losar_jd(gregorian_year: i32) -> Option<f64> {
         0.0,
         crate::body::Calendar::Gregorian,
     );
-    let sols = solcross_ut(Longitude::new(270.0), JulianDay::new(jd_dec - 5.0), CalcFlags::BUILTIN).ok()?;
+    let sols = solcross_ut(
+        Longitude::new(270.0),
+        JulianDay::new(jd_dec - 5.0),
+        CalcFlags::BUILTIN,
+    )
+    .ok()?;
 
     // First new moon after the solstice
     let nm1 = next_new_moon(JulianDay::new(sols)).ok()?;

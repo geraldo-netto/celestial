@@ -6,8 +6,8 @@
 //! Re-exported by `mod.rs` so `super::sarvashtakavarga` /
 //! `super::render_south_indian_svg` call sites are unchanged.
 
-use celestial_core::{long_to_nakshatra, nakshatra_name};
 use celestial_core::Longitude;
+use celestial_core::{long_to_nakshatra, nakshatra_name};
 use serde_json::Value;
 
 use super::svg_common::SvgPalette;

@@ -2,11 +2,11 @@
 
 use crate::error::CliError;
 use crate::{format as fmt, parse};
+use celestial_core::JulianDay;
 use celestial_core::{
     moon_phase_info, moon_phases_for_month, next_first_quarter, next_full_moon_phase,
     next_last_quarter, next_new_moon,
 };
-use celestial_core::JulianDay;
 use clap::Args;
 
 #[derive(Args)]
@@ -91,22 +91,13 @@ fn run_phase_mode(args: &MoonArgs, jd: f64) -> Result<(), CliError> {
         results.push(("New Moon", next_new_moon(JulianDay::new(jd))?));
     }
     if args.first_quarter {
-        results.push((
-            "First Quarter",
-            next_first_quarter(JulianDay::new(jd))?,
-        ));
+        results.push(("First Quarter", next_first_quarter(JulianDay::new(jd))?));
     }
     if args.full {
-        results.push((
-            "Full Moon",
-            next_full_moon_phase(JulianDay::new(jd))?,
-        ));
+        results.push(("Full Moon", next_full_moon_phase(JulianDay::new(jd))?));
     }
     if args.last_quarter {
-        results.push((
-            "Last Quarter",
-            next_last_quarter(JulianDay::new(jd))?,
-        ));
+        results.push(("Last Quarter", next_last_quarter(JulianDay::new(jd))?));
     }
 
     if args.json {

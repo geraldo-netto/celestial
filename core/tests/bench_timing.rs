@@ -47,7 +47,11 @@ fn bench_planet_positions() {
         });
     }
     bench("Mars + CalcFlags::SPEED", N, || {
-        let _ = calc_ut(JulianDay::new(J2000), Body::MARS, CalcFlags::BUILTIN | CalcFlags::SPEED);
+        let _ = calc_ut(
+            JulianDay::new(J2000),
+            Body::MARS,
+            CalcFlags::BUILTIN | CalcFlags::SPEED,
+        );
     });
     bench("Mars + CalcFlags::HELIOCENTRIC", N, || {
         let _ = calc_ut(
@@ -58,7 +62,11 @@ fn bench_planet_positions() {
     });
     set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
     bench("Moon + CalcFlags::SIDEREAL", N, || {
-        let _ = calc_ut(JulianDay::new(J2000), Body::MOON, CalcFlags::BUILTIN | CalcFlags::SIDEREAL);
+        let _ = calc_ut(
+            JulianDay::new(J2000),
+            Body::MOON,
+            CalcFlags::BUILTIN | CalcFlags::SIDEREAL,
+        );
     });
 }
 
@@ -97,7 +105,12 @@ fn bench_houses() {
     ];
     for &(sys, name) in systems {
         bench(name, N, || {
-            let _ = houses(JulianDay::new(J2000), Latitude::new(48.85), Longitude::new(2.35), sys);
+            let _ = houses(
+                JulianDay::new(J2000),
+                Latitude::new(48.85),
+                Longitude::new(2.35),
+                sys,
+            );
         });
     }
 }

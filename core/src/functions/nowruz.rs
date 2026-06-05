@@ -29,7 +29,12 @@ use crate::{julday, revjul};
 #[must_use]
 pub fn nowruz_jd(year: i32) -> f64 {
     let start = julday(year, 3, 15, 0.0, Calendar::Gregorian);
-    solcross_ut(Longitude::new(0.0), JulianDay::new(start), CalcFlags::BUILTIN).unwrap_or(start)
+    solcross_ut(
+        Longitude::new(0.0),
+        JulianDay::new(start),
+        CalcFlags::BUILTIN,
+    )
+    .unwrap_or(start)
 }
 
 /// Convert a Gregorian year to the corresponding Iranian solar (Solar Hijri) year.

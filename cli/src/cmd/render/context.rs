@@ -5,19 +5,19 @@
 
 #![allow(clippy::too_many_arguments)]
 
-use celestial_core::Longitude;
-use celestial_core::Latitude;
-use celestial_core::JulianDay;
 use crate::error::CliError;
+use celestial_core::JulianDay;
+use celestial_core::Latitude;
+use celestial_core::Longitude;
 use std::collections::BTreeMap;
 
 use celestial_core::body::{CalcFlags, HouseSystem};
 use celestial_core::solar::{solar_cycle, SolarCycleInfo};
+use celestial_core::Degrees;
 use celestial_core::{
     arabic_parts_seven, calc_ut, diff_deg_signed, fixstar_mag, fixstar_ut, houses_ex, is_applying,
     lon_to_sign, midpoint_deg, moon_illumination, zodiac_sign_name,
 };
-use celestial_core::Degrees;
 use serde_json::{json, Value};
 
 use super::{
@@ -33,8 +33,13 @@ pub(crate) fn build_context(
     hsys: char,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
-    let h = houses_ex(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
-        ?;
+    let h = houses_ex(
+        JulianDay::new(jd),
+        CalcFlags::BUILTIN,
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(hsys as u8),
+    )?;
     let asc = h.ascmc[0];
     let mc = h.ascmc[1];
     let ic = (mc + 180.0).rem_euclid(360.0);
@@ -383,7 +388,15 @@ fn build_arabic_parts(planets: &[Value], h: &celestial_core::HouseResult, asc: f
     let b = collect_body_longitudes(planets);
     let is_day = sun_house_index(&h.cusps, b.sun) >= 7;
     let raw = arabic_parts_seven(
-        Degrees::new(asc), Longitude::new(b.sun), Longitude::new(b.moon), Longitude::new(b.saturn), Longitude::new(b.mars), Longitude::new(b.jupiter), Longitude::new(b.mercury), Longitude::new(b.venus), is_day,
+        Degrees::new(asc),
+        Longitude::new(b.sun),
+        Longitude::new(b.moon),
+        Longitude::new(b.saturn),
+        Longitude::new(b.mars),
+        Longitude::new(b.jupiter),
+        Longitude::new(b.mercury),
+        Longitude::new(b.venus),
+        is_day,
     );
     raw.iter()
         .map(|p| {

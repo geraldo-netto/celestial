@@ -56,9 +56,24 @@ pub fn houses_ex2(
     let geolat = geolat.get();
     let geolon = geolon.get();
     let h = 10.0 / 1440.0; // 10 minutes in days
-    let r0 = crate::astronomy::houses(JulianDay::new(jd_ut - h), Latitude::new(geolat), Longitude::new(geolon), hsys.as_raw());
-    let r1 = crate::astronomy::houses(JulianDay::new(jd_ut), Latitude::new(geolat), Longitude::new(geolon), hsys.as_raw());
-    let r2 = crate::astronomy::houses(JulianDay::new(jd_ut + h), Latitude::new(geolat), Longitude::new(geolon), hsys.as_raw());
+    let r0 = crate::astronomy::houses(
+        JulianDay::new(jd_ut - h),
+        Latitude::new(geolat),
+        Longitude::new(geolon),
+        hsys.as_raw(),
+    );
+    let r1 = crate::astronomy::houses(
+        JulianDay::new(jd_ut),
+        Latitude::new(geolat),
+        Longitude::new(geolon),
+        hsys.as_raw(),
+    );
+    let r2 = crate::astronomy::houses(
+        JulianDay::new(jd_ut + h),
+        Latitude::new(geolat),
+        Longitude::new(geolon),
+        hsys.as_raw(),
+    );
 
     let mut cusp_speeds = [0f64; 13];
     let mut ascmc_speeds = [0f64; 10];
@@ -128,7 +143,12 @@ pub fn house_pos(
     let armc: f64 = armc.into();
     let geolat: f64 = geolat.into();
     let eps: f64 = eps.into();
-    let r = crate::astronomy::houses_armc(Degrees::new(armc), Latitude::new(geolat), Degrees::new(eps), hsys.as_raw());
+    let r = crate::astronomy::houses_armc(
+        Degrees::new(armc),
+        Latitude::new(geolat),
+        Degrees::new(eps),
+        hsys.as_raw(),
+    );
     let lon = xpin[0];
     let cusps = &r.cusps;
     for h in 1usize..=12 {
@@ -154,9 +174,19 @@ pub fn house_pos(
 /// House cusps from ARMC (sidereal time in degrees), latitude, and ecliptic obliquity.
 /// House cusps from ARMC (sidereal time in degrees), geographic latitude,
 /// ecliptic obliquity, and house system byte.
-pub fn houses_from_armc(armc: Degrees, geolat: Latitude, eps: Degrees, hsys: HouseSystem) -> HouseResult {
+pub fn houses_from_armc(
+    armc: Degrees,
+    geolat: Latitude,
+    eps: Degrees,
+    hsys: HouseSystem,
+) -> HouseResult {
     let armc: f64 = armc.into();
     let geolat: f64 = geolat.into();
     let eps: f64 = eps.into();
-    crate::astronomy::houses_from_armc(Degrees::new(armc), Latitude::new(geolat), Degrees::new(eps), hsys.as_raw())
+    crate::astronomy::houses_from_armc(
+        Degrees::new(armc),
+        Latitude::new(geolat),
+        Degrees::new(eps),
+        hsys.as_raw(),
+    )
 }

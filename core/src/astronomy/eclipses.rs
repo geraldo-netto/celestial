@@ -366,7 +366,11 @@ pub fn solar_eclipse_when_glob(
 }
 
 /// Find the next lunar eclipse after `jd_start`.
-pub fn lun_eclipse_when(jd_start: JulianDay, ecl_type: i32, backwards: bool) -> Option<EclipseResult> {
+pub fn lun_eclipse_when(
+    jd_start: JulianDay,
+    ecl_type: i32,
+    backwards: bool,
+) -> Option<EclipseResult> {
     let jd_start: f64 = jd_start.into();
     let mut k = k_from_jd(JulianDay::new(jd_start), !backwards);
     let dir: i64 = if backwards { -1 } else { 1 };
@@ -435,7 +439,9 @@ pub fn solar_eclipse_geopos(jde: f64, _gamma: f64) -> (f64, f64) {
     let (sin_lon, cos_lon) = lon_r.sin_cos();
     let (sin_lat, cos_lat) = lat_r.sin_cos();
     let (sin_eps, cos_eps) = eps.sin_cos();
-    let moon_ra = (-cos_lat * sin_eps).mul_add(sin_lon, sin_lat * cos_eps).atan2(cos_lon);
+    let moon_ra = (-cos_lat * sin_eps)
+        .mul_add(sin_lon, sin_lat * cos_eps)
+        .atan2(cos_lon);
     let moon_dec = sin_lat.mul_add(sin_eps, cos_lat * cos_eps * sin_lon).asin();
 
     // Greenwich Apparent Sidereal Time → radians

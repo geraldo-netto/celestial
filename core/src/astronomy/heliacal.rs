@@ -206,7 +206,12 @@ fn try_heliacal_at(
     } else {
         RiseSetEvent::Set
     };
-    let rs = sun_rise_set(JulianDay::new(jd), Latitude::new(geolat), Longitude::new(geolon), twilight_event);
+    let rs = sun_rise_set(
+        JulianDay::new(jd),
+        Latitude::new(geolat),
+        Longitude::new(geolon),
+        twilight_event,
+    );
     if !rs.found {
         return None;
     }

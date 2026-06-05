@@ -1,12 +1,12 @@
 //! `celestial houses` — house cusps and special angles.
 
-use celestial_core::Longitude;
-use celestial_core::Latitude;
-use celestial_core::JulianDay;
 use crate::error::CliError;
 use crate::{format as fmt, parse};
 use celestial_core::body::{CalcFlags, HouseSystem};
 use celestial_core::houses_ex;
+use celestial_core::JulianDay;
+use celestial_core::Latitude;
+use celestial_core::Longitude;
 use clap::Args;
 
 #[derive(Args)]
@@ -42,8 +42,7 @@ pub fn run(args: HousesArgs) -> Result<(), CliError> {
         Latitude::new(args.lat),
         Longitude::new(args.lon),
         HouseSystem(hsys),
-    )
-    ?;
+    )?;
 
     let asc = h.ascmc[0];
     let mc = h.ascmc[1];

@@ -63,8 +63,14 @@ pub fn helio_cross(
 ) -> Result<f64> {
     let x2cross: f64 = x2cross.into();
     let jd_et: f64 = jd_et.into();
-    ac::helio_cross(body.as_raw(), x2cross, JulianDay::new(jd_et), flags.as_raw(), dir >= 0)
-        .ok_or_else(|| Error::Calc("helio_cross: no crossing found".into()))
+    ac::helio_cross(
+        body.as_raw(),
+        x2cross,
+        JulianDay::new(jd_et),
+        flags.as_raw(),
+        dir >= 0,
+    )
+    .ok_or_else(|| Error::Calc("helio_cross: no crossing found".into()))
 }
 /// Heliocentric crossing of ecliptic longitude `x2cross` (UT).
 pub fn helio_cross_ut(
@@ -147,8 +153,18 @@ pub fn rise_trans(
     let jd_ut: f64 = jd_ut.into();
     let ev_byte: u8 = RiseSetEvent::from_bits(event_type).ev_byte();
     let jd = match planet.as_raw() {
-        0 => crate::astronomy::sun_rise_transit_set(JulianDay::new(jd_ut), Latitude::new(geopos[1]), Longitude::new(geopos[0]), ev_byte),
-        1 => crate::astronomy::moon_rise_transit_set(JulianDay::new(jd_ut), Latitude::new(geopos[1]), Longitude::new(geopos[0]), ev_byte),
+        0 => crate::astronomy::sun_rise_transit_set(
+            JulianDay::new(jd_ut),
+            Latitude::new(geopos[1]),
+            Longitude::new(geopos[0]),
+            ev_byte,
+        ),
+        1 => crate::astronomy::moon_rise_transit_set(
+            JulianDay::new(jd_ut),
+            Latitude::new(geopos[1]),
+            Longitude::new(geopos[0]),
+            ev_byte,
+        ),
         _ => crate::astronomy::planet_rise_transit_set(
             JulianDay::new(jd_ut),
             Latitude::new(geopos[1]),
@@ -198,17 +214,28 @@ pub fn rise_trans_true_hor(
 pub fn solcross_back_ut(x2cross: Longitude, jd_ut: JulianDay, flags: CalcFlags) -> Result<f64> {
     let x2cross: f64 = x2cross.into();
     let jd_ut: f64 = jd_ut.into();
-    crate::astronomy::crossings::find_crossing(0, x2cross, JulianDay::new(jd_ut), false, flags.as_raw())
-        .ok_or_else(|| Error::Calc("solcross_back_ut: no crossing found searching backward".into()))
+    crate::astronomy::crossings::find_crossing(
+        0,
+        x2cross,
+        JulianDay::new(jd_ut),
+        false,
+        flags.as_raw(),
+    )
+    .ok_or_else(|| Error::Calc("solcross_back_ut: no crossing found searching backward".into()))
 }
 
 /// Next time the Moon crosses ecliptic longitude `x2cross`, searching backward from `jd_ut`.
 pub fn mooncross_back_ut(x2cross: Longitude, jd_ut: JulianDay, flags: CalcFlags) -> Result<f64> {
     let x2cross: f64 = x2cross.into();
     let jd_ut: f64 = jd_ut.into();
-    crate::astronomy::crossings::find_crossing(1, x2cross, JulianDay::new(jd_ut), false, flags.as_raw()).ok_or_else(
-        || Error::Calc("mooncross_back_ut: no crossing found searching backward".into()),
+    crate::astronomy::crossings::find_crossing(
+        1,
+        x2cross,
+        JulianDay::new(jd_ut),
+        false,
+        flags.as_raw(),
     )
+    .ok_or_else(|| Error::Calc("mooncross_back_ut: no crossing found searching backward".into()))
 }
 
 // ── RiseTransOptions builder ──────────────────────────────────────────────────
@@ -334,15 +361,18 @@ mod tests {
     /// via the constructed options struct.
     #[test]
     fn horizon_height_round_trip() {
-        let opts = RiseTransOptions::new(JulianDay::new(0.0), Body::SUN, [0.0, 0.0, 0.0]).horizon_height(2.5);
+        let opts = RiseTransOptions::new(JulianDay::new(0.0), Body::SUN, [0.0, 0.0, 0.0])
+            .horizon_height(2.5);
         assert!((opts.horhgt - 2.5).abs() < 1e-12);
 
         // Negative offset (depression below horizon, e.g. for a ship's bridge)
-        let opts = RiseTransOptions::new(JulianDay::new(0.0), Body::SUN, [0.0, 0.0, 0.0]).horizon_height(-1.2);
+        let opts = RiseTransOptions::new(JulianDay::new(0.0), Body::SUN, [0.0, 0.0, 0.0])
+            .horizon_height(-1.2);
         assert!((opts.horhgt - (-1.2)).abs() < 1e-12);
 
         // Zero is the default; re-setting to 0 must still yield 0
-        let opts = RiseTransOptions::new(JulianDay::new(0.0), Body::SUN, [0.0, 0.0, 0.0]).horizon_height(0.0);
+        let opts = RiseTransOptions::new(JulianDay::new(0.0), Body::SUN, [0.0, 0.0, 0.0])
+            .horizon_height(0.0);
         assert_eq!(opts.horhgt, 0.0);
     }
 
@@ -379,7 +409,12 @@ mod tests {
     /// which from J2000 should land roughly at JD 2_451_624 (≈ March 2000).
     #[test]
     fn solcross_finds_vernal_equinox() {
-        let jd = solcross(Longitude::new(0.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("crossing");
+        let jd = solcross(
+            Longitude::new(0.0),
+            JulianDay::new(2_451_545.0),
+            CalcFlags::BUILTIN,
+        )
+        .expect("crossing");
         assert!(jd.is_finite());
         assert!(
             (2_451_600.0..2_451_700.0).contains(&jd),
@@ -391,8 +426,18 @@ mod tests {
     /// same crossing (the ET↔UT offset is tiny near J2000).
     #[test]
     fn solcross_ut_matches_et_variant() {
-        let et = solcross(Longitude::new(180.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("et");
-        let ut = solcross_ut(Longitude::new(180.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("ut");
+        let et = solcross(
+            Longitude::new(180.0),
+            JulianDay::new(2_451_545.0),
+            CalcFlags::BUILTIN,
+        )
+        .expect("et");
+        let ut = solcross_ut(
+            Longitude::new(180.0),
+            JulianDay::new(2_451_545.0),
+            CalcFlags::BUILTIN,
+        )
+        .expect("ut");
         assert!((et - ut).abs() < 0.01, "et={et}, ut={ut}");
     }
 
@@ -401,15 +446,30 @@ mod tests {
     #[test]
     fn mooncross_finds_within_30_days() {
         let start = 2_451_545.0;
-        let jd = mooncross(Longitude::new(120.0), JulianDay::new(start), CalcFlags::BUILTIN).expect("crossing");
+        let jd = mooncross(
+            Longitude::new(120.0),
+            JulianDay::new(start),
+            CalcFlags::BUILTIN,
+        )
+        .expect("crossing");
         assert!(jd > start && jd < start + 30.0, "mooncross jd={jd}");
     }
 
     /// `mooncross_ut` mirrors `mooncross` to better than 1 second.
     #[test]
     fn mooncross_ut_matches_et_variant() {
-        let et = mooncross(Longitude::new(45.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("et");
-        let ut = mooncross_ut(Longitude::new(45.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN).expect("ut");
+        let et = mooncross(
+            Longitude::new(45.0),
+            JulianDay::new(2_451_545.0),
+            CalcFlags::BUILTIN,
+        )
+        .expect("et");
+        let ut = mooncross_ut(
+            Longitude::new(45.0),
+            JulianDay::new(2_451_545.0),
+            CalcFlags::BUILTIN,
+        )
+        .expect("ut");
         assert!((et - ut).abs() < 0.01);
     }
 
@@ -436,7 +496,12 @@ mod tests {
     #[test]
     fn solcross_back_walks_backward() {
         let start = 2_451_545.0;
-        let back = solcross_back_ut(Longitude::new(0.0), JulianDay::new(start), CalcFlags::BUILTIN).expect("back");
+        let back = solcross_back_ut(
+            Longitude::new(0.0),
+            JulianDay::new(start),
+            CalcFlags::BUILTIN,
+        )
+        .expect("back");
         assert!(back < start, "back={back}, start={start}");
         assert!(start - back < 366.0, "more than a year back: {back}");
     }
@@ -445,7 +510,12 @@ mod tests {
     #[test]
     fn mooncross_back_walks_backward() {
         let start = 2_451_545.0;
-        let back = mooncross_back_ut(Longitude::new(200.0), JulianDay::new(start), CalcFlags::BUILTIN).expect("back");
+        let back = mooncross_back_ut(
+            Longitude::new(200.0),
+            JulianDay::new(start),
+            CalcFlags::BUILTIN,
+        )
+        .expect("back");
         assert!(back < start);
         assert!(start - back < 30.0);
     }
@@ -453,15 +523,34 @@ mod tests {
     /// `helio_cross` finds a Mars heliocentric crossing forward in time.
     #[test]
     fn helio_cross_mars_forward() {
-        let jd = helio_cross(Body::MARS, Longitude::new(0.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN, 1).expect("mars");
+        let jd = helio_cross(
+            Body::MARS,
+            Longitude::new(0.0),
+            JulianDay::new(2_451_545.0),
+            CalcFlags::BUILTIN,
+            1,
+        )
+        .expect("mars");
         assert!(jd > 2_451_545.0);
     }
 
     /// `helio_cross_ut` is a thin wrapper around `helio_cross`.
     #[test]
     fn helio_cross_ut_matches_helio_cross() {
-        let et = helio_cross(Body::MARS, Longitude::new(90.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN, 1);
-        let ut = helio_cross_ut(Body::MARS, Longitude::new(90.0), JulianDay::new(2_451_545.0), CalcFlags::BUILTIN, 1);
+        let et = helio_cross(
+            Body::MARS,
+            Longitude::new(90.0),
+            JulianDay::new(2_451_545.0),
+            CalcFlags::BUILTIN,
+            1,
+        );
+        let ut = helio_cross_ut(
+            Body::MARS,
+            Longitude::new(90.0),
+            JulianDay::new(2_451_545.0),
+            CalcFlags::BUILTIN,
+            1,
+        );
         match (et, ut) {
             (Ok(a), Ok(b)) => assert!((a - b).abs() < 1e-9),
             (Err(_), Err(_)) => {} // both failed: still consistent

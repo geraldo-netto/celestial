@@ -163,8 +163,7 @@ pub fn haab(jd: JulianDay) -> (usize, u8, &'static str) {
     // Per Maya GMT correlation, JD 584283 = "8 Kumku" — i.e. day 8 in
     // the 18th Haab month (Kumku, index 17). Cumulative position in
     // the 365-day Haab cycle: 17·20 + 8 = 348.
-    let day_num =
-        (jd as i64 - GMT_CORRELATION + 348).rem_euclid(365) as usize;
+    let day_num = (jd as i64 - GMT_CORRELATION + 348).rem_euclid(365) as usize;
     let month_idx = (day_num / 20).min(18);
     let day = (day_num % 20) as u8;
     let name = if month_idx < 19 {
@@ -247,7 +246,10 @@ mod long_count_tests {
 
     #[test]
     fn long_count_str_format() {
-        assert_eq!(maya_long_count_str(JulianDay::new(2_456_283.0)), "13.0.0.0.0");
+        assert_eq!(
+            maya_long_count_str(JulianDay::new(2_456_283.0)),
+            "13.0.0.0.0"
+        );
     }
 
     #[test]

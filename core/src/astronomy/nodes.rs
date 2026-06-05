@@ -61,7 +61,8 @@ pub fn moon_true_node(jd_et: JulianDay) -> f64 {
 pub fn moon_true_node_speed(jd_et: JulianDay) -> f64 {
     let jd_et: f64 = jd_et.into();
     let h = 0.5;
-    (moon_true_node(JulianDay::new(jd_et + h)) - moon_true_node(JulianDay::new(jd_et - h))) / (2.0 * h)
+    (moon_true_node(JulianDay::new(jd_et + h)) - moon_true_node(JulianDay::new(jd_et - h)))
+        / (2.0 * h)
 }
 
 // ─── Lunar apsides ────────────────────────────────────────────────────────────

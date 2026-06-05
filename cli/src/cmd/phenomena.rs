@@ -7,8 +7,8 @@
 
 use crate::error::CliError;
 use crate::{format as fmt, parse};
-use celestial_core::{pheno_ut, Body, CalcFlags};
 use celestial_core::JulianDay;
+use celestial_core::{pheno_ut, Body, CalcFlags};
 use clap::Args;
 
 #[derive(Args)]

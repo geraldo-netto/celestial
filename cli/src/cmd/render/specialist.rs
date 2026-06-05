@@ -1,16 +1,16 @@
 //! Specialist chart builders — split from render.rs.
 
-use celestial_core::Longitude;
-use celestial_core::Latitude;
-use celestial_core::JulianDay;
-use super::ChartContext;
-use crate::error::CliError;
 use super::svg_common::SvgPalette;
+use super::ChartContext;
 use super::{
     build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI,
     RO,
 };
+use crate::error::CliError;
 use celestial_core::AzAlt;
+use celestial_core::JulianDay;
+use celestial_core::Latitude;
+use celestial_core::Longitude;
 use celestial_core::{lon_to_sign, zodiac_sign_name};
 
 use celestial_core::body::{Body, CalcFlags, HouseSystem};
@@ -40,8 +40,13 @@ pub(super) fn build_dial_context(
     let mut positions: Vec<(Body, f64)> = Vec::with_capacity(bodies.len());
     let mut planet_entries: Vec<Value> = Vec::with_capacity(bodies.len());
 
-    let h = houses_ex(JulianDay::new(jd), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
-        ?;
+    let h = houses_ex(
+        JulianDay::new(jd),
+        CalcFlags::BUILTIN,
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(hsys as u8),
+    )?;
     let asc = h.ascmc[0];
 
     for &(body, key, name, glyph) in bodies {
@@ -128,10 +133,20 @@ pub(super) fn build_composite_context(
     vars.entry("title".to_string())
         .or_insert_with(|| "Composite Chart".to_string());
 
-    let h1 = houses_ex(JulianDay::new(jd1), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
-        ?;
-    let h2 = houses_ex(JulianDay::new(jd2), CalcFlags::BUILTIN, Latitude::new(lat), Longitude::new(lon), HouseSystem(hsys as u8))
-        ?;
+    let h1 = houses_ex(
+        JulianDay::new(jd1),
+        CalcFlags::BUILTIN,
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(hsys as u8),
+    )?;
+    let h2 = houses_ex(
+        JulianDay::new(jd2),
+        CalcFlags::BUILTIN,
+        Latitude::new(lat),
+        Longitude::new(lon),
+        HouseSystem(hsys as u8),
+    )?;
     // Composite ASC: midpoint of the two ASCs
     let asc1 = h1.ascmc[0];
     let asc2 = h2.ascmc[0];
@@ -556,7 +571,10 @@ fn write_ge_x_axis_labels(
     let mut jd_lbl = jd_start;
     while jd_lbl <= jd_end + 1.0 {
         let x = GE_LM + (jd_lbl - jd_start) * x_scale;
-        let d = celestial_core::revjul(JulianDay::new(jd_lbl), celestial_core::body::Calendar::Gregorian);
+        let d = celestial_core::revjul(
+            JulianDay::new(jd_lbl),
+            celestial_core::body::Calendar::Gregorian,
+        );
         let lbl = format!("{:.0}-{:02.0}", d.year, d.month);
         let _ = writeln!(
             s,
@@ -587,7 +605,14 @@ pub(super) fn build_local_space_context(
     for &(body, key, name, glyph) in BODIES {
         if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
             // Convert to azimuth/altitude using azalt
-            let az_result: AzAlt = azalt(JulianDay::new(jd), 0, geopos, 0.0, 10.0, [pos.lon, pos.lat, pos.dist]);
+            let az_result: AzAlt = azalt(
+                JulianDay::new(jd),
+                0,
+                geopos,
+                0.0,
+                10.0,
+                [pos.lon, pos.lat, pos.dist],
+            );
             let az = az_result.azimuth;
             let alt = az_result.true_alt;
             planets.push(json!({

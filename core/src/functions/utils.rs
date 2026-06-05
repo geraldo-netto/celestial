@@ -78,7 +78,11 @@ pub fn azalt(
     // Azimuth: North-based clockwise (N=0°, E=90°, S=180°, W=270°)
     let cos_az = (-sin_lat).mul_add(sin_alt, sin_dec) / (cos_lat * true_alt_rad.cos().max(1e-10));
     let az_base = cos_az.clamp(-1.0, 1.0).acos().to_degrees();
-    let az_north = if sin_ha > 0.0 { 360.0 - az_base } else { az_base };
+    let az_north = if sin_ha > 0.0 {
+        360.0 - az_base
+    } else {
+        az_base
+    };
 
     // Swiss Ephemeris convention: azimuth measured from South, clockwise
     // (S=0°, W=90°, N=180°, E=270°).  South-based = (North-based + 180°) % 360°
@@ -136,7 +140,11 @@ pub fn azalt_rev(jd_ut: JulianDay, direction: i32, geopos: [f64; 3], xin: [f64; 
     //   az_north in (180°,360°) — sin < 0 — means ha was in (0°,180°)   → ha = ha_base
     //   az_north in (0°,180°)  — sin > 0 — means ha was in (180°,360°) → ha = 360°-ha_base
     let ha_base = cos_ha.clamp(-1.0, 1.0).acos().to_degrees();
-    let ha_deg = if sin_az < 0.0 { ha_base } else { 360.0 - ha_base };
+    let ha_deg = if sin_az < 0.0 {
+        ha_base
+    } else {
+        360.0 - ha_base
+    };
 
     // Hour angle → right ascension via Local Sidereal Time
     let gmst_deg = crate::astronomy::houses::sidereal_time_deg(JulianDay::new(jd_ut));
@@ -391,7 +399,9 @@ mod tests {
     /// Deterministic xorshift PRNG for property fuzz inside unit tests.
     struct Rng(u64);
     impl Rng {
-        fn new(seed: u64) -> Self { Self(seed | 1) }
+        fn new(seed: u64) -> Self {
+            Self(seed | 1)
+        }
         fn next_u64(&mut self) -> u64 {
             self.0 ^= self.0 << 13;
             self.0 ^= self.0 >> 7;
@@ -413,7 +423,10 @@ mod tests {
             let x = rng.range(-3600.0, 3600.0);
             let once = wrap_signed_180(x);
             let twice = wrap_signed_180(once);
-            assert!((twice - once).abs() < 1e-12, "x={x} once={once} twice={twice}");
+            assert!(
+                (twice - once).abs() < 1e-12,
+                "x={x} once={once} twice={twice}"
+            );
         }
     }
 
@@ -439,7 +452,10 @@ mod tests {
                 let shifted = (k as f64).mul_add(360.0, x);
                 let w = wrap_signed_180(shifted);
                 let direct = wrap_signed_180(x);
-                assert!((w - direct).abs() < 1e-9, "x={x} k={k} w={w} direct={direct}");
+                assert!(
+                    (w - direct).abs() < 1e-9,
+                    "x={x} k={k} w={w} direct={direct}"
+                );
             }
         }
     }

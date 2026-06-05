@@ -1,12 +1,12 @@
 //! Indigenous chart builders — split from render.rs.
 
-use celestial_core::JulianDay;
 use super::ChartContext;
 use crate::error::CliError;
 use celestial_core::body::{Body, CalcFlags};
 use celestial_core::calc_ut;
-use celestial_core::{egyptian_decan, medicine_wheel_totem};
+use celestial_core::JulianDay;
 use celestial_core::Longitude;
+use celestial_core::{egyptian_decan, medicine_wheel_totem};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -22,7 +22,6 @@ pub fn build_medicine_wheel_context(
     let sun_pos = calc_ut(JulianDay::new(jd), Body::SUN, flags)?;
     let (animal, element, clan, season) = medicine_wheel_totem(Longitude::new(sun_pos.lon));
     let (decan_idx, decan_name, decan_star) = egyptian_decan(Longitude::new(sun_pos.lon));
-
 
     // ARCH-9/DP-5: typed context (field names == JSON keys).
     let ctx = MedicineWheelContext {
@@ -207,7 +206,11 @@ pub fn render_medicine_wheel_svg(ctx: &ChartContext) -> String {
     use std::fmt::Write;
 
     let pal = super::svg_common::SvgPalette::from_ctx(
-        ctx, "#0a1a0a", "border_color", "#a0c040", "#d0e8a0",
+        ctx,
+        "#0a1a0a",
+        "border_color",
+        "#a0c040",
+        "#d0e8a0",
     );
     let (bg, green, txt) = (pal.bg, pal.accent, pal.text);
     let title = crate::format::xml_escape(

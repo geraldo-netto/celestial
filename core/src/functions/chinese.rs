@@ -304,7 +304,9 @@ mod viet_tests {
     fn boundary_differs_detection() {
         // JD at 23:30 UTC → 06:30 Vietnam, 07:30 China → same civil day
         let jd_same = 2_451_545.0 + 23.5 / 24.0;
-        assert!(!vietnamese_chinese_boundary_differs(JulianDay::new(jd_same)));
+        assert!(!vietnamese_chinese_boundary_differs(JulianDay::new(
+            jd_same
+        )));
 
         // JD at 16:30 UTC → 23:30 Vietnam (same day), 00:30 China (next day)
         let jd_diff = 2_451_545.0 + 16.5 / 24.0;

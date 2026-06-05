@@ -107,7 +107,12 @@ pub fn houses(jd_ut: JulianDay, geolat: Latitude, geolon: Longitude, hsys: u8) -
     let jd_ut: f64 = jd_ut.into();
     let geolat: f64 = geolat.into();
     let geolon: f64 = geolon.into();
-    calc_houses(JulianDay::new(jd_ut), Latitude::new(geolat), Longitude::new(geolon), hsys)
+    calc_houses(
+        JulianDay::new(jd_ut),
+        Latitude::new(geolat),
+        Longitude::new(geolon),
+        hsys,
+    )
 }
 
 /// Compute house cusps from ARMC, latitude and obliquity directly.
@@ -115,7 +120,12 @@ pub fn houses_armc(armc: Degrees, geolat: Latitude, eps: Degrees, hsys: u8) -> H
     let armc: f64 = armc.into();
     let geolat: f64 = geolat.into();
     let eps: f64 = eps.into();
-    calc_houses_armc(Degrees::new(armc), Latitude::new(geolat), Degrees::new(eps), hsys)
+    calc_houses_armc(
+        Degrees::new(armc),
+        Latitude::new(geolat),
+        Degrees::new(eps),
+        hsys,
+    )
 }
 
 /// Return the display name for a house system byte.
@@ -174,7 +184,12 @@ pub fn get_nutation(jde: f64) -> (f64, f64) {
 /// Compute rise, transit or set time (UT Julian day) for the Sun.
 ///
 /// - `event` — 0 = rise, 1 = transit, 2 = set
-pub fn sun_rise_transit_set(jd_ut: JulianDay, geolat: Latitude, geolon: Longitude, event: u8) -> Option<f64> {
+pub fn sun_rise_transit_set(
+    jd_ut: JulianDay,
+    geolat: Latitude,
+    geolon: Longitude,
+    event: u8,
+) -> Option<f64> {
     let jd_ut: f64 = jd_ut.into();
     let geolat: f64 = geolat.into();
     let geolon: f64 = geolon.into();
@@ -184,12 +199,22 @@ pub fn sun_rise_transit_set(jd_ut: JulianDay, geolat: Latitude, geolon: Longitud
         2 => RiseSetEvent::Set,
         _ => return None,
     };
-    let r = sun_rise_set(JulianDay::new(jd_ut), Latitude::new(geolat), Longitude::new(geolon), ev);
+    let r = sun_rise_set(
+        JulianDay::new(jd_ut),
+        Latitude::new(geolat),
+        Longitude::new(geolon),
+        ev,
+    );
     r.found.then_some(r.jd_ut)
 }
 
 /// Compute rise, transit or set time (UT Julian day) for the Moon.
-pub fn moon_rise_transit_set(jd_ut: JulianDay, geolat: Latitude, geolon: Longitude, event: u8) -> Option<f64> {
+pub fn moon_rise_transit_set(
+    jd_ut: JulianDay,
+    geolat: Latitude,
+    geolon: Longitude,
+    event: u8,
+) -> Option<f64> {
     let jd_ut: f64 = jd_ut.into();
     let geolat: f64 = geolat.into();
     let geolon: f64 = geolon.into();
@@ -199,7 +224,12 @@ pub fn moon_rise_transit_set(jd_ut: JulianDay, geolat: Latitude, geolon: Longitu
         2 => RiseSetEvent::Set,
         _ => return None,
     };
-    let r = moon_rise_set(JulianDay::new(jd_ut), Latitude::new(geolat), Longitude::new(geolon), ev);
+    let r = moon_rise_set(
+        JulianDay::new(jd_ut),
+        Latitude::new(geolat),
+        Longitude::new(geolon),
+        ev,
+    );
     r.found.then_some(r.jd_ut)
 }
 
@@ -223,7 +253,13 @@ pub fn planet_rise_transit_set(
         2 => RiseSetEvent::Set,
         _ => return None,
     };
-    let r = planet_rise_set(JulianDay::new(jd_ut), Latitude::new(geolat), Longitude::new(geolon), ev, planet);
+    let r = planet_rise_set(
+        JulianDay::new(jd_ut),
+        Latitude::new(geolat),
+        Longitude::new(geolon),
+        ev,
+        planet,
+    );
     r.found.then_some(r.jd_ut)
 }
 
@@ -287,7 +323,12 @@ mod tests {
 
     #[test]
     fn moon_position_j2000() {
-        let pos = calc_ut(JulianDay::new(2_451_545.0), body::MOON, flag::FLG_BUILTIN as i32).expect("Moon failed");
+        let pos = calc_ut(
+            JulianDay::new(2_451_545.0),
+            body::MOON,
+            flag::FLG_BUILTIN as i32,
+        )
+        .expect("Moon failed");
         assert!(pos.lon >= 0.0 && pos.lon < 360.0);
         assert!(pos.dist > 0.002 && pos.dist < 0.003); // Moon ~0.00257 AU
     }
@@ -306,7 +347,8 @@ mod tests {
             body::MOON,
         ];
         for &b in &bodies {
-            let pos = calc_ut(JulianDay::new(2_451_545.0), b, flag::FLG_BUILTIN as i32).expect("calc_ut");
+            let pos =
+                calc_ut(JulianDay::new(2_451_545.0), b, flag::FLG_BUILTIN as i32).expect("calc_ut");
             assert!(
                 pos.lon >= 0.0 && pos.lon < 360.0,
                 "body {b} lon out of range"
