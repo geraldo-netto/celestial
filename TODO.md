@@ -1,6 +1,8 @@
 # Celestial — TODO
 
-Rescan: **2026-06-05** (whole-project scan across all categories in `AGENTS.md`).
+Rescan: **2026-06-06** (whole-project scan across all categories in `AGENTS.md`; current TODO rows ignored as requested, then fresh findings de-duplicated before entry).
+2026-06-06 verification: `cargo clippy --workspace --all-targets -- -W clippy::cognitive_complexity` (only recorded CC-1 warnings); `cargo test --workspace`; `cargo xtask parity`; `cargo xtask pyi --check`; `cargo xtask dts --check`; `cargo xtask test-stubs`; `cargo check -p celestial-core --no-default-features`; `cargo check -p celestial-core --no-default-features --features timezone`; `cargo check -p celestial-core --no-default-features --features calendar-traditions`; `cargo test -p celestial-core moon_phase`; `cargo run --manifest-path fuzz/Cargo.toml --quiet`.
+Prior rescan: **2026-06-05** (whole-project scan across all categories in `AGENTS.md`).
 2026-06-05 verification: `cargo test --workspace`; `cargo clippy --workspace --all-targets -- -W clippy::cognitive_complexity`; `cargo test -p celestial-core --no-default-features`; `cargo check -p celestial-ffi --no-default-features`; `cargo check -p celestial-js --no-default-features`; `cargo check -p celestial-py --no-default-features`; `cargo check -p celestial-core --no-default-features --features timezone`; `cargo check -p celestial-core --no-default-features --features calendar-traditions`; `cargo xtask parity`; `cargo xtask pyi --check`; `cargo xtask dts --check`; `cargo xtask test-stubs`.
 2026-06-05 fix pass cleared: REL-9, PERF-10 — rows removed per AGENTS.md.
 Prior 2026-05-28 rescan findings are now fixed.
@@ -106,6 +108,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
+| DOC-7 | OPEN | S | Calendar overlay docs/schema drift from live context: `README.md:355` names Omer `.sefirah`, `README.md:357` names Moon `.short`, and `cli/templates/context_schema.txt:168` documents `hebrew.holidays[]`; live code emits `day_sefirah` / `week_sefirah`, `phase_short`, and `hebrew.days[]` with no holiday list. | Template-author docs only; `cargo test --workspace`, `renders_year_calendar`, and template fixtures still pass because templates use the live keys. Also align stale schema tag names `sabbat` / `hebrew_holiday` with actual `sabbat_name` / Hebrew date fields. |
 | DOC-4 | DECIDED | M | `celestial-cli` public items are intentionally undocumented. | Binary crate/lib split only exists so `main.rs` and tests can share modules; `#![warn(missing_docs)]` remains core-only. |
 
 ## Legacy / Deprecation
@@ -184,8 +187,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-
-(no open findings — REL-2/7/8/9 are fixed and covered; workspace, minimal-feature, and binding checks pass.)
+| REL-10 | OPEN | S | `core/src/functions/moon_phases.rs:287` accepts `jd >= jd_from - 0.01`, so `next_principal_phase` / `next_new_moon` can return a phase up to 0.01 days before the requested start despite docs/tests saying at or strictly after `jd_from`. | Boundary issue only; broad moon/reference/property tests pass. `fuzz/src/main.rs:4233` also documents widened synodic tolerance and references a missing `next_new_moon` TODO, so either tighten the predicate and add a boundary regression or explicitly document an inclusive tolerance contract. |
 
 ## Robustness / Recovery
 
