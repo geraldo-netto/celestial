@@ -34,7 +34,7 @@ The engine now covers **19 additional functions** across 7 features — see
 | Tibetan Phugpa | Losar (New Year) + Rabjung cycle year names |
 | Vietnamese Âm Lịch | UTC+7 month boundaries — diverges from Chinese ~4% of days |
 
-All 19 functions are exported from **Python**, **JavaScript**, and **PHP** (194 per binding — verify with `cargo xtask parity`).
+All 194 functions are exported from **Python**, **JavaScript**, and **PHP** (verify with `cargo xtask parity`).
 
 ## Feature flags
 

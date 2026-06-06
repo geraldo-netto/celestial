@@ -106,7 +106,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| DOC-6 | OPEN | S | `docs/index.md:37` says "All 19 functions are exported" while the same sentence and `cargo xtask parity` report 194 functions per binding. | Typo/stale prose only; generated Python stubs, JS declarations, PHP stubs, and parity checks are in sync. |
 | DOC-4 | DECIDED | M | `celestial-cli` public items are intentionally undocumented. | Binary crate/lib split only exists so `main.rs` and tests can share modules; `#![warn(missing_docs)]` remains core-only. |
 
 ## Legacy / Deprecation
