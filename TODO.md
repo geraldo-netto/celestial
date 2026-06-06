@@ -3,7 +3,7 @@
 Rescan: **2026-06-05** (whole-project scan across all categories in `AGENTS.md`).
 2026-06-05 verification: `cargo test --workspace`; `cargo clippy --workspace --all-targets -- -W clippy::cognitive_complexity`; `cargo test -p celestial-core --no-default-features`; `cargo check -p celestial-ffi --no-default-features`; `cargo check -p celestial-js --no-default-features`; `cargo check -p celestial-py --no-default-features`; `cargo check -p celestial-core --no-default-features --features timezone`; `cargo check -p celestial-core --no-default-features --features calendar-traditions`; `cargo xtask parity`; `cargo xtask pyi --check`; `cargo xtask dts --check`; `cargo xtask test-stubs`.
 2026-06-05 fix pass cleared: REL-9, PERF-10 — rows removed per AGENTS.md.
-Prior 2026-05-28 rescan logged REL-9, PERF-10, PERF-11; REL-9/PERF-10 are now fixed.
+Prior 2026-05-28 rescan findings are now fixed.
 Prior 2026-05-27 fix pass cleared: REL-2, REL-7, REL-8, DUP-6, DUP-11, VIS-1 (partial), VIS-2, DEAD-3 — rows removed per AGENTS.md.
 Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-coverage context in Documentation notes only.
 
@@ -147,7 +147,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| PERF-11 | OPEN | S | `cli/src/cmd/render/calendar_overlays.rs:242`, `:303`, and `:361` allocate one transient `String` per day per overlay via `day["iso_date"].as_str().map(str::to_string)`. | Existing low-priority annual-calendar cost: about 366 x 3 short allocations per year render. Fix choices remain: one owned key per day before mutation, or collect keys first then mutate in a second pass. |
 | PERF-8 | DECIDED | S | `svg_common::svg_doc_open` chains several small string allocations per chart. | One call per chart; combining needs templating/build-time concat and is net-neutral. |
 | PERF-9 | DECIDED | S | `parse_chart_type` calls `registered_chart_types()` twice on invalid input. | One-shot CLI parse path; cosmetic micro-perf. |
 | PERF-2/3 | DECIDED | — | Search code re-evaluates final `calc_ut` / `houses` with full flags after bisection. | Authoritative final result, not redundant; locked by regression tests. |

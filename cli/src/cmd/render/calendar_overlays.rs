@@ -229,24 +229,30 @@ pub fn annotate_gregorian_with_omer(gregorian: &mut Value, omer: &Value) {
     let Some(omer_days) = omer["days"].as_array() else {
         return;
     };
-    let mut by_iso: HashMap<String, &Value> = HashMap::new();
+    let mut by_iso: HashMap<&str, &Value> = HashMap::new();
     for od in omer_days {
         if let Some(iso) = od["iso_date"].as_str() {
-            by_iso.insert(iso.to_string(), od);
+            by_iso.insert(iso, od);
         }
     }
     let Some(days) = gregorian["days"].as_array_mut() else {
         return;
     };
     for day in days {
-        let Some(iso) = day["iso_date"].as_str().map(str::to_string) else {
-            continue;
-        };
-        if let Some(omer_day) = by_iso.get(&iso) {
-            day["omer_day"] = omer_day["day"].clone();
-            day["omer_week_sefirah"] = omer_day["week_sefirah"].clone();
-            day["omer_day_sefirah"] = omer_day["day_sefirah"].clone();
-            day["is_lag_baomer"] = omer_day["is_lag_baomer"].clone();
+        if let Some((omer_day, week_sefirah, day_sefirah, is_lag_baomer)) =
+            matching_value(day, &by_iso).map(|omer_day| {
+                (
+                    omer_day["day"].clone(),
+                    omer_day["week_sefirah"].clone(),
+                    omer_day["day_sefirah"].clone(),
+                    omer_day["is_lag_baomer"].clone(),
+                )
+            })
+        {
+            day["omer_day"] = omer_day;
+            day["omer_week_sefirah"] = week_sefirah;
+            day["omer_day_sefirah"] = day_sefirah;
+            day["is_lag_baomer"] = is_lag_baomer;
         }
     }
 }
@@ -290,24 +296,29 @@ pub fn annotate_gregorian_with_sabbats(gregorian: &mut Value, sabbats: &Value) {
     let Some(sabbats_list) = sabbats["sabbats"].as_array() else {
         return;
     };
-    let mut by_iso: HashMap<String, &Value> = HashMap::new();
+    let mut by_iso: HashMap<&str, &Value> = HashMap::new();
     for s in sabbats_list {
         if let Some(iso) = s["iso_date"].as_str() {
-            by_iso.insert(iso.to_string(), s);
+            by_iso.insert(iso, s);
         }
     }
     let Some(days) = gregorian["days"].as_array_mut() else {
         return;
     };
     for day in days {
-        let Some(iso) = day["iso_date"].as_str().map(str::to_string) else {
-            continue;
-        };
-        if let Some(s) = by_iso.get(&iso) {
-            day["sabbat_name"] = s["name"].clone();
+        if let Some((name, is_quarter_day, is_cross_quarter)) =
+            matching_value(day, &by_iso).map(|s| {
+                (
+                    s["name"].clone(),
+                    s["is_quarter_day"].clone(),
+                    s["is_cross_quarter"].clone(),
+                )
+            })
+        {
+            day["sabbat_name"] = name;
             day["is_sabbat"] = json!(true);
-            day["is_quarter_day"] = s["is_quarter_day"].clone();
-            day["is_cross_quarter"] = s["is_cross_quarter"].clone();
+            day["is_quarter_day"] = is_quarter_day;
+            day["is_cross_quarter"] = is_cross_quarter;
         }
     }
 }
@@ -348,23 +359,26 @@ pub fn annotate_gregorian_with_moon(gregorian: &mut Value, moon: &Value) {
     let Some(events) = moon["phase_events"].as_array() else {
         return;
     };
-    let mut by_iso: HashMap<String, &Value> = HashMap::new();
+    let mut by_iso: HashMap<&str, &Value> = HashMap::new();
     for e in events {
         if let Some(iso) = e["iso_date"].as_str() {
-            by_iso.insert(iso.to_string(), e);
+            by_iso.insert(iso, e);
         }
     }
     let Some(days) = gregorian["days"].as_array_mut() else {
         return;
     };
     for day in days {
-        let Some(iso) = day["iso_date"].as_str().map(str::to_string) else {
-            continue;
-        };
-        if let Some(e) = by_iso.get(&iso) {
-            day["moon_phase"] = e["phase"].clone();
-            day["moon_phase_short"] = e["phase_short"].clone();
-            day["moon_glyph"] = e["glyph"].clone();
+        if let Some((phase, phase_short, glyph)) = matching_value(day, &by_iso).map(|e| {
+            (
+                e["phase"].clone(),
+                e["phase_short"].clone(),
+                e["glyph"].clone(),
+            )
+        }) {
+            day["moon_phase"] = phase;
+            day["moon_phase_short"] = phase_short;
+            day["moon_glyph"] = glyph;
         }
         let Some(jd) = day["jd"].as_f64() else {
             continue;
@@ -374,6 +388,11 @@ pub fn annotate_gregorian_with_moon(gregorian: &mut Value, moon: &Value) {
             day["moon_illumination_pct"] = json!((illum * 100.0).round() as i32);
         }
     }
+}
+
+fn matching_value<'a>(day: &Value, by_iso: &HashMap<&str, &'a Value>) -> Option<&'a Value> {
+    let iso = day["iso_date"].as_str()?;
+    by_iso.get(iso).copied()
 }
 
 fn phase_name(p: PrincipalPhase) -> &'static str {
