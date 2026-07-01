@@ -22,7 +22,7 @@
   {% for p in planets %}
   <text x="{{ p.x }}" y="{{ p.y }}" text-anchor="middle" dominant-baseline="central"
         font-size="15" font-family="serif"
-        fill="{% if p.retrograde %}{{ vars.retro_color }}{% else %}{{ vars.planet_color }}{% endif %}">{{ p.glyph }}</text>
+        fill="{% if p.retro %}{{ vars.retro_color }}{% else %}{{ vars.planet_color }}{% endif %}">{{ p.glyph }}</text>
   {% endfor %}
 
   <!-- OMER OVERLAY (renders only if calendar omer was requested) -->

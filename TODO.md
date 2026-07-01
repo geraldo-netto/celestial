@@ -1,6 +1,8 @@
 # Celestial — TODO
 
-Rescan: **2026-06-06** (whole-project scan across all categories in `AGENTS.md`; current TODO rows ignored as requested, then fresh findings de-duplicated before entry).
+Rescan: **2026-07-02** (whole-project scan across all categories in `AGENTS.md`; 5 parallel category-cluster audits, findings verified against source before entry, speculative/false-positive claims dropped).
+2026-07-02 verification: `cargo test --workspace` (1496 passed); `cargo clippy --workspace --all-targets` (clean); `cargo xtask parity` (194 fns); `cargo xtask pyi --check`; `cargo xtask dts --check`; `cargo check -p celestial-core --no-default-features {,--features timezone,--features calendar-traditions}`. New findings: REL-11 (retrograde template key), REL-12 (eclipse u-term), REL-13 (Koch diurnal_semi_arc stub), ROB-1 (panchanga silent ephemeris fallback), DOC-8 (schema retro/aspect key drift), LEG-1 (get_ayanamsa_name alias). REL-11 fixed same pass (`p.retrograde` → `p.retro`) — row removed. Dropped false positives: profection `cusps[13]` (wrap is correct), hallucinated `angles[]`/`arabic_parts[]`/`fixed_stars[]` schema keys (never emitted), "TODO.md missing" (exists), CLI items duplicating existing DECIDED rows.
+Prior rescan: **2026-06-06** (whole-project scan across all categories in `AGENTS.md`; current TODO rows ignored as requested, then fresh findings de-duplicated before entry).
 2026-06-06 verification: `cargo clippy --workspace --all-targets -- -W clippy::cognitive_complexity` (only recorded CC-1 warnings); `cargo test --workspace`; `cargo xtask parity`; `cargo xtask pyi --check`; `cargo xtask dts --check`; `cargo xtask test-stubs`; `cargo check -p celestial-core --no-default-features`; `cargo check -p celestial-core --no-default-features --features timezone`; `cargo check -p celestial-core --no-default-features --features calendar-traditions`; `cargo test -p celestial-core moon_phase`; `cargo run --manifest-path fuzz/Cargo.toml --quiet`.
 Prior rescan: **2026-06-05** (whole-project scan across all categories in `AGENTS.md`).
 2026-06-05 verification: `cargo test --workspace`; `cargo clippy --workspace --all-targets -- -W clippy::cognitive_complexity`; `cargo test -p celestial-core --no-default-features`; `cargo check -p celestial-ffi --no-default-features`; `cargo check -p celestial-js --no-default-features`; `cargo check -p celestial-py --no-default-features`; `cargo check -p celestial-core --no-default-features --features timezone`; `cargo check -p celestial-core --no-default-features --features calendar-traditions`; `cargo xtask parity`; `cargo xtask pyi --check`; `cargo xtask dts --check`; `cargo xtask test-stubs`.
@@ -109,14 +111,14 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | DOC-7 | OPEN | S | Calendar overlay docs/schema drift from live context: `README.md:355` names Omer `.sefirah`, `README.md:357` names Moon `.short`, and `cli/templates/context_schema.txt:168` documents `hebrew.holidays[]`; live code emits `day_sefirah` / `week_sefirah`, `phase_short`, and `hebrew.days[]` with no holiday list. | Template-author docs only; `cargo test --workspace`, `renders_year_calendar`, and template fixtures still pass because templates use the live keys. Also align stale schema tag names `sabbat` / `hebrew_holiday` with actual `sabbat_name` / Hebrew date fields. |
+| DOC-8 | OPEN | S | `cli/templates/context_schema.txt:53` documents planet key `retrograde` and the `aspects[]` section documents `aspect` (number), but live `context.rs` emits `retro` (context.rs:168,236) and `aspect_name`/`aspect_deg` (context.rs:670-671) — no `retrograde` or bare `aspect` key is ever emitted. | Verified by grep: `'"retrograde"'` and bare `'"aspect"'` are absent from `cli/src/`. Same drift family as DOC-7. Template authors copying the schema get silently-undefined keys. Fix schema to match live keys (root cause of REL-11). |
 | DOC-4 | DECIDED | M | `celestial-cli` public items are intentionally undocumented. | Binary crate/lib split only exists so `main.rs` and tests can share modules; `#![warn(missing_docs)]` remains core-only. |
 
 ## Legacy / Deprecation
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-
-(no findings — raw constants and legacy binding shapes are retained as back-compat decisions under ARCH/DUP.)
+| LEG-1 | OPEN | S | `get_ayanamsa_name` is a redundant alias of `ayanamsa_name` exported by all three bindings (`bindings/python/src/lib.rs:1541`, `bindings/js/src/lib.rs:2564`, `bindings/php/src/lib.rs:2433` — the PHP one is literally commented "Legacy alias"). Both wrap the same `celestial::ayanamsa_name`. | Counts twice against the 194-function parity surface. If external consumers depend on it, mark `#[deprecated]` and schedule removal; otherwise drop the alias and regenerate stubs. Kept intentionally today, but no deprecation path is recorded. |
 
 ## Multithreading
 
@@ -188,13 +190,14 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | REL-10 | OPEN | S | `core/src/functions/moon_phases.rs:287` accepts `jd >= jd_from - 0.01`, so `next_principal_phase` / `next_new_moon` can return a phase up to 0.01 days before the requested start despite docs/tests saying at or strictly after `jd_from`. | Boundary issue only; broad moon/reference/property tests pass. `fuzz/src/main.rs:4233` also documents widened synodic tolerance and references a missing `next_new_moon` TODO, so either tighten the predicate and add a boundary regression or explicitly document an inclusive tolerance contract. |
+| REL-12 | OPEN | S | `core/src/astronomy/eclipses.rs:191` computes the Besselian `u` half-width term as `0.0004 * to_rad(2.0 * to_rad(mp).sin()).cos()` — it wraps `mp` through `to_rad().sin()` before the outer `to_rad().cos()`, so it is not the Meeus 54.x term `0.0004 * cos(2·M')`. | Small coefficient (0.0004 Earth-radii) so eclipse-type classification rarely flips, but the value is mathematically wrong. Should be `0.0004 * to_rad(2.0 * mp).cos()`. Add a reference-eclipse regression when fixing. |
+| REL-13 | OPEN | M | `core/src/astronomy/houses.rs:453 diurnal_semi_arc` is a degenerate stub: `to_deg((lat_r.tan() * 0.0_f64.tan()).asin()) + 90.0` always returns `90.0` (since `tan(0) = 0`), and its `_eps_r` argument is unused — so Koch cusps (houses.rs:396) always divide a fixed 90° semi-arc instead of the latitude/obliquity-dependent value. | Verified degenerate by inspection. Either implement the real diurnal semi-arc (`asin(tan φ · tan δ) + 90`) or document Koch as an approximation. No Koch reference golden currently pins this, so add one with the fix. |
 
 ## Robustness / Recovery
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-
-(no findings — invalid parse/config/plugin/template paths return errors; fuzz/property suites remain green from prior fix pass.)
+| ROB-1 | OPEN | M | `core/src/functions/panchanga.rs:235,244` call `calc_ut(...).unwrap_or(<zeroed Planet>)` for Sun and Moon, so an ephemeris failure silently substitutes a 0°/0-speed position and the function returns a plausible-but-wrong panchanga (tithi/nakshatra) instead of surfacing the error. | Verified pattern. Consider propagating the `calc_ut` error (return `Result`) or at least a sentinel the caller can detect; today failure is indistinguishable from a real new-moon result. |
 
 ## Scalability
 
