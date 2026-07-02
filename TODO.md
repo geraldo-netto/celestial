@@ -1,5 +1,6 @@
 # Celestial — TODO
 
+Rescan: **2026-07-02b** (deep all-category rescan; 5 parallel audit agents over core/cli/bindings/perf/security; findings source-verified — CLI ones confirmed by running the built binary; high-severity binding/CLI/security claims spot-checked before entry). New: CLI-1..3, SM-1/2, ROB-2, UX-1, REL-14/15, DEC-2, SEC-6, PLAT-1, PERF-11/12, DOC-12, LEG-2, BIND-8. NOTE: the core-correctness cluster (astronomy math / calendars) aborted on a session limit with no output — re-run that cluster next pass. Baseline: `cargo test --workspace --exclude celestial-fuzz` green, `clippy -W cognitive_complexity` = 0.
 Rescan: **2026-07-02** (whole-project scan across all categories in `AGENTS.md`; 5 parallel category-cluster audits, findings verified against source before entry, speculative/false-positive claims dropped).
 2026-07-02 docs review + fix pass: all workspace `*.md` cross-checked against source. Fixed and rows removed — DOC-7 (README/context_schema omer `.sefirah`→`week/day_sefirah`, moon `.short`→`phase_short`, hebrew `holidays[]`→`years[]`/`days[]`, gregorian annotation tags), DOC-8 (context_schema planet `body`→`name`/`retrograde`→`retro`/`sign` idx+`sign_name`, aspect `aspect`→`aspect_name`+`aspect_deg`), DOC-9 (JS/PHP `FLG_SIDEREAL` 64→65536), DOC-10 (binding `nutation` docs → one arg, 2-value tuple/array, dropped fictional `NutationResult.eps_true`), DOC-11 (test counts re-derived from a single run: workspace 1496, core 1174, cli 293, py 216, js 162). Verify: `cargo test -p celestial-cli` templates_render + context_schema tests green; workspace count confirmed by `cargo test --workspace --exclude celestial-fuzz`. Verified-correct and NOT flagged: TZ table 203 entries, 27 chart types, 194 parity, `SYNODIC_MONTH`, `api_reference.md` nutation signature.
 2026-07-02 verification: `cargo test --workspace` (1496 passed); `cargo clippy --workspace --all-targets` (clean); `cargo xtask parity` (194 fns); `cargo xtask pyi --check`; `cargo xtask dts --check`; `cargo check -p celestial-core --no-default-features {,--features timezone,--features calendar-traditions}`. New findings: REL-11 (retrograde template key), REL-12 (eclipse u-term), REL-13 (Koch diurnal_semi_arc stub), ROB-1 (panchanga silent ephemeris fallback), DOC-8 (schema retro/aspect key drift), LEG-1 (get_ayanamsa_name alias). REL-11 fixed same pass (`p.retrograde` → `p.retro`) — row removed. Dropped false positives: profection `cusps[13]` (wrap is correct), hallucinated `angles[]`/`arabic_parts[]`/`fixed_stars[]` schema keys (never emitted), "TODO.md missing" (exists), CLI items duplicating existing DECIDED rows.
@@ -23,6 +24,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | BIND-6 | OPEN | M | `rise_trans` differs: Python omits `ephe_flags` and puts `flags` last `(…, temp, flags)`; JS/PHP put flags 3rd `(planet, flags, event_type, …)`. | Same gate. Reconcile to one param order across all three, then remove the allow line. |
 | BIND-7 | OPEN | S | `sabbat_jd` takes `kind` as a `String` name in PHP but a `u8` enum index in Python/JS. | Same gate. Pick one (string name is friendlier) and align the other two, or document as intentional and keep the allow line. |
 | GATE-5 | OPEN | M | No cross-language RUNTIME behaviour parity: nothing calls the built addons and diffs `calc_ut`/`houses` numbers across Python/JS/PHP/core. `reference_values.json` only covers ~15 categories in pure-logic (re-implemented math, not the native call). Deferred from the GATE-1..4 pass: needs built native addons executed in CI (an infra change), unlike the source-level gates. | Plan: (1) `cargo xtask golden` generates `tests/fixtures/binding_golden.json` from core for a fixed input set (`--check` keeps it synced to core); (2) each binding's *native* test suite (post-build job) loads the built addon and asserts numeric equality vs the fixture; (3) wire those native suites to actually run in the js/python/php build jobs. |
+| BIND-8 | OPEN | M | `next_sabbat`/`next_esbat` return only `[jd]`/`f64` in JS (`bindings/js/src/lib.rs:2369,2386`) and PHP (`bindings/php/src/lib.rs:1885,2402`), dropping the name that Python returns as `(name, jd)` (`bindings/python/src/lib.rs:1851,1890`); the JS comment "name is available via the kind index" is false — no index is returned. | Return the kind index or name from JS+PHP to match Python, or document that callers must pair with `next_sabbat_name`. Not caught by the shapes gate (coarse kind only). |
 
 ## Architecture / Modularity / SOLID
 
@@ -43,8 +45,9 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-
-(no findings — `Command` dispatch, plugin fallback, chart registry, `--calendar` value enum, timezone-required render path, and invalid chart/calendar cases are covered by workspace tests.)
+| CLI-1 | OPEN | S | `render --lat/--lon/--lat2/--lon2` (`cli/src/cmd/render/args.rs:89,93,151,155`) lack `allow_hyphen_values`, so the space form `render --lat -23.55` dies with `error: unexpected argument '-2' found` — every southern/western coordinate is blocked unless written `--lat=-23.55`. Verified: `houses.rs:19,23` already sets the flag. | Add `allow_hyphen_values = true` to the four render lat/lon args. |
+| CLI-3 | OPEN | S | `--calendar` help/enum text (`cli/src/cmd/render/args.rs:~113`) lists only 5 values (gregorian, omer, sabbats, moon, hebrew), omitting `gregorian-year`/`year-calendar` (`CalendarKind::GregorianYear`) that `resolve_overlay` and README both accept. | Add `gregorian-year` to the help string. |
+| CLI-2 | OPEN | S | `moon --month 2024-05 --new` (`cli/src/cmd/moon.rs:47`) returns from the `--month` branch before the phase-flag branch, silently ignoring `--new/--first-quarter/--full/--last-quarter` instead of rejecting the conflicting combo. | Detect `--month` + any phase flag and error, or enforce via clap arg groups. |
 
 ## Code Complexity
 
@@ -97,6 +100,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | DEC-1 | DECIDED | S | `cli/src/cmd/render/svg_common.rs::write_year_axis` calls `celestial_core::revjul` / `julday` directly from a shared render helper. | Acceptable thin veneer: axis ticks need JD/Gregorian conversion; closure injection would be heavier than the coupling. |
+| DEC-2 | OPEN | M | `secondary_progressions` computes progressed house cusps then discards them (`_houses`) in JS (`bindings/js/src/lib.rs:2416`) and PHP (`bindings/php/src/lib.rs:1767`), while Python (`bindings/python/src/lib.rs:1927`) returns `(positions, cusps)` — progressed houses are unreachable in JS/PHP. | Return the cusps alongside positions in JS+PHP to match Python, or document the intentional omission. |
 
 ## Dependency
 
@@ -117,12 +121,14 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | DOC-4 | DECIDED | M | `celestial-cli` public items are intentionally undocumented. | Binary crate/lib split only exists so `main.rs` and tests can share modules; `#![warn(missing_docs)]` remains core-only. |
+| DOC-12 | OPEN | S | `docs/index.md:71` documents the plugin naming as `celestial-<n>` (literal), but `plugin.rs:3` uses `celestial-<name>` — the `<n>` placeholder is wrong. | Change `celestial-<n>` to `celestial-<name>`. |
 
 ## Legacy / Deprecation
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | LEG-1 | OPEN | S | `get_ayanamsa_name` is a redundant alias of `ayanamsa_name` exported by all three bindings (`bindings/python/src/lib.rs:1541`, `bindings/js/src/lib.rs:2564`, `bindings/php/src/lib.rs:2433` — the PHP one is literally commented "Legacy alias"). Both wrap the same `celestial::ayanamsa_name`. | Counts twice against the 194-function parity surface. If external consumers depend on it, mark `#[deprecated]` and schedule removal; otherwise drop the alias and regenerate stubs. Kept intentionally today, but no deprecation path is recorded. |
+| LEG-2 | OPEN | S | Two more byte-identical legacy aliases across all three bindings, same class as LEG-1: `get_ayanamsa` = `ayanamsa` and `house_name_str` = `house_name` (`bindings/python/src/lib.rs:1580`, `bindings/js/src/lib.rs:796,2682`, `bindings/php/src/lib.rs:2156,2617`). Each inflates the parity surface. | Fold into LEG-1's deprecation decision: `#[deprecated]` + scheduled removal, or drop and regenerate stubs. |
 
 ## Multithreading
 
@@ -160,13 +166,15 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | PERF-9 | DECIDED | S | `parse_chart_type` calls `registered_chart_types()` twice on invalid input. | One-shot CLI parse path; cosmetic micro-perf. |
 | PERF-2/3 | DECIDED | — | Search code re-evaluates final `calc_ut` / `houses` with full flags after bisection. | Authoritative final result, not redundant; locked by regression tests. |
 | PERF-5 | DECIDED | M | `next_aspect_with2` dual-scan merge could be unified. | Precision-sensitive rewrite for marginal gain; byte-identical gate made it a deliberate no-op. |
+| PERF-11 | OPEN | S | `core/src/astronomy/vsop87.rs:74` `eval_vsop_with_deriv` calls `eval_series` then `eval_series_deriv` over the same term slice, building each term's phase `c·τ+b` twice and running `.cos()`/`.sin()` as two separate transcendentals instead of one `sin_cos()` — ~2× transcendental cost on the helio+speed path (moon.rs:86 already pairs them). | Fuse into one term loop computing `arg.sin_cos()` once per term, accumulating value + derivative together. |
+| PERF-12 | OPEN | S | `core/src/functions/searches.rs:412` `next_aspect_cusp`'s scan recomputes all 12 Placidus cusps at every 0.05-day step across an up-to-400-day window but reads only `hr.cusps[cusp]`, discarding ~11/12 of the iterative semi-arc work each step. | Compute only the requested cusp, or hoist ARMC/obliquity-invariant sub-results out of the per-step loop. |
 
 ## Platform
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-(no findings — Unix and non-Unix plugin execution paths compile; no-default-feature binding checks pass.)
+| PLAT-1 | OPEN | M | Windows plugin dispatch is broken: `is_exec` (`cli/src/plugin.rs:70`) only checks `is_file()`, `discover` keeps the extension in the name (`celestial-synastry.exe` → `"synastry.exe"`), but `try_exec` (:49) searches for the extensionless `celestial-<sub>`, so a real `.exe` plugin is never found and non-executable `celestial-*.txt` files are listed as plugins. Windows is in the CI matrix (`celestial-cli.yml:95`). | Strip a trailing `.exe`/PATHEXT from the discovered name and probe candidate names with executable extensions on non-Unix. |
 
 ## Plugin Extensibility
 
@@ -196,12 +204,15 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | REL-10 | OPEN | S | `core/src/functions/moon_phases.rs:287` accepts `jd >= jd_from - 0.01`, so `next_principal_phase` / `next_new_moon` can return a phase up to 0.01 days before the requested start despite docs/tests saying at or strictly after `jd_from`. | Boundary issue only; broad moon/reference/property tests pass. `fuzz/src/main.rs:4233` also documents widened synodic tolerance and references a missing `next_new_moon` TODO, so either tighten the predicate and add a boundary regression or explicitly document an inclusive tolerance contract. |
 | REL-12 | OPEN | S | `core/src/astronomy/eclipses.rs:191` computes the Besselian `u` half-width term as `0.0004 * to_rad(2.0 * to_rad(mp).sin()).cos()` — it wraps `mp` through `to_rad().sin()` before the outer `to_rad().cos()`, so it is not the Meeus 54.x term `0.0004 * cos(2·M')`. | Small coefficient (0.0004 Earth-radii) so eclipse-type classification rarely flips, but the value is mathematically wrong. Should be `0.0004 * to_rad(2.0 * mp).cos()`. Add a reference-eclipse regression when fixing. |
 | REL-13 | OPEN | M | `core/src/astronomy/houses.rs:453 diurnal_semi_arc` is a degenerate stub: `to_deg((lat_r.tan() * 0.0_f64.tan()).asin()) + 90.0` always returns `90.0` (since `tan(0) = 0`), and its `_eps_r` argument is unused — so Koch cusps (houses.rs:396) always divide a fixed 90° semi-arc instead of the latitude/obliquity-dependent value. | Verified degenerate by inspection. Either implement the real diurnal semi-arc (`asin(tan φ · tan δ) + 90`) or document Koch as an approximation. No Koch reference golden currently pins this, so add one with the fix. |
+| REL-14 | OPEN | M | JS `housesEx` (`bindings/js/src/lib.rs:427`) returns the full 13-element `r.cusps` (incl. the unused SwissEph index-0 placeholder), whereas JS `houses` (:403) and Python/PHP `houses_ex` return `cusps[1..]` (12 real cusps) — so `cusps[i]` is off by one house for `housesEx` callers. Verified. | Slice `r.cusps[1..].to_vec()` in JS `housesEx` to match the siblings. Shapes gate can't see it (coarse kind only). |
+| REL-15 | OPEN | M | `houses_ex2` cusp count disagrees across bindings: JS (`bindings/js/src/lib.rs:450`) and PHP (`bindings/php/src/lib.rs:2171`) return 13 cusps incl. index-0, but Python (`bindings/python/src/lib.rs:347`) returns 12 (`cusps[1..]`) — `cusps[i]` maps to a different house per language. | Strip index 0 in JS+PHP (or add it in Python) so all three agree with their own `houses`. |
 
 ## Robustness / Recovery
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | ROB-1 | OPEN | M | `core/src/functions/panchanga.rs:235,244` call `calc_ut(...).unwrap_or(<zeroed Planet>)` for Sun and Moon, so an ephemeris failure silently substitutes a 0°/0-speed position and the function returns a plausible-but-wrong panchanga (tithi/nakshatra) instead of surfacing the error. | Verified pattern. Consider propagating the `calc_ut` error (return `Result`) or at least a sentinel the caller can detect; today failure is indistinguishable from a real new-moon result. |
+| ROB-2 | OPEN | M | `render --date2/--date3` for biwheel/composite/triwheel/lunar-return (`cli/src/cmd/render/registry.rs:85,149,171,195`) are parsed with `parse_date` but never timezone-adjusted and skip `require_datetime`, so the 2nd/3rd subject is computed in raw UT while `--date` is converted local→UT at `pipeline.rs:321` (verified: outer-planet longitudes unchanged between `--tz UTC` and `--tz +12`). | Apply the same `--timezone` offset (or add `--timezone2`) and the `require_datetime` check to date2/date3 before building those charts. |
 
 ## Scalability
 
@@ -215,21 +226,22 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-(no findings — config-driven output path traversal is rejected; template execution has a fuel cap; user strings are XML-escaped where built-in SVG consumes them.)
+| SEC-6 | OPEN | M | An untrusted `--config` can set `[render] template` to any absolute path (`cli/src/cmd/render/config.rs:90` assigns `r.template` with no guard), and MiniJinja emits non-`{{}}` file content verbatim into the "SVG" — an arbitrary-file-read/disclosure. The sibling `out` field right below (:101-112) IS path-guarded under the same explicitly-stated "config may be untrusted" SEC-5 threat model, so `template` is an inconsistency in that model. | Apply the same absolute/`..` rejection to config-sourced `template`; leave the explicit `--template` CLI flag unrestricted (mirror the `out` split). |
 
 ## State Machine Integrity
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-(no findings — CLI subcommand dispatch and render output mode state are covered by tests.)
+| SM-1 | OPEN | M | `crossing` for any body other than sun/moon without `--helio` falls into `_ => helio_cross_ut(...)` (`cli/src/cmd/crossing.rs:51`), so `crossing --body mars --lon 120` silently returns the *heliocentric* crossing (verified: identical JD to `--helio`) but labels it a plain geocentric "Mars crossing". | Reject non-sun/moon geocentric requests with an explicit error, or force/announce `(heliocentric)` in the label. |
+| SM-2 | OPEN | S | `raw.iter().any(|a| a == "--list-plugins")` (`cli/src/main.rs:93`) scans the whole arg vector and returns before clap dispatch, so `celestial calc --date … --list-plugins` (verified) silently discards the `calc` computation and just lists plugins. | Only honor `--list-plugins` when no subcommand is present, or let clap own the global flag and handle it after arg-match. |
 
 ## UI / UX
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-(no findings — localized help keys are complete; timezone-required errors point to explicit remediation.)
+| UX-1 | OPEN | M | `--chart-type calendar` with no `--calendar` flags renders a bare grid whose subtitle still advertises "overlays: gregorian · omer · sabbats · moon" (`cli/src/cmd/render/pipeline.rs:344`), but 0 day annotations appear (verified vs 2 with `--calendar moon`): `build_calendar_context` defaults `calendars` to all four (pipeline.rs:55-72) while `apply_universal_overlays` keys off the empty `args.calendars`. | Drive `apply_universal_overlays` from the context's `calendars` for the calendar chart-type (or default `overlay_cals` to all-four) so advertised overlays are populated. |
 
 ## Vectorization
 
