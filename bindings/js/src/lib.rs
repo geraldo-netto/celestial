@@ -1716,6 +1716,61 @@ pub fn hijri_month_name(month: u32) -> String {
     celestial::hijri_month_name(month as u8).to_string()
 }
 
+#[napi]
+pub fn days_in_hebrew_year(year: i32) -> f64 {
+    celestial::days_in_hebrew_year(year) as f64
+}
+
+#[napi]
+pub fn months_in_hebrew_year(year: i32) -> i32 {
+    celestial::months_in_hebrew_year(year)
+}
+
+#[napi]
+pub fn is_hebrew_leap_year(year: i32) -> bool {
+    celestial::is_hebrew_leap_year(year)
+}
+
+#[napi]
+pub fn hebrew_month_days(year: i32, month: i32) -> f64 {
+    celestial::hebrew_month_days(year, month) as f64
+}
+
+#[napi]
+pub fn hebrew_month_start_jd(year: i32, month: i32) -> f64 {
+    celestial::hebrew_month_start_jd(year, month) as f64
+}
+
+#[napi]
+pub fn hebrew_new_year_jd(year: i32) -> f64 {
+    celestial::hebrew_new_year_jd(year) as f64
+}
+
+#[napi]
+pub fn is_hijri_leap_year(year: i32) -> bool {
+    celestial::is_hijri_leap_year(year)
+}
+
+#[napi]
+pub fn hijri_month_days(year: i32, month: u32) -> u32 {
+    u32::from(celestial::hijri_month_days(year, month as u8))
+}
+
+#[napi]
+pub fn hijri_month_start_jd(year: i32, month: u32) -> f64 {
+    celestial::hijri_month_start_jd(year, month as u8)
+}
+
+#[napi]
+pub fn hijri_new_year_jd(year: i32) -> f64 {
+    celestial::hijri_new_year_jd(year)
+}
+
+#[napi]
+pub fn is_bahai_leap_year(bahai_year: i32) -> bool {
+    celestial::is_bahai_leap_year(bahai_year)
+}
+
 #[napi(object)]
 pub struct IslamicObservance {
     pub name: String,

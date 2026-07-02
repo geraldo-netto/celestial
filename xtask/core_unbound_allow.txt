@@ -20,7 +20,6 @@ coord_transform_with_speed       # rust-only
 cs_round_sec                     # rust-only
 current_file_data                # rust-only
 date_conversion                  # rust-only
-days_in_hebrew_year              # backlog
 default_orb                      # rust-only
 deg_to_cs                        # rust-only
 deltat_ex                        # rust-only
@@ -35,16 +34,10 @@ gauquelin_sector                 # rust-only
 geo_to_dms                       # backlog
 get_orbital_elements             # rust-only
 hebrew                           # backlog
-hebrew_month_days                # backlog
-hebrew_month_start_jd            # backlog
-hebrew_new_year_jd               # backlog
 heliacal_pheno_ut                # rust-only
 heliacal_ut                      # backlog
 helio_cross                      # backlog
 helio_cross_ut                   # backlog
-hijri_month_days                 # backlog
-hijri_month_start_jd             # backlog
-hijri_new_year_jd                # backlog
 hindu                            # backlog
 house_system_char                # backlog
 house_system_id                  # backlog
@@ -52,9 +45,6 @@ houses_armc                      # backlog
 houses_armc_ex2                  # backlog
 houses_from_armc                 # backlog
 is_applying                      # rust-only
-is_bahai_leap_year               # backlog
-is_hebrew_leap_year              # backlog
-is_hijri_leap_year               # backlog
 islamic                          # backlog
 islamic_observances_for_jd       # backlog
 jd_et_to_utc                     # backlog
@@ -71,7 +61,6 @@ make_pillar                      # rust-only
 mean_sidereal_time_deg           # backlog
 meridian_transit_ut              # backlog
 midpoint_rad                     # rust-only
-months_in_hebrew_year            # backlog
 mooncross                        # backlog
 mooncross_back_ut                # backlog
 mooncross_ut                     # backlog

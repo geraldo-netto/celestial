@@ -412,6 +412,17 @@ export declare function christianFixedFeasts(year: number): Array<ChristianFeast
 export declare function hijriFromJd(jd: number): HijriDate;
 export declare function hijriToJd(year: number, month: number, day: number): number;
 export declare function hijriMonthName(month: number): string;
+export declare function daysInHebrewYear(year: number): number;
+export declare function monthsInHebrewYear(year: number): number;
+export declare function isHebrewLeapYear(year: number): boolean;
+export declare function hebrewMonthDays(year: number, month: number): number;
+export declare function hebrewMonthStartJd(year: number, month: number): number;
+export declare function hebrewNewYearJd(year: number): number;
+export declare function isHijriLeapYear(year: number): boolean;
+export declare function hijriMonthDays(year: number, month: number): number;
+export declare function hijriMonthStartJd(year: number, month: number): number;
+export declare function hijriNewYearJd(year: number): number;
+export declare function isBahaiLeapYear(bahaiYear: number): boolean;
 export declare function islamicObservances(hijriYear: number): Array<IslamicObservance>;
 export declare function gregorianToHijriYears(gregorianYear: number): HijriYears;
 export declare function panchanga(jd: number): Panchanga;

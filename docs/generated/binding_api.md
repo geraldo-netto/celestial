@@ -58,7 +58,7 @@ link here rather than restating them (prevents DOC-9/DOC-10 drift). -->
 | `FLG_NOABERR` | 1024 |
 | `SIDM_KRISHNAMURTI` | 5 |
 
-## Python — 201 functions
+## Python — 212 functions
 
 ```
 almuten(lon: float, is_day: bool) -> object
@@ -90,6 +90,7 @@ coptic_to_jd(year: int, month: int, day: int) -> float
 cycle_nickname(n: int) -> str
 day_of_week(jd: float) -> int
 day_of_year(year: int, month: int, day: int) -> int
+days_in_hebrew_year(year: int) -> int
 decan_ruler(lon: float) -> int
 degnorm(d: float) -> float
 degsplit(pos: float) -> object
@@ -122,9 +123,15 @@ grand_solar_epoch(jd: float) -> str
 gregorian_to_hijri_years(gregorian_year: int) -> object
 gregorian_to_solar_hijri(year: int) -> int
 haab(jd: float) -> object
+hebrew_month_days(year: int, month: int) -> int
+hebrew_month_start_jd(year: int, month: int) -> int
+hebrew_new_year_jd(year: int) -> int
 hebrew_year_from_jd(jd: float) -> int
 hijri_from_jd(jd: float) -> object
+hijri_month_days(year: int, month: int) -> int
 hijri_month_name(month: int) -> str
+hijri_month_start_jd(year: int, month: int) -> float
+hijri_new_year_jd(year: int) -> float
 hijri_to_jd(year: int, month: int, day: int) -> float
 hindu_festivals(gregorian_year: int) -> object
 house_name(hsys: int) -> str
@@ -134,8 +141,11 @@ houses(tjdut: float, lat: float, lon: float, hsys: int) -> object
 houses_ex(tjdut: float, lat: float, lon: float, hsys: int, flags: int) -> object
 houses_ex2(tjdut: float, lat: float, lon: float, hsys: int, flags: int) -> object
 ic_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
+is_bahai_leap_year(bahai_year: int) -> bool
 is_coptic_leap_year(year: int) -> bool
 is_day_chart(sun_lon: float, cusps: list[float]) -> bool
+is_hebrew_leap_year(year: int) -> bool
+is_hijri_leap_year(year: int) -> bool
 islamic_observances(hijri_year: int) -> object
 iso_week(jd: float) -> object
 jd_duration(jd_start: float, jd_end: float) -> object
@@ -173,6 +183,7 @@ midpoint(lon1: float, lon2: float) -> float
 midpoint_deg(x1: float, x0: float) -> float
 midpoint_table(positions: list[tuple[int, float]], orb: float) -> object
 monthly_profection(cusps: list[float], age_years: int, age_months: int) -> tuple[int, float]
+months_in_hebrew_year(year: int) -> int
 moon_elongation(jd: float) -> float
 moon_illumination(jd: float) -> float
 moon_phase(jd: float) -> str
@@ -264,7 +275,7 @@ yallop_q(arcv_deg: float, arcl_deg: float, sd_arcmin: float) -> object
 zodiac_sign_name(sign: int) -> str
 ```
 
-## JavaScript / TypeScript — 201 functions
+## JavaScript / TypeScript — 212 functions
 
 ```
 almuten(lon: number, is_day: boolean) -> Array<number>
@@ -296,6 +307,7 @@ coptic_to_jd(year: number, month: number, day: number) -> number
 cycle_nickname(n: number) -> string | null
 day_of_week(jd: number) -> number
 day_of_year(year: number, month: number, day: number) -> number
+days_in_hebrew_year(year: number) -> number
 decan_ruler(lon: number) -> number
 degnorm(d: number) -> number
 degsplit(pos: number) -> Array<number>
@@ -328,9 +340,15 @@ grand_solar_epoch(jd: number) -> string | null
 gregorian_to_hijri_years(gregorian_year: number) -> unknown
 gregorian_to_solar_hijri(year: number) -> number
 haab(jd: number) -> Array<string>
+hebrew_month_days(year: number, month: number) -> number
+hebrew_month_start_jd(year: number, month: number) -> number
+hebrew_new_year_jd(year: number) -> number
 hebrew_year_from_jd(jd: number) -> number
 hijri_from_jd(jd: number) -> unknown
+hijri_month_days(year: number, month: number) -> number
 hijri_month_name(month: number) -> string
+hijri_month_start_jd(year: number, month: number) -> number
+hijri_new_year_jd(year: number) -> number
 hijri_to_jd(year: number, month: number, day: number) -> number
 hindu_festivals(gregorian_year: number) -> Array<unknown>
 house_name(hsys: number) -> string
@@ -340,8 +358,11 @@ houses(tjdut: number, lat: number, lon: number, hsys: number) -> unknown
 houses_ex(tjdut: number, lat: number, lon: number, hsys: number, flags: number | null) -> unknown
 houses_ex2(tjdut: number, lat: number, lon: number, hsys: number, flags: number | null) -> unknown
 ic_transit_ut(planet: number, jd_natal: number, jd_start: number, lat: number, lon: number, hsys: number, flags: number, backward: boolean) -> number
+is_bahai_leap_year(bahai_year: number) -> boolean
 is_coptic_leap_year(year: number) -> boolean
 is_day_chart(sun_lon: number, cusps: Array<number>) -> boolean
+is_hebrew_leap_year(year: number) -> boolean
+is_hijri_leap_year(year: number) -> boolean
 islamic_observances(hijri_year: number) -> Array<unknown>
 iso_week(jd: number) -> Array<number>
 jd_duration(jd_start: number, jd_end: number) -> Array<number>
@@ -379,6 +400,7 @@ midpoint(lon1: number, lon2: number) -> number
 midpoint_deg(x1: number, x0: number) -> number
 midpoint_table(positions: Array<number>, orb: number) -> Array<Array<number>>
 monthly_profection(cusps: Array<number>, age_years: number, age_months: number) -> Array<number>
+months_in_hebrew_year(year: number) -> number
 moon_elongation(jd: number) -> number
 moon_illumination(jd: number) -> number
 moon_phase(jd: number) -> string
@@ -470,7 +492,7 @@ yallop_q(arcv_deg: number, arcl_deg: number, sd_arcmin: number) -> Array<number>
 zodiac_sign_name(sign: number) -> string
 ```
 
-## PHP — 201 functions
+## PHP — 212 functions
 
 ```
 almuten(lon: float, is_day: bool) -> array
@@ -502,6 +524,7 @@ coptic_to_jd(year: int, month: int, day: int) -> float
 cycle_nickname(n: int) -> ?string
 day_of_week(jd: float) -> int
 day_of_year(year: int, month: int, day: int) -> int
+days_in_hebrew_year(year: int) -> int
 decan_ruler(lon: float) -> int
 degnorm(d: float) -> float
 degsplit(pos: float) -> array
@@ -534,9 +557,15 @@ grand_solar_epoch(jd: float) -> ?string
 gregorian_to_hijri_years(gregorian_year: int) -> array
 gregorian_to_solar_hijri(year: int) -> int
 haab(jd: float) -> array
+hebrew_month_days(year: int, month: int) -> int
+hebrew_month_start_jd(year: int, month: int) -> int
+hebrew_new_year_jd(year: int) -> int
 hebrew_year_from_jd(jd: float) -> int
 hijri_from_jd(jd: float) -> array
+hijri_month_days(year: int, month: int) -> int
 hijri_month_name(month: int) -> string
+hijri_month_start_jd(year: int, month: int) -> float
+hijri_new_year_jd(year: int) -> float
 hijri_to_jd(year: int, month: int, day: int) -> float
 hindu_festivals(gregorian_year: int) -> array
 house_name(hsys: int) -> string
@@ -546,8 +575,11 @@ houses(jdut: float, geolat: float, geolon: float, hsys: int) -> array
 houses_ex(jdut: float, flags: int, geolat: float, geolon: float, hsys: int) -> array
 houses_ex2(tjdut: float, lat: float, lon: float, hsys: int, flags: int) -> array
 ic_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
+is_bahai_leap_year(bahai_year: int) -> bool
 is_coptic_leap_year(year: int) -> bool
 is_day_chart(sun_lon: float, cusps: array) -> bool
+is_hebrew_leap_year(year: int) -> bool
+is_hijri_leap_year(year: int) -> bool
 islamic_observances(hijri_year: int) -> array
 iso_week(jd: float) -> array
 jd_duration(jd_start: float, jd_end: float) -> array
@@ -585,6 +617,7 @@ midpoint(lon1: float, lon2: float) -> float
 midpoint_deg(x1: float, x0: float) -> float
 midpoint_table(positions: array, orb: float) -> array
 monthly_profection(cusps: array, age_years: int, age_months: int) -> array
+months_in_hebrew_year(year: int) -> int
 moon_elongation(jd: float) -> float
 moon_illumination(jd: float) -> float
 moon_phase(jd: float) -> string

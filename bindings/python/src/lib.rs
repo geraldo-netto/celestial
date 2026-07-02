@@ -2344,6 +2344,17 @@ fn register_calendar_fns(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(hijri_to_jd, m)?)?;
     #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(hijri_month_name, m)?)?;
+    m.add_function(wrap_pyfunction!(days_in_hebrew_year, m)?)?;
+    m.add_function(wrap_pyfunction!(months_in_hebrew_year, m)?)?;
+    m.add_function(wrap_pyfunction!(is_hebrew_leap_year, m)?)?;
+    m.add_function(wrap_pyfunction!(hebrew_month_days, m)?)?;
+    m.add_function(wrap_pyfunction!(hebrew_month_start_jd, m)?)?;
+    m.add_function(wrap_pyfunction!(hebrew_new_year_jd, m)?)?;
+    m.add_function(wrap_pyfunction!(is_hijri_leap_year, m)?)?;
+    m.add_function(wrap_pyfunction!(hijri_month_days, m)?)?;
+    m.add_function(wrap_pyfunction!(hijri_month_start_jd, m)?)?;
+    m.add_function(wrap_pyfunction!(hijri_new_year_jd, m)?)?;
+    m.add_function(wrap_pyfunction!(is_bahai_leap_year, m)?)?;
     #[cfg(feature = "calendar-traditions")]
     m.add_function(wrap_pyfunction!(islamic_observances, m)?)?;
     #[cfg(feature = "calendar-traditions")]
@@ -2575,6 +2586,72 @@ fn hijri_to_jd(year: i32, month: i32, day: i32) -> f64 {
 #[pyfunction]
 fn hijri_month_name(month: i32) -> &'static str {
     celestial::hijri_month_name(month as u8)
+}
+
+#[pyfunction]
+#[pyo3(signature = (year))]
+fn days_in_hebrew_year(year: i32) -> i64 {
+    celestial::days_in_hebrew_year(year)
+}
+
+#[pyfunction]
+#[pyo3(signature = (year))]
+fn months_in_hebrew_year(year: i32) -> i32 {
+    celestial::months_in_hebrew_year(year)
+}
+
+#[pyfunction]
+#[pyo3(signature = (year))]
+fn is_hebrew_leap_year(year: i32) -> bool {
+    celestial::is_hebrew_leap_year(year)
+}
+
+#[pyfunction]
+#[pyo3(signature = (year, month))]
+fn hebrew_month_days(year: i32, month: i32) -> i64 {
+    celestial::hebrew_month_days(year, month)
+}
+
+#[pyfunction]
+#[pyo3(signature = (year, month))]
+fn hebrew_month_start_jd(year: i32, month: i32) -> i64 {
+    celestial::hebrew_month_start_jd(year, month)
+}
+
+#[pyfunction]
+#[pyo3(signature = (year))]
+fn hebrew_new_year_jd(year: i32) -> i64 {
+    celestial::hebrew_new_year_jd(year)
+}
+
+#[pyfunction]
+#[pyo3(signature = (year))]
+fn is_hijri_leap_year(year: i32) -> bool {
+    celestial::is_hijri_leap_year(year)
+}
+
+#[pyfunction]
+#[pyo3(signature = (year, month))]
+fn hijri_month_days(year: i32, month: u8) -> u8 {
+    celestial::hijri_month_days(year, month)
+}
+
+#[pyfunction]
+#[pyo3(signature = (year, month))]
+fn hijri_month_start_jd(year: i32, month: u8) -> f64 {
+    celestial::hijri_month_start_jd(year, month)
+}
+
+#[pyfunction]
+#[pyo3(signature = (year))]
+fn hijri_new_year_jd(year: i32) -> f64 {
+    celestial::hijri_new_year_jd(year)
+}
+
+#[pyfunction]
+#[pyo3(signature = (bahai_year))]
+fn is_bahai_leap_year(bahai_year: i32) -> bool {
+    celestial::is_bahai_leap_year(bahai_year)
 }
 
 /// All major Islamic observances for the given Hijri year.

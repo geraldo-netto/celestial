@@ -1241,6 +1241,61 @@ pub fn hijri_month_name(month: i64) -> String {
     celestial::hijri_month_name(month as u8).to_string()
 }
 
+#[php_function]
+pub fn days_in_hebrew_year(year: i64) -> i64 {
+    celestial::days_in_hebrew_year(year as i32)
+}
+
+#[php_function]
+pub fn months_in_hebrew_year(year: i64) -> i64 {
+    i64::from(celestial::months_in_hebrew_year(year as i32))
+}
+
+#[php_function]
+pub fn is_hebrew_leap_year(year: i64) -> bool {
+    celestial::is_hebrew_leap_year(year as i32)
+}
+
+#[php_function]
+pub fn hebrew_month_days(year: i64, month: i64) -> i64 {
+    celestial::hebrew_month_days(year as i32, month as i32)
+}
+
+#[php_function]
+pub fn hebrew_month_start_jd(year: i64, month: i64) -> i64 {
+    celestial::hebrew_month_start_jd(year as i32, month as i32)
+}
+
+#[php_function]
+pub fn hebrew_new_year_jd(year: i64) -> i64 {
+    celestial::hebrew_new_year_jd(year as i32)
+}
+
+#[php_function]
+pub fn is_hijri_leap_year(year: i64) -> bool {
+    celestial::is_hijri_leap_year(year as i32)
+}
+
+#[php_function]
+pub fn hijri_month_days(year: i64, month: i64) -> i64 {
+    i64::from(celestial::hijri_month_days(year as i32, month as u8))
+}
+
+#[php_function]
+pub fn hijri_month_start_jd(year: i64, month: i64) -> f64 {
+    celestial::hijri_month_start_jd(year as i32, month as u8)
+}
+
+#[php_function]
+pub fn hijri_new_year_jd(year: i64) -> f64 {
+    celestial::hijri_new_year_jd(year as i32)
+}
+
+#[php_function]
+pub fn is_bahai_leap_year(bahai_year: i64) -> bool {
+    celestial::is_bahai_leap_year(bahai_year as i32)
+}
+
 /// All Islamic observances for the given Hijri year.
 #[cfg(feature = "calendar-traditions")]
 #[php_function]

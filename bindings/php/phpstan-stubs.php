@@ -122,6 +122,30 @@ define('SPLIT_DEG_ROUND_SEC', 1);
 /** @var int */
 define('SPLIT_DEG_ZODIACAL', 8);
 
+/** @var int */
+define('SPLIT_DEG_ROUND_MIN', 2);
+
+/** @var int */
+define('SPLIT_DEG_ROUND_DEG', 4);
+
+/** @var int */
+define('SPLIT_DEG_NAKSHATRA', 1024);
+
+/** @var int */
+define('ECL_CENTRAL', 1);
+
+/** @var int */
+define('FLG_NOGDEFL', 512);
+
+/** @var int */
+define('FLG_NOABERR', 1024);
+
+/** @var int */
+define('FLG_XYZ', 4096);
+
+/** @var int */
+define('EARTH', 14);
+
 /** @return float */
 function julday(int $year, int $month, int $day, float $hour, int $calendar): float {}
 
@@ -625,6 +649,72 @@ function hijri_month_name(int $month): string {}
 
 /** @return string */
 function celestial_hijri_month_name(int $month): string {}
+
+/** @return int */
+function days_in_hebrew_year(int $year): int {}
+
+/** @return int */
+function celestial_days_in_hebrew_year(int $year): int {}
+
+/** @return int */
+function months_in_hebrew_year(int $year): int {}
+
+/** @return int */
+function celestial_months_in_hebrew_year(int $year): int {}
+
+/** @return bool */
+function is_hebrew_leap_year(int $year): bool {}
+
+/** @return bool */
+function celestial_is_hebrew_leap_year(int $year): bool {}
+
+/** @return int */
+function hebrew_month_days(int $year, int $month): int {}
+
+/** @return int */
+function celestial_hebrew_month_days(int $year, int $month): int {}
+
+/** @return int */
+function hebrew_month_start_jd(int $year, int $month): int {}
+
+/** @return int */
+function celestial_hebrew_month_start_jd(int $year, int $month): int {}
+
+/** @return int */
+function hebrew_new_year_jd(int $year): int {}
+
+/** @return int */
+function celestial_hebrew_new_year_jd(int $year): int {}
+
+/** @return bool */
+function is_hijri_leap_year(int $year): bool {}
+
+/** @return bool */
+function celestial_is_hijri_leap_year(int $year): bool {}
+
+/** @return int */
+function hijri_month_days(int $year, int $month): int {}
+
+/** @return int */
+function celestial_hijri_month_days(int $year, int $month): int {}
+
+/** @return float */
+function hijri_month_start_jd(int $year, int $month): float {}
+
+/** @return float */
+function celestial_hijri_month_start_jd(int $year, int $month): float {}
+
+/** @return float */
+function hijri_new_year_jd(int $year): float {}
+
+/** @return float */
+function celestial_hijri_new_year_jd(int $year): float {}
+
+/** @return bool */
+function is_bahai_leap_year(int $bahai_year): bool {}
+
+/** @return bool */
+function celestial_is_bahai_leap_year(int $bahai_year): bool {}
 
 /** @return array */
 function islamic_observances(int $hijri_year): array {}

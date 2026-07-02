@@ -32,6 +32,7 @@ coptic_to_jd                         py=float      js=float      php=float
 cycle_nickname                       py=string     js=opt<string> php=opt<string>
 day_of_week                          py=int        js=int        php=int
 day_of_year                          py=int        js=int        php=int
+days_in_hebrew_year                  py=int        js=float      php=int
 decan_ruler                          py=int        js=int        php=int
 degnorm                              py=float      js=float      php=float
 degsplit                             py=object     js=array      php=array
@@ -64,9 +65,15 @@ grand_solar_epoch                    py=string     js=opt<string> php=opt<string
 gregorian_to_hijri_years             py=object     js=object     php=array
 gregorian_to_solar_hijri             py=int        js=int        php=int
 haab                                 py=object     js=array      php=array
+hebrew_month_days                    py=int        js=float      php=int
+hebrew_month_start_jd                py=int        js=float      php=int
+hebrew_new_year_jd                   py=int        js=float      php=int
 hebrew_year_from_jd                  py=int        js=int        php=int
 hijri_from_jd                        py=object     js=object     php=map
+hijri_month_days                     py=int        js=int        php=int
 hijri_month_name                     py=string     js=string     php=string
+hijri_month_start_jd                 py=float      js=float      php=float
+hijri_new_year_jd                    py=float      js=float      php=float
 hijri_to_jd                          py=float      js=float      php=float
 hindu_festivals                      py=object     js=array      php=array
 house_name                           py=string     js=string     php=string
@@ -76,8 +83,11 @@ houses                               py=object     js=object     php=map
 houses_ex                            py=object     js=object     php=map
 houses_ex2                           py=object     js=object     php=array
 ic_transit_ut                        py=float      js=float      php=float
+is_bahai_leap_year                   py=bool       js=bool       php=bool
 is_coptic_leap_year                  py=bool       js=bool       php=bool
 is_day_chart                         py=bool       js=bool       php=bool
+is_hebrew_leap_year                  py=bool       js=bool       php=bool
+is_hijri_leap_year                   py=bool       js=bool       php=bool
 islamic_observances                  py=object     js=array      php=array
 iso_week                             py=object     js=array      php=array
 jd_duration                          py=object     js=array      php=array
@@ -115,6 +125,7 @@ midpoint                             py=float      js=float      php=float
 midpoint_deg                         py=float      js=float      php=float
 midpoint_table                       py=object     js=array      php=array
 monthly_profection                   py=tuple2     js=array      php=array
+months_in_hebrew_year                py=int        js=int        php=int
 moon_elongation                      py=float      js=float      php=float
 moon_illumination                    py=float      js=float      php=float
 moon_phase                           py=string     js=string     php=string
