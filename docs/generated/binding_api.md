@@ -50,6 +50,13 @@ link here rather than restating them (prevents DOC-9/DOC-10 drift). -->
 | `APP_TO_TRUE` | 1 |
 | `SPLIT_DEG_ROUND_SEC` | 1 |
 | `SPLIT_DEG_ZODIACAL` | 8 |
+| `SPLIT_DEG_ROUND_MIN` | 2 |
+| `SPLIT_DEG_ROUND_DEG` | 4 |
+| `SPLIT_DEG_NAKSHATRA` | 1024 |
+| `ECL_CENTRAL` | 1 |
+| `FLG_NOGDEFL` | 512 |
+| `FLG_NOABERR` | 1024 |
+| `SIDM_KRISHNAMURTI` | 5 |
 
 ## Python — 201 functions
 

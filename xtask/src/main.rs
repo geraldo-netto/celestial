@@ -1804,6 +1804,73 @@ fn read_arity_allow(root: &Path) -> BTreeSet<String> {
         .collect()
 }
 
+/// Checked-in list of constants whose cross-binding absence is intentional.
+const CONST_ALLOW_FILE: &str = "xtask/const_allow.txt";
+
+fn read_const_allow(root: &Path) -> BTreeSet<String> {
+    fs::read_to_string(root.join(CONST_ALLOW_FILE))
+        .unwrap_or_default()
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .filter_map(|l| l.split_whitespace().next())
+        .map(String::from)
+        .collect()
+}
+
+/// Names of the constants Python registers via `m.add("NAME", …)`.
+fn python_const_names(src: &str) -> BTreeSet<String> {
+    src.split("m.add(\"")
+        .skip(1)
+        .filter_map(|c| {
+            let name: String = c
+                .chars()
+                .take_while(|ch| ch.is_alphanumeric() || *ch == '_')
+                .collect();
+            (name.chars().next().is_some_and(|c| c.is_ascii_uppercase())).then_some(name)
+        })
+        .collect()
+}
+
+/// Exported constant name set for each binding (JS `#[napi]`, PHP `#[php_const]`,
+/// Python `m.add`). Source of truth for GATE-1 constant parity.
+fn binding_const_names(root: &Path) -> Vec<(&'static str, BTreeSet<String>)> {
+    let read = |rel: &str| fs::read_to_string(root.join(rel)).unwrap_or_default();
+    let js = scan_napi_consts(&read("bindings/js/src/lib.rs"))
+        .into_iter()
+        .map(|c| c.name)
+        .collect();
+    let php = parse_php_consts(&read("bindings/php/src/lib.rs"))
+        .into_iter()
+        .map(|(n, _, _)| n)
+        .collect();
+    let py = python_const_names(&read("bindings/python/src/lib.rs"));
+    vec![("JS", js), ("PHP", php), ("Python", py)]
+}
+
+/// Constants exported by some but not all bindings (and not allow-listed).
+fn const_parity_gaps(
+    sets: &[(&str, BTreeSet<String>)],
+    allow: &BTreeSet<String>,
+) -> Vec<(String, Vec<String>)> {
+    let union: BTreeSet<&String> = sets.iter().flat_map(|(_, s)| s.iter()).collect();
+    let mut out = Vec::new();
+    for name in union {
+        if allow.contains(name) {
+            continue;
+        }
+        let missing: Vec<String> = sets
+            .iter()
+            .filter(|(_, s)| !s.contains(name))
+            .map(|(b, _)| (*b).to_string())
+            .collect();
+        if !missing.is_empty() {
+            out.push((name.clone(), missing));
+        }
+    }
+    out
+}
+
 /// Per-binding parameter count for every decorated fn (self/py excluded by the
 /// signature parser). Used for cross-binding arity parity (B).
 fn binding_arities(root: &Path) -> Vec<(String, BTreeMap<String, usize>)> {
@@ -1892,18 +1959,45 @@ fn cmd_coverage(write_allow: bool) {
         .into_iter()
         .filter(|(name, _)| !arity_allow.contains(name))
         .collect();
+    let const_sets = binding_const_names(&root);
+    let const_gap = const_parity_gaps(&const_sets, &read_const_allow(&root));
 
     println!("celestial binding coverage check");
     println!("================================");
     println!("  core flat public fns : {}", core.len());
     println!("  bound (any binding)  : {}", bound.intersection(&core).count());
     println!("  intentionally unbound: {}", allow.len());
+    for (b, s) in &const_sets {
+        println!("  constants ({b}) : {}", s.len());
+    }
 
-    report_coverage(&gap, &stale, &arity);
+    report_coverage(&gap, &stale, &arity, &const_gap);
 }
 
-fn report_coverage(gap: &[&String], stale: &[&String], arity: &[(String, Vec<String>)]) {
-    let mut failed = false;
+/// Print constant-parity gaps (GATE-1). Returns true if any exist.
+fn report_const_gap(const_gap: &[(String, Vec<String>)]) -> bool {
+    if const_gap.is_empty() {
+        return false;
+    }
+    println!(
+        "\n✗ {} constant(s) not exported by every binding:\n",
+        const_gap.len()
+    );
+    for (name, missing) in const_gap {
+        println!("    {name}: missing from {}", missing.join(", "));
+    }
+    println!("\n  → add the missing `#[napi]`/`#[php_const]`/`m.add(...)` const, OR");
+    println!("    list it in {CONST_ALLOW_FILE} if the omission is intentional.");
+    true
+}
+
+fn report_coverage(
+    gap: &[&String],
+    stale: &[&String],
+    arity: &[(String, Vec<String>)],
+    const_gap: &[(String, Vec<String>)],
+) {
+    let mut failed = report_const_gap(const_gap);
     if !gap.is_empty() {
         failed = true;
         println!(
@@ -2373,6 +2467,30 @@ pub use geo::{tz_abbr_find, TzAbbr, TZ_TABLE};
         push_core_fn(&mut set, "old_name as new_name");
         assert!(set.contains("new_name"));
         assert!(!set.contains("old_name"));
+    }
+
+    // ── constant parity (GATE-1) ──────────────────────────────────────────────
+
+    #[test]
+    fn python_const_names_extracted() {
+        let src = "m.add(\"SUN\", 0)?;\n    m.add(\"lower\", 1)?;\n    m.add(\"FLG_XYZ\", 4096)?;";
+        let c = python_const_names(src);
+        assert!(c.contains("SUN"));
+        assert!(c.contains("FLG_XYZ"));
+        assert!(!c.contains("lower"));
+    }
+
+    #[test]
+    fn const_gap_flags_missing_and_respects_allow() {
+        let sets = vec![
+            ("JS", ["A", "B"].iter().map(|s| s.to_string()).collect()),
+            ("PHP", ["A"].iter().map(|s| s.to_string()).collect()),
+        ];
+        let gaps = const_parity_gaps(&sets, &BTreeSet::new());
+        assert_eq!(gaps.len(), 1);
+        assert_eq!(gaps[0].0, "B");
+        let allow: BTreeSet<String> = ["B"].iter().map(|s| s.to_string()).collect();
+        assert!(const_parity_gaps(&sets, &allow).is_empty());
     }
 
     // ── shapes: return-shape category (C) ─────────────────────────────────────

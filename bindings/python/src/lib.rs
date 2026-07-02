@@ -2225,6 +2225,7 @@ fn register_constants(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("SIDM_FAGAN_BRADLEY", celestial::SIDM_FAGAN_BRADLEY)?;
     m.add("SIDM_LAHIRI", celestial::SIDM_LAHIRI)?;
     m.add("SIDM_RAMAN", celestial::SIDM_RAMAN)?;
+    m.add("SIDM_KRISHNAMURTI", celestial::SIDM_KRISHNAMURTI)?;
     m.add("SIDM_USER", 255i32)?;
 
     m.add("ECL_TOTAL", celestial::ECL_TOTAL)?;

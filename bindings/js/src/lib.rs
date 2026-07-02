@@ -871,6 +871,20 @@ pub const APP_TO_TRUE: i32 = celestial::APP_TO_TRUE;
 pub const SPLIT_DEG_ROUND_SEC: i32 = celestial::SPLIT_DEG_ROUND_SEC;
 #[napi]
 pub const SPLIT_DEG_ZODIACAL: i32 = celestial::SPLIT_DEG_ZODIACAL;
+#[napi]
+pub const SPLIT_DEG_ROUND_MIN: i32 = celestial::SPLIT_DEG_ROUND_MIN;
+#[napi]
+pub const SPLIT_DEG_ROUND_DEG: i32 = celestial::SPLIT_DEG_ROUND_DEG;
+#[napi]
+pub const SPLIT_DEG_NAKSHATRA: i32 = celestial::SPLIT_DEG_NAKSHATRA;
+#[napi]
+pub const ECL_CENTRAL: i32 = celestial::ECL_CENTRAL;
+#[napi]
+pub const FLG_NOGDEFL: i32 = celestial::FLG_NOGDEFL;
+#[napi]
+pub const FLG_NOABERR: i32 = celestial::FLG_NOABERR;
+#[napi]
+pub const SIDM_KRISHNAMURTI: i32 = celestial::SIDM_KRISHNAMURTI;
 
 // ─── Functions present in Python binding, added here for API symmetry ────────
 

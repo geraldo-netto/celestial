@@ -1,0 +1,4 @@
+# Constants intentionally NOT exported by every binding.
+# Read by `cargo xtask coverage` (GATE-1). Format: <CONST_NAME>  <reason>.
+# Empty = full constant parity is enforced. Prefer ADDING the missing const
+# (#[napi] / #[php_const] / m.add) over listing it here.

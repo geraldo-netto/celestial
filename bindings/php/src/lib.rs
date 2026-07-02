@@ -848,6 +848,22 @@ pub const APP_TO_TRUE: i32 = celestial::APP_TO_TRUE;
 pub const SPLIT_DEG_ROUND_SEC: i32 = celestial::SPLIT_DEG_ROUND_SEC;
 #[php_const]
 pub const SPLIT_DEG_ZODIACAL: i32 = celestial::SPLIT_DEG_ZODIACAL;
+#[php_const]
+pub const SPLIT_DEG_ROUND_MIN: i32 = celestial::SPLIT_DEG_ROUND_MIN;
+#[php_const]
+pub const SPLIT_DEG_ROUND_DEG: i32 = celestial::SPLIT_DEG_ROUND_DEG;
+#[php_const]
+pub const SPLIT_DEG_NAKSHATRA: i32 = celestial::SPLIT_DEG_NAKSHATRA;
+#[php_const]
+pub const ECL_CENTRAL: i32 = celestial::ECL_CENTRAL;
+#[php_const]
+pub const FLG_NOGDEFL: i32 = celestial::FLG_NOGDEFL;
+#[php_const]
+pub const FLG_NOABERR: i32 = celestial::FLG_NOABERR;
+#[php_const]
+pub const FLG_XYZ: i32 = celestial::FLG_XYZ;
+#[php_const]
+pub const EARTH: i32 = celestial::EARTH;
 
 // ─── Chart functions ──────────────────────────────────────────────────────────
 

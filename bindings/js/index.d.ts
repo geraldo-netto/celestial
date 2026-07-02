@@ -287,6 +287,13 @@ export declare const TRUE_TO_APP: number;
 export declare const APP_TO_TRUE: number;
 export declare const SPLIT_DEG_ROUND_SEC: number;
 export declare const SPLIT_DEG_ZODIACAL: number;
+export declare const SPLIT_DEG_ROUND_MIN: number;
+export declare const SPLIT_DEG_ROUND_DEG: number;
+export declare const SPLIT_DEG_NAKSHATRA: number;
+export declare const ECL_CENTRAL: number;
+export declare const FLG_NOGDEFL: number;
+export declare const FLG_NOABERR: number;
+export declare const SIDM_KRISHNAMURTI: number;
 
 export declare function setEphePath(path: string): void;
 export declare function setJplFile(fname: string): void;

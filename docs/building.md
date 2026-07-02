@@ -260,10 +260,11 @@ celestial render --date 1990-05-15 --time 14:30:45  # shows "14:30 UT"
 # Check that Python, JS, and PHP binding all export identical functions
 cargo xtask parity
 
-# Core→binding coverage + cross-binding arity parity.
+# Core→binding coverage + cross-binding arity + constant parity.
 # Fails if a core public fn (pub use in core/src/lib.rs) is bound by no binding
-# and is not listed in xtask/core_unbound_allow.txt, or if bindings disagree on
-# a fn's parameter count (unless listed in xtask/arity_allow.txt).
+# and is not listed in xtask/core_unbound_allow.txt, if bindings disagree on a
+# fn's parameter count (unless in xtask/arity_allow.txt), or if a constant is not
+# exported by every binding (unless in xtask/const_allow.txt).
 cargo xtask coverage
 cargo xtask coverage --write-allow   # re-baseline the intentionally-unbound list
 
