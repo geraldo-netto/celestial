@@ -79,7 +79,7 @@ define('SE_CHIRON',    15);
 ```php
 define('FLG_BUILTIN',    2);
 define('FLG_SPEED',      256);
-define('FLG_SIDEREAL',   64);
+define('FLG_SIDEREAL',   65536);
 define('FLG_EQUATORIAL', 2048);
 define('FLG_HELCTR',     8);
 ```
@@ -127,10 +127,9 @@ $bodies  = [SE_SUN, SE_MOON, SE_MERCURY, SE_VENUS, SE_MARS,
 $results = celestial_calc_many($jd, $bodies, FLG_BUILTIN | FLG_SPEED);
 // $results[$i] corresponds to $bodies[$i]
 
-// Nutation (IAU 2000B)
-// Returns ['dpsi' => float, 'deps' => float, 'eps_true' => float]
-$nut = celestial_nutation($jd, FLG_BUILTIN);
-printf("dpsi=%.6f°  eps_true=%.4f°\n", $nut['dpsi'], $nut['eps_true']);
+// Nutation (IAU 2000B) — one arg, returns [dpsi, deps] (degrees)
+$nut = celestial_nutation($jd);
+printf("dpsi=%.6f°  deps=%.6f°\n", $nut[0], $nut[1]);
 
 // Fixed star
 $star = celestial_fixstar_ut('Aldebaran', $jd, FLG_BUILTIN);
@@ -392,7 +391,7 @@ if ($pos === null) {
 | `celestial_calc_ut` | `[lon, lat, dist, speed_lon, speed_lat, speed_dist, ret]` |
 | `celestial_calc_many` | `array` of the above arrays |
 | `celestial_houses_ex` | `['cusps' => float[13], 'ascmc' => float[8]]` |
-| `celestial_nutation` | `['dpsi' => float, 'deps' => float, 'eps_true' => float]` |
+| `celestial_nutation` | `[float $dpsi, float $deps]` (degrees) |
 | `celestial_revjul` | `['year' => int, 'month' => int, 'day' => int, 'hour' => float]` |
 | `celestial_moon_phase_info` | `['phase_name', 'illumination', 'age_days', 'next_phase_name', …]` |
 | `celestial_four_pillars` | `array[4]` of `['stem_name', 'branch_name', 'animal', …]` |

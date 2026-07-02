@@ -105,9 +105,9 @@ planets = [celestial.SUN, celestial.MOON, celestial.MERCURY, celestial.VENUS,
 results = celestial.calc_many(jd, planets, celestial.FLG_BUILTIN | celestial.FLG_SPEED)
 # results[i] corresponds to planets[i]
 
-# Nutation (IAU 2000B)
-nut = celestial.nutation(jd, celestial.FLG_BUILTIN)
-print(f"dpsi={nut.dpsi:.6f}°  deps={nut.deps:.6f}°  eps_true={nut.eps_true:.6f}°")
+# Nutation (IAU 2000B) — one arg, returns a (dpsi, deps) tuple in degrees
+dpsi, deps = celestial.nutation(jd)
+print(f"dpsi={dpsi:.6f}°  deps={deps:.6f}°")
 
 # Fixed star
 star = celestial.fixstar_ut("Aldebaran", jd, celestial.FLG_BUILTIN)
@@ -422,7 +422,6 @@ It covers all 194 exported functions (verify with `cargo xtask parity`) and the 
 |---|---|
 | `PlanetPos` | `lon`, `lat`, `dist`, `speed_lon`, `speed_lat`, `speed_dist`, `ret_flags` |
 | `HouseResult` | `cusps: list[float]` (13 elements), `ascmc: list[float]` (8 elements) |
-| `NutationResult` | `dpsi`, `deps`, `eps_true` |
 | `RiseTransResult` | `tret`, `trise`, `tset`, `ttransit` |
 | `BaZiPillar` | `stem_name`, `branch_name`, `animal`, `stem_element`, `branch_element`, `yang` |
 | `FirdariaPeriod` | `major_lord`, `minor_lord`, `start`, `end`, `years` |
@@ -482,7 +481,7 @@ except Exception as e:
 |---|---|
 | `calc_ut` / `calc_many` | `PlanetPos` with fields: `lon lat dist speed_lon speed_lat speed_dist` |
 | `houses_ex` | `HouseResult` with fields: `cusps` (list[13]) `ascmc` (list[8]) |
-| `nutation` | `NutationResult` with fields: `dpsi deps eps_true` |
+| `nutation` | `(dpsi, deps)` tuple — IAU 2000B, degrees |
 | `moon_phase_info` | `MoonPhaseInfo` — see Moon phases section |
 | `four_pillars` | `list[dict]` — `stem_name branch_name animal stem_element branch_element yang` |
 | `firdaria` | `list[dict]` — `major_lord minor_lord start end years` (JD start/end, span in years) |

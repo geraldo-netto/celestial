@@ -61,7 +61,7 @@ const MEAN_NODE = 10, TRUE_NODE = 11, CHIRON = 15;
 ```typescript
 const FLG_BUILTIN    = 2;    // use built-in ephemeris (always include)
 const FLG_SPEED      = 256;  // include daily speed
-const FLG_SIDEREAL   = 64;   // sidereal positions
+const FLG_SIDEREAL   = 65536; // sidereal positions
 const FLG_EQUATORIAL = 2048; // equatorial coordinates
 const FLG_HELCTR     = 8;    // heliocentric
 ```
@@ -94,11 +94,7 @@ interface HouseResult {
   ascmc:  number[];   // [0]=ASC [1]=MC [2]=ARMC [3]=Vertex
 }
 
-interface NutationResult {
-  dpsi:     number;   // nutation in longitude (degrees)
-  deps:     number;   // nutation in obliquity
-  eps_true: number;   // true obliquity
-}
+// nutation returns a plain [dpsi, deps] array (degrees), not an object.
 ```
 
 ---
@@ -131,9 +127,9 @@ const planets = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15];
 const results: PlanetPos[] = celestial.calc_many(jd, planets, 2 | 256);
 // results[i] corresponds to planets[i]
 
-// Nutation (IAU 2000B, 77 terms)
-const nut: NutationResult = celestial.nutation(jd, 2);
-console.log(`dpsi=${nut.dpsi.toFixed(6)}°  eps_true=${nut.eps_true.toFixed(4)}°`);
+// Nutation (IAU 2000B, 77 terms) — one arg, returns [dpsi, deps] in degrees
+const [dpsi, deps]: number[] = celestial.nutation(jd);
+console.log(`dpsi=${dpsi.toFixed(6)}°  deps=${deps.toFixed(6)}°`);
 
 // Mean sidereal time
 const gmst: number = celestial.mean_sidtime(jd);  // degrees
@@ -148,7 +144,7 @@ console.log(`ASC=${h.ascmc[0].toFixed(2)}°  MC=${h.ascmc[1].toFixed(2)}°`);
 // h.cusps[1..12] are the twelve house cusps
 
 // With sidereal flag
-const hSid = celestial.houses_ex(jd, 64, 48.85, 2.35, "P".charCodeAt(0));
+const hSid = celestial.houses_ex(jd, 65536, 48.85, 2.35, "P".charCodeAt(0));
 ```
 
 **House system codes:** `"P".charCodeAt(0)` Placidus · `"K"` Koch · `"E"` Equal · `"W"` Whole-Sign · `"O"` Porphyry · `"R"` Regiomontanus
@@ -157,7 +153,7 @@ const hSid = celestial.houses_ex(jd, 64, 48.85, 2.35, "P".charCodeAt(0));
 
 ```typescript
 celestial.set_sid_mode(1, 0, 0);  // SIDM_LAHIRI
-const moonSid = celestial.calc_ut(jd, 1, 2 | 64);  // FLG_BUILTIN | FLG_SIDEREAL
+const moonSid = celestial.calc_ut(jd, 1, 2 | 65536);  // FLG_BUILTIN | FLG_SIDEREAL
 console.log(`Moon (Lahiri) = ${moonSid.lon.toFixed(4)}°`);
 
 const ayan: number = celestial.ayanamsa_ut(jd);
@@ -346,7 +342,7 @@ binding was built with napi-rs; function names use `snake_case` to match the
 Rust/Python APIs.
 
 ```typescript
-import type { PlanetPos, HouseResult, NutationResult } from "celestial-js";
+import type { PlanetPos, HouseResult } from "celestial-js";
 ```
 
 ---

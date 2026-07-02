@@ -47,7 +47,7 @@ Covers the Swiss Ephemeris API surface: planetary positions, house cusps, eclips
 # Full workspace build
 cargo build
 
-# Tests — 1279 unit/integration across the workspace + 84 fuzz suites (~1M property checks)
+# Tests — 1496 unit/integration across the workspace + 84 fuzz suites (~1M property checks)
 cargo test --workspace
 cargo run  --manifest-path fuzz/Cargo.toml
 
@@ -352,15 +352,15 @@ celestial render --chart-type natal --date "1990-05-15 14:30" \
 |---|---|---|
 | `--calendar gregorian` | `gregorian` | Single-month grid: `days[]`, `month_name`, `col_headers[]`, `first_weekday` |
 | `--calendar gregorian-year` | `gregorian_year` | 12-month grid: `months[12]` each containing the same shape as `gregorian` |
-| `--calendar omer` | `omer` | 49-day Sefirat HaOmer count: `days[].day`, `.iso_date`, `.sefirah`, `today` |
+| `--calendar omer` | `omer` | 49-day Sefirat HaOmer count: `days[].day`, `.iso_date`, `.week_sefirah`, `.day_sefirah`, `today` |
 | `--calendar sabbats` | `sabbats` | 8 Wheel-of-the-Year dates: `sabbats[].name`, `.iso_date`, `.is_quarter_day` |
-| `--calendar moon` | `moon` | Principal phases for a month: `phase_events[]` with `.iso_date`, `.glyph`, `.short` |
-| `--calendar hebrew` | `hebrew` | Hebrew holidays in a date range: `holidays[].name`, `.iso_date`, `.day`, `.month_name` |
+| `--calendar moon` | `moon` | Principal phases for a month: `phase_events[]` with `.iso_date`, `.glyph`, `.phase_short` |
+| `--calendar hebrew` | `hebrew` | Gregorian↔Hebrew map for a date range: `years[]` (`.year`, `.is_leap`, `.months`, `.days`) and `days[]` (`.jd`, `.hebrew_year`, `.hebrew_month`, `.hebrew_month_name`, `.hebrew_day`) |
 
 When `gregorian` or `gregorian-year` is requested alongside other overlays,
 each day cell in `days[]` is auto-annotated with cross-tradition tags
 (`omer_day`, `is_lag_baomer`, `sabbat_name`, `moon_phase`, `moon_glyph`,
-`hebrew_holiday`) so a template loop like `{% for d in gregorian.days %}`
+`hebrew_month_name`, `hebrew_day`) so a template loop like `{% for d in gregorian.days %}`
 can apply per-day styling without juggling multiple lookup tables.
 
 ---

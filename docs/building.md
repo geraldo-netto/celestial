@@ -82,7 +82,7 @@ cargo install --path cli
 cargo clippy --package celestial-cli \
   -- -D clippy::correctness -D clippy::suspicious -D clippy::perf
 
-# Tests (154 tests)
+# Tests (293 tests)
 cargo test --package celestial-cli
 
 # Release binary only
@@ -161,7 +161,7 @@ npx tsc --noEmit           # or: npm run typecheck
 # Lint TypeScript
 npx eslint tests/          # or: npm run lint
 
-# Pure-logic tests (142 passing — no built addon required)
+# Pure-logic tests (162 passing — no built addon required)
 node tests/pure_logic.test.mjs
 
 # Full test suite (requires built .node addon)
@@ -281,10 +281,10 @@ crate or `core/`:
 
 | Pipeline | Trigger path | Jobs |
 |---|---|---|
-| `celestial-core` | `core/**`, `fuzz/**` | lint → test (1101) ‖ fuzz (84 suites, ~1M checks) |
-| `celestial-cli` | `cli/**`, `core/**` | lint → test (154) → release build |
+| `celestial-core` | `core/**`, `fuzz/**` | lint → test (1174) ‖ fuzz (84 suites, ~1M checks) |
+| `celestial-cli` | `cli/**`, `core/**` | lint → test (293) → release build |
 | `celestial-python` | `bindings/python/**`, `core/**` | clippy → ruff/mypy → pytest (216 pure-logic) |
-| `celestial-js` | `bindings/js/**`, `core/**` | clippy → tsc/eslint → node tests (142 pure-logic) |
+| `celestial-js` | `bindings/js/**`, `core/**` | clippy → tsc/eslint → node tests (162 pure-logic) |
 | `celestial-php` | `bindings/php/**`, `core/**` | clippy → phpstan |
 | `binding-parity` | `bindings/**`, `xtask/**` | parity check → test-stubs validation |
 

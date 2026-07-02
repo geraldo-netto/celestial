@@ -45,14 +45,16 @@ Top-level scalars
 ──────────────────────────────────────────────────────────────────────
 planets[]    — array of planet objects (Sun..Pluto + nodes + Chiron)
 ──────────────────────────────────────────────────────────────────────
-  body          string   "Sun", "Moon", "Mercury", …
+  name          string   "Sun", "Moon", "Mercury", …
+  key           string   Lowercase id ("sun", "mercury", "south_node", …)
   glyph         string   Unicode glyph: ☉ ☽ ☿ ♀ ♂ ♃ ♄ ♅ ♆ ♇ ☊ ⚷
   lon           number   Ecliptic longitude
   lat           number   Ecliptic latitude
+  dist          number   Distance (AU)
   speed         number   Daily motion (deg/day; <0 = retrograde)
-  retrograde    bool     true if speed < 0
-  sign          string   "Aries"…"Pisces"
-  house         number   1..12
+  retro         bool     true if speed < 0
+  sign          number   Sign index 0..11 (0 = Aries)
+  sign_name     string   "Aries"…"Pisces"
   dms           string   "29°34'56\" Vir"
   x             number   SVG x-coordinate of glyph (pre-computed)
   y             number   SVG y-coordinate
@@ -96,9 +98,10 @@ aspects[]    — array of aspect lines drawn between body pairs
 ──────────────────────────────────────────────────────────────────────
   body1         string   Name of first body
   body2         string   Name of second body
-  aspect        number   Exact aspect angle (0/60/90/120/180/...)
+  aspect_name   string   Aspect name ("conjunction", "square", "trine", …)
+  aspect_deg    number   Exact aspect angle (0/60/90/120/180/...)
   orb           number   Difference from exact (degrees)
-  is_hard       bool     true for square / opposition / conjunction
+  is_hard       bool     true for square / opposition
   applying      bool     true if separation is decreasing
   x1, y1        number   Endpoint 1 (on inner ring)
   x2, y2        number   Endpoint 2
@@ -163,12 +166,13 @@ single template can support 0..N overlays robustly.
                                               `phase_short` ("Q1", …),
                                               `glyph`, `iso_date`, `jd`.
 
-  --calendar hebrew       hebrew.years[]      Hebrew years overlapping
-                                              the requested period.
-                          hebrew.holidays[]   Jewish holidays each with
-                                              hebrew_name, hebrew_month,
-                                              hebrew_day, jd, iso_date,
-                                              days, category.
+  --calendar hebrew       hebrew.years[]      Hebrew years overlapping the
+                                              period, each with `year`,
+                                              `is_leap`, `months`, `days`.
+                          hebrew.days[]       Day-by-day Gregorian→Hebrew map,
+                                              each with `jd`, `hebrew_year`,
+                                              `hebrew_month`, `hebrew_month_name`,
+                                              `hebrew_day`.
 
   --calendar gregorian    gregorian.year, gregorian.month
                           gregorian.month_name
@@ -177,8 +181,12 @@ single template can support 0..N overlays robustly.
                                               jd. When other --calendar X
                                               flags are also passed, days
                                               are annotated with extra
-                                              tags: omer_day, sabbat,
-                                              moon_phase, hebrew_holiday.
+                                              tags: omer_day, is_lag_baomer,
+                                              omer_week_sefirah, omer_day_sefirah,
+                                              sabbat_name, is_sabbat, is_quarter_day,
+                                              moon_phase, moon_phase_short, moon_glyph,
+                                              hebrew_year, hebrew_month,
+                                              hebrew_month_name, hebrew_day.
                                               This lets a single
                                               `for d in gregorian.days`
                                               loop tag a calendar grid
