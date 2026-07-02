@@ -27,6 +27,44 @@ fn body_of(n: i32) -> napi::Result<Body> {
     Body::try_from_raw(n).map_err(|e| napi::Error::from_reason(e.to_string()))
 }
 
+fn principal_phase_of(n: i32) -> napi::Result<celestial::PrincipalPhase> {
+    match n {
+        0 => Ok(celestial::PrincipalPhase::NewMoon),
+        1 => Ok(celestial::PrincipalPhase::FirstQuarter),
+        2 => Ok(celestial::PrincipalPhase::FullMoon),
+        3 => Ok(celestial::PrincipalPhase::LastQuarter),
+        _ => Err(napi::Error::from_reason(
+            "phase must be 0=NewMoon, 1=FirstQuarter, 2=FullMoon, or 3=LastQuarter",
+        )),
+    }
+}
+
+fn array3(v: Vec<f64>, name: &str) -> napi::Result<[f64; 3]> {
+    v.try_into()
+        .map_err(|_| napi::Error::from_reason(format!("{name} must have 3 elements")))
+}
+
+fn array4(v: Vec<f64>, name: &str) -> napi::Result<[f64; 4]> {
+    v.try_into()
+        .map_err(|_| napi::Error::from_reason(format!("{name} must have 4 elements")))
+}
+
+fn array6(v: Vec<f64>, name: &str) -> napi::Result<[f64; 6]> {
+    v.try_into()
+        .map_err(|_| napi::Error::from_reason(format!("{name} must have 6 elements")))
+}
+
+fn utc_date_vec(d: celestial::UtcDate) -> Vec<f64> {
+    vec![
+        d.year as f64,
+        d.month as f64,
+        d.day as f64,
+        d.hour as f64,
+        d.minute as f64,
+        d.second,
+    ]
+}
+
 // ─── Returned object shapes ───────────────────────────────────────────────────
 
 /// Planetary position vector returned by `calc` / `calcUt`.
@@ -171,6 +209,22 @@ pub struct JdPair {
 pub struct RefracExt {
     pub result: f64,
     pub dret: Vec<f64>,
+}
+
+#[napi(object)]
+pub struct ArabicPartResult {
+    pub name: String,
+    pub formula: String,
+    pub degree: f64,
+}
+
+#[napi(object)]
+pub struct TzAbbrResult {
+    pub name: String,
+    pub desc: String,
+    pub offset: String,
+    pub hours: i32,
+    pub minutes: i32,
 }
 
 // ─── Configuration ────────────────────────────────────────────────────────────
@@ -2636,8 +2690,8 @@ pub fn get_ayanamsa_name(sid_mode: i32) -> String {
 
 #[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "nextFullMoon")]
-pub fn next_full_moon(jd_start: f64) -> f64 {
-    celestial::next_full_moon_after(JulianDay::new(jd_start))
+pub fn next_full_moon(jd_start: f64) -> napi::Result<f64> {
+    celestial::next_full_moon(jd_start).map_err(to_napi)
 }
 
 #[cfg(feature = "calendar-traditions")]
@@ -2786,4 +2840,683 @@ pub fn tibetan_year_name(year: i32) -> Vec<String> {
         ge.to_string(),
         an.to_string(),
     ]
+}
+
+// ─── GATE-4 backlog bindings ─────────────────────────────────────────────────
+
+#[napi(js_name = "approxHebrewYear")]
+pub fn approx_hebrew_year(jd: f64) -> i32 {
+    celestial::approx_hebrew_year(JulianDay::new(jd))
+}
+
+#[napi(js_name = "arabicPartsSeven")]
+pub fn arabic_parts_seven(
+    asc: f64,
+    sun: f64,
+    moon: f64,
+    sat: f64,
+    mar: f64,
+    jup: f64,
+    mer: f64,
+    ven: f64,
+    is_day: bool,
+) -> Vec<ArabicPartResult> {
+    celestial::arabic_parts_seven(
+        Degrees::new(asc),
+        Longitude::new(sun),
+        Longitude::new(moon),
+        Longitude::new(sat),
+        Longitude::new(mar),
+        Longitude::new(jup),
+        Longitude::new(mer),
+        Longitude::new(ven),
+        is_day,
+    )
+    .into_iter()
+    .map(|p| ArabicPartResult {
+        name: p.name.to_string(),
+        formula: p.formula.to_string(),
+        degree: p.degree,
+    })
+    .collect()
+}
+
+#[napi(js_name = "diffDeg")]
+pub fn diff_deg(p1: f64, p2: f64) -> f64 {
+    celestial::diff_deg(p1, p2)
+}
+
+#[napi(js_name = "distanceToMc")]
+pub fn distance_to_mc(planet_lon: f64, mc_lon: f64) -> f64 {
+    celestial::distance_to_mc(planet_lon, mc_lon)
+}
+
+#[napi(js_name = "easterJulian")]
+pub fn easter_julian(year: i32) -> Vec<i32> {
+    let (y, m, d) = celestial::easter_julian(year);
+    vec![y, m as i32, d as i32]
+}
+
+#[napi(js_name = "elapsedDays")]
+pub fn elapsed_days(year: i32) -> i32 {
+    celestial::elapsed_days(year) as i32
+}
+
+#[napi(js_name = "geoToDms")]
+pub fn geo_to_dms(coord: f64) -> Vec<i32> {
+    celestial::geo_to_dms(coord).to_vec()
+}
+
+#[napi(js_name = "heliacalUt")]
+pub fn heliacal_ut(
+    jd_start: f64,
+    dgeo: Vec<f64>,
+    datm: Vec<f64>,
+    dobs: Vec<f64>,
+    objectname: String,
+    type_event: i32,
+    flags: i32,
+) -> napi::Result<Vec<f64>> {
+    celestial::heliacal_ut(
+        JulianDay::new(jd_start),
+        array3(dgeo, "dgeo")?,
+        array4(datm, "datm")?,
+        array6(dobs, "dobs")?,
+        &objectname,
+        type_event,
+        CalcFlags(flags),
+    )
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "helioCross")]
+pub fn helio_cross(body: i32, x2cross: f64, jd_et: f64, flags: i32, dir: i32) -> napi::Result<f64> {
+    celestial::helio_cross(
+        body_of(body)?,
+        Longitude::new(x2cross),
+        JulianDay::new(jd_et),
+        CalcFlags(flags),
+        dir,
+    )
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "helioCrossUt")]
+pub fn helio_cross_ut(
+    body: i32,
+    x2cross: f64,
+    jd_ut: f64,
+    flags: i32,
+    dir: i32,
+) -> napi::Result<f64> {
+    celestial::helio_cross_ut(
+        body_of(body)?,
+        Longitude::new(x2cross),
+        JulianDay::new(jd_ut),
+        CalcFlags(flags),
+        dir,
+    )
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "houseSystemChar")]
+pub fn house_system_char(id: i32) -> Option<u32> {
+    celestial::house_system_char(id).map(u32::from)
+}
+
+#[napi(js_name = "houseSystemId")]
+pub fn house_system_id(hsys: u32) -> Option<i32> {
+    celestial::house_system_id(hsys as u8)
+}
+
+#[napi(js_name = "housesArmc")]
+pub fn houses_armc(armc: f64, lat: f64, eps: f64, hsys: u32) -> napi::Result<HouseResult> {
+    celestial::houses_armc(
+        Degrees::new(armc),
+        Latitude::new(lat),
+        Degrees::new(eps),
+        HouseSystem(hsys as u8),
+    )
+    .map(|r| HouseResult {
+        cusps: r.cusps.to_vec(),
+        ascmc: r.ascmc.to_vec(),
+    })
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "housesArmcEx2")]
+pub fn houses_armc_ex2(armc: f64, lat: f64, eps: f64, hsys: u32) -> napi::Result<HouseResultEx2> {
+    celestial::houses_armc_ex2(
+        Degrees::new(armc),
+        Latitude::new(lat),
+        Degrees::new(eps),
+        HouseSystem(hsys as u8),
+    )
+    .map(|r| HouseResultEx2 {
+        cusps: r.cusps.to_vec(),
+        ascmc: r.ascmc.to_vec(),
+        cusp_speeds: r.cusp_speeds.to_vec(),
+        ascmc_speeds: r.ascmc_speeds.to_vec(),
+    })
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "housesFromArmc")]
+pub fn houses_from_armc(armc: f64, lat: f64, eps: f64, hsys: u32) -> HouseResult {
+    let r = celestial::houses_from_armc(
+        Degrees::new(armc),
+        Latitude::new(lat),
+        Degrees::new(eps),
+        HouseSystem(hsys as u8),
+    );
+    HouseResult {
+        cusps: r.cusps.to_vec(),
+        ascmc: r.ascmc.to_vec(),
+    }
+}
+
+#[napi(js_name = "islamicObservancesForJd")]
+pub fn islamic_observances_for_jd(jd: f64) -> Vec<IslamicObservance> {
+    celestial::islamic_observances_for_jd(JulianDay::new(jd))
+        .into_iter()
+        .map(|o| IslamicObservance {
+            name: o.name.to_string(),
+            arabic_name: o.arabic_name.to_string(),
+            hijri_month: o.hijri_month as u32,
+            hijri_day: o.hijri_day as u32,
+            jd: o.jd,
+            days: o.days as u32,
+        })
+        .collect()
+}
+
+#[napi(js_name = "jdEtToUtc")]
+pub fn jd_et_to_utc(jd_et: f64, calendar: i32) -> Vec<f64> {
+    utc_date_vec(celestial::jd_et_to_utc(
+        JulianDay::new(jd_et),
+        Calendar::from(calendar),
+    ))
+}
+
+#[napi(js_name = "jdUtToUtc")]
+pub fn jd_ut_to_utc(jd_ut: f64, calendar: i32) -> Vec<f64> {
+    utc_date_vec(celestial::jd_ut_to_utc(
+        JulianDay::new(jd_ut),
+        Calendar::from(calendar),
+    ))
+}
+
+#[napi(js_name = "karanaName")]
+pub fn karana_name(karana: u32) -> &'static str {
+    celestial::karana_name(karana as u8)
+}
+
+#[napi(js_name = "latToLmt")]
+pub fn lat_to_lmt(tjd_lat: f64, geolon: f64) -> napi::Result<f64> {
+    celestial::lat_to_lmt(JulianDay::new(tjd_lat), Longitude::new(geolon)).map_err(to_napi)
+}
+
+#[napi(js_name = "lmtToLat")]
+pub fn lmt_to_lat(tjd_lmt: f64, geolon: f64) -> napi::Result<f64> {
+    celestial::lmt_to_lat(JulianDay::new(tjd_lmt), Longitude::new(geolon)).map_err(to_napi)
+}
+
+#[napi(js_name = "lowerMeridianTransitUt")]
+pub fn lower_meridian_transit_ut(
+    body: i32,
+    jd_start: f64,
+    geopos: Vec<f64>,
+    flags: i32,
+) -> napi::Result<RiseTrans> {
+    celestial::lower_meridian_transit_ut(
+        body_of(body)?,
+        jd_start,
+        array3(geopos, "geopos")?,
+        CalcFlags(flags),
+    )
+    .map(|r| RiseTrans {
+        ret_flags: r.ret_flags,
+        tret: r.tret,
+    })
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "lunOccultWhenGlob")]
+pub fn lun_occult_when_glob(
+    tjd_start: f64,
+    body: i32,
+    starname: String,
+    flags: i32,
+    ecl_type: i32,
+    backwards: bool,
+) -> napi::Result<EclipseResult> {
+    let star = (!starname.is_empty()).then_some(starname.as_str());
+    celestial::lun_occult_when_glob(
+        JulianDay::new(tjd_start),
+        body_of(body)?,
+        star,
+        CalcFlags(flags),
+        ecl_type,
+        backwards,
+    )
+    .map(|r| EclipseResult {
+        ret_flags: r.ret_flags,
+        tret: r.tret.to_vec(),
+    })
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "lunOccultWhenLoc")]
+pub fn lun_occult_when_loc(
+    tjd_start: f64,
+    body: i32,
+    starname: String,
+    flags: i32,
+    geopos: Vec<f64>,
+    backwards: bool,
+) -> napi::Result<EclipseResultAttr> {
+    let star = (!starname.is_empty()).then_some(starname.as_str());
+    celestial::lun_occult_when_loc(
+        JulianDay::new(tjd_start),
+        body_of(body)?,
+        star,
+        CalcFlags(flags),
+        array3(geopos, "geopos")?,
+        backwards,
+    )
+    .map(|r| EclipseResultAttr {
+        ret_flags: r.ret_flags,
+        tret: r.tret.to_vec(),
+        attr: r.attr.to_vec(),
+    })
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "lunOccultWhere")]
+pub fn lun_occult_where(
+    jd_ut: f64,
+    body: i32,
+    starname: String,
+    flags: i32,
+) -> napi::Result<EclipseWhere> {
+    let star = (!starname.is_empty()).then_some(starname.as_str());
+    celestial::lun_occult_where(
+        JulianDay::new(jd_ut),
+        body_of(body)?,
+        star,
+        CalcFlags(flags),
+    )
+    .map(|r| EclipseWhere {
+        ret_flags: r.ret_flags,
+        geopos: r.geopos.to_vec(),
+        attr: r.attr.to_vec(),
+    })
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "meanSiderealTimeDeg")]
+pub fn mean_sidereal_time_deg(jd_ut: f64) -> f64 {
+    celestial::mean_sidereal_time_deg(JulianDay::new(jd_ut))
+}
+
+#[napi(js_name = "meridianTransitUt")]
+pub fn meridian_transit_ut(
+    body: i32,
+    jd_start: f64,
+    geopos: Vec<f64>,
+    flags: i32,
+) -> napi::Result<RiseTrans> {
+    celestial::meridian_transit_ut(
+        body_of(body)?,
+        jd_start,
+        array3(geopos, "geopos")?,
+        CalcFlags(flags),
+    )
+    .map(|r| RiseTrans {
+        ret_flags: r.ret_flags,
+        tret: r.tret,
+    })
+    .map_err(to_napi)
+}
+
+#[napi]
+pub fn mooncross(x2cross: f64, jd_et: f64, flags: i32) -> napi::Result<f64> {
+    celestial::mooncross(
+        Longitude::new(x2cross),
+        JulianDay::new(jd_et),
+        CalcFlags(flags),
+    )
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "mooncrossBackUt")]
+pub fn mooncross_back_ut(x2cross: f64, jd_ut: f64, flags: i32) -> napi::Result<f64> {
+    celestial::mooncross_back_ut(
+        Longitude::new(x2cross),
+        JulianDay::new(jd_ut),
+        CalcFlags(flags),
+    )
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "mooncrossUt")]
+pub fn mooncross_ut(x2cross: f64, jd_ut: f64, flags: i32) -> napi::Result<f64> {
+    celestial::mooncross_ut(
+        Longitude::new(x2cross),
+        JulianDay::new(jd_ut),
+        CalcFlags(flags),
+    )
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "nextAspect2")]
+pub fn next_aspect2(
+    planet: i32,
+    aspect: f64,
+    fixed_pt: f64,
+    jd_start: f64,
+    backward: bool,
+    stop_days: f64,
+    flags: i32,
+) -> Option<Vec<f64>> {
+    celestial::next_aspect2(
+        body_of(planet).ok()?,
+        aspect,
+        fixed_pt,
+        jd_start,
+        backward,
+        stop_days,
+        CalcFlags(flags),
+    )
+    .map(|r| [vec![r.jd], r.pos1.to_vec(), r.pos2.to_vec()].concat())
+}
+
+#[napi(js_name = "nextAspectWith2")]
+pub fn next_aspect_with2(
+    planet: i32,
+    aspect: f64,
+    other: i32,
+    jd_start: f64,
+    backward: bool,
+    stop_days: f64,
+    flags: i32,
+) -> Option<Vec<f64>> {
+    celestial::next_aspect_with2(
+        body_of(planet).ok()?,
+        aspect,
+        body_of(other).ok()?,
+        jd_start,
+        backward,
+        stop_days,
+        CalcFlags(flags),
+    )
+    .map(|r| [vec![r.jd], r.pos1.to_vec(), r.pos2.to_vec()].concat())
+}
+
+#[napi(js_name = "nextFullMoonAfter")]
+pub fn next_full_moon_after(jd_start: f64) -> f64 {
+    celestial::next_full_moon_after(JulianDay::new(jd_start))
+}
+
+#[napi(js_name = "nextNewMoonAfter")]
+pub fn next_new_moon_after(jd_start: f64) -> f64 {
+    celestial::next_new_moon_after(JulianDay::new(jd_start))
+}
+
+#[napi(js_name = "nextPrincipalPhase")]
+pub fn next_principal_phase(jd_from: f64, phase: i32) -> napi::Result<PhaseEvent> {
+    celestial::next_principal_phase(JulianDay::new(jd_from), principal_phase_of(phase)?)
+        .map(|e| PhaseEvent {
+            phase: e.phase.name().to_string(),
+            jd: e.jd,
+            elongation: e.elongation,
+        })
+        .map_err(to_napi)
+}
+
+#[napi(js_name = "nodAps")]
+pub fn nod_aps(jd_et: f64, body: i32, flags: i32, method: i32) -> napi::Result<Vec<f64>> {
+    celestial::nod_aps(
+        JulianDay::new(jd_et),
+        body_of(body)?,
+        CalcFlags(flags),
+        method,
+    )
+    .map(|r| {
+        [
+            r.nasc.to_vec(),
+            r.ndsc.to_vec(),
+            r.peri.to_vec(),
+            r.aphe.to_vec(),
+            vec![r.ret_flags as f64],
+        ]
+        .concat()
+    })
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "nodApsUt")]
+pub fn nod_aps_ut(jd_ut: f64, body: i32, flags: i32, method: i32) -> napi::Result<Vec<f64>> {
+    celestial::nod_aps_ut(
+        JulianDay::new(jd_ut),
+        body_of(body)?,
+        CalcFlags(flags),
+        method,
+    )
+    .map(|r| {
+        [
+            r.nasc.to_vec(),
+            r.ndsc.to_vec(),
+            r.peri.to_vec(),
+            r.aphe.to_vec(),
+            vec![r.ret_flags as f64],
+        ]
+        .concat()
+    })
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "parallacticAngle")]
+pub fn parallactic_angle(ha_deg: f64, dec_deg: f64, lat_deg: f64) -> f64 {
+    celestial::parallactic_angle(
+        Degrees::new(ha_deg),
+        Degrees::new(dec_deg),
+        Latitude::new(lat_deg),
+    )
+}
+
+#[napi(js_name = "parseTime")]
+pub fn parse_time(s: String) -> Option<Vec<i32>> {
+    celestial::parse_time(&s).map(|t| t.to_vec())
+}
+
+#[napi]
+pub fn pheno(jd_et: f64, body: i32, flags: i32) -> napi::Result<Vec<f64>> {
+    celestial::pheno(JulianDay::new(jd_et), body_of(body)?, CalcFlags(flags))
+        .map(|v| v.to_vec())
+        .map_err(to_napi)
+}
+
+#[napi(js_name = "phenoUt")]
+pub fn pheno_ut(jd_ut: f64, body: i32, flags: i32) -> napi::Result<Vec<f64>> {
+    celestial::pheno_ut(JulianDay::new(jd_ut), body_of(body)?, CalcFlags(flags))
+        .map(|v| v.to_vec())
+        .map_err(to_napi)
+}
+
+#[napi(js_name = "planetConjunctMc")]
+pub fn planet_conjunct_mc(planet_lon: f64, mc_lon: f64, orb: f64) -> bool {
+    celestial::planet_conjunct_mc(planet_lon, mc_lon, orb)
+}
+
+#[napi(js_name = "planetHouseNumber")]
+pub fn planet_house_number(planet_lon: f64, cusps: Vec<f64>) -> napi::Result<u32> {
+    let arr: [f64; 13] = cusps
+        .try_into()
+        .map_err(|_| napi::Error::from_reason("cusps must have 13 elements"))?;
+    Ok(celestial::planet_house_number(planet_lon, &arr) as u32)
+}
+
+#[napi(js_name = "planetOnMidpoint")]
+pub fn planet_on_midpoint(planet_lon: f64, mid_lon: f64, orb: f64) -> Option<f64> {
+    celestial::planet_on_midpoint(Longitude::new(planet_lon), Longitude::new(mid_lon), orb)
+}
+
+#[napi(js_name = "rasiDiff")]
+pub fn rasi_diff(r1: i32, r2: i32) -> i32 {
+    celestial::rasi_diff(r1, r2)
+}
+
+#[napi(js_name = "rasiDiff2")]
+pub fn rasi_diff2(r1: i32, r2: i32) -> i32 {
+    celestial::rasi_diff2(r1, r2)
+}
+
+#[napi(js_name = "rasiNorm")]
+pub fn rasi_norm(r: i32) -> i32 {
+    celestial::rasi_norm(r)
+}
+
+#[napi(js_name = "riseTransTrueHor")]
+pub fn rise_trans_true_hor(
+    tjdut: f64,
+    planet: i32,
+    flags: i32,
+    event_type: i32,
+    geopos: Vec<f64>,
+    pressure_mb: f64,
+    temp_c: f64,
+    horhgt: f64,
+) -> napi::Result<RiseTrans> {
+    celestial::rise_trans_true_hor(
+        JulianDay::new(tjdut),
+        body_of(planet)?,
+        None,
+        CalcFlags(flags),
+        event_type,
+        array3(geopos, "geopos")?,
+        pressure_mb,
+        temp_c,
+        horhgt,
+    )
+    .map(|r| RiseTrans {
+        ret_flags: r.ret_flags,
+        tret: r.tret,
+    })
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "sameSect")]
+pub fn same_sect(body: i32, is_day: bool) -> napi::Result<bool> {
+    Ok(celestial::same_sect(body_of(body)?, is_day))
+}
+
+#[napi(js_name = "siderealModeFlag")]
+pub fn sidereal_mode_flag(sidmode: i32) -> Option<i32> {
+    celestial::sidereal_mode_flag(sidmode)
+}
+
+#[napi(js_name = "siderealModeId")]
+pub fn sidereal_mode_id(flag: i32) -> Option<i32> {
+    celestial::sidereal_mode_id(flag)
+}
+
+#[napi(js_name = "siderealTimeDeg")]
+pub fn sidereal_time_deg(jd_ut: f64) -> f64 {
+    celestial::sidereal_time_deg(JulianDay::new(jd_ut))
+}
+
+#[napi]
+pub fn sidtime0(jd_ut: f64, eps: f64, nut: f64) -> f64 {
+    celestial::sidtime0(JulianDay::new(jd_ut), Degrees::new(eps), Degrees::new(nut))
+}
+
+#[napi(js_name = "signExaltation")]
+pub fn sign_exaltation(body: i32) -> napi::Result<i32> {
+    Ok(celestial::sign_exaltation(body_of(body)?) as i32)
+}
+
+#[napi(js_name = "signLord")]
+pub fn sign_lord(sign: i32) -> Option<i32> {
+    celestial::sign_lord(sign)
+}
+
+#[napi(js_name = "solarHijriToGregorian")]
+pub fn solar_hijri_to_gregorian(solar_hijri_year: i32) -> i32 {
+    celestial::solar_hijri_to_gregorian(solar_hijri_year)
+}
+
+#[napi]
+pub fn solcross(x2cross: f64, jd_et: f64, flags: i32) -> napi::Result<f64> {
+    celestial::solcross(
+        Longitude::new(x2cross),
+        JulianDay::new(jd_et),
+        CalcFlags(flags),
+    )
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "solcrossBackUt")]
+pub fn solcross_back_ut(x2cross: f64, jd_ut: f64, flags: i32) -> napi::Result<f64> {
+    celestial::solcross_back_ut(
+        Longitude::new(x2cross),
+        JulianDay::new(jd_ut),
+        CalcFlags(flags),
+    )
+    .map_err(to_napi)
+}
+
+#[napi(js_name = "tatkalikaRelation")]
+pub fn tatkalika_relation(r1: i32, r2: i32) -> i32 {
+    celestial::tatkalika_relation(r1, r2)
+}
+
+#[napi(js_name = "timeEqu")]
+pub fn time_equ(jd_ut: f64) -> napi::Result<f64> {
+    celestial::time_equ(JulianDay::new(jd_ut)).map_err(to_napi)
+}
+
+#[napi(js_name = "ttToUt")]
+pub fn tt_to_ut(jde: f64) -> f64 {
+    celestial::tt_to_ut(JulianDay::new(jde))
+}
+
+#[napi(js_name = "tzAbbrFind")]
+pub fn tz_abbr_find(abbr: String) -> Vec<TzAbbrResult> {
+    celestial::tz_abbr_find(&abbr)
+        .into_iter()
+        .map(|tz| TzAbbrResult {
+            name: tz.name.to_string(),
+            desc: tz.desc.to_string(),
+            offset: tz.offset.to_string(),
+            hours: tz.hours,
+            minutes: tz.minutes,
+        })
+        .collect()
+}
+
+#[napi(js_name = "utcTimeZone")]
+pub fn utc_time_zone(
+    year: i32,
+    month: i32,
+    day: i32,
+    hour: i32,
+    minute: i32,
+    second: f64,
+    d_timezone: f64,
+) -> Vec<f64> {
+    let date = celestial::UtcDate {
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+    };
+    utc_date_vec(celestial::utc_time_zone(&date, d_timezone))
+}
+
+#[napi(js_name = "yearsDiff")]
+pub fn years_diff(jd1: f64, jd2: f64, flags: i32) -> napi::Result<f64> {
+    celestial::years_diff(jd1, jd2, CalcFlags(flags)).map_err(to_napi)
 }

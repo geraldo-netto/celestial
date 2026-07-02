@@ -88,6 +88,20 @@ export interface RefracExt {
   dret: Array<number>;
 }
 
+export interface ArabicPartResult {
+  name: string;
+  formula: string;
+  degree: number;
+}
+
+export interface TzAbbrResult {
+  name: string;
+  desc: string;
+  offset: string;
+  hours: number;
+  minutes: number;
+}
+
 export interface MoonCrossNodeResult {
   jdCross: number;
   xlon: number;
@@ -507,3 +521,67 @@ export declare function fasliNowruzJd(year: number): number | null;
 export declare function jdToFasli(jd: number): Array<number> | null;
 export declare function losarJd(year: number): number | null;
 export declare function tibetanYearName(year: number): Array<string>;
+export declare function approxHebrewYear(jd: number): number;
+export declare function arabicPartsSeven(asc: number, sun: number, moon: number, sat: number, mar: number, jup: number, mer: number, ven: number, isDay: boolean): Array<ArabicPartResult>;
+export declare function diffDeg(p1: number, p2: number): number;
+export declare function distanceToMc(planetLon: number, mcLon: number): number;
+export declare function easterJulian(year: number): Array<number>;
+export declare function elapsedDays(year: number): number;
+export declare function geoToDms(coord: number): Array<number>;
+export declare function heliacalUt(jdStart: number, dgeo: Array<number>, datm: Array<number>, dobs: Array<number>, objectname: string, typeEvent: number, flags: number): Array<number>;
+export declare function helioCross(body: number, x2cross: number, jdEt: number, flags: number, dir: number): number;
+export declare function helioCrossUt(body: number, x2cross: number, jdUt: number, flags: number, dir: number): number;
+export declare function houseSystemChar(id: number): number | null;
+export declare function houseSystemId(hsys: number): number | null;
+export declare function housesArmc(armc: number, lat: number, eps: number, hsys: number): HouseResult;
+export declare function housesArmcEx2(armc: number, lat: number, eps: number, hsys: number): HouseResultEx2;
+export declare function housesFromArmc(armc: number, lat: number, eps: number, hsys: number): HouseResult;
+export declare function islamicObservancesForJd(jd: number): Array<IslamicObservance>;
+export declare function jdEtToUtc(jdEt: number, calendar: number): Array<number>;
+export declare function jdUtToUtc(jdUt: number, calendar: number): Array<number>;
+export declare function karanaName(karana: number): string;
+export declare function latToLmt(tjdLat: number, geolon: number): number;
+export declare function lmtToLat(tjdLmt: number, geolon: number): number;
+export declare function lowerMeridianTransitUt(body: number, jdStart: number, geopos: Array<number>, flags: number): RiseTrans;
+export declare function lunOccultWhenGlob(tjdStart: number, body: number, starname: string, flags: number, eclType: number, backwards: boolean): EclipseResult;
+export declare function lunOccultWhenLoc(tjdStart: number, body: number, starname: string, flags: number, geopos: Array<number>, backwards: boolean): EclipseResultAttr;
+export declare function lunOccultWhere(jdUt: number, body: number, starname: string, flags: number): EclipseWhere;
+export declare function meanSiderealTimeDeg(jdUt: number): number;
+export declare function meridianTransitUt(body: number, jdStart: number, geopos: Array<number>, flags: number): RiseTrans;
+export declare function mooncross(x2cross: number, jdEt: number, flags: number): number;
+export declare function mooncrossBackUt(x2cross: number, jdUt: number, flags: number): number;
+export declare function mooncrossUt(x2cross: number, jdUt: number, flags: number): number;
+export declare function nextAspect2(planet: number, aspect: number, fixedPt: number, jdStart: number, backward: boolean, stopDays: number, flags: number): Array<number> | null;
+export declare function nextAspectWith2(planet: number, aspect: number, other: number, jdStart: number, backward: boolean, stopDays: number, flags: number): Array<number> | null;
+export declare function nextFullMoonAfter(jdStart: number): number;
+export declare function nextNewMoonAfter(jdStart: number): number;
+export declare function nextPrincipalPhase(jdFrom: number, phase: number): PhaseEvent;
+export declare function nodAps(jdEt: number, body: number, flags: number, method: number): Array<number>;
+export declare function nodApsUt(jdUt: number, body: number, flags: number, method: number): Array<number>;
+export declare function parallacticAngle(haDeg: number, decDeg: number, latDeg: number): number;
+export declare function parseTime(s: string): Array<number> | null;
+export declare function pheno(jdEt: number, body: number, flags: number): Array<number>;
+export declare function phenoUt(jdUt: number, body: number, flags: number): Array<number>;
+export declare function planetConjunctMc(planetLon: number, mcLon: number, orb: number): boolean;
+export declare function planetHouseNumber(planetLon: number, cusps: Array<number>): number;
+export declare function planetOnMidpoint(planetLon: number, midLon: number, orb: number): number | null;
+export declare function rasiDiff(r1: number, r2: number): number;
+export declare function rasiDiff2(r1: number, r2: number): number;
+export declare function rasiNorm(r: number): number;
+export declare function riseTransTrueHor(tjdut: number, planet: number, flags: number, eventType: number, geopos: Array<number>, pressureMb: number, tempC: number, horhgt: number): RiseTrans;
+export declare function sameSect(body: number, isDay: boolean): boolean;
+export declare function siderealModeFlag(sidmode: number): number | null;
+export declare function siderealModeId(flag: number): number | null;
+export declare function siderealTimeDeg(jdUt: number): number;
+export declare function sidtime0(jdUt: number, eps: number, nut: number): number;
+export declare function signExaltation(body: number): number;
+export declare function signLord(sign: number): number | null;
+export declare function solarHijriToGregorian(solarHijriYear: number): number;
+export declare function solcross(x2cross: number, jdEt: number, flags: number): number;
+export declare function solcrossBackUt(x2cross: number, jdUt: number, flags: number): number;
+export declare function tatkalikaRelation(r1: number, r2: number): number;
+export declare function timeEqu(jdUt: number): number;
+export declare function ttToUt(jde: number): number;
+export declare function tzAbbrFind(abbr: string): Array<TzAbbrResult>;
+export declare function utcTimeZone(year: number, month: number, day: number, hour: number, minute: number, second: number, dTimezone: number): Array<number>;
+export declare function yearsDiff(jd1: number, jd2: number, flags: number): number;

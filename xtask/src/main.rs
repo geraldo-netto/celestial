@@ -1771,7 +1771,10 @@ fn parse_core_flat_fns(lib_src: &str) -> BTreeSet<String> {
 /// The set of core fn names reachable from *any* binding: direct wrappers plus
 /// the canonical targets that legacy aliases delegate to.
 fn bound_core_names(bindings: &[Binding]) -> BTreeSet<String> {
-    let mut s: BTreeSet<String> = bindings.iter().flat_map(|b| b.fns.iter().cloned()).collect();
+    let mut s: BTreeSet<String> = bindings
+        .iter()
+        .flat_map(|b| b.fns.iter().cloned())
+        .collect();
     for (_alias, canonical) in legacy_aliases() {
         s.insert(canonical);
     }
@@ -1793,15 +1796,52 @@ fn read_allow_list(root: &Path) -> BTreeSet<String> {
 /// not-yet-bound backlog item, so `coverage` can report how much gap is real.
 /// Rust-only = low-level unit helpers, path/config setters, and the WIRE-1 set.
 fn classify_unbound(name: &str) -> &'static str {
-    const RUST_ONLY: &[&str] = &[
-        "centisec", "_cs", "cs_round", "deg_to_cs", "norm_cs", "diff_cs", "library_path",
-        "current_file_data", "make_pillar", "date_conversion", "version", "close", "tid_acc",
-        "deltat_ex", "set_delta_t", "set_ephe", "set_jpl", "set_lapse", "gauquelin_sector",
-        "get_orbital_elements", "heliacal_pheno_ut", "vis_limit_mag", "orbit_max_min",
-        "ayanamsa_ex", "is_applying", "default_orb", "wrap_signed_180", "norm_rad",
-        "midpoint_rad", "diff_rad_signed", "coord_transform",
+    const RUST_ONLY_EXACT: &[&str] = &[
+        "aspect_angles",
+        "buddhist",
+        "celtic",
+        "christian",
+        "hebrew",
+        "hindu",
+        "islamic",
+        "nakshatras",
+        "persian",
+        "signs",
     ];
-    if RUST_ONLY.iter().any(|p| name.contains(p)) {
+    const RUST_ONLY: &[&str] = &[
+        "centisec",
+        "_cs",
+        "cs_round",
+        "deg_to_cs",
+        "norm_cs",
+        "diff_cs",
+        "library_path",
+        "current_file_data",
+        "make_pillar",
+        "date_conversion",
+        "version",
+        "close",
+        "tid_acc",
+        "deltat_ex",
+        "set_delta_t",
+        "set_ephe",
+        "set_jpl",
+        "set_lapse",
+        "gauquelin_sector",
+        "get_orbital_elements",
+        "heliacal_pheno_ut",
+        "vis_limit_mag",
+        "orbit_max_min",
+        "ayanamsa_ex",
+        "is_applying",
+        "default_orb",
+        "wrap_signed_180",
+        "norm_rad",
+        "midpoint_rad",
+        "diff_rad_signed",
+        "coord_transform",
+    ];
+    if RUST_ONLY_EXACT.contains(&name) || RUST_ONLY.iter().any(|p| name.contains(p)) {
         "rust-only"
     } else {
         "backlog"
@@ -1947,10 +1987,7 @@ fn arity_mismatches(root: &Path) -> Vec<(String, Vec<String>)> {
         if present.len() >= 2 && distinct.len() > 1 {
             out.push((
                 fname.clone(),
-                present
-                    .iter()
-                    .map(|(l, s)| format!("{l}: ({s})"))
-                    .collect(),
+                present.iter().map(|(l, s)| format!("{l}: ({s})")).collect(),
             ));
         }
     }
@@ -1966,7 +2003,10 @@ fn regenerate_allow_list(root: &Path, unbound: &BTreeSet<String>) {
          #   rust-only = permanent (low-level unit helpers, path/config setters, WIRE-1)\n\
          #   backlog   = bindable, just not wrapped yet (GATE-4) — shrink this over time\n\n",
     );
-    let backlog = unbound.iter().filter(|f| classify_unbound(f) == "backlog").count();
+    let backlog = unbound
+        .iter()
+        .filter(|f| classify_unbound(f) == "backlog")
+        .count();
     for f in unbound {
         body.push_str(&format!("{f:<32} # {}\n", classify_unbound(f)));
     }
@@ -1979,12 +2019,17 @@ fn regenerate_allow_list(root: &Path, unbound: &BTreeSet<String>) {
 
 fn cmd_coverage(write_allow: bool) {
     let root = workspace_root();
-    let lib = fs::read_to_string(root.join("core/src/lib.rs")).expect("cannot read core/src/lib.rs");
+    let lib =
+        fs::read_to_string(root.join("core/src/lib.rs")).expect("cannot read core/src/lib.rs");
     let core = parse_core_flat_fns(&lib);
     let bindings = load_bindings(&root);
     let bound = bound_core_names(&bindings);
 
-    let unbound: BTreeSet<String> = core.iter().filter(|f| !bound.contains(*f)).cloned().collect();
+    let unbound: BTreeSet<String> = core
+        .iter()
+        .filter(|f| !bound.contains(*f))
+        .cloned()
+        .collect();
 
     if write_allow {
         regenerate_allow_list(&root, &unbound);
@@ -2008,9 +2053,18 @@ fn cmd_coverage(write_allow: bool) {
     println!("celestial binding coverage check");
     println!("================================");
     println!("  core flat public fns : {}", core.len());
-    println!("  bound (any binding)  : {}", bound.intersection(&core).count());
-    let backlog = allow.iter().filter(|f| classify_unbound(f) == "backlog").count();
-    println!("  intentionally unbound: {} ({backlog} bindable backlog)", allow.len());
+    println!(
+        "  bound (any binding)  : {}",
+        bound.intersection(&core).count()
+    );
+    let backlog = allow
+        .iter()
+        .filter(|f| classify_unbound(f) == "backlog")
+        .count();
+    println!(
+        "  intentionally unbound: {} ({backlog} bindable backlog)",
+        allow.len()
+    );
     for (b, s) in &const_sets {
         println!("  constants ({b}) : {}", s.len());
     }
@@ -2094,7 +2148,10 @@ fn shape_category(ret: &str) -> String {
         .iter()
         .find_map(|p| t.strip_prefix(p).and_then(|s| s.strip_suffix('>')))
         .map_or(t, str::trim);
-    if let Some(o) = inner.strip_prefix("Option<").and_then(|s| s.strip_suffix('>')) {
+    if let Some(o) = inner
+        .strip_prefix("Option<")
+        .and_then(|s| s.strip_suffix('>'))
+    {
         return format!("opt<{}>", shape_category(o));
     }
     match inner {
@@ -2175,14 +2232,21 @@ fn apidoc_sig(entry: &PhpFnEntry, ty: impl Fn(&str) -> String) -> String {
         .iter()
         .map(|(t, n)| format!("{n}: {}", ty(t)))
         .collect();
-    format!("{}({}) -> {}", entry.name, params.join(", "), ty(&entry.ret))
+    format!(
+        "{}({}) -> {}",
+        entry.name,
+        params.join(", "),
+        ty(&entry.ret)
+    )
 }
 
 fn apidoc_constants_table(root: &Path) -> String {
     let consts_src = fs::read_to_string(root.join("core/src/constants.rs")).unwrap_or_default();
     let vals = parse_core_constants(&consts_src);
     let js = fs::read_to_string(root.join("bindings/js/src/lib.rs")).unwrap_or_default();
-    let mut out = String::from("## Constants (value from `core/src/constants.rs`)\n\n| Constant | Value |\n|---|---|\n");
+    let mut out = String::from(
+        "## Constants (value from `core/src/constants.rs`)\n\n| Constant | Value |\n|---|---|\n",
+    );
     for c in scan_napi_consts(&js) {
         let v = vals.get(&c.name).cloned().unwrap_or_else(|| "?".into());
         out.push_str(&format!("| `{}` | {} |\n", c.name, v));
@@ -2207,7 +2271,10 @@ fn apidoc_fn_section(
         .map(|e| format!("{}\n", apidoc_sig(e, ty)))
         .collect();
     let n = fns.len();
-    (format!("\n## {title} — {n} functions\n\n```\n{lines}```\n"), n)
+    (
+        format!("\n## {title} — {n} functions\n\n```\n{lines}```\n"),
+        n,
+    )
 }
 
 fn cmd_apidoc(check: bool) {
@@ -2222,9 +2289,24 @@ fn cmd_apidoc(check: bool) {
     out.push_str(&apidoc_constants_table(&root));
 
     let sections: [ApidocSection; 3] = [
-        ("Python", "bindings/python/src/lib.rs", "pyfunction", rust_type_to_pyi),
-        ("JavaScript / TypeScript", "bindings/js/src/lib.rs", "napi", rust_type_to_ts),
-        ("PHP", "bindings/php/src/lib.rs", "php_function", php_ret_type),
+        (
+            "Python",
+            "bindings/python/src/lib.rs",
+            "pyfunction",
+            rust_type_to_pyi,
+        ),
+        (
+            "JavaScript / TypeScript",
+            "bindings/js/src/lib.rs",
+            "napi",
+            rust_type_to_ts,
+        ),
+        (
+            "PHP",
+            "bindings/php/src/lib.rs",
+            "php_function",
+            php_ret_type,
+        ),
     ];
     let mut total = 0;
     for (title, rel, deco, ty) in sections {
@@ -2534,14 +2616,14 @@ pub use geo::{tz_abbr_find, TzAbbr, TZ_TABLE};
     #[test]
     fn normalized_param_strips_napi_optional() {
         // JS trailing Option<> is a binding idiom, not a semantic difference.
-        assert_eq!(normalized_param_cat("Option<i32>"), normalized_param_cat("i32"));
+        assert_eq!(
+            normalized_param_cat("Option<i32>"),
+            normalized_param_cat("i32")
+        );
         assert_eq!(normalized_param_cat("Option<f64>"), "float");
         assert_eq!(normalized_param_cat("i64"), "int");
         // An argument swap still shows as a different sequence.
-        assert_ne!(
-            ["float", "int"].join(","),
-            ["int", "float"].join(",")
-        );
+        assert_ne!(["float", "int"].join(","), ["int", "float"].join(","));
     }
 
     // ── constant parity (GATE-1) ──────────────────────────────────────────────

@@ -58,13 +58,15 @@ link here rather than restating them (prevents DOC-9/DOC-10 drift). -->
 | `FLG_NOABERR` | 1024 |
 | `SIDM_KRISHNAMURTI` | 5 |
 
-## Python — 212 functions
+## Python — 276 functions
 
 ```
 almuten(lon: float, is_day: bool) -> object
 annual_profection(cusps: list[float], age: int) -> object
 antiscion(pos: object, axis: float) -> object
+approx_hebrew_year(jd: float) -> int
 arabic_part(asc: float, body2: float, body1: float) -> float
+arabic_parts_seven(asc: float, sun: float, moon: float, sat: float, mar: float, jup: float, mer: float, ven: float, is_day: bool) -> object
 asc_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
 ayanamsa(jd_et: float) -> float
 ayanamsa_name(sid_mode: int) -> str
@@ -96,14 +98,18 @@ degnorm(d: float) -> float
 degsplit(pos: float) -> object
 deltat(tjd: float) -> float
 difdeg2n(p1: float, p2: float) -> float
+diff_deg(p1: float, p2: float) -> float
 diff_deg_signed(p1: float, p2: float) -> float
+distance_to_mc(planet_lon: float, mc_lon: float) -> float
 dsc_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
 easter_gregorian(year: int) -> object
 easter_jd(year: int) -> float
+easter_julian(year: int) -> object
 easter_orthodox(year: int) -> object
 easter_orthodox_jd(year: int) -> float
 egyptian_decan(lon: float) -> object
 egyptian_terms_ruler(lon: float) -> int
+elapsed_days(year: int) -> int
 esbats_for_year(year: int) -> object
 ethiopic_to_jd(year: int, month: int, day: int) -> float
 fasli_nowruz_jd(year: int) -> float | None
@@ -117,6 +123,7 @@ fixstar_ut(star: str, tjdut: float, flags: int) -> object
 format_coord(coord: float, is_latitude: bool) -> str | None
 four_pillars(jd_ut: float, hour_ut: float, sun_lon: float) -> object
 full_dignity(body_raw: int, lon: float, is_day: bool) -> object
+geo_to_dms(coord: float) -> object
 get_ayanamsa(jd_et: float) -> float
 get_ayanamsa_name(sid_mode: int) -> str
 grand_solar_epoch(jd: float) -> str
@@ -127,6 +134,9 @@ hebrew_month_days(year: int, month: int) -> int
 hebrew_month_start_jd(year: int, month: int) -> int
 hebrew_new_year_jd(year: int) -> int
 hebrew_year_from_jd(jd: float) -> int
+heliacal_ut(jd_start: float, dgeo: object, datm: object, dobs: object, objectname: str, type_event: int, flags: int) -> object
+helio_cross(body: int, x2cross: float, jd_et: float, flags: int, dir: int) -> float
+helio_cross_ut(body: int, x2cross: float, jd_ut: float, flags: int, dir: int) -> float
 hijri_from_jd(jd: float) -> object
 hijri_month_days(year: int, month: int) -> int
 hijri_month_name(month: int) -> str
@@ -137,9 +147,14 @@ hindu_festivals(gregorian_year: int) -> object
 house_name(hsys: int) -> str
 house_name_str(hsys: int) -> str
 house_pos(armc: float, lat: float, eps: float, hsys: int, lon: float, lat_body: float) -> float
+house_system_char(id: int) -> int | None
+house_system_id(hsys: int) -> int | None
 houses(tjdut: float, lat: float, lon: float, hsys: int) -> object
+houses_armc(armc: float, lat: float, eps: float, hsys: int) -> object
+houses_armc_ex2(armc: float, lat: float, eps: float, hsys: int) -> object
 houses_ex(tjdut: float, lat: float, lon: float, hsys: int, flags: int) -> object
 houses_ex2(tjdut: float, lat: float, lon: float, hsys: int, flags: int) -> object
+houses_from_armc(armc: float, lat: float, eps: float, hsys: int) -> object
 ic_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
 is_bahai_leap_year(bahai_year: int) -> bool
 is_coptic_leap_year(year: int) -> bool
@@ -147,27 +162,37 @@ is_day_chart(sun_lon: float, cusps: list[float]) -> bool
 is_hebrew_leap_year(year: int) -> bool
 is_hijri_leap_year(year: int) -> bool
 islamic_observances(hijri_year: int) -> object
+islamic_observances_for_jd(jd: float) -> object
 iso_week(jd: float) -> object
 jd_duration(jd_start: float, jd_end: float) -> object
+jd_et_to_utc(jd_et: float, calendar: int) -> object
 jd_to_bahai(jd: float) -> object
 jd_to_coptic(jd: float) -> object
 jd_to_ethiopic(jd: float) -> object
 jd_to_fasli(jd: float) -> object
 jd_to_hebrew_date(jd: float) -> object
 jd_to_iso_string(jd: float, calendar: int) -> str
+jd_ut_to_utc(jd_ut: float, calendar: int) -> object
 jdnow() -> float
 jewish_holiday_jd(hebrew_year: int, name: str) -> float | None
 jewish_holidays(hebrew_year: int) -> object
 julday(year: int, month: int, day: int, hour: float, calendar: int) -> float
+karana_name(karana: int) -> str
+lat_to_lmt(tjd_lat: float, geolon: float) -> float
+lmt_to_lat(tjd_lmt: float, geolon: float) -> float
 local_apparent_solar_time(jd_ut: float, geolon_deg: float) -> float
 lon_to_sign(lon: float) -> tuple[int, float]
 long_to_nakshatra(lon: float) -> object
 long_to_navamsa(lon: float) -> int
 long_to_rasi(lon: float) -> int
 losar_jd(year: int) -> float | None
+lower_meridian_transit_ut(body: int, jd_start: float, geopos: object, flags: int) -> object
 lun_eclipse_how(jd_ut: float, geopos: object | None, flags: int) -> object
 lun_eclipse_when(tjd_start: float, flags: int, ecl_type: int, backwards: bool) -> object
 lun_eclipse_when_loc(tjd_start: float, geopos: object, flags: int, backwards: bool) -> object
+lun_occult_when_glob(tjd_start: float, body: int, starname: str, flags: int, ecl_type: int, backwards: bool) -> object
+lun_occult_when_loc(tjd_start: float, body: int, starname: str, flags: int, geopos: object, backwards: bool) -> object
+lun_occult_where(jd_ut: float, body: int, starname: str, flags: int) -> object
 lunar_return_jd(jd_natal: float, jd_start: float, flags: int) -> float
 match_aspect(pos0: float, speed0: float, pos1: float, speed1: float, aspect: float, orb: float) -> object
 match_aspect2(pos0: float, speed0: float, pos1: float, speed1: float, aspect: float, orb: float) -> object
@@ -177,8 +202,10 @@ maya_long_count(jd: float) -> object
 maya_long_count_str(jd: float) -> str
 mc_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
 mean_obliquity(jde: float) -> float
+mean_sidereal_time_deg(jd_ut: float) -> float
 mean_sidtime(jd_ut: float) -> float
 medicine_wheel_totem(sun_lon: float) -> object
+meridian_transit_ut(body: int, jd_start: float, geopos: object, flags: int) -> object
 midpoint(lon1: float, lon2: float) -> float
 midpoint_deg(x1: float, x0: float) -> float
 midpoint_table(positions: list[tuple[int, float]], orb: float) -> object
@@ -190,24 +217,34 @@ moon_phase(jd: float) -> str
 moon_phase_angle(jd: float) -> float
 moon_phase_info(jd: float) -> object
 moon_phases_for_month(year: int, month: int) -> object
+mooncross(x2cross: float, jd_et: float, flags: int) -> float
+mooncross_back_ut(x2cross: float, jd_ut: float, flags: int) -> float
 mooncross_node(jd_et: float, flags: int) -> object
 mooncross_node_ut(jd_ut: float, flags: int) -> object
+mooncross_ut(x2cross: float, jd_ut: float, flags: int) -> float
 naisargika_relation(gr1: int, gr2: int) -> int | None
 nakshatra_name(n: int) -> str | None
 naw_ruz_jd(bahai_year: int) -> float
 next_aspect(planet: int, aspect: float, fixed_pt: float, jd_start: float, backward: bool, stop_days: float, flags: int) -> object
+next_aspect2(planet: int, aspect: float, fixed_pt: float, jd_start: float, backward: bool, stop_days: float, flags: int) -> object
 next_aspect_cusp(body: int, aspect: float, cusp: int, jd_start: float, lat: float, lon: float, hsys: int, backward: bool, flags: int) -> tuple[float, float] | None
 next_aspect_cusp2(body: int, aspect: float, cusp: int, jd_start: float, lat: float, lon: float, hsys: int, backward: bool, flags: int) -> object
 next_aspect_with(planet: int, aspect: float, other: int, jd_start: float, backward: bool, stop_days: float, flags: int) -> object
+next_aspect_with2(planet: int, aspect: float, other: int, jd_start: float, backward: bool, stop_days: float, flags: int) -> object
 next_esbat(jd_from: float) -> tuple[str, float]
 next_first_quarter(jd_from: float) -> float
 next_full_moon(jd_start: float) -> float
+next_full_moon_after(jd_start: float) -> float
 next_full_moon_phase(jd_from: float) -> float
 next_last_quarter(jd_from: float) -> float
 next_new_moon(jd_from: float) -> float
+next_new_moon_after(jd_start: float) -> float
+next_principal_phase(jd_from: float, phase: int) -> object
 next_retro(planet: int, jd_start: float, backward: bool, stop_days: float, flags: int) -> object
 next_sabbat(jd_from: float) -> tuple[str, float]
 next_sabbat_name(jd_from: float) -> str
+nod_aps(jd_et: float, body: int, flags: int, method: int) -> object
+nod_aps_ut(jd_ut: float, body: int, flags: int, method: int) -> object
 norm_cs(p: int) -> int
 norm_deg(x: float) -> float
 nowruz_jd(year: int) -> float
@@ -220,10 +257,20 @@ omer_from_jd(jd: float) -> object
 omer_period(jd: float) -> object
 omer_start_jd(hebrew_year: int) -> float
 panchanga(jd: float) -> object
+parallactic_angle(ha_deg: float, dec_deg: float, lat_deg: float) -> float
 parse_coord(s: str) -> float | None
 parse_datetime(s: str) -> object
+parse_time(s: str) -> object
+pheno(jd_et: float, body: int, flags: int) -> object
+pheno_ut(jd_ut: float, body: int, flags: int) -> object
+planet_conjunct_mc(planet_lon: float, mc_lon: float, orb: float) -> bool
+planet_house_number(planet_lon: float, cusps: object) -> int
 planet_name(planet: int) -> str
+planet_on_midpoint(planet_lon: float, mid_lon: float, orb: float) -> float | None
 raman_houses(asc: float, mc: float, sandhi: bool) -> object
+rasi_diff(r1: int, r2: int) -> int
+rasi_diff2(r1: int, r2: int) -> int
+rasi_norm(r: int) -> int
 refrac(altitude: float, pressure_mb: float, temp_c: float, calc_flag: int) -> float
 refrac_extended(altitude: float, geoalt: float, pressure_mb: float, temp_c: float, lapse_rate: float, calc_flag: int) -> object
 residential_strength(graha: float, bm: object) -> object
@@ -231,8 +278,10 @@ retrograde_station_ut(planet: int, jd: float, flags: int) -> object
 revjul(jd: float, calendar: int) -> object
 revjul_hms(jd: float, calendar: int) -> object
 rise_trans(tjdut: float, planet: int, event_type: int, geopos: object, pressure_mb: float, temp_c: float, flags: int) -> object
+rise_trans_true_hor(tjdut: float, planet: int, flags: int, event_type: int, geopos: object, pressure_mb: float, temp_c: float, horhgt: float) -> object
 sabbat_jd(year: int, kind: int) -> float
 sabbats_for_year(year: int) -> object
+same_sect(body: int, is_day: bool) -> bool
 saturn_4_stars(jd: float, flags: int) -> object
 secondary_progressions(jd_natal: float, years: float, bodies: list[int], lat: float, lon: float, hsys: int, flags: int) -> object
 set_delta_t_userdef(dt: float) -> None
@@ -241,8 +290,14 @@ set_jpl_file(fname: str) -> None
 set_sid_mode(sid_mode: int, t0: float, ayan_t0: float) -> None
 set_topo(geolon: float, geolat: float, geoalt: float) -> None
 sexagenary_name(cycle_index: int) -> tuple[str, str]
+sidereal_mode_flag(sidmode: int) -> int | None
+sidereal_mode_id(flag: int) -> int | None
+sidereal_time_deg(jd_ut: float) -> float
 sidtime(jd_ut: float) -> float
+sidtime0(jd_ut: float, eps: float, nut: float) -> float
+sign_exaltation(body: int) -> int
 sign_ingress_ut(planet: int, jd: float, flags: int, backward: bool) -> tuple[float, int]
+sign_lord(sign: int) -> int | None
 sign_name(sign: int) -> str | None
 sign_ruler(sign: int) -> int
 sign_ruler_modern(sign: int) -> int
@@ -252,17 +307,25 @@ sol_eclipse_when_loc(tjd_start: float, geopos: object, flags: int, backwards: bo
 sol_eclipse_where(tjd: float, flags: int) -> object
 solar_arc_directions(jd_natal: float, years: float, natal_positions: list[tuple[int, float]], natal_mc: float, flags: int) -> object
 solar_cycle(jd: float) -> object | None
+solar_hijri_to_gregorian(solar_hijri_year: int) -> int
 solar_return_jd(jd_natal: float, return_year: int, flags: int) -> float
 solar_term_position(sun_lon: float) -> object
+solcross(x2cross: float, jd_et: float, flags: int) -> float
+solcross_back_ut(x2cross: float, jd_ut: float, flags: int) -> float
 solcross_ut(x2cross: float, jd_ut: float, flags: int) -> float
 split_deg(deg: float, round_flag: int) -> object
+tatkalika_relation(r1: int, r2: int) -> int
 tibetan_year_name(year: int) -> object
+time_equ(jd_ut: float) -> float
 tonalpohualli(jd: float) -> object
 transit_to_degree(planet: int, target_lon: float, jd: float, flags: int, backward: bool) -> float
 triplicity_rulers(lon: float) -> object
 true_obliquity(jde: float) -> float
+tt_to_ut(jde: float) -> float
+tz_abbr_find(abbr: str) -> object
 tzolkin(jd: float) -> object
 uposatha_days(year: int) -> object
+utc_time_zone(year: int, month: int, day: int, hour: int, minute: int, second: float, d_timezone: float) -> object
 utc_to_jd(year: int, month: int, day: int, hour: int, minute: int, second: float, calendar: int) -> object
 version() -> str
 vesak_jd(year: int) -> float
@@ -272,16 +335,19 @@ vimshottari_dasha(jd_birth: float, moon_lon_sidereal: float, years_ahead: float)
 weeks_in_iso_year(year: int) -> int
 xiuhpohualli(jd: float) -> object
 yallop_q(arcv_deg: float, arcl_deg: float, sd_arcmin: float) -> object
+years_diff(jd1: float, jd2: float, flags: int) -> float
 zodiac_sign_name(sign: int) -> str
 ```
 
-## JavaScript / TypeScript — 212 functions
+## JavaScript / TypeScript — 276 functions
 
 ```
 almuten(lon: number, is_day: boolean) -> Array<number>
 annual_profection(cusps: Array<number>, age: number) -> Array<number>
 antiscion(pos: Array<number>, axis: number) -> Array<number>
+approx_hebrew_year(jd: number) -> number
 arabic_part(asc: number, body2: number, body1: number) -> number
+arabic_parts_seven(asc: number, sun: number, moon: number, sat: number, mar: number, jup: number, mer: number, ven: number, is_day: boolean) -> Array<unknown>
 asc_transit_ut(planet: number, jd_natal: number, jd_start: number, lat: number, lon: number, hsys: number, flags: number, backward: boolean) -> number
 ayanamsa(jd_et: number) -> number
 ayanamsa_name(sid_mode: number) -> string
@@ -313,14 +379,18 @@ degnorm(d: number) -> number
 degsplit(pos: number) -> Array<number>
 deltat(tjd: number) -> number
 difdeg2n(p1: number, p2: number) -> number
+diff_deg(p1: number, p2: number) -> number
 diff_deg_signed(p1: number, p2: number) -> number
+distance_to_mc(planet_lon: number, mc_lon: number) -> number
 dsc_transit_ut(planet: number, jd_natal: number, jd_start: number, lat: number, lon: number, hsys: number, flags: number, backward: boolean) -> number
 easter_gregorian(year: number) -> unknown
 easter_jd(year: number) -> number
+easter_julian(year: number) -> Array<number>
 easter_orthodox(year: number) -> unknown
 easter_orthodox_jd(year: number) -> number
 egyptian_decan(lon: number) -> Array<string>
 egyptian_terms_ruler(lon: number) -> number
+elapsed_days(year: number) -> number
 esbats_for_year(year: number) -> Array<number>
 ethiopic_to_jd(year: number, month: number, day: number) -> number
 fasli_nowruz_jd(year: number) -> number | null
@@ -334,6 +404,7 @@ fixstar_ut(star: string, tjdut: number, flags: number) -> unknown
 format_coord(coord: number, is_latitude: boolean) -> string | null
 four_pillars(jd_ut: number, hour_ut: number, sun_lon: number) -> Array<Array<string>>
 full_dignity(body_raw: number, lon: number, is_day: boolean) -> Array<unknown>
+geo_to_dms(coord: number) -> Array<number>
 get_ayanamsa(jd_et: number) -> number
 get_ayanamsa_name(sid_mode: number) -> string
 grand_solar_epoch(jd: number) -> string | null
@@ -344,6 +415,9 @@ hebrew_month_days(year: number, month: number) -> number
 hebrew_month_start_jd(year: number, month: number) -> number
 hebrew_new_year_jd(year: number) -> number
 hebrew_year_from_jd(jd: number) -> number
+heliacal_ut(jd_start: number, dgeo: Array<number>, datm: Array<number>, dobs: Array<number>, objectname: string, type_event: number, flags: number) -> Array<number>
+helio_cross(body: number, x2cross: number, jd_et: number, flags: number, dir: number) -> number
+helio_cross_ut(body: number, x2cross: number, jd_ut: number, flags: number, dir: number) -> number
 hijri_from_jd(jd: number) -> unknown
 hijri_month_days(year: number, month: number) -> number
 hijri_month_name(month: number) -> string
@@ -354,9 +428,14 @@ hindu_festivals(gregorian_year: number) -> Array<unknown>
 house_name(hsys: number) -> string
 house_name_str(hsys: number) -> string
 house_pos(armc: number, lat: number, eps: number, hsys: number, lon: number, lat_body: number) -> number
+house_system_char(id: number) -> number | null
+house_system_id(hsys: number) -> number | null
 houses(tjdut: number, lat: number, lon: number, hsys: number) -> unknown
+houses_armc(armc: number, lat: number, eps: number, hsys: number) -> unknown
+houses_armc_ex2(armc: number, lat: number, eps: number, hsys: number) -> unknown
 houses_ex(tjdut: number, lat: number, lon: number, hsys: number, flags: number | null) -> unknown
 houses_ex2(tjdut: number, lat: number, lon: number, hsys: number, flags: number | null) -> unknown
+houses_from_armc(armc: number, lat: number, eps: number, hsys: number) -> unknown
 ic_transit_ut(planet: number, jd_natal: number, jd_start: number, lat: number, lon: number, hsys: number, flags: number, backward: boolean) -> number
 is_bahai_leap_year(bahai_year: number) -> boolean
 is_coptic_leap_year(year: number) -> boolean
@@ -364,27 +443,37 @@ is_day_chart(sun_lon: number, cusps: Array<number>) -> boolean
 is_hebrew_leap_year(year: number) -> boolean
 is_hijri_leap_year(year: number) -> boolean
 islamic_observances(hijri_year: number) -> Array<unknown>
+islamic_observances_for_jd(jd: number) -> Array<unknown>
 iso_week(jd: number) -> Array<number>
 jd_duration(jd_start: number, jd_end: number) -> Array<number>
+jd_et_to_utc(jd_et: number, calendar: number) -> Array<number>
 jd_to_bahai(jd: number) -> unknown
 jd_to_coptic(jd: number) -> Array<number>
 jd_to_ethiopic(jd: number) -> Array<number>
 jd_to_fasli(jd: number) -> Array<number> | null
 jd_to_hebrew_date(jd: number) -> unknown
 jd_to_iso_string(jd: number, calendar: number) -> string
+jd_ut_to_utc(jd_ut: number, calendar: number) -> Array<number>
 jdnow() -> number
 jewish_holiday_jd(hebrew_year: number, name: string) -> number | null
 jewish_holidays(hebrew_year: number) -> Array<unknown>
 julday(year: number, month: number, day: number, hour: number | null, calendar: number | null) -> number
+karana_name(karana: number) -> string
+lat_to_lmt(tjd_lat: number, geolon: number) -> number
+lmt_to_lat(tjd_lmt: number, geolon: number) -> number
 local_apparent_solar_time(jd_ut: number, geolon_deg: number) -> number
 lon_to_sign(lon: number) -> Array<number>
 long_to_nakshatra(lon: number) -> Array<number>
 long_to_navamsa(lon: number) -> number
 long_to_rasi(lon: number) -> number
 losar_jd(year: number) -> number | null
+lower_meridian_transit_ut(body: number, jd_start: number, geopos: Array<number>, flags: number) -> unknown
 lun_eclipse_how(jd_ut: number, flags: number, geopos: Array<number> | null) -> unknown
 lun_eclipse_when(tjd_start: number, flags: number, ecl_type: number | null, backwards: boolean | null) -> unknown
 lun_eclipse_when_loc(tjd_start: number, geopos: Array<number>, flags: number, backwards: boolean) -> unknown
+lun_occult_when_glob(tjd_start: number, body: number, starname: string, flags: number, ecl_type: number, backwards: boolean) -> unknown
+lun_occult_when_loc(tjd_start: number, body: number, starname: string, flags: number, geopos: Array<number>, backwards: boolean) -> unknown
+lun_occult_where(jd_ut: number, body: number, starname: string, flags: number) -> unknown
 lunar_return_jd(jd_natal: number, jd_start: number, flags: number) -> number
 match_aspect(pos0: number, speed0: number, pos1: number, speed1: number, aspect: number, orb: number) -> Array<number>
 match_aspect2(pos0: number, speed0: number, pos1: number, speed1: number, aspect: number, orb: number) -> Array<number>
@@ -394,8 +483,10 @@ maya_long_count(jd: number) -> Array<number>
 maya_long_count_str(jd: number) -> string
 mc_transit_ut(planet: number, jd_natal: number, jd_start: number, lat: number, lon: number, hsys: number, flags: number, backward: boolean) -> number
 mean_obliquity(jde: number) -> number
+mean_sidereal_time_deg(jd_ut: number) -> number
 mean_sidtime(jd: number) -> number
 medicine_wheel_totem(sun_lon: number) -> Array<string>
+meridian_transit_ut(body: number, jd_start: number, geopos: Array<number>, flags: number) -> unknown
 midpoint(lon1: number, lon2: number) -> number
 midpoint_deg(x1: number, x0: number) -> number
 midpoint_table(positions: Array<number>, orb: number) -> Array<Array<number>>
@@ -407,24 +498,34 @@ moon_phase(jd: number) -> string
 moon_phase_angle(jd: number) -> number
 moon_phase_info(jd: number) -> unknown
 moon_phases_for_month(year: number, month: number) -> Array<unknown>
+mooncross(x2cross: number, jd_et: number, flags: number) -> number
+mooncross_back_ut(x2cross: number, jd_ut: number, flags: number) -> number
 mooncross_node(jd_et: number, flags: number) -> unknown
 mooncross_node_ut(jd_ut: number, flags: number) -> unknown
+mooncross_ut(x2cross: number, jd_ut: number, flags: number) -> number
 naisargika_relation(gr1: number, gr2: number) -> number
 nakshatra_name(nak: number) -> string | null
 naw_ruz_jd(bahai_year: number) -> number
 next_aspect(planet: number, aspect: number, fixed_pt: number, jd_start: number, backward: boolean, stop_days: number, flags: number) -> Array<number> | null
+next_aspect2(planet: number, aspect: number, fixed_pt: number, jd_start: number, backward: boolean, stop_days: number, flags: number) -> Array<number> | null
 next_aspect_cusp(body: number, aspect: number, cusp: number, jd_start: number, lat: number, lon: number, hsys: number, backward: boolean, flags: number) -> Array<number> | null
 next_aspect_cusp2(body: number, aspect: number, cusp: number, jd_start: number, lat: number, lon: number, hsys: number, backward: boolean, flags: number) -> Array<number> | null
 next_aspect_with(planet: number, aspect: number, other: number, jd_start: number, backward: boolean, stop_days: number, flags: number) -> Array<number> | null
+next_aspect_with2(planet: number, aspect: number, other: number, jd_start: number, backward: boolean, stop_days: number, flags: number) -> Array<number> | null
 next_esbat(jd_from: number) -> number
 next_first_quarter(jd_from: number) -> number
 next_full_moon(jd_start: number) -> number
+next_full_moon_after(jd_start: number) -> number
 next_full_moon_phase(jd_from: number) -> number
 next_last_quarter(jd_from: number) -> number
 next_new_moon(jd_from: number) -> number
+next_new_moon_after(jd_start: number) -> number
+next_principal_phase(jd_from: number, phase: number) -> unknown
 next_retro(planet: number, jd_start: number, backward: boolean, stop_days: number, flags: number) -> Array<number> | null
 next_sabbat(jd_from: number) -> Array<number>
 next_sabbat_name(jd_from: number) -> string
+nod_aps(jd_et: number, body: number, flags: number, method: number) -> Array<number>
+nod_aps_ut(jd_ut: number, body: number, flags: number, method: number) -> Array<number>
 norm_cs(p: number) -> number
 norm_deg(x: number) -> number
 nowruz_jd(year: number) -> number
@@ -437,10 +538,20 @@ omer_from_jd(jd: number) -> unknown | null
 omer_period(jd: number) -> unknown
 omer_start_jd(hebrew_year: number) -> number
 panchanga(jd: number) -> unknown
+parallactic_angle(ha_deg: number, dec_deg: number, lat_deg: number) -> number
 parse_coord(s: string) -> number | null
 parse_datetime(s: string) -> Array<number> | null
+parse_time(s: string) -> Array<number> | null
+pheno(jd_et: number, body: number, flags: number) -> Array<number>
+pheno_ut(jd_ut: number, body: number, flags: number) -> Array<number>
+planet_conjunct_mc(planet_lon: number, mc_lon: number, orb: number) -> boolean
+planet_house_number(planet_lon: number, cusps: Array<number>) -> number
 planet_name(planet: number) -> string
+planet_on_midpoint(planet_lon: number, mid_lon: number, orb: number) -> number | null
 raman_houses(asc: number, mc: number, sandhi: boolean) -> Array<number>
+rasi_diff(r1: number, r2: number) -> number
+rasi_diff2(r1: number, r2: number) -> number
+rasi_norm(r: number) -> number
 refrac(altitude: number, pressure_mb: number, temp_c: number, calc_flag: number) -> number
 refrac_extended(altitude: number, geoalt: number, pressure_mb: number, temp_c: number, lapse_rate: number, calc_flag: number) -> unknown
 residential_strength(graha: number, bm: Array<number>) -> number
@@ -448,8 +559,10 @@ retrograde_station_ut(planet: number, jd: number, flags: number) -> unknown
 revjul(jd: number, calendar: number | null) -> unknown
 revjul_hms(jd: number, calendar: number) -> Array<number>
 rise_trans(tjdut: number, planet: number, ephe_flags: number, event_type: number, geopos: Array<number>, pressure_mb: number | null, temp_c: number | null) -> unknown
+rise_trans_true_hor(tjdut: number, planet: number, flags: number, event_type: number, geopos: Array<number>, pressure_mb: number, temp_c: number, horhgt: number) -> unknown
 sabbat_jd(year: number, kind: number) -> number
 sabbats_for_year(year: number) -> Array<Array<number>>
+same_sect(body: number, is_day: boolean) -> boolean
 saturn_4_stars(jd: number, flags: number) -> Array<number>
 secondary_progressions(jd_natal: number, years: number, bodies: Array<number>, lat: number, lon: number, hsys: number, flags: number) -> Array<Array<number>>
 set_delta_t_userdef(dt: number) -> void
@@ -458,8 +571,14 @@ set_jpl_file(fname: string) -> void
 set_sid_mode(sid_mode: number, t0: number | null, ayan_t0: number | null) -> void
 set_topo(geolon: number, geolat: number, geoalt: number) -> void
 sexagenary_name(cycle_index: number) -> Array<string>
+sidereal_mode_flag(sidmode: number) -> number | null
+sidereal_mode_id(flag: number) -> number | null
+sidereal_time_deg(jd_ut: number) -> number
 sidtime(jd_ut: number) -> number
+sidtime0(jd_ut: number, eps: number, nut: number) -> number
+sign_exaltation(body: number) -> number
 sign_ingress_ut(planet: number, jd: number, flags: number, backward: boolean) -> unknown
+sign_lord(sign: number) -> number | null
 sign_name(sign: number) -> string | null
 sign_ruler(sign: number) -> number
 sign_ruler_modern(sign: number) -> number
@@ -469,17 +588,25 @@ sol_eclipse_when_loc(tjd_start: number, geopos: Array<number>, flags: number, ba
 sol_eclipse_where(tjd: number, flags: number) -> unknown
 solar_arc_directions(jd_natal: number, years: number, natal_positions: Array<number>, natal_mc: number, flags: number) -> Array<number>
 solar_cycle(jd: number) -> unknown | null
+solar_hijri_to_gregorian(solar_hijri_year: number) -> number
 solar_return_jd(jd_natal: number, return_year: number, flags: number) -> number
 solar_term_position(sun_lon: number) -> Array<number>
+solcross(x2cross: number, jd_et: number, flags: number) -> number
+solcross_back_ut(x2cross: number, jd_ut: number, flags: number) -> number
 solcross_ut(x2cross: number, jd_ut: number, flags: number) -> number
 split_deg(deg: number, round_flag: number) -> Array<number>
+tatkalika_relation(r1: number, r2: number) -> number
 tibetan_year_name(year: number) -> Array<string>
+time_equ(jd_ut: number) -> number
 tonalpohualli(jd: number) -> Array<string>
 transit_to_degree(planet: number, target_lon: number, jd: number, flags: number, backward: boolean) -> number
 triplicity_rulers(lon: number) -> Array<number>
 true_obliquity(jde: number) -> number
+tt_to_ut(jde: number) -> number
+tz_abbr_find(abbr: string) -> Array<unknown>
 tzolkin(jd: number) -> Array<string>
 uposatha_days(year: number) -> Array<unknown>
+utc_time_zone(year: number, month: number, day: number, hour: number, minute: number, second: number, d_timezone: number) -> Array<number>
 utc_to_jd(date: unknown, calendar: number | null) -> unknown
 version() -> string
 vesak_jd(year: number) -> number
@@ -489,16 +616,19 @@ vimshottari_dasha(jd_birth: number, moon_lon_sidereal: number, years_ahead: numb
 weeks_in_iso_year(year: number) -> number
 xiuhpohualli(jd: number) -> Array<string>
 yallop_q(arcv_deg: number, arcl_deg: number, sd_arcmin: number) -> Array<number>
+years_diff(jd1: number, jd2: number, flags: number) -> number
 zodiac_sign_name(sign: number) -> string
 ```
 
-## PHP — 212 functions
+## PHP — 276 functions
 
 ```
 almuten(lon: float, is_day: bool) -> array
 annual_profection(cusps: array, age: int) -> array
 antiscion(pos: array, axis: float) -> array
+approx_hebrew_year(jd: float) -> int
 arabic_part(asc: float, body2: float, body1: float) -> float
+arabic_parts_seven(asc: float, sun: float, moon: float, sat: float, mar: float, jup: float, mer: float, ven: float, is_day: bool) -> array
 asc_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
 ayanamsa(jd_et: float) -> float
 ayanamsa_name(sid_mode: int) -> string
@@ -530,14 +660,18 @@ degnorm(d: float) -> float
 degsplit(pos: float) -> array
 deltat(jd: float) -> float
 difdeg2n(p1: float, p2: float) -> float
+diff_deg(p1: float, p2: float) -> float
 diff_deg_signed(p1: float, p2: float) -> float
+distance_to_mc(planet_lon: float, mc_lon: float) -> float
 dsc_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
 easter_gregorian(year: int) -> array
 easter_jd(year: int) -> float
+easter_julian(year: int) -> array
 easter_orthodox(year: int) -> array
 easter_orthodox_jd(year: int) -> float
 egyptian_decan(lon: float) -> array
 egyptian_terms_ruler(lon: float) -> int
+elapsed_days(year: int) -> int
 esbats_for_year(year: int) -> array
 ethiopic_to_jd(year: int, month: int, day: int) -> float
 fasli_nowruz_jd(year: int) -> ?float
@@ -551,6 +685,7 @@ fixstar_ut(star: string, tjdut: float, flags: int) -> array
 format_coord(coord: float, is_latitude: bool) -> ?string
 four_pillars(jd_ut: float, hour_ut: float, sun_lon: float) -> array
 full_dignity(body: int, lon: float, is_day: bool) -> array
+geo_to_dms(coord: float) -> array
 get_ayanamsa(jd_et: float) -> float
 get_ayanamsa_name(sid_mode: int) -> string
 grand_solar_epoch(jd: float) -> ?string
@@ -561,6 +696,9 @@ hebrew_month_days(year: int, month: int) -> int
 hebrew_month_start_jd(year: int, month: int) -> int
 hebrew_new_year_jd(year: int) -> int
 hebrew_year_from_jd(jd: float) -> int
+heliacal_ut(jd_start: float, dgeo: array, datm: array, dobs: array, objectname: string, type_event: int, flags: int) -> array
+helio_cross(body: int, x2cross: float, jd_et: float, flags: int, dir: int) -> float
+helio_cross_ut(body: int, x2cross: float, jd_ut: float, flags: int, dir: int) -> float
 hijri_from_jd(jd: float) -> array
 hijri_month_days(year: int, month: int) -> int
 hijri_month_name(month: int) -> string
@@ -571,9 +709,14 @@ hindu_festivals(gregorian_year: int) -> array
 house_name(hsys: int) -> string
 house_name_str(hsys: int) -> string
 house_pos(armc: float, geolat: float, eps: float, hsys: int, lon: float, lat_body: float) -> float
+house_system_char(id: int) -> ?int
+house_system_id(hsys: int) -> ?int
 houses(jdut: float, geolat: float, geolon: float, hsys: int) -> array
+houses_armc(armc: float, lat: float, eps: float, hsys: int) -> array
+houses_armc_ex2(armc: float, lat: float, eps: float, hsys: int) -> array
 houses_ex(jdut: float, flags: int, geolat: float, geolon: float, hsys: int) -> array
 houses_ex2(tjdut: float, lat: float, lon: float, hsys: int, flags: int) -> array
+houses_from_armc(armc: float, lat: float, eps: float, hsys: int) -> array
 ic_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
 is_bahai_leap_year(bahai_year: int) -> bool
 is_coptic_leap_year(year: int) -> bool
@@ -581,27 +724,37 @@ is_day_chart(sun_lon: float, cusps: array) -> bool
 is_hebrew_leap_year(year: int) -> bool
 is_hijri_leap_year(year: int) -> bool
 islamic_observances(hijri_year: int) -> array
+islamic_observances_for_jd(jd: float) -> array
 iso_week(jd: float) -> array
 jd_duration(jd_start: float, jd_end: float) -> array
+jd_et_to_utc(jd_et: float, calendar: int) -> array
 jd_to_bahai(jd: float) -> array
 jd_to_coptic(jd: float) -> array
 jd_to_ethiopic(jd: float) -> array
 jd_to_fasli(jd: float) -> ?array
 jd_to_hebrew_date(jd: float) -> array
 jd_to_iso_string(jd: float, calendar: int) -> string
+jd_ut_to_utc(jd_ut: float, calendar: int) -> array
 jdnow() -> float
 jewish_holiday_jd(hebrew_year: int, name: string) -> ?float
 jewish_holidays(hebrew_year: int) -> array
 julday(year: int, month: int, day: int, hour: float, calendar: int) -> float
+karana_name(karana: int) -> string
+lat_to_lmt(tjd_lat: float, geolon: float) -> float
+lmt_to_lat(tjd_lmt: float, geolon: float) -> float
 local_apparent_solar_time(jd_ut: float, geolon_deg: float) -> float
 lon_to_sign(lon: float) -> array
 long_to_nakshatra(lon: float) -> array
 long_to_navamsa(lon: float) -> int
 long_to_rasi(lon: float) -> int
 losar_jd(year: int) -> ?float
+lower_meridian_transit_ut(body: int, jd_start: float, geopos: array, flags: int) -> array
 lun_eclipse_how(jd_ut: float, flags: int) -> array
 lun_eclipse_when(jd_start: float, flags: int, ecl_type: int, backwards: bool) -> array
 lun_eclipse_when_loc(tjd_start: float, geopos: array, flags: int, backwards: bool) -> array
+lun_occult_when_glob(tjd_start: float, body: int, starname: string, flags: int, ecl_type: int, backwards: bool) -> array
+lun_occult_when_loc(tjd_start: float, body: int, starname: string, flags: int, geopos: array, backwards: bool) -> array
+lun_occult_where(jd_ut: float, body: int, starname: string, flags: int) -> array
 lunar_return_jd(jd_natal: float, jd_start: float, flags: int) -> float
 match_aspect(pos0: float, speed0: float, pos1: float, speed1: float, aspect: float, orb: float) -> array
 match_aspect2(pos0: float, speed0: float, pos1: float, speed1: float, aspect: float, orb: float) -> array
@@ -611,8 +764,10 @@ maya_long_count(jd: float) -> array
 maya_long_count_str(jd: float) -> string
 mc_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
 mean_obliquity(jde: float) -> float
+mean_sidereal_time_deg(jd_ut: float) -> float
 mean_sidtime(jd: float) -> float
 medicine_wheel_totem(sun_lon: float) -> array
+meridian_transit_ut(body: int, jd_start: float, geopos: array, flags: int) -> array
 midpoint(lon1: float, lon2: float) -> float
 midpoint_deg(x1: float, x0: float) -> float
 midpoint_table(positions: array, orb: float) -> array
@@ -624,24 +779,34 @@ moon_phase(jd: float) -> string
 moon_phase_angle(jd: float) -> float
 moon_phase_info(jd: float) -> array
 moon_phases_for_month(year: int, month: int) -> array
+mooncross(x2cross: float, jd_et: float, flags: int) -> float
+mooncross_back_ut(x2cross: float, jd_ut: float, flags: int) -> float
 mooncross_node(jd_et: float, flags: int) -> array
 mooncross_node_ut(jd_ut: float, flags: int) -> array
+mooncross_ut(x2cross: float, jd_ut: float, flags: int) -> float
 naisargika_relation(gr1: int, gr2: int) -> int
 nakshatra_name(nak: int) -> ?string
 naw_ruz_jd(bahai_year: int) -> float
 next_aspect(planet: int, aspect: float, fixed_pt: float, jd_start: float, backward: bool, stop_days: float, flags: int) -> ?array
+next_aspect2(planet: int, aspect: float, fixed_pt: float, jd_start: float, backward: bool, stop_days: float, flags: int) -> ?array
 next_aspect_cusp(body: int, aspect: float, cusp: int, jd_start: float, lat: float, lon: float, hsys: int, backward: bool, flags: int) -> ?array
 next_aspect_cusp2(body: int, aspect: float, cusp: int, jd_start: float, lat: float, lon: float, hsys: int, backward: bool, flags: int) -> ?array
 next_aspect_with(planet: int, aspect: float, other: int, jd_start: float, backward: bool, stop_days: float, flags: int) -> ?array
+next_aspect_with2(planet: int, aspect: float, other: int, jd_start: float, backward: bool, stop_days: float, flags: int) -> ?array
 next_esbat(jd_from: float) -> float
 next_first_quarter(jd_from: float) -> float
 next_full_moon(jd_start: float) -> float
+next_full_moon_after(jd_start: float) -> float
 next_full_moon_phase(jd_from: float) -> float
 next_last_quarter(jd_from: float) -> float
 next_new_moon(jd_from: float) -> float
+next_new_moon_after(jd_start: float) -> float
+next_principal_phase(jd_from: float, phase: int) -> array
 next_retro(planet: int, jd_start: float, backward: bool, stop_days: float, flags: int) -> ?float
 next_sabbat(jd_from: float) -> array
 next_sabbat_name(jd_from: float) -> string
+nod_aps(jd_et: float, body: int, flags: int, method: int) -> array
+nod_aps_ut(jd_ut: float, body: int, flags: int, method: int) -> array
 norm_cs(p: int) -> int
 norm_deg(d: float) -> float
 nowruz_jd(year: int) -> float
@@ -654,10 +819,20 @@ omer_from_jd(jd: float) -> ?array
 omer_period(jd: float) -> array
 omer_start_jd(hebrew_year: int) -> float
 panchanga(jd: float) -> array
+parallactic_angle(ha_deg: float, dec_deg: float, lat_deg: float) -> float
 parse_coord(s: string) -> ?float
 parse_datetime(s: string) -> ?array
+parse_time(s: string) -> ?array
+pheno(jd_et: float, body: int, flags: int) -> array
+pheno_ut(jd_ut: float, body: int, flags: int) -> array
+planet_conjunct_mc(planet_lon: float, mc_lon: float, orb: float) -> bool
+planet_house_number(planet_lon: float, cusps: array) -> int
 planet_name(planet: int) -> string
+planet_on_midpoint(planet_lon: float, mid_lon: float, orb: float) -> ?float
 raman_houses(asc: float, mc: float, sandhi: bool) -> array
+rasi_diff(r1: int, r2: int) -> int
+rasi_diff2(r1: int, r2: int) -> int
+rasi_norm(r: int) -> int
 refrac(altitude: float, pressure_mb: float, temp_c: float, calc_flag: int) -> float
 refrac_extended(altitude: float, geoalt: float, pressure_mb: float, temp_c: float, lapse_rate: float, calc_flag: int) -> array
 residential_strength(graha: float, bm: array) -> float
@@ -665,8 +840,10 @@ retrograde_station_ut(planet: int, jd: float, flags: int) -> array
 revjul(jd: float, calendar: int) -> array
 revjul_hms(jd: float, calendar: int) -> array
 rise_trans(tjdut: float, planet: int, flags: int, event_type: int, geopos: array, pressure_mb: float, temp_c: float) -> array
+rise_trans_true_hor(tjdut: float, planet: int, flags: int, event_type: int, geopos: array, pressure_mb: float, temp_c: float, horhgt: float) -> array
 sabbat_jd(year: int, kind: string) -> float
 sabbats_for_year(year: int) -> array
+same_sect(body: int, is_day: bool) -> bool
 saturn_4_stars(jd: float, flags: int) -> array
 secondary_progressions(jd_natal: float, years: float, bodies: array, lat: float, lon: float, hsys: int, flags: int) -> array
 set_delta_t_userdef(dt: float) -> void
@@ -675,8 +852,14 @@ set_jpl_file(fname: string) -> void
 set_sid_mode(sid_mode: int, t0: float, ayan_t0: float) -> void
 set_topo(geolon: float, geolat: float, geoalt: float) -> void
 sexagenary_name(cycle_index: int) -> array
+sidereal_mode_flag(sidmode: int) -> ?int
+sidereal_mode_id(flag: int) -> ?int
+sidereal_time_deg(jd_ut: float) -> float
 sidtime(jd_ut: float) -> float
+sidtime0(jd_ut: float, eps: float, nut: float) -> float
+sign_exaltation(body: int) -> int
 sign_ingress_ut(planet: int, jd: float, flags: int, backward: bool) -> array
+sign_lord(sign: int) -> ?int
 sign_name(sign: int) -> ?string
 sign_ruler(sign: int) -> int
 sign_ruler_modern(sign: int) -> int
@@ -686,17 +869,25 @@ sol_eclipse_when_loc(tjd_start: float, geopos: array, flags: int, backwards: boo
 sol_eclipse_where(tjd: float, flags: int) -> array
 solar_arc_directions(jd_natal: float, years: float, natal_positions: array, natal_mc: float, flags: int) -> array
 solar_cycle(jd: float) -> ?array
+solar_hijri_to_gregorian(solar_hijri_year: int) -> int
 solar_return_jd(jd_natal: float, return_year: int, flags: int) -> float
 solar_term_position(sun_lon: float) -> array
+solcross(x2cross: float, jd_et: float, flags: int) -> float
+solcross_back_ut(x2cross: float, jd_ut: float, flags: int) -> float
 solcross_ut(x2cross: float, jd_ut: float, flags: int) -> float
 split_deg(deg: float, round_flag: int) -> array
+tatkalika_relation(r1: int, r2: int) -> int
 tibetan_year_name(year: int) -> array
+time_equ(jd_ut: float) -> float
 tonalpohualli(jd: float) -> array
 transit_to_degree(planet: int, target_lon: float, jd: float, flags: int, backward: bool) -> float
 triplicity_rulers(lon: float) -> array
 true_obliquity(jde: float) -> float
+tt_to_ut(jde: float) -> float
+tz_abbr_find(abbr: string) -> array
 tzolkin(jd: float) -> array
 uposatha_days(year: int) -> array
+utc_time_zone(year: int, month: int, day: int, hour: int, minute: int, second: float, d_timezone: float) -> array
 utc_to_jd(year: int, month: int, day: int, hour: int, minute: int, second: float, calendar: int) -> array
 version() -> string
 vesak_jd(year: int) -> float
@@ -706,5 +897,6 @@ vimshottari_dasha(jd_birth: float, moon_lon_sidereal: float, years_ahead: float)
 weeks_in_iso_year(year: int) -> int
 xiuhpohualli(jd: float) -> array
 yallop_q(arcv_deg: float, arcl_deg: float, sd_arcmin: float) -> array
+years_diff(jd1: float, jd2: float, flags: int) -> float
 zodiac_sign_name(sign: int) -> string
 ```

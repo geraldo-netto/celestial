@@ -1417,3 +1417,387 @@ function tibetan_year_name(int $year): array {}
 
 /** @return string[] */
 function celestial_tibetan_year_name(int $year): array {}
+
+/** @return int */
+function approx_hebrew_year(float $jd): int {}
+
+/** @return int */
+function celestial_approx_hebrew_year(float $jd): int {}
+
+/** @return array */
+function arabic_parts_seven(float $asc, float $sun, float $moon, float $sat, float $mar, float $jup, float $mer, float $ven, bool $is_day): array {}
+
+/** @return array */
+function celestial_arabic_parts_seven(float $asc, float $sun, float $moon, float $sat, float $mar, float $jup, float $mer, float $ven, bool $is_day): array {}
+
+/** @return float */
+function diff_deg(float $p1, float $p2): float {}
+
+/** @return float */
+function celestial_diff_deg(float $p1, float $p2): float {}
+
+/** @return float */
+function distance_to_mc(float $planet_lon, float $mc_lon): float {}
+
+/** @return float */
+function celestial_distance_to_mc(float $planet_lon, float $mc_lon): float {}
+
+/** @return int[] */
+function easter_julian(int $year): array {}
+
+/** @return int[] */
+function celestial_easter_julian(int $year): array {}
+
+/** @return int */
+function elapsed_days(int $year): int {}
+
+/** @return int */
+function celestial_elapsed_days(int $year): int {}
+
+/** @return int[] */
+function geo_to_dms(float $coord): array {}
+
+/** @return int[] */
+function celestial_geo_to_dms(float $coord): array {}
+
+/** @return float[] */
+function heliacal_ut(float $jd_start, array $dgeo, array $datm, array $dobs, string $objectname, int $type_event, int $flags): array {}
+
+/** @return float[] */
+function celestial_heliacal_ut(float $jd_start, array $dgeo, array $datm, array $dobs, string $objectname, int $type_event, int $flags): array {}
+
+/** @return float */
+function helio_cross(int $body, float $x2cross, float $jd_et, int $flags, int $dir): float {}
+
+/** @return float */
+function celestial_helio_cross(int $body, float $x2cross, float $jd_et, int $flags, int $dir): float {}
+
+/** @return float */
+function helio_cross_ut(int $body, float $x2cross, float $jd_ut, int $flags, int $dir): float {}
+
+/** @return float */
+function celestial_helio_cross_ut(int $body, float $x2cross, float $jd_ut, int $flags, int $dir): float {}
+
+/** @return int|null */
+function house_system_char(int $id): ?int {}
+
+/** @return int|null */
+function celestial_house_system_char(int $id): ?int {}
+
+/** @return int|null */
+function house_system_id(int $hsys): ?int {}
+
+/** @return int|null */
+function celestial_house_system_id(int $hsys): ?int {}
+
+/** @return float[] */
+function houses_armc(float $armc, float $lat, float $eps, int $hsys): array {}
+
+/** @return float[] */
+function celestial_houses_armc(float $armc, float $lat, float $eps, int $hsys): array {}
+
+/** @return float[] */
+function houses_armc_ex2(float $armc, float $lat, float $eps, int $hsys): array {}
+
+/** @return float[] */
+function celestial_houses_armc_ex2(float $armc, float $lat, float $eps, int $hsys): array {}
+
+/** @return float[] */
+function houses_from_armc(float $armc, float $lat, float $eps, int $hsys): array {}
+
+/** @return float[] */
+function celestial_houses_from_armc(float $armc, float $lat, float $eps, int $hsys): array {}
+
+/** @return array */
+function islamic_observances_for_jd(float $jd): array {}
+
+/** @return array */
+function celestial_islamic_observances_for_jd(float $jd): array {}
+
+/** @return float[] */
+function jd_et_to_utc(float $jd_et, int $calendar): array {}
+
+/** @return float[] */
+function celestial_jd_et_to_utc(float $jd_et, int $calendar): array {}
+
+/** @return float[] */
+function jd_ut_to_utc(float $jd_ut, int $calendar): array {}
+
+/** @return float[] */
+function celestial_jd_ut_to_utc(float $jd_ut, int $calendar): array {}
+
+/** @return string */
+function karana_name(int $karana): string {}
+
+/** @return string */
+function celestial_karana_name(int $karana): string {}
+
+/** @return float */
+function lat_to_lmt(float $tjd_lat, float $geolon): float {}
+
+/** @return float */
+function celestial_lat_to_lmt(float $tjd_lat, float $geolon): float {}
+
+/** @return float */
+function lmt_to_lat(float $tjd_lmt, float $geolon): float {}
+
+/** @return float */
+function celestial_lmt_to_lat(float $tjd_lmt, float $geolon): float {}
+
+/** @return array<string,mixed> */
+function lower_meridian_transit_ut(int $body, float $jd_start, array $geopos, int $flags): array {}
+
+/** @return array<string,mixed> */
+function celestial_lower_meridian_transit_ut(int $body, float $jd_start, array $geopos, int $flags): array {}
+
+/** @return array<string,mixed> */
+function lun_occult_when_glob(float $tjd_start, int $body, string $starname, int $flags, int $ecl_type, bool $backwards): array {}
+
+/** @return array<string,mixed> */
+function celestial_lun_occult_when_glob(float $tjd_start, int $body, string $starname, int $flags, int $ecl_type, bool $backwards): array {}
+
+/** @return array<string,mixed> */
+function lun_occult_when_loc(float $tjd_start, int $body, string $starname, int $flags, array $geopos, bool $backwards): array {}
+
+/** @return array<string,mixed> */
+function celestial_lun_occult_when_loc(float $tjd_start, int $body, string $starname, int $flags, array $geopos, bool $backwards): array {}
+
+/** @return array<string,mixed> */
+function lun_occult_where(float $jd_ut, int $body, string $starname, int $flags): array {}
+
+/** @return array<string,mixed> */
+function celestial_lun_occult_where(float $jd_ut, int $body, string $starname, int $flags): array {}
+
+/** @return float */
+function mean_sidereal_time_deg(float $jd_ut): float {}
+
+/** @return float */
+function celestial_mean_sidereal_time_deg(float $jd_ut): float {}
+
+/** @return array<string,mixed> */
+function meridian_transit_ut(int $body, float $jd_start, array $geopos, int $flags): array {}
+
+/** @return array<string,mixed> */
+function celestial_meridian_transit_ut(int $body, float $jd_start, array $geopos, int $flags): array {}
+
+/** @return float */
+function mooncross(float $x2cross, float $jd_et, int $flags): float {}
+
+/** @return float */
+function celestial_mooncross(float $x2cross, float $jd_et, int $flags): float {}
+
+/** @return float */
+function mooncross_back_ut(float $x2cross, float $jd_ut, int $flags): float {}
+
+/** @return float */
+function celestial_mooncross_back_ut(float $x2cross, float $jd_ut, int $flags): float {}
+
+/** @return float */
+function mooncross_ut(float $x2cross, float $jd_ut, int $flags): float {}
+
+/** @return float */
+function celestial_mooncross_ut(float $x2cross, float $jd_ut, int $flags): float {}
+
+/** @return float[]|null */
+function next_aspect2(int $planet, float $aspect, float $fixed_pt, float $jd_start, bool $backward, float $stop_days, int $flags): ?array {}
+
+/** @return float[]|null */
+function celestial_next_aspect2(int $planet, float $aspect, float $fixed_pt, float $jd_start, bool $backward, float $stop_days, int $flags): ?array {}
+
+/** @return float[]|null */
+function next_aspect_with2(int $planet, float $aspect, int $other, float $jd_start, bool $backward, float $stop_days, int $flags): ?array {}
+
+/** @return float[]|null */
+function celestial_next_aspect_with2(int $planet, float $aspect, int $other, float $jd_start, bool $backward, float $stop_days, int $flags): ?array {}
+
+/** @return float */
+function next_full_moon_after(float $jd_start): float {}
+
+/** @return float */
+function celestial_next_full_moon_after(float $jd_start): float {}
+
+/** @return float */
+function next_new_moon_after(float $jd_start): float {}
+
+/** @return float */
+function celestial_next_new_moon_after(float $jd_start): float {}
+
+/** @return string[] */
+function next_principal_phase(float $jd_from, int $phase): array {}
+
+/** @return string[] */
+function celestial_next_principal_phase(float $jd_from, int $phase): array {}
+
+/** @return float[] */
+function nod_aps(float $jd_et, int $body, int $flags, int $method): array {}
+
+/** @return float[] */
+function celestial_nod_aps(float $jd_et, int $body, int $flags, int $method): array {}
+
+/** @return float[] */
+function nod_aps_ut(float $jd_ut, int $body, int $flags, int $method): array {}
+
+/** @return float[] */
+function celestial_nod_aps_ut(float $jd_ut, int $body, int $flags, int $method): array {}
+
+/** @return float */
+function parallactic_angle(float $ha_deg, float $dec_deg, float $lat_deg): float {}
+
+/** @return float */
+function celestial_parallactic_angle(float $ha_deg, float $dec_deg, float $lat_deg): float {}
+
+/** @return int[]|null */
+function parse_time(string $s): ?array {}
+
+/** @return int[]|null */
+function celestial_parse_time(string $s): ?array {}
+
+/** @return float[] */
+function pheno(float $jd_et, int $body, int $flags): array {}
+
+/** @return float[] */
+function celestial_pheno(float $jd_et, int $body, int $flags): array {}
+
+/** @return float[] */
+function pheno_ut(float $jd_ut, int $body, int $flags): array {}
+
+/** @return float[] */
+function celestial_pheno_ut(float $jd_ut, int $body, int $flags): array {}
+
+/** @return bool */
+function planet_conjunct_mc(float $planet_lon, float $mc_lon, float $orb): bool {}
+
+/** @return bool */
+function celestial_planet_conjunct_mc(float $planet_lon, float $mc_lon, float $orb): bool {}
+
+/** @return int */
+function planet_house_number(float $planet_lon, array $cusps): int {}
+
+/** @return int */
+function celestial_planet_house_number(float $planet_lon, array $cusps): int {}
+
+/** @return float|null */
+function planet_on_midpoint(float $planet_lon, float $mid_lon, float $orb): ?float {}
+
+/** @return float|null */
+function celestial_planet_on_midpoint(float $planet_lon, float $mid_lon, float $orb): ?float {}
+
+/** @return int */
+function rasi_diff(int $r1, int $r2): int {}
+
+/** @return int */
+function celestial_rasi_diff(int $r1, int $r2): int {}
+
+/** @return int */
+function rasi_diff2(int $r1, int $r2): int {}
+
+/** @return int */
+function celestial_rasi_diff2(int $r1, int $r2): int {}
+
+/** @return int */
+function rasi_norm(int $r): int {}
+
+/** @return int */
+function celestial_rasi_norm(int $r): int {}
+
+/** @return array<string,mixed> */
+function rise_trans_true_hor(float $tjdut, int $planet, int $flags, int $event_type, array $geopos, float $pressure_mb, float $temp_c, float $horhgt): array {}
+
+/** @return array<string,mixed> */
+function celestial_rise_trans_true_hor(float $tjdut, int $planet, int $flags, int $event_type, array $geopos, float $pressure_mb, float $temp_c, float $horhgt): array {}
+
+/** @return bool */
+function same_sect(int $body, bool $is_day): bool {}
+
+/** @return bool */
+function celestial_same_sect(int $body, bool $is_day): bool {}
+
+/** @return int|null */
+function sidereal_mode_flag(int $sidmode): ?int {}
+
+/** @return int|null */
+function celestial_sidereal_mode_flag(int $sidmode): ?int {}
+
+/** @return int|null */
+function sidereal_mode_id(int $flag): ?int {}
+
+/** @return int|null */
+function celestial_sidereal_mode_id(int $flag): ?int {}
+
+/** @return float */
+function sidereal_time_deg(float $jd_ut): float {}
+
+/** @return float */
+function celestial_sidereal_time_deg(float $jd_ut): float {}
+
+/** @return float */
+function sidtime0(float $jd_ut, float $eps, float $nut): float {}
+
+/** @return float */
+function celestial_sidtime0(float $jd_ut, float $eps, float $nut): float {}
+
+/** @return int */
+function sign_exaltation(int $body): int {}
+
+/** @return int */
+function celestial_sign_exaltation(int $body): int {}
+
+/** @return int|null */
+function sign_lord(int $sign): ?int {}
+
+/** @return int|null */
+function celestial_sign_lord(int $sign): ?int {}
+
+/** @return int */
+function solar_hijri_to_gregorian(int $solar_hijri_year): int {}
+
+/** @return int */
+function celestial_solar_hijri_to_gregorian(int $solar_hijri_year): int {}
+
+/** @return float */
+function solcross(float $x2cross, float $jd_et, int $flags): float {}
+
+/** @return float */
+function celestial_solcross(float $x2cross, float $jd_et, int $flags): float {}
+
+/** @return float */
+function solcross_back_ut(float $x2cross, float $jd_ut, int $flags): float {}
+
+/** @return float */
+function celestial_solcross_back_ut(float $x2cross, float $jd_ut, int $flags): float {}
+
+/** @return int */
+function tatkalika_relation(int $r1, int $r2): int {}
+
+/** @return int */
+function celestial_tatkalika_relation(int $r1, int $r2): int {}
+
+/** @return float */
+function time_equ(float $jd_ut): float {}
+
+/** @return float */
+function celestial_time_equ(float $jd_ut): float {}
+
+/** @return float */
+function tt_to_ut(float $jde): float {}
+
+/** @return float */
+function celestial_tt_to_ut(float $jde): float {}
+
+/** @return array */
+function tz_abbr_find(string $abbr): array {}
+
+/** @return array */
+function celestial_tz_abbr_find(string $abbr): array {}
+
+/** @return float[] */
+function utc_time_zone(int $year, int $month, int $day, int $hour, int $minute, float $second, float $d_timezone): array {}
+
+/** @return float[] */
+function celestial_utc_time_zone(int $year, int $month, int $day, int $hour, int $minute, float $second, float $d_timezone): array {}
+
+/** @return float */
+function years_diff(float $jd1, float $jd2, int $flags): float {}
+
+/** @return float */
+function celestial_years_diff(float $jd1, float $jd2, int $flags): float {}
