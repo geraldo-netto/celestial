@@ -1,0 +1,10 @@
+# Fns whose parameter count legitimately differs across bindings.
+# Read by `cargo xtask coverage`. Format: <fn_name>  <reason>.
+# A new arity disagreement NOT listed here fails the gate — so binding drift
+# (a param silently added/dropped in one language) is caught. Prefer fixing the
+# binding over adding a line here; tracked gaps live in TODO.md (CLI/adaptability).
+
+utc_to_jd        JS packs the 7 date scalars into a UtcDate object (language idiom) — TODO-tracked as DECIDED.
+lun_eclipse_how  PHP omits the optional geopos observer arg (no local-circumstances path) — TODO gap.
+match_aspect3    Python exposes an extra def_orb tuning arg JS/PHP lack — TODO gap.
+match_aspect4    Python exposes an extra def_orb tuning arg JS/PHP lack — TODO gap.

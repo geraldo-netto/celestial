@@ -11,8 +11,10 @@ cd bindings/php && cargo build --release
 # Add to php.ini:  extension=/path/to/libcelestial.so
 ```
 
-This guide covers all `celestial_` prefixed functions, return types, phpstan integration,
-and tradition-specific examples.
+This guide covers usage patterns, phpstan integration, and tradition-specific examples.
+The **authoritative constant values and per-function signatures** are generated
+from source in [generated/binding_api.md](generated/binding_api.md) — consult it
+(not hand-copied numbers) when you need an exact value or signature.
 
 ---
 

@@ -32,6 +32,22 @@ the behavior defined here when interacting with this workspace.
   rather than inline.
 - Prefer explicit, maintainable solutions over clever shortcuts.
 - Propose business/design patterns and DDD only when they improve clarity or structure.
+- Bindings must not drift from `celestial-core`. `core` is the source of truth, not
+  the bindings. After ANY change to a core public fn, a binding signature, a binding
+  constant, or a doc that restates them, run the binding gates and keep them green:
+  - `cargo xtask parity` — the three bindings export the same fn names.
+  - `cargo xtask coverage` — every core flat public fn (`pub use` in `core/src/lib.rs`)
+    is bound in all three languages OR listed in `xtask/core_unbound_allow.txt` with a
+    reason; cross-binding arities agree or are recorded in `xtask/arity_allow.txt`.
+    Adding a core fn without deciding "bind it or allow-list it" is the drift we forbid.
+  - `cargo xtask shapes --check` — a binding's return KIND (scalar/tuple/array/object)
+    is unchanged; a real change must update `xtask/binding_shapes.txt` in the same commit.
+  - `cargo xtask apidoc --check` — `docs/generated/binding_api.md` (constant values +
+    per-language signatures) matches source. Hand-written language guides in `docs/*.md`
+    must LINK to that generated file for constants/signatures, never restate the numbers
+    or shapes (that is exactly how DOC-9/DOC-10 drifted). Prose-only explanation is fine.
+  - `cargo xtask pyi --check` / `cargo xtask dts --check` — stubs in sync.
+  These run in the `binding-parity` CI pipeline; a red gate blocks merge.
 - ALWAYS record review findings in `TODO.md` — never report them only in chat. Any time you
   scan, review, audit, or "look for issues" (not just major changes), add each finding to the
   matching category table in `TODO.md` before/while reporting it.

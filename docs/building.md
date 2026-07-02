@@ -260,6 +260,21 @@ celestial render --date 1990-05-15 --time 14:30:45  # shows "14:30 UT"
 # Check that Python, JS, and PHP binding all export identical functions
 cargo xtask parity
 
+# Core→binding coverage + cross-binding arity parity.
+# Fails if a core public fn (pub use in core/src/lib.rs) is bound by no binding
+# and is not listed in xtask/core_unbound_allow.txt, or if bindings disagree on
+# a fn's parameter count (unless listed in xtask/arity_allow.txt).
+cargo xtask coverage
+cargo xtask coverage --write-allow   # re-baseline the intentionally-unbound list
+
+# Return-shape contract — snapshot of each binding's return KIND per fn.
+cargo xtask shapes            # regenerate xtask/binding_shapes.txt
+cargo xtask shapes --check    # CI gate: fail if a return shape drifted
+
+# Generated binding API reference (constant values + per-language signatures).
+cargo xtask apidoc            # regenerate docs/generated/binding_api.md
+cargo xtask apidoc --check    # CI gate: fail if out of sync with source
+
 # Generate stub skeletons for functions missing from a binding
 cargo xtask codegen            # preview only
 cargo xtask codegen --apply    # write into binding files (review diff before committing)

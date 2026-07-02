@@ -10,8 +10,10 @@
 cd bindings/js && npm install && npm run build
 ```
 
-This guide covers TypeScript interfaces, all function signatures, and tradition-specific
-examples.
+This guide covers TypeScript usage patterns and tradition-specific examples.
+The **authoritative constant values and per-function signatures** are generated
+from source in [generated/binding_api.md](generated/binding_api.md) — consult it
+(not hand-copied numbers) when you need an exact value or signature.
 
 ---
 

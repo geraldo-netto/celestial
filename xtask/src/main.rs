@@ -25,6 +25,9 @@ fn main() {
     let mut args = std::env::args().skip(1);
     match args.next().as_deref() {
         Some("parity") => cmd_parity(),
+        Some("coverage") => cmd_coverage(args.any(|a| a == "--write-allow")),
+        Some("shapes") => cmd_shapes(args.any(|a| a == "--check")),
+        Some("apidoc") => cmd_apidoc(args.any(|a| a == "--check")),
         Some("codegen") => cmd_codegen(args.any(|a| a == "--apply")),
         Some("stubs") => cmd_stubs(),
         Some("test-stubs") => cmd_test_stubs(),
@@ -32,7 +35,7 @@ fn main() {
         Some("dts") => cmd_dts(args.any(|a| a == "--check")),
         _ => {
             eprintln!(
-                "USAGE\n  cargo xtask parity\n  cargo xtask codegen [--apply]\n  cargo xtask stubs\n  cargo xtask test-stubs\n  cargo xtask pyi        Regenerate bindings/python/python/celestial_py/celestial_py.pyi\n  cargo xtask dts        Regenerate bindings/js/index.d.ts"
+                "USAGE\n  cargo xtask parity\n  cargo xtask coverage [--write-allow]   Core→binding coverage + arity parity\n  cargo xtask shapes [--check]           Return-shape contract snapshot\n  cargo xtask apidoc [--check]           Generate docs/generated/binding_api.md\n  cargo xtask codegen [--apply]\n  cargo xtask stubs\n  cargo xtask test-stubs\n  cargo xtask pyi        Regenerate bindings/python/python/celestial_py/celestial_py.pyi\n  cargo xtask dts        Regenerate bindings/js/index.d.ts"
             );
             std::process::exit(1);
         }
@@ -1716,6 +1719,386 @@ fn cmd_dts(check: bool) {
     write_or_check(&out_path, &out, check, "declarations", "dts", total);
 }
 
+// ─── coverage command (A: core→binding coverage · B: arity parity) ────────────
+
+/// Path (relative to workspace root) of the checked-in "core fns intentionally
+/// not bound" allow-list. Each future core public fn must be either bound in all
+/// three languages or listed here with a reason — otherwise `coverage` fails.
+const CORE_UNBOUND_FILE: &str = "xtask/core_unbound_allow.txt";
+
+/// Add `tok` to `set` if it looks like a free function name (snake_case,
+/// lowercase first char — excludes CamelCase types and UPPER_CASE consts).
+fn push_core_fn(set: &mut BTreeSet<String>, tok: &str) {
+    // `name as alias` re-exports export the alias; take the right-hand side.
+    let t = tok
+        .trim()
+        .trim_end_matches('}')
+        .rsplit(" as ")
+        .next()
+        .unwrap_or("")
+        .trim();
+    if t.is_empty() || !t.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        return;
+    }
+    if t.chars().next().is_some_and(|c| c.is_ascii_lowercase()) {
+        set.insert(t.to_string());
+    }
+}
+
+/// Parse the flat public function surface of core from its `pub use` re-exports
+/// in `core/src/lib.rs`. This is the source of truth for what bindings *could*
+/// expose; anything here that no binding wraps is a coverage gap.
+fn parse_core_flat_fns(lib_src: &str) -> BTreeSet<String> {
+    let mut names = BTreeSet::new();
+    let mut rest = lib_src;
+    while let Some(pos) = rest.find("pub use ") {
+        rest = &rest[pos + "pub use ".len()..];
+        let Some(semi) = rest.find(';') else { break };
+        let decl = &rest[..semi];
+        rest = &rest[semi + 1..];
+        if let Some(brace) = decl.find('{') {
+            let close = decl.rfind('}').unwrap_or(decl.len());
+            for tok in decl[brace + 1..close].split(',') {
+                push_core_fn(&mut names, tok);
+            }
+        } else if let Some(cc) = decl.rfind("::") {
+            push_core_fn(&mut names, &decl[cc + 2..]);
+        }
+    }
+    names
+}
+
+/// The set of core fn names reachable from *any* binding: direct wrappers plus
+/// the canonical targets that legacy aliases delegate to.
+fn bound_core_names(bindings: &[Binding]) -> BTreeSet<String> {
+    let mut s: BTreeSet<String> = bindings.iter().flat_map(|b| b.fns.iter().cloned()).collect();
+    for (_alias, canonical) in legacy_aliases() {
+        s.insert(canonical);
+    }
+    s
+}
+
+fn read_allow_list(root: &Path) -> BTreeSet<String> {
+    fs::read_to_string(root.join(CORE_UNBOUND_FILE))
+        .unwrap_or_default()
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .map(String::from)
+        .collect()
+}
+
+/// Checked-in list of fns whose cross-binding arity difference is known and
+/// accepted (a language idiom or a tracked gap). First whitespace token per
+/// non-comment line is the fn name; the rest is a free-text reason.
+const ARITY_ALLOW_FILE: &str = "xtask/arity_allow.txt";
+
+fn read_arity_allow(root: &Path) -> BTreeSet<String> {
+    fs::read_to_string(root.join(ARITY_ALLOW_FILE))
+        .unwrap_or_default()
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .filter_map(|l| l.split_whitespace().next())
+        .map(String::from)
+        .collect()
+}
+
+/// Per-binding parameter count for every decorated fn (self/py excluded by the
+/// signature parser). Used for cross-binding arity parity (B).
+fn binding_arities(root: &Path) -> Vec<(String, BTreeMap<String, usize>)> {
+    let specs = [
+        ("Python", "bindings/python/src/lib.rs", "pyfunction"),
+        ("JS", "bindings/js/src/lib.rs", "napi"),
+        ("PHP", "bindings/php/src/lib.rs", "php_function"),
+    ];
+    specs
+        .iter()
+        .map(|(name, rel, deco)| {
+            let src = fs::read_to_string(root.join(rel)).unwrap_or_default();
+            let map = scan_decorated_fns(&src, deco)
+                .into_iter()
+                .map(|e| (e.name, e.params.len()))
+                .collect();
+            ((*name).to_string(), map)
+        })
+        .collect()
+}
+
+/// Find fns whose parameter count disagrees between two or more bindings.
+/// Returns (fn_name, ["Python:2", "PHP:3", ...]).
+fn arity_mismatches(root: &Path) -> Vec<(String, Vec<String>)> {
+    let arities = binding_arities(root);
+    let all_fns: BTreeSet<&String> = arities.iter().flat_map(|(_, m)| m.keys()).collect();
+    let mut out = Vec::new();
+    for fname in all_fns {
+        let present: Vec<(&str, usize)> = arities
+            .iter()
+            .filter_map(|(lang, m)| m.get(fname).map(|c| (lang.as_str(), *c)))
+            .collect();
+        let counts: BTreeSet<usize> = present.iter().map(|(_, c)| *c).collect();
+        if present.len() >= 2 && counts.len() > 1 {
+            out.push((
+                fname.clone(),
+                present.iter().map(|(l, c)| format!("{l}:{c}")).collect(),
+            ));
+        }
+    }
+    out
+}
+
+fn regenerate_allow_list(root: &Path, unbound: &BTreeSet<String>) {
+    let mut body = String::from(
+        "# Core public fns intentionally NOT exposed in the language bindings.\n\
+         # Source of truth for `cargo xtask coverage`. Regenerate the baseline with\n\
+         # `cargo xtask coverage --write-allow`, but prefer BINDING a new core fn over\n\
+         # adding it here. Every entry is a deliberate \"Rust-only\" decision (low-level\n\
+         # helpers, path/config setters, unwrapped library-only APIs — see TODO WIRE-1).\n\
+         # One fn name per line.\n\n",
+    );
+    for f in unbound {
+        body.push_str(f);
+        body.push('\n');
+    }
+    fs::write(root.join(CORE_UNBOUND_FILE), body).expect("cannot write allow-list");
+    println!(
+        "✓ wrote {} intentionally-unbound core fns to {CORE_UNBOUND_FILE}",
+        unbound.len()
+    );
+}
+
+fn cmd_coverage(write_allow: bool) {
+    let root = workspace_root();
+    let lib = fs::read_to_string(root.join("core/src/lib.rs")).expect("cannot read core/src/lib.rs");
+    let core = parse_core_flat_fns(&lib);
+    let bindings = load_bindings(&root);
+    let bound = bound_core_names(&bindings);
+
+    let unbound: BTreeSet<String> = core.iter().filter(|f| !bound.contains(*f)).cloned().collect();
+
+    if write_allow {
+        regenerate_allow_list(&root, &unbound);
+        return;
+    }
+
+    let allow = read_allow_list(&root);
+    let gap: Vec<&String> = unbound.iter().filter(|f| !allow.contains(*f)).collect();
+    let stale: Vec<&String> = allow
+        .iter()
+        .filter(|a| bound.contains(*a) || !core.contains(*a))
+        .collect();
+    let arity_allow = read_arity_allow(&root);
+    let arity: Vec<(String, Vec<String>)> = arity_mismatches(&root)
+        .into_iter()
+        .filter(|(name, _)| !arity_allow.contains(name))
+        .collect();
+
+    println!("celestial binding coverage check");
+    println!("================================");
+    println!("  core flat public fns : {}", core.len());
+    println!("  bound (any binding)  : {}", bound.intersection(&core).count());
+    println!("  intentionally unbound: {}", allow.len());
+
+    report_coverage(&gap, &stale, &arity);
+}
+
+fn report_coverage(gap: &[&String], stale: &[&String], arity: &[(String, Vec<String>)]) {
+    let mut failed = false;
+    if !gap.is_empty() {
+        failed = true;
+        println!(
+            "\n✗ {} core fn(s) exposed by no binding and not in the allow-list:\n",
+            gap.len()
+        );
+        for f in gap {
+            println!("    {f}");
+        }
+        println!("\n  → bind it in Python + JS + PHP (see `cargo xtask codegen`), OR");
+        println!("    add it to {CORE_UNBOUND_FILE} with a reason if it is Rust-only.");
+    }
+    if !stale.is_empty() {
+        failed = true;
+        println!(
+            "\n✗ {} allow-list entr(y/ies) are now bound or gone from core — remove them:\n",
+            stale.len()
+        );
+        for f in stale {
+            println!("    {f}");
+        }
+    }
+    if !arity.is_empty() {
+        failed = true;
+        println!("\n✗ {} fn(s) differ in arity across bindings:\n", arity.len());
+        for (name, per) in arity {
+            println!("    {name}: {}", per.join(", "));
+        }
+    }
+    if failed {
+        std::process::exit(1);
+    }
+    println!("\n✓ every core public fn is bound or explicitly allow-listed; arities agree.");
+}
+
+// ─── shapes command (C: return-shape contract snapshot) ───────────────────────
+
+/// Collapse a Rust return type into a coarse cross-language shape category.
+/// Coarse on purpose: it must be stable when only names change, but flip when
+/// the *kind* of value changes (scalar↔tuple↔array↔object) — the DOC-10 class.
+fn shape_category(ret: &str) -> String {
+    let t = ret
+        .trim()
+        .trim_start_matches("crate::")
+        .trim_start_matches("celestial_core::");
+    let inner = ["PyResult<", "napi::Result<", "PhpResult<", "Result<"]
+        .iter()
+        .find_map(|p| t.strip_prefix(p).and_then(|s| s.strip_suffix('>')))
+        .map_or(t, str::trim);
+    if let Some(o) = inner.strip_prefix("Option<").and_then(|s| s.strip_suffix('>')) {
+        return format!("opt<{}>", shape_category(o));
+    }
+    match inner {
+        "" | "()" | "void" => "void".to_string(),
+        "f64" | "f32" => "float".to_string(),
+        "i8" | "i16" | "i32" | "i64" | "isize" | "u8" | "u16" | "u32" | "u64" | "usize" => {
+            "int".to_string()
+        }
+        "bool" => "bool".to_string(),
+        "String" | "&str" | "&'static str" | "str" => "string".to_string(),
+        s if s.starts_with("Vec<") => "array".to_string(),
+        s if s.starts_with("HashMap") || s.starts_with("BTreeMap") => "map".to_string(),
+        s if s.starts_with('[') => "array".to_string(),
+        s if s.starts_with('(') && s.ends_with(')') => {
+            format!("tuple{}", split_params(&s[1..s.len() - 1]).len())
+        }
+        _ => "object".to_string(),
+    }
+}
+
+/// Build `fn_name -> (py_cat, js_cat, php_cat)` for every decorated fn.
+fn collect_shapes(root: &Path) -> BTreeMap<String, [String; 3]> {
+    let specs = [
+        (0usize, "bindings/python/src/lib.rs", "pyfunction"),
+        (1, "bindings/js/src/lib.rs", "napi"),
+        (2, "bindings/php/src/lib.rs", "php_function"),
+    ];
+    let mut map: BTreeMap<String, [String; 3]> = BTreeMap::new();
+    for (idx, rel, deco) in specs {
+        let src = fs::read_to_string(root.join(rel)).unwrap_or_default();
+        for e in scan_decorated_fns(&src, deco) {
+            map.entry(e.name)
+                .or_insert_with(|| ["-".into(), "-".into(), "-".into()])[idx] =
+                shape_category(&e.ret);
+        }
+    }
+    map
+}
+
+fn render_shapes(map: &BTreeMap<String, [String; 3]>) -> String {
+    let mut out = String::from(
+        "# Auto-generated by `cargo xtask shapes` — do not edit.\n\
+         # Return-shape contract per binding (py | js | php). A diff here means a\n\
+         # binding's return KIND changed (scalar/tuple/array/object) — update the\n\
+         # matching docs/generated file and language guide in the same commit.\n\n",
+    );
+    let width = map.keys().map(String::len).max().unwrap_or(0);
+    for (name, [py, js, php]) in map {
+        out.push_str(&format!(
+            "{name:<width$}  py={py:<10} js={js:<10} php={php}\n"
+        ));
+    }
+    out
+}
+
+fn cmd_shapes(check: bool) {
+    let root = workspace_root();
+    let map = collect_shapes(&root);
+    let out = render_shapes(&map);
+    let path = root.join("xtask/binding_shapes.txt");
+    write_or_check(&path, &out, check, "shape entries", "shapes", map.len());
+}
+
+// ─── apidoc command (D: generated binding API reference) ──────────────────────
+
+/// (section title, binding source path, decorator, Rust→lang type mapper).
+type ApidocSection = (&'static str, &'static str, &'static str, fn(&str) -> String);
+
+/// `rust_type_to_php` as an owned-String fn pointer (matches the pyi/ts mappers).
+fn php_ret_type(t: &str) -> String {
+    rust_type_to_php(t, true).to_string()
+}
+
+/// Render one language's fn signature line using a target-language type mapper.
+fn apidoc_sig(entry: &PhpFnEntry, ty: impl Fn(&str) -> String) -> String {
+    let params: Vec<String> = entry
+        .params
+        .iter()
+        .map(|(t, n)| format!("{n}: {}", ty(t)))
+        .collect();
+    format!("{}({}) -> {}", entry.name, params.join(", "), ty(&entry.ret))
+}
+
+fn apidoc_constants_table(root: &Path) -> String {
+    let consts_src = fs::read_to_string(root.join("core/src/constants.rs")).unwrap_or_default();
+    let vals = parse_core_constants(&consts_src);
+    let js = fs::read_to_string(root.join("bindings/js/src/lib.rs")).unwrap_or_default();
+    let mut out = String::from("## Constants (value from `core/src/constants.rs`)\n\n| Constant | Value |\n|---|---|\n");
+    for c in scan_napi_consts(&js) {
+        let v = vals.get(&c.name).cloned().unwrap_or_else(|| "?".into());
+        out.push_str(&format!("| `{}` | {} |\n", c.name, v));
+    }
+    out
+}
+
+/// Render `## <title>` section listing every decorated fn's signature.
+/// Returns (rendered_markdown, fn_count).
+fn apidoc_fn_section(
+    root: &Path,
+    title: &str,
+    rel: &str,
+    deco: &str,
+    ty: fn(&str) -> String,
+) -> (String, usize) {
+    let src = fs::read_to_string(root.join(rel)).unwrap_or_default();
+    let mut fns = scan_decorated_fns(&src, deco);
+    fns.sort_by(|a, b| a.name.cmp(&b.name));
+    let lines: String = fns
+        .iter()
+        .map(|e| format!("{}\n", apidoc_sig(e, ty)))
+        .collect();
+    let n = fns.len();
+    (format!("\n## {title} — {n} functions\n\n```\n{lines}```\n"), n)
+}
+
+fn cmd_apidoc(check: bool) {
+    let root = workspace_root();
+    let mut out = String::from(
+        "<!-- Auto-generated by `cargo xtask apidoc` — do not edit. -->\n\
+         <!-- Regenerate: cargo xtask apidoc. This file is the source of truth for\n\
+         binding constant values and signatures; the hand-written language guides\n\
+         link here rather than restating them (prevents DOC-9/DOC-10 drift). -->\n\n\
+         # Binding API — generated reference\n\n",
+    );
+    out.push_str(&apidoc_constants_table(&root));
+
+    let sections: [ApidocSection; 3] = [
+        ("Python", "bindings/python/src/lib.rs", "pyfunction", rust_type_to_pyi),
+        ("JavaScript / TypeScript", "bindings/js/src/lib.rs", "napi", rust_type_to_ts),
+        ("PHP", "bindings/php/src/lib.rs", "php_function", php_ret_type),
+    ];
+    let mut total = 0;
+    for (title, rel, deco, ty) in sections {
+        let (section, n) = apidoc_fn_section(&root, title, rel, deco, ty);
+        out.push_str(&section);
+        total += n;
+    }
+
+    let path = root.join("docs/generated/binding_api.md");
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir).ok();
+    }
+    write_or_check(&path, &out, check, "signatures", "apidoc", total);
+}
+
 // ─── unit tests ──────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -1961,6 +2344,59 @@ pub struct RiseTrans {
     /// scanner emit a bogus `from` export (the scanner used to walk
     /// past the struct into the impl). A genuine `#[napi] pub fn`
     /// nearby must still be captured.
+    // ── coverage: core flat-fn parsing (A) ───────────────────────────────────
+
+    #[test]
+    fn core_flat_fns_keeps_fns_drops_types_and_consts() {
+        let src = r#"
+pub use position::{calc_ut, calc, PlanetPos};
+pub use constants::{SUN, MOON, FLG_SPEED};
+pub use time::julday;
+pub use geo::{tz_abbr_find, TzAbbr, TZ_TABLE};
+"#;
+        let fns = parse_core_flat_fns(src);
+        assert!(fns.contains("calc_ut"));
+        assert!(fns.contains("calc"));
+        assert!(fns.contains("julday"));
+        assert!(fns.contains("tz_abbr_find"));
+        // Types (CamelCase) and consts (UPPER) excluded.
+        assert!(!fns.contains("PlanetPos"));
+        assert!(!fns.contains("SUN"));
+        assert!(!fns.contains("FLG_SPEED"));
+        assert!(!fns.contains("TzAbbr"));
+        assert!(!fns.contains("TZ_TABLE"));
+    }
+
+    #[test]
+    fn core_fn_alias_reexport_takes_alias_name() {
+        let mut set = BTreeSet::new();
+        push_core_fn(&mut set, "old_name as new_name");
+        assert!(set.contains("new_name"));
+        assert!(!set.contains("old_name"));
+    }
+
+    // ── shapes: return-shape category (C) ─────────────────────────────────────
+
+    #[test]
+    fn shape_category_distinguishes_kinds() {
+        assert_eq!(shape_category("PyResult<f64>"), "float");
+        assert_eq!(shape_category("napi::Result<Vec<f64>>"), "array");
+        assert_eq!(shape_category("(f64, f64)"), "tuple2");
+        assert_eq!(shape_category("(u8, usize, String, String)"), "tuple4");
+        assert_eq!(shape_category("PhpResult<Vec<f64>>"), "array");
+        assert_eq!(shape_category("bool"), "bool");
+        assert_eq!(shape_category("Option<f64>"), "opt<float>");
+        assert_eq!(shape_category("PlanetPos"), "object");
+        assert_eq!(shape_category("()"), "void");
+    }
+
+    /// The exact drift that DOC-10 documented wrong: a 2-tuple return must NOT
+    /// classify the same as an object — so a Vec→struct change flips the snapshot.
+    #[test]
+    fn shape_category_tuple_is_not_object() {
+        assert_ne!(shape_category("(f64, f64)"), shape_category("PlanetPos"));
+    }
+
     #[test]
     fn scan_skips_impl_from_after_napi_struct() {
         let src = r#"

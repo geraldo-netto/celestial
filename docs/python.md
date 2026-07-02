@@ -9,8 +9,10 @@
 cd bindings/python && pip install maturin && maturin develop
 ```
 
-This guide covers installation, all function signatures, return types, constants,
-and tradition-specific examples.
+This guide covers installation, usage patterns, and tradition-specific examples.
+The **authoritative constant values and per-function signatures** are generated
+from source in [generated/binding_api.md](generated/binding_api.md) — consult it
+(not hand-copied numbers) when you need an exact value or signature.
 
 ---
 

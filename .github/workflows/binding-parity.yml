@@ -58,6 +58,9 @@ jobs:
       - name: Check binding parity
         run: |
           cargo xtask parity
+          cargo xtask coverage
+          cargo xtask shapes --check
+          cargo xtask apidoc --check
           cargo xtask test-stubs
           cargo xtask pyi --check
           cargo xtask dts --check
@@ -65,13 +68,19 @@ jobs:
       - name: Validate phpstan-stubs.php syntax
         run: cargo xtask test-stubs
 
-      - name: Show codegen suggestions on failure
+      - name: Show fix suggestions on failure
         if: failure()
         run: |
           echo "──────────────────────────────────────────────────────────────"
-          echo "Bindings are out of parity. Run locally to generate stubs:"
+          echo "Binding gate failed. Depending on which check tripped:"
           echo ""
-          echo "  cargo xtask codegen --apply"
-          echo "  # review the diff, then commit"
+          echo "  parity   → cargo xtask codegen --apply   (add missing wrappers)"
+          echo "  coverage → bind the new core fn in all 3 languages, OR add it to"
+          echo "             xtask/core_unbound_allow.txt (Rust-only) / arity_allow.txt"
+          echo "  shapes   → cargo xtask shapes            (a return KIND changed —"
+          echo "             update docs/generated + the language guide too)"
+          echo "  apidoc   → cargo xtask apidoc            (regenerate the API doc)"
+          echo "  pyi/dts  → cargo xtask pyi / dts         (regenerate stubs)"
+          echo "  Review every generated diff before committing."
           echo "──────────────────────────────────────────────────────────────"
           cargo xtask codegen || true
