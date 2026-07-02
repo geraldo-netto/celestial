@@ -1,121 +1,121 @@
 # Core public fns intentionally NOT exposed in the language bindings.
 # Source of truth for `cargo xtask coverage`. Regenerate the baseline with
 # `cargo xtask coverage --write-allow`, but prefer BINDING a new core fn over
-# adding it here. Every entry is a deliberate "Rust-only" decision (low-level
-# helpers, path/config setters, unwrapped library-only APIs — see TODO WIRE-1).
-# One fn name per line.
+# adding it here. Format: `<fn_name>  # rust-only|backlog`.
+#   rust-only = permanent (low-level unit helpers, path/config setters, WIRE-1)
+#   backlog   = bindable, just not wrapped yet (GATE-4) — shrink this over time
 
-approx_hebrew_year
-arabic_parts_seven
-aspect_angles
-ayanamsa_ex
-ayanamsa_ex_ut
-buddhist
-celtic
-centisec_to_deg_str
-centisec_to_lonlat_str
-centisec_to_time_str
-christian
-coord_transform_with_speed
-cs_round_sec
-current_file_data
-date_conversion
-days_in_hebrew_year
-default_orb
-deg_to_cs
-deltat_ex
-diff_cs
-diff_cs_signed
-diff_deg
-diff_rad_signed
-distance_to_mc
-easter_julian
-elapsed_days
-gauquelin_sector
-geo_to_dms
-get_orbital_elements
-hebrew
-hebrew_month_days
-hebrew_month_start_jd
-hebrew_new_year_jd
-heliacal_pheno_ut
-heliacal_ut
-helio_cross
-helio_cross_ut
-hijri_month_days
-hijri_month_start_jd
-hijri_new_year_jd
-hindu
-house_system_char
-house_system_id
-houses_armc
-houses_armc_ex2
-houses_from_armc
-is_applying
-is_bahai_leap_year
-is_hebrew_leap_year
-is_hijri_leap_year
-islamic
-islamic_observances_for_jd
-jd_et_to_utc
-jd_ut_to_utc
-karana_name
-lat_to_lmt
-library_path
-lmt_to_lat
-lower_meridian_transit_ut
-lun_occult_when_glob
-lun_occult_when_loc
-lun_occult_where
-make_pillar
-mean_sidereal_time_deg
-meridian_transit_ut
-midpoint_rad
-months_in_hebrew_year
-mooncross
-mooncross_back_ut
-mooncross_ut
-nakshatras
-next_aspect2
-next_aspect_with2
-next_full_moon
-next_new_moon_after
-next_principal_phase
-nod_aps
-nod_aps_ut
-norm_rad
-orbit_max_min_true_distance
-parallactic_angle
-parse_time
-persian
-pheno
-pheno_ut
-planet_conjunct_mc
-planet_house_number
-planet_on_midpoint
-rasi_diff
-rasi_diff2
-rasi_norm
-rise_trans_true_hor
-same_sect
-set_lapse_rate
-set_tid_acc
-sidereal_mode_flag
-sidereal_mode_id
-sidereal_time_deg
-sidtime0
-sign_exaltation
-sign_lord
-signs
-solar_hijri_to_gregorian
-solcross
-solcross_back_ut
-tatkalika_relation
-tid_acc
-time_equ
-tt_to_ut
-tz_abbr_find
-utc_time_zone
-vis_limit_mag
-wrap_signed_180
-years_diff
+approx_hebrew_year               # backlog
+arabic_parts_seven               # backlog
+aspect_angles                    # backlog
+ayanamsa_ex                      # rust-only
+ayanamsa_ex_ut                   # rust-only
+buddhist                         # backlog
+celtic                           # backlog
+centisec_to_deg_str              # rust-only
+centisec_to_lonlat_str           # rust-only
+centisec_to_time_str             # rust-only
+christian                        # backlog
+coord_transform_with_speed       # rust-only
+cs_round_sec                     # rust-only
+current_file_data                # rust-only
+date_conversion                  # rust-only
+days_in_hebrew_year              # backlog
+default_orb                      # rust-only
+deg_to_cs                        # rust-only
+deltat_ex                        # rust-only
+diff_cs                          # rust-only
+diff_cs_signed                   # rust-only
+diff_deg                         # backlog
+diff_rad_signed                  # rust-only
+distance_to_mc                   # backlog
+easter_julian                    # backlog
+elapsed_days                     # backlog
+gauquelin_sector                 # rust-only
+geo_to_dms                       # backlog
+get_orbital_elements             # rust-only
+hebrew                           # backlog
+hebrew_month_days                # backlog
+hebrew_month_start_jd            # backlog
+hebrew_new_year_jd               # backlog
+heliacal_pheno_ut                # rust-only
+heliacal_ut                      # backlog
+helio_cross                      # backlog
+helio_cross_ut                   # backlog
+hijri_month_days                 # backlog
+hijri_month_start_jd             # backlog
+hijri_new_year_jd                # backlog
+hindu                            # backlog
+house_system_char                # backlog
+house_system_id                  # backlog
+houses_armc                      # backlog
+houses_armc_ex2                  # backlog
+houses_from_armc                 # backlog
+is_applying                      # rust-only
+is_bahai_leap_year               # backlog
+is_hebrew_leap_year              # backlog
+is_hijri_leap_year               # backlog
+islamic                          # backlog
+islamic_observances_for_jd       # backlog
+jd_et_to_utc                     # backlog
+jd_ut_to_utc                     # backlog
+karana_name                      # backlog
+lat_to_lmt                       # backlog
+library_path                     # rust-only
+lmt_to_lat                       # backlog
+lower_meridian_transit_ut        # backlog
+lun_occult_when_glob             # backlog
+lun_occult_when_loc              # backlog
+lun_occult_where                 # backlog
+make_pillar                      # rust-only
+mean_sidereal_time_deg           # backlog
+meridian_transit_ut              # backlog
+midpoint_rad                     # rust-only
+months_in_hebrew_year            # backlog
+mooncross                        # backlog
+mooncross_back_ut                # backlog
+mooncross_ut                     # backlog
+nakshatras                       # backlog
+next_aspect2                     # backlog
+next_aspect_with2                # backlog
+next_full_moon                   # backlog
+next_new_moon_after              # backlog
+next_principal_phase             # backlog
+nod_aps                          # backlog
+nod_aps_ut                       # backlog
+norm_rad                         # rust-only
+orbit_max_min_true_distance      # rust-only
+parallactic_angle                # backlog
+parse_time                       # backlog
+persian                          # backlog
+pheno                            # backlog
+pheno_ut                         # backlog
+planet_conjunct_mc               # backlog
+planet_house_number              # backlog
+planet_on_midpoint               # backlog
+rasi_diff                        # backlog
+rasi_diff2                       # backlog
+rasi_norm                        # backlog
+rise_trans_true_hor              # backlog
+same_sect                        # backlog
+set_lapse_rate                   # rust-only
+set_tid_acc                      # rust-only
+sidereal_mode_flag               # backlog
+sidereal_mode_id                 # backlog
+sidereal_time_deg                # backlog
+sidtime0                         # backlog
+sign_exaltation                  # backlog
+sign_lord                        # backlog
+signs                            # backlog
+solar_hijri_to_gregorian         # backlog
+solcross                         # backlog
+solcross_back_ut                 # backlog
+tatkalika_relation               # backlog
+tid_acc                          # rust-only
+time_equ                         # backlog
+tt_to_ut                         # backlog
+tz_abbr_find                     # backlog
+utc_time_zone                    # backlog
+vis_limit_mag                    # rust-only
+wrap_signed_180                  # rust-only
+years_diff                       # backlog

@@ -1784,8 +1784,28 @@ fn read_allow_list(root: &Path) -> BTreeSet<String> {
         .lines()
         .map(str::trim)
         .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .filter_map(|l| l.split_whitespace().next())
         .map(String::from)
         .collect()
+}
+
+/// Classify an intentionally-unbound core fn as a permanent Rust-only API vs a
+/// not-yet-bound backlog item, so `coverage` can report how much gap is real.
+/// Rust-only = low-level unit helpers, path/config setters, and the WIRE-1 set.
+fn classify_unbound(name: &str) -> &'static str {
+    const RUST_ONLY: &[&str] = &[
+        "centisec", "_cs", "cs_round", "deg_to_cs", "norm_cs", "diff_cs", "library_path",
+        "current_file_data", "make_pillar", "date_conversion", "version", "close", "tid_acc",
+        "deltat_ex", "set_delta_t", "set_ephe", "set_jpl", "set_lapse", "gauquelin_sector",
+        "get_orbital_elements", "heliacal_pheno_ut", "vis_limit_mag", "orbit_max_min",
+        "ayanamsa_ex", "is_applying", "default_orb", "wrap_signed_180", "norm_rad",
+        "midpoint_rad", "diff_rad_signed", "coord_transform",
+    ];
+    if RUST_ONLY.iter().any(|p| name.contains(p)) {
+        "rust-only"
+    } else {
+        "backlog"
+    }
 }
 
 /// Checked-in list of fns whose cross-binding arity difference is known and
@@ -1942,17 +1962,17 @@ fn regenerate_allow_list(root: &Path, unbound: &BTreeSet<String>) {
         "# Core public fns intentionally NOT exposed in the language bindings.\n\
          # Source of truth for `cargo xtask coverage`. Regenerate the baseline with\n\
          # `cargo xtask coverage --write-allow`, but prefer BINDING a new core fn over\n\
-         # adding it here. Every entry is a deliberate \"Rust-only\" decision (low-level\n\
-         # helpers, path/config setters, unwrapped library-only APIs — see TODO WIRE-1).\n\
-         # One fn name per line.\n\n",
+         # adding it here. Format: `<fn_name>  # rust-only|backlog`.\n\
+         #   rust-only = permanent (low-level unit helpers, path/config setters, WIRE-1)\n\
+         #   backlog   = bindable, just not wrapped yet (GATE-4) — shrink this over time\n\n",
     );
+    let backlog = unbound.iter().filter(|f| classify_unbound(f) == "backlog").count();
     for f in unbound {
-        body.push_str(f);
-        body.push('\n');
+        body.push_str(&format!("{f:<32} # {}\n", classify_unbound(f)));
     }
     fs::write(root.join(CORE_UNBOUND_FILE), body).expect("cannot write allow-list");
     println!(
-        "✓ wrote {} intentionally-unbound core fns to {CORE_UNBOUND_FILE}",
+        "✓ wrote {} intentionally-unbound core fns ({backlog} backlog) to {CORE_UNBOUND_FILE}",
         unbound.len()
     );
 }
@@ -1989,7 +2009,8 @@ fn cmd_coverage(write_allow: bool) {
     println!("================================");
     println!("  core flat public fns : {}", core.len());
     println!("  bound (any binding)  : {}", bound.intersection(&core).count());
-    println!("  intentionally unbound: {}", allow.len());
+    let backlog = allow.iter().filter(|f| classify_unbound(f) == "backlog").count();
+    println!("  intentionally unbound: {} ({backlog} bindable backlog)", allow.len());
     for (b, s) in &const_sets {
         println!("  constants ({b}) : {}", s.len());
     }
@@ -2493,6 +2514,19 @@ pub use geo::{tz_abbr_find, TzAbbr, TZ_TABLE};
         push_core_fn(&mut set, "old_name as new_name");
         assert!(set.contains("new_name"));
         assert!(!set.contains("old_name"));
+    }
+
+    // ── unbound classification (GATE-3) ───────────────────────────────────────
+
+    #[test]
+    fn classify_unbound_splits_rust_only_and_backlog() {
+        assert_eq!(classify_unbound("centisec_to_deg_str"), "rust-only");
+        assert_eq!(classify_unbound("set_ephe_path"), "rust-only");
+        assert_eq!(classify_unbound("gauquelin_sector"), "rust-only");
+        assert_eq!(classify_unbound("ayanamsa_ex"), "rust-only");
+        assert_eq!(classify_unbound("lun_occult_when_glob"), "backlog");
+        assert_eq!(classify_unbound("pheno_ut"), "backlog");
+        assert_eq!(classify_unbound("hebrew_month_days"), "backlog");
     }
 
     // ── ordered signature parity (GATE-2) ─────────────────────────────────────
