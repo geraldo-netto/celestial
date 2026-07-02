@@ -1871,9 +1871,21 @@ fn const_parity_gaps(
     out
 }
 
-/// Per-binding parameter count for every decorated fn (self/py excluded by the
-/// signature parser). Used for cross-binding arity parity (B).
-fn binding_arities(root: &Path) -> Vec<(String, BTreeMap<String, usize>)> {
+/// A param's shape category with the napi-optional idiom removed: JS wraps
+/// trailing args in `Option<>` where Python/PHP take them required, which is a
+/// binding convention, not a semantic difference — so `opt<T>` compares as `T`.
+fn normalized_param_cat(ty: &str) -> String {
+    let c = shape_category(ty);
+    c.strip_prefix("opt<")
+        .and_then(|s| s.strip_suffix('>'))
+        .map_or(c.clone(), str::to_string)
+}
+
+/// Per-binding *ordered* parameter signature for every decorated fn: each param
+/// reduced to a cross-language shape category so `i32`↔`i64` don't count as
+/// drift but an argument swap or added/dropped param does (GATE-2). self/py are
+/// excluded by the signature parser. Value is a "float,int,array"-style key.
+fn binding_signatures(root: &Path) -> Vec<(String, BTreeMap<String, String>)> {
     let specs = [
         ("Python", "bindings/python/src/lib.rs", "pyfunction"),
         ("JS", "bindings/js/src/lib.rs", "napi"),
@@ -1885,29 +1897,40 @@ fn binding_arities(root: &Path) -> Vec<(String, BTreeMap<String, usize>)> {
             let src = fs::read_to_string(root.join(rel)).unwrap_or_default();
             let map = scan_decorated_fns(&src, deco)
                 .into_iter()
-                .map(|e| (e.name, e.params.len()))
+                .map(|e| {
+                    let sig = e
+                        .params
+                        .iter()
+                        .map(|(ty, _)| normalized_param_cat(ty))
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    (e.name, sig)
+                })
                 .collect();
             ((*name).to_string(), map)
         })
         .collect()
 }
 
-/// Find fns whose parameter count disagrees between two or more bindings.
-/// Returns (fn_name, ["Python:2", "PHP:3", ...]).
+/// Find fns whose ordered parameter signature disagrees between two or more
+/// bindings. Returns (fn_name, ["Python: float,int", "JS: int,float", ...]).
 fn arity_mismatches(root: &Path) -> Vec<(String, Vec<String>)> {
-    let arities = binding_arities(root);
-    let all_fns: BTreeSet<&String> = arities.iter().flat_map(|(_, m)| m.keys()).collect();
+    let sigs = binding_signatures(root);
+    let all_fns: BTreeSet<&String> = sigs.iter().flat_map(|(_, m)| m.keys()).collect();
     let mut out = Vec::new();
     for fname in all_fns {
-        let present: Vec<(&str, usize)> = arities
+        let present: Vec<(&str, &String)> = sigs
             .iter()
-            .filter_map(|(lang, m)| m.get(fname).map(|c| (lang.as_str(), *c)))
+            .filter_map(|(lang, m)| m.get(fname).map(|s| (lang.as_str(), s)))
             .collect();
-        let counts: BTreeSet<usize> = present.iter().map(|(_, c)| *c).collect();
-        if present.len() >= 2 && counts.len() > 1 {
+        let distinct: BTreeSet<&String> = present.iter().map(|(_, s)| *s).collect();
+        if present.len() >= 2 && distinct.len() > 1 {
             out.push((
                 fname.clone(),
-                present.iter().map(|(l, c)| format!("{l}:{c}")).collect(),
+                present
+                    .iter()
+                    .map(|(l, s)| format!("{l}: ({s})"))
+                    .collect(),
             ));
         }
     }
@@ -2022,9 +2045,12 @@ fn report_coverage(
     }
     if !arity.is_empty() {
         failed = true;
-        println!("\n✗ {} fn(s) differ in arity across bindings:\n", arity.len());
+        println!(
+            "\n✗ {} fn(s) differ in parameter signature (count/order/type) across bindings:\n",
+            arity.len()
+        );
         for (name, per) in arity {
-            println!("    {name}: {}", per.join(", "));
+            println!("    {name}: {}", per.join("  |  "));
         }
     }
     if failed {
@@ -2467,6 +2493,21 @@ pub use geo::{tz_abbr_find, TzAbbr, TZ_TABLE};
         push_core_fn(&mut set, "old_name as new_name");
         assert!(set.contains("new_name"));
         assert!(!set.contains("old_name"));
+    }
+
+    // ── ordered signature parity (GATE-2) ─────────────────────────────────────
+
+    #[test]
+    fn normalized_param_strips_napi_optional() {
+        // JS trailing Option<> is a binding idiom, not a semantic difference.
+        assert_eq!(normalized_param_cat("Option<i32>"), normalized_param_cat("i32"));
+        assert_eq!(normalized_param_cat("Option<f64>"), "float");
+        assert_eq!(normalized_param_cat("i64"), "int");
+        // An argument swap still shows as a different sequence.
+        assert_ne!(
+            ["float", "int"].join(","),
+            ["int", "float"].join(",")
+        );
     }
 
     // ── constant parity (GATE-1) ──────────────────────────────────────────────
