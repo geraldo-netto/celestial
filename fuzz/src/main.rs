@@ -3362,20 +3362,60 @@ fn test_calc_ut_many_consistency(n: u32) -> Suite {
         s.check(many.len() == bodies.len(), || {
             format!("calc_ut_many length: {}", many.len())
         });
-        // First (Sun) should match a separate calc_ut call
-        if let (Some(Ok(via_many)), Ok(via_one)) = (
-            many.first(),
-            calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN),
-        ) {
-            s.check((via_many.lon - via_one.lon).abs() < 1e-9, || {
-                format!(
-                    "Sun lon mismatch jd={jd}: many={} one={}",
-                    via_many.lon, via_one.lon
-                )
-            });
-        }
+        check_calc_ut_many_first_body(&mut s, jd, &bodies, CalcFlags::BUILTIN, "default");
+
+        let mode = SiderealMode((rng.next_u64() % 6) as i32);
+        set_sid_mode(mode, 0.0, 0.0);
+        check_calc_ut_many_first_body(
+            &mut s,
+            jd,
+            &bodies,
+            CalcFlags::BUILTIN | CalcFlags::SIDEREAL,
+            "sidereal",
+        );
+
+        let topo_bodies = [
+            Body::MOON,
+            Body::SUN,
+            Body::MERCURY,
+            Body::VENUS,
+            Body::MARS,
+            Body::JUPITER,
+            Body::SATURN,
+        ];
+        let lon = rng.range_f64(-180.0, 180.0);
+        let lat = rng.range_f64(-65.0, 65.0);
+        set_topo(Longitude::new(lon), Latitude::new(lat), 0.0);
+        check_calc_ut_many_first_body(
+            &mut s,
+            jd,
+            &topo_bodies,
+            CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC,
+            "topocentric",
+        );
+        set_topo(Longitude::new(0.0), Latitude::new(0.0), 0.0);
     }
+    set_sid_mode(SiderealMode::FAGAN_BRADLEY, 0.0, 0.0);
     s
+}
+
+fn check_calc_ut_many_first_body(
+    s: &mut Suite,
+    jd: f64,
+    bodies: &[Body],
+    flags: CalcFlags,
+    label: &str,
+) {
+    let many = celestial_core::calc_ut_many(JulianDay::new(jd), bodies, flags);
+    let one = calc_ut(JulianDay::new(jd), bodies[0], flags);
+    if let (Some(Ok(via_many)), Ok(via_one)) = (many.first(), one) {
+        s.check((via_many.lon - via_one.lon).abs() < 1e-9, || {
+            format!(
+                "{label} first-body lon mismatch jd={jd}: many={} one={}",
+                via_many.lon, via_one.lon
+            )
+        });
+    }
 }
 
 /// `arabic_part(asc, body2, body1)` returns Part of Fortune — must be in [0, 360).

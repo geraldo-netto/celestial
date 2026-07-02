@@ -290,13 +290,17 @@ where
         return bodies.iter().map(|&b| f(b)).collect();
     }
     use std::sync::Arc;
+    let config = crate::functions::config::current_config();
     let f = Arc::new(f);
     std::thread::scope(|s| {
         let handles: Vec<_> = bodies
             .iter()
             .map(|&body| {
                 let f = Arc::clone(&f);
-                s.spawn(move || f(body))
+                s.spawn(move || {
+                    crate::functions::config::set_thread_config(config);
+                    f(body)
+                })
             })
             .collect();
         handles
@@ -473,6 +477,27 @@ impl<'a> MultiCalc<'a> {
 #[cfg(test)]
 mod cov_tests {
     use super::*;
+    use crate::body::SiderealMode;
+    use crate::functions::config;
+    use crate::units::{Latitude, Longitude};
+
+    struct ConfigGuard(config::EngineConfig);
+
+    impl ConfigGuard {
+        fn new() -> Self {
+            Self(config::current_config())
+        }
+    }
+
+    impl Drop for ConfigGuard {
+        fn drop(&mut self) {
+            config::set_thread_config(self.0);
+        }
+    }
+
+    fn lon_diff(a: f64, b: f64) -> f64 {
+        (a - b + 180.0).rem_euclid(360.0) - 180.0
+    }
 
     #[test]
     fn parallel_calc_short_input_sequential_path() {
@@ -500,5 +525,43 @@ mod cov_tests {
         });
         assert_eq!(out.len(), 5);
         assert!(out.iter().all(Result::is_ok));
+    }
+
+    #[test]
+    fn calc_ut_many_threaded_path_keeps_sidereal_mode() {
+        let _guard = ConfigGuard::new();
+        config::set_sid_mode(SiderealMode::RAMAN, 0.0, 0.0);
+        let jd = JulianDay::new(2_451_545.0);
+        let flags = CalcFlags::BUILTIN | CalcFlags::SIDEREAL;
+        let short = [Body::SUN, Body::MOON];
+        let long = [Body::SUN, Body::MOON, Body::MERCURY];
+        let seq = calc_ut_many(jd, &short, flags)[0].as_ref().unwrap().lon;
+        let par = calc_ut_many(jd, &long, flags)[0].as_ref().unwrap().lon;
+        assert!(lon_diff(seq, par).abs() < 1e-10);
+    }
+
+    #[test]
+    fn calc_ut_many_threaded_path_keeps_topocentric_origin() {
+        let _guard = ConfigGuard::new();
+        config::set_topo(Longitude::new(-75.0), Latitude::new(40.0), 120.0);
+        let jd = JulianDay::new(2_451_545.0);
+        let flags = CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC;
+        let short = [Body::MOON, Body::SUN];
+        let long = [Body::MOON, Body::SUN, Body::MERCURY];
+        let seq = calc_ut_many(jd, &short, flags)[0].as_ref().unwrap().lon;
+        let par = calc_ut_many(jd, &long, flags)[0].as_ref().unwrap().lon;
+        assert!(lon_diff(seq, par).abs() < 1e-10);
+    }
+
+    #[test]
+    fn calc_ut_many_threaded_path_keeps_delta_t_override() {
+        let _guard = ConfigGuard::new();
+        config::set_delta_t_userdef(86_400.0);
+        let jd = JulianDay::new(2_451_545.0);
+        let bodies = [Body::SUN, Body::MOON, Body::MERCURY];
+        let many = calc_ut_many(jd, &bodies, CalcFlags::BUILTIN);
+        let one = calc_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+        let got = many[0].as_ref().unwrap();
+        assert!(lon_diff(got.lon, one.lon).abs() < 1e-10);
     }
 }

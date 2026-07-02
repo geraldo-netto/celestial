@@ -10,42 +10,44 @@
   <text x="310.00" y="292.00" text-anchor="middle" font-size="11" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00">Vedic Chart</text>
   <text x="310.00" y="322.00" text-anchor="middle" font-size="8"
-        font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".7">☽ Uttarabhadra</text>
+        font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".7">☽ Satabhisha</text>
   <rect x="30.00" y="70.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="34.00" y="84.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♓</text>
   <text x="34.00" y="94.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Pi</text>
-  <text x="36.00" y="106.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">☿︎ 18°</text>
+  <text x="36.00" y="106.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">♀︎ 17°</text>
+  <text x="36.00" y="120.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#a01030">♅︎℞ 27°</text>
   <rect x="170.00" y="70.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="174.00" y="84.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♈</text>
   <text x="174.00" y="94.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Ar</text>
   <rect x="310.00" y="70.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="314.00" y="84.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♉</text>
   <text x="314.00" y="94.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Ta</text>
+  <text x="316.00" y="106.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">☉︎ 15°</text>
   <rect x="450.00" y="70.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="454.00" y="84.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♊</text>
   <text x="454.00" y="94.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Ge</text>
-  <text x="456.00" y="106.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#a01030">♄︎℞ 7°</text>
+  <text x="456.00" y="106.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">♃︎ 27°</text>
   <rect x="30.00" y="190.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="34.00" y="204.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♒</text>
   <text x="34.00" y="214.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Aq</text>
-  <text x="36.00" y="226.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#a01030">♆︎℞ 5°</text>
-  <text x="36.00" y="240.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">⚷︎ 14°</text>
+  <text x="36.00" y="226.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">⚷︎ 14°</text>
   <rect x="450.00" y="190.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="454.00" y="204.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♋</text>
   <text x="454.00" y="214.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Ca</text>
-  <text x="456.00" y="226.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">♂︎ 23°</text>
+  <text x="456.00" y="226.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#a01030">♆︎℞ 11°</text>
   <rect x="30.00" y="310.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="34.00" y="324.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♑</text>
   <text x="34.00" y="334.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Cp</text>
-  <text x="36.00" y="346.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">♃︎ 21°</text>
+  <text x="36.00" y="346.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">☽︎ 13°</text>
   <rect x="450.00" y="310.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="454.00" y="324.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♌</text>
   <text x="454.00" y="334.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Le</text>
-  <text x="456.00" y="346.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#a01030">♇︎℞ 5°</text>
+  <text x="456.00" y="346.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">☿︎ 24°</text>
+  <text x="456.00" y="360.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#a01030">♇︎℞ 5°</text>
   <rect x="30.00" y="430.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="34.00" y="444.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♐</text>
   <text x="34.00" y="454.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Sg</text>
-  <text x="36.00" y="466.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">☉︎ 9°</text>
+  <text x="36.00" y="466.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">♂︎ 29°</text>
   <text x="36.00" y="480.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#a01030">☊︎℞ 28°</text>
   <rect x="170.00" y="430.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="174.00" y="444.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♏</text>
@@ -53,30 +55,28 @@
   <rect x="310.00" y="430.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="314.00" y="444.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♎</text>
   <text x="314.00" y="454.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Li</text>
-  <text x="316.00" y="466.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">♀︎ 11°</text>
-  <text x="316.00" y="480.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#a01030">♅︎℞ 21°</text>
+  <text x="316.00" y="466.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#a01030">♄︎℞ 13°</text>
   <rect x="450.00" y="430.00" width="140.00" height="120.00" fill="#ffffff" stroke="#5c3a00" stroke-width="1.0"/>
   <text x="454.00" y="444.00" font-size="11" font-family="serif" fill="#2a1a00" opacity=".5">♍</text>
   <text x="454.00" y="454.00" font-size="8" font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00" opacity=".4">Vi</text>
-  <text x="456.00" y="466.00" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a">☽︎ 7°</text>
   <text x="30" y="560.00" font-size="11" font-weight="600"
         font-family="'Segoe UI',system-ui,sans-serif" fill="#2a1a00">Vimshottari Dashas</text>
   <text x="30.00" y="574.00" font-size="9"
-            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(6)</tspan> 14.2y · 1986-05-30 09:00 UT</text>
+            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(10)</tspan> 9.4y · 1986-05-30 09:00 UT</text>
   <text x="216.67" y="574.00" font-size="9"
-            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(2)</tspan> 17.0y · 2000-08-20 10:34 UT</text>
+            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(5)</tspan> 16.0y · 1995-11-01 05:51 UT</text>
   <text x="403.33" y="574.00" font-size="9"
-            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(11)</tspan> 7.0y · 2017-08-20 16:34 UT</text>
+            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(6)</tspan> 19.0y · 2011-11-01 05:51 UT</text>
   <text x="30.00" y="588.00" font-size="9"
-            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(3)</tspan> 20.0y · 2024-08-20 10:34 UT</text>
+            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(2)</tspan> 17.0y · 2030-10-31 23:51 UT</text>
   <text x="216.67" y="588.00" font-size="9"
-            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(0)</tspan> 6.0y · 2044-08-20 10:34 UT</text>
+            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(11)</tspan> 7.0y · 2047-11-01 05:51 UT</text>
   <text x="403.33" y="588.00" font-size="9"
-            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(1)</tspan> 10.0y · 2050-08-20 22:34 UT</text>
+            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(3)</tspan> 20.0y · 2054-10-31 23:51 UT</text>
   <text x="30.00" y="602.00" font-size="9"
-            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(4)</tspan> 7.0y · 2060-08-20 10:34 UT</text>
+            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(0)</tspan> 6.0y · 2074-10-31 23:51 UT</text>
   <text x="216.67" y="602.00" font-size="9"
-            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(10)</tspan> 18.0y · 2067-08-21 04:34 UT</text>
+            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(1)</tspan> 10.0y · 2080-10-31 11:51 UT</text>
   <text x="403.33" y="602.00" font-size="9"
-            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(5)</tspan> 16.0y · 2085-08-20 16:34 UT</text>
+            font-family="'Segoe UI',system-ui,sans-serif" fill="#1a3a7a"><tspan font-weight="600">Body(4)</tspan> 7.0y · 2090-10-31 23:51 UT</text>
 </svg>

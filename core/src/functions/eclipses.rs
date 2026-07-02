@@ -127,7 +127,7 @@ pub fn sol_eclipse_where(jd_ut: JulianDay, _flags: CalcFlags) -> Result<EclipseW
         // Return the point for the nearest solar eclipse
         let result = ae::solar_eclipse_when_glob(JulianDay::new(jd_ut), 0, false)
             .ok_or(Error::NoEclipseFound { from_jd: jd_ut })?;
-        let k2 = ae::k_from_jd(JulianDay::new(result.tret[0]), true);
+        let k2 = ae::nearest_new_moon_k(result.tret[0]);
         let (_kind2, gamma2, u2) = ae::check_solar_eclipse(k2);
         let jde = result.tret[0];
         let (lon, lat) = ae::solar_eclipse_geopos(jde, gamma2);
@@ -136,7 +136,8 @@ pub fn sol_eclipse_where(jd_ut: JulianDay, _flags: CalcFlags) -> Result<EclipseW
         let mut attr = [0.0f64; 20];
         geopos[0] = lon;
         geopos[1] = lat;
-        attr[0] = if umb_mag > 0.0 { umb_mag } else { pen_mag };
+        let mag = if umb_mag > 0.0 { umb_mag } else { pen_mag };
+        attr[0] = mag.max(0.0);
         attr[7] = gamma2;
         attr[8] = u2;
         return Ok(EclipseWhere {
@@ -154,7 +155,8 @@ pub fn sol_eclipse_where(jd_ut: JulianDay, _flags: CalcFlags) -> Result<EclipseW
     let mut attr = [0.0f64; 20];
     geopos[0] = lon;
     geopos[1] = lat;
-    attr[0] = if umb_mag > 0.0 { umb_mag } else { pen_mag };
+    let mag = if umb_mag > 0.0 { umb_mag } else { pen_mag };
+    attr[0] = mag.max(0.0);
     attr[5] = umb_mag.max(0.0);
     attr[6] = pen_mag.max(0.0);
     attr[7] = gamma;

@@ -10,8 +10,8 @@ use celestial_core::JulianDay;
 use celestial_core::Latitude;
 use celestial_core::Longitude;
 
-use celestial_core::body::{Body, CalcFlags, HouseSystem};
-use celestial_core::{calc_ut, houses_ex};
+use celestial_core::body::{Body, CalcFlags, HouseSystem, SiderealMode};
+use celestial_core::{ayanamsa_ut, calc_ut, houses_ex, set_sid_mode};
 use celestial_core::{
     long_to_nakshatra, long_to_navamsa, long_to_rasi, naisargika_relation, nakshatra_name,
     ochchabala, vimshottari_dasha,
@@ -19,6 +19,14 @@ use celestial_core::{
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fmt::Write;
+
+const VEDIC_FLAGS: CalcFlags = CalcFlags(CalcFlags::BUILTIN.0 | CalcFlags::SIDEREAL.0);
+const VEDIC_SPEED_FLAGS: CalcFlags =
+    CalcFlags(CalcFlags::BUILTIN.0 | CalcFlags::SPEED.0 | CalcFlags::SIDEREAL.0);
+
+fn set_vedic_sidereal_mode() {
+    set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
+}
 
 pub(super) fn render_north_indian_svg(ctx: &ChartContext) -> String {
     let pal = super::svg_common::SvgPalette::from_ctx(
@@ -156,7 +164,7 @@ pub(super) fn build_ashtakavarga_context(
     date_str: &str,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
-    let flags = CalcFlags::BUILTIN | CalcFlags(64); // sidereal
+    set_vedic_sidereal_mode();
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| "Ashtakavarga".to_string());
@@ -168,7 +176,7 @@ pub(super) fn build_ashtakavarga_context(
         Longitude::new(lon),
         HouseSystem(b'P'),
     )?;
-    let asc_lon = h.ascmc[0];
+    let asc_lon = (h.ascmc[0] - ayanamsa_ut(JulianDay::new(jd))).rem_euclid(360.0);
     let asc_rasi = (asc_lon % 360.0 / 30.0) as usize % 12;
 
     let planet_bodies = [
@@ -186,7 +194,7 @@ pub(super) fn build_ashtakavarga_context(
 
     let mut planet_rasis = [0usize; 7];
     for (i, &b) in planet_bodies.iter().enumerate() {
-        if let Ok(pos) = calc_ut(JulianDay::new(jd), b, flags) {
+        if let Ok(pos) = calc_ut(JulianDay::new(jd), b, VEDIC_FLAGS) {
             planet_rasis[i] = (pos.lon / 30.0) as usize % 12;
         }
     }
@@ -414,7 +422,7 @@ pub(super) fn build_shadbala_context(
     date_str: &str,
     user_vars: BTreeMap<String, String>,
 ) -> Result<Value, CliError> {
-    let flags = CalcFlags::BUILTIN | CalcFlags::SPEED | CalcFlags(64);
+    set_vedic_sidereal_mode();
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| "Shadbala — Planetary Strength".to_string());
@@ -434,7 +442,7 @@ pub(super) fn build_shadbala_context(
 
     let mut rows: Vec<Value> = Vec::with_capacity(trad_bodies.len());
     for (i, &(body, raw, name)) in trad_bodies.iter().enumerate() {
-        if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
+        if let Ok(pos) = calc_ut(JulianDay::new(jd), body, VEDIC_SPEED_FLAGS) {
             // 1. Ochchabala: exaltation strength (0–60 shashtiamsas)
             let ochcha = ochchabala(raw, pos.lon).unwrap_or(0.0);
 
@@ -694,7 +702,7 @@ pub(super) fn build_vedic_context(
     user_vars: BTreeMap<String, String>,
     chart_type: &str,
 ) -> Result<Value, CliError> {
-    let flags = CalcFlags::BUILTIN | CalcFlags::SPEED | CalcFlags(64); // FLG_SIDEREAL
+    set_vedic_sidereal_mode();
     let mut vars = user_vars;
     vars.entry("title".to_string())
         .or_insert_with(|| format!("Vedic {chart_type}"));
@@ -703,7 +711,7 @@ pub(super) fn build_vedic_context(
     let mut planets: Vec<Value> = Vec::with_capacity(BODIES.len());
     let mut moon_sid_lon = 0.0_f64;
     for &(body, key, name, glyph) in BODIES {
-        if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
+        if let Ok(pos) = calc_ut(JulianDay::new(jd), body, VEDIC_SPEED_FLAGS) {
             let rasi = long_to_rasi(Longitude::new(pos.lon));
             let navamsa = long_to_navamsa(Longitude::new(pos.lon));
             let (nak, pada) = long_to_nakshatra(Longitude::new(pos.lon));

@@ -1222,7 +1222,11 @@ mod tests_vedic {
     use super::mesoamerican::build_mesoamerican_context;
     use super::vedic::{build_ashtakavarga_context, build_shadbala_context, build_vedic_context};
     use super::*;
-    use celestial_core::{long_to_navamsa, long_to_rasi};
+    use celestial_core::body::{Body, CalcFlags, HouseSystem, SiderealMode};
+    use celestial_core::{
+        ayanamsa_ut, calc_ut, houses_ex, long_to_navamsa, long_to_rasi, set_sid_mode,
+    };
+    use celestial_core::{Latitude, Longitude};
 
     #[test]
     fn vedic_context_has_sidereal_rasi() {
@@ -1239,6 +1243,26 @@ mod tests_vedic {
                 p["name"]
             );
         }
+    }
+
+    #[test]
+    fn vedic_context_uses_sidereal_longitudes() {
+        let jd = 2_451_545.0;
+        set_sid_mode(SiderealMode::FAGAN_BRADLEY, 0.0, 0.0);
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_vedic_context(jd, 13.08, 80.27, "2000-01-01", vars, "Rasi").unwrap();
+        set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
+        let got = planet_lon(&ctx, "Sun");
+        let flags = CalcFlags::BUILTIN | CalcFlags::SPEED | CalcFlags::SIDEREAL;
+        let expected = calc_ut(JulianDay::new(jd), Body::SUN, flags).unwrap();
+        let tropical = calc_ut(
+            JulianDay::new(jd),
+            Body::SUN,
+            CalcFlags::BUILTIN | CalcFlags::SPEED | CalcFlags::NO_NUTATION,
+        )
+        .unwrap();
+        assert!((got - expected.lon).abs() < 0.0002);
+        assert!(angle_diff(got, tropical.lon).abs() > 20.0);
     }
 
     #[test]
@@ -1282,9 +1306,7 @@ mod tests_vedic {
         // Navamsa D9 divides each sign into 9 equal parts of 3°20'
         // At least some planets should have a different navamsa vs rasi sign
         let jd = 2_451_545.0;
-        use celestial_core::body::{Body, CalcFlags};
-        use celestial_core::Longitude;
-        let flags = CalcFlags::BUILTIN | CalcFlags(64); // sidereal
+        let flags = CalcFlags::BUILTIN | CalcFlags::SIDEREAL;
         if let Ok(sun) = celestial_core::calc_ut(JulianDay::new(jd), Body::SUN, flags) {
             let rasi = long_to_rasi(Longitude::new(sun.lon));
             let navamsa = long_to_navamsa(Longitude::new(sun.lon));
@@ -1391,6 +1413,18 @@ mod tests_vedic {
     }
 
     #[test]
+    fn ashtakavarga_uses_sidereal_planets_and_ascendant() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_ashtakavarga_context(jd, 13.08, 80.27, "2000-01-01", vars).unwrap();
+        let got = json_u64_array(&ctx["sarvashtakavarga"]);
+        let sidereal = ashtakavarga_totals_for(jd, 13.08, 80.27, true);
+        let tropical_bug = ashtakavarga_totals_for(jd, 13.08, 80.27, false);
+        assert_eq!(got, sidereal);
+        assert_ne!(got, tropical_bug);
+    }
+
+    #[test]
     fn ashtakavarga_bindus_range() {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
@@ -1457,6 +1491,19 @@ mod tests_vedic {
     }
 
     #[test]
+    fn shadbala_uses_sidereal_longitudes() {
+        let jd = 2_451_545.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_shadbala_context(jd, 13.08, 80.27, "2000-01-01", vars).unwrap();
+        let got = ctx["shadbala"].as_array().unwrap()[0]["lon"]
+            .as_f64()
+            .unwrap();
+        let flags = CalcFlags::BUILTIN | CalcFlags::SPEED | CalcFlags::SIDEREAL;
+        let expected = calc_ut(JulianDay::new(jd), Body::SUN, flags).unwrap();
+        assert!((got - expected.lon).abs() < 0.02);
+    }
+
+    #[test]
     fn shadbala_strength_components_non_negative() {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();
@@ -1497,6 +1544,77 @@ mod tests_vedic {
         }
         assert!(svg.contains("Ochcha"), "column header missing");
         assert!(svg.contains("</svg>"), "SVG not closed");
+    }
+
+    fn planet_lon(ctx: &Value, name: &str) -> f64 {
+        ctx["planets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["name"] == name)
+            .unwrap()["lon"]
+            .as_f64()
+            .unwrap()
+    }
+
+    fn angle_diff(a: f64, b: f64) -> f64 {
+        (a - b + 180.0).rem_euclid(360.0) - 180.0
+    }
+
+    fn json_u64_array(value: &Value) -> Vec<u64> {
+        value
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_u64().unwrap())
+            .collect()
+    }
+
+    fn ashtakavarga_totals_for(jd: f64, lat: f64, lon: f64, sidereal: bool) -> Vec<u64> {
+        let ayanamsa = if sidereal {
+            ayanamsa_ut(JulianDay::new(jd))
+        } else {
+            0.0
+        };
+        let flags = if sidereal {
+            CalcFlags::BUILTIN | CalcFlags::SIDEREAL
+        } else {
+            CalcFlags::BUILTIN
+        };
+        let asc = tropical_asc(jd, lat, lon) - ayanamsa;
+        let rasis = planet_rasis(jd, flags);
+        let (totals, _) = sarvashtakavarga(&rasis, (asc.rem_euclid(360.0) / 30.0) as usize % 12);
+        totals.into_iter().map(u64::from).collect()
+    }
+
+    fn tropical_asc(jd: f64, lat: f64, lon: f64) -> f64 {
+        houses_ex(
+            JulianDay::new(jd),
+            CalcFlags::BUILTIN,
+            Latitude::new(lat),
+            Longitude::new(lon),
+            HouseSystem(b'P'),
+        )
+        .unwrap()
+        .ascmc[0]
+    }
+
+    fn planet_rasis(jd: f64, flags: CalcFlags) -> [usize; 7] {
+        let bodies = [
+            Body::SUN,
+            Body::MOON,
+            Body::MARS,
+            Body::MERCURY,
+            Body::JUPITER,
+            Body::VENUS,
+            Body::SATURN,
+        ];
+        let mut rasis = [0usize; 7];
+        for (i, &body) in bodies.iter().enumerate() {
+            let pos = calc_ut(JulianDay::new(jd), body, flags).unwrap();
+            rasis[i] = (pos.lon / 30.0) as usize % 12;
+        }
+        rasis
     }
     // ── Phase 5: Hellenistic / Persian chart types ─────────────────────────────
 

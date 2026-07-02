@@ -11,7 +11,7 @@ use std::cell::Cell;
 /// new setting is one field + one accessor, audited in one place.
 /// Values/defaults are byte-identical to the previous globals.
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct EngineConfig {
+pub(crate) struct EngineConfig {
     /// Sidereal mode for pure-mode ayanamsa (default 0 = Fagan-Bradley).
     sid_mode: i32,
     /// Topocentric observer position `(lon°, lat°, alt_m)`.
@@ -33,6 +33,16 @@ thread_local! {
 /// Read the thread-local config.
 fn cfg() -> EngineConfig {
     CONFIG.with(Cell::get)
+}
+
+/// Copy all thread-local engine settings from the current thread.
+pub(crate) fn current_config() -> EngineConfig {
+    cfg()
+}
+
+/// Install a full engine-config snapshot in the current thread.
+pub(crate) fn set_thread_config(config: EngineConfig) {
+    CONFIG.with(|c| c.set(config));
 }
 
 /// Mutate one field of the thread-local config.
@@ -82,8 +92,8 @@ pub(crate) fn current_topo() -> (f64, f64, f64) {
 
 /// Set the topocentric observer position.
 ///
-/// Stored and used by `azalt` / `azalt_rev` when no explicit geopos is given.
-/// Has no effect on `calc_ut` (which computes geocentric positions only).
+/// Stored and used by `FLG_TOPOCTR` calculations and by `azalt` / `azalt_rev`
+/// when no explicit geopos is given.
 pub fn set_topo(geolon: Longitude, geolat: Latitude, geoalt: f64) {
     let geolon: f64 = geolon.into();
     let geolat: f64 = geolat.into();

@@ -125,134 +125,131 @@ pub fn k_from_jd(jd: JulianDay, forward: bool) -> i64 {
     }
 }
 
+pub(crate) fn nearest_new_moon_k(jd: f64) -> i64 {
+    let k0 = k_from_jd(JulianDay::new(jd), true);
+    [k0 - 1, k0, k0 + 1]
+        .into_iter()
+        .min_by(|&a, &b| {
+            let da = (new_moon_jd(a as f64) - jd).abs();
+            let db = (new_moon_jd(b as f64) - jd).abs();
+            da.partial_cmp(&db).unwrap()
+        })
+        .unwrap()
+}
+
 /// F (Moon's argument of latitude) at a given k — used to check eclipse possibility.
 fn f_at_k(k: f64) -> f64 {
     let t = k / 1236.85;
-    norm360(160.7108 + 390.670_502_84 * k - 0.001_611_8 * t * t)
+    let t2 = t * t;
+    let t3 = t2 * t;
+    let t4 = t3 * t;
+    norm360(
+        160.7108 + 390.670_502_74 * k - 0.001_634_1 * t2 - 0.000_002_27 * t3 + 0.000_000_011 * t4,
+    )
 }
 
-/// Eclipse magnitude for solar eclipse at new Moon (Meeus 54.1).
+#[derive(Debug, Clone, Copy)]
+struct EclipseGeometry {
+    gamma: f64,
+    u: f64,
+    sin_f: f64,
+}
+
+fn eclipse_geometry(k: f64) -> EclipseGeometry {
+    let t = k / 1236.85;
+    let t2 = t * t;
+    let t3 = t2 * t;
+    let t4 = t3 * t;
+    let m = norm360(2.5534 + 29.105_356_69 * k - 0.000_021_8 * t2 - 0.000_000_11 * t3);
+    let mp = norm360(
+        201.5643 + 385.816_935_28 * k + 0.010_743_8 * t2 + 0.000_012_39 * t3 - 0.000_000_058 * t4,
+    );
+    let f = f_at_k(k);
+    let om = norm360(124.7746 - 1.563_755_80 * k + 0.002_069_1 * t2 + 0.000_002_15 * t3);
+    let e = 1.0 - 0.002_516 * t - 0.000_007_4 * t2;
+    let f1 = f - 0.02665 * to_rad(om).sin();
+
+    let (m_r, mp_r, f1_r) = (to_rad(m), to_rad(mp), to_rad(f1));
+    let p = 0.2070 * e * m_r.sin() + 0.0024 * e * (2.0 * m_r).sin() - 0.0392 * mp_r.sin()
+        + 0.0116 * (2.0 * mp_r).sin()
+        - 0.0073 * e * (mp_r + m_r).sin()
+        + 0.0067 * e * (mp_r - m_r).sin()
+        + 0.0118 * (2.0 * f1_r).sin();
+    let q = 5.2207 - 0.0048 * e * m_r.cos() + 0.0020 * e * (2.0 * m_r).cos()
+        - 0.3299 * mp_r.cos()
+        - 0.0060 * e * (mp_r + m_r).cos()
+        + 0.0041 * e * (mp_r - m_r).cos();
+    let w = f1_r.cos().abs();
+    let gamma = (p * f1_r.cos() + q * f1_r.sin()) * (1.0 - 0.0048 * w);
+    let u = 0.0059 + 0.0046 * e * to_rad(m).cos() - 0.0182 * to_rad(mp).cos()
+        + 0.0004 * to_rad(2.0 * mp).cos()
+        - 0.0005 * to_rad(m + mp).cos();
+    EclipseGeometry {
+        gamma,
+        u,
+        sin_f: to_rad(f).sin(),
+    }
+}
+
+fn eclipse_candidate(g: EclipseGeometry) -> bool {
+    g.sin_f.abs() <= 0.36
+}
+
+/// Eclipse magnitude for solar eclipse at new Moon (Meeus 54).
 /// Returns the penumbral and umbral magnitudes.
 pub(crate) fn solar_eclipse_magnitude(k_int: i64) -> (f64, f64) {
-    let k = k_int as f64;
-    let t = k / 1236.85;
-    let f = f_at_k(k);
-    let om = norm360(124.7746 - 1.563_755_88 * k);
-    let mp = norm360(201.5643 + 385.816_935_28 * k + 0.010_721 * t * t);
-    let m = norm360(2.5534 + 29.105_356_70 * k);
-    let e = 1.0 - 0.002_516 * t;
+    let g = eclipse_geometry(k_int as f64);
+    let gamma_abs = g.gamma.abs();
+    let denom = 0.5461 + 2.0 * g.u;
+    let pen_mag = (1.5433 + g.u - gamma_abs) / denom;
+    let umb_mag = (0.9972 - gamma_abs) / denom;
 
-    let gamma_abs = f.to_radians().sin().abs();
-    let gamma = 1.0128 - 0.0351 * gamma_abs - 0.0042 * gamma_abs * gamma_abs
-        + 0.0850 * to_rad(om).sin()
-        + 0.0015 * e * to_rad(m).sin()
-        - 0.0031 * to_rad(mp).sin();
-
-    // u = half-angle of penumbra
-    let u = 0.0059 + 0.0046 * e * to_rad(m).cos() - 0.0182 * to_rad(mp).cos()
-        + 0.0004 * to_rad(2.0 * mp.to_radians()).cos()
-        - 0.0005 * to_rad(m + mp).cos();
-
-    let pen_mag = 1.0128 - u + gamma.abs();
-    let umb_mag = 1.0128 - u - gamma.abs();
     (pen_mag, umb_mag)
 }
 
 /// Check if a new Moon (k_int) produces a solar eclipse.
 /// Returns (EclipseKind, gamma, u).
 pub(crate) fn check_solar_eclipse(k_int: i64) -> (EclipseKind, f64, f64) {
-    let k = k_int as f64;
-    let t = k / 1236.85;
-    let f = f_at_k(k);
-
-    // Eclipse only possible if |sin(F)| < 0.36
-    let sin_f = to_rad(f).sin();
-    if sin_f.abs() > 0.36 {
+    let g = eclipse_geometry(k_int as f64);
+    if !eclipse_candidate(g) {
         return (EclipseKind::None, 0.0, 0.0);
     }
 
-    let om = norm360(124.7746 - 1.563_755_88 * k);
-    let mp = norm360(201.5643 + 385.816_935_28 * k + 0.010_721 * t * t);
-    let m = norm360(2.5534 + 29.105_356_70 * k);
-    let e = 1.0 - 0.002_516 * t;
-
-    // Gamma: geocentric distance of Moon's shadow axis from Earth's centre
-    let gamma = 0.0
-        + 1.0128 * sin_f
-        + (if sin_f < 0.0 { 1.0 } else { -1.0 }) * 0.0351 * sin_f * sin_f.abs()
-        + (if sin_f < 0.0 { 1.0 } else { -1.0 }) * 0.0042 * sin_f.abs().powi(2)
-        - 0.1060 * to_rad(om).sin()
-        - 0.0024 * e * to_rad(m).sin();
-
-    let gamma = 0.5 * gamma; // approximate centring
-
-    // u = half-width of penumbra (in Earth radii, approx)
-    let u = 0.0059 + 0.0046 * e * to_rad(m).cos() - 0.0182 * to_rad(mp).cos()
-        + 0.0004 * to_rad(2.0 * to_rad(mp).sin()).cos()
-        - 0.0005 * to_rad(m + mp).cos();
-
-    let gamma_abs = gamma.abs();
-
-    // Classify
-    let kind = if gamma_abs > 1.5433 + u {
+    let gamma_abs = g.gamma.abs();
+    let kind = if gamma_abs > 1.5433 + g.u {
         EclipseKind::None
-    } else if gamma_abs > 0.9972 && gamma_abs < 1.5433 + u {
+    } else if gamma_abs > 0.9972 {
         EclipseKind::PartialSolar
-    } else if gamma_abs < 0.9972 {
-        if u < 0.0 {
-            EclipseKind::TotalSolar
-        } else if u < 0.0047 {
-            EclipseKind::HybridSolar
-        } else {
-            EclipseKind::AnnularSolar
-        }
     } else {
-        EclipseKind::None
+        if g.u < 0.0 {
+            EclipseKind::TotalSolar
+        } else if g.u > 0.0047 {
+            EclipseKind::AnnularSolar
+        } else {
+            EclipseKind::HybridSolar
+        }
     };
 
-    (kind, gamma, u)
+    (kind, g.gamma, g.u)
 }
 
 /// Check if a full Moon (k_int + 0.5) produces a lunar eclipse.
 #[must_use]
 pub fn check_lunar_eclipse(k_int: i64) -> (EclipseKind, f64, f64) {
-    let k = k_int as f64 + 0.5; // full Moon
-    let t = k / 1236.85;
-    let f = f_at_k(k);
-
-    let sin_f = to_rad(f).sin();
-    if sin_f.abs() > 0.36 {
+    let g = eclipse_geometry(k_int as f64 + 0.5);
+    if !eclipse_candidate(g) {
         return (EclipseKind::None, 0.0, 0.0);
     }
 
-    let om = norm360(124.7746 - 1.563_755_88 * k);
-    let mp = norm360(201.5643 + 385.816_935_28 * k + 0.010_721 * t * t);
-    let m = norm360(2.5534 + 29.105_356_70 * k);
-    let e = 1.0 - 0.002_516 * t;
-
-    let rho = 1.2848 + 0.0118 * to_rad(om).sin() - 0.0400 * to_rad(mp).cos()
-        + 0.0071 * (to_rad(mp) + to_rad(m)).cos() * e;
-
-    let sig = 0.7403 - 0.0512 * to_rad(mp).cos() + 0.0105 * to_rad(2.0 * mp.to_radians()).cos()
-        - 0.0100 * to_rad(om).sin()
-        + 0.0080 * e * to_rad(m).sin();
-
-    let gamma_abs = sin_f.abs();
-    let pen_r = rho + 0.5450; // penumbral radius
-    let umb_r = rho - 0.5450; // umbral radius (negative = no totality)
-
-    // Moon radius in same units ≈ 0.2725
-    let moon_r = 0.2725 + sig * 0.0;
-    let _ = sig; // suppress unused
-
-    let pen_mag = (pen_r + moon_r - gamma_abs) / (2.0 * moon_r);
-    let umb_mag = (umb_r + moon_r - gamma_abs) / (2.0 * moon_r);
-
-    let kind = if gamma_abs > pen_r + moon_r {
+    let gamma_abs = g.gamma.abs();
+    let pen_mag = (1.5573 + g.u - gamma_abs) / 0.5450;
+    let umb_mag = (1.0128 - g.u - gamma_abs) / 0.5450;
+    let total_limit = 0.4678 - g.u;
+    let kind = if pen_mag <= 0.0 {
         EclipseKind::None
-    } else if gamma_abs > umb_r + moon_r {
+    } else if umb_mag <= 0.0 {
         EclipseKind::PenumbralLunar
-    } else if gamma_abs > umb_r - moon_r {
+    } else if gamma_abs > total_limit {
         EclipseKind::PartialLunar
     } else {
         EclipseKind::TotalLunar
@@ -492,11 +489,12 @@ pub fn solar_eclipse_attr(jd_ut: JulianDay, geopos: [f64; 3]) -> [f64; 20] {
     let jd_ut: f64 = jd_ut.into();
     let mut attr = [0.0f64; 20];
     // Find nearest new Moon
-    let k = k_from_jd(JulianDay::new(jd_ut), true);
+    let k = nearest_new_moon_k(jd_ut);
     let (_kind, gamma, _u) = check_solar_eclipse(k);
     let (pen_mag, umb_mag) = solar_eclipse_magnitude(k);
 
-    attr[0] = if umb_mag > 0.0 { umb_mag } else { pen_mag }; // magnitude
+    let mag = if umb_mag > 0.0 { umb_mag } else { pen_mag };
+    attr[0] = mag.max(0.0); // magnitude
     attr[1] = 0.5266; // mean solar angular diameter (degrees)
     attr[2] = 0.5181; // mean lunar angular diameter
     attr[3] = 1.0; // mean sun distance (AU)
@@ -527,6 +525,8 @@ pub fn lunar_eclipse_attr(k_int: i64) -> [f64; 20] {
 #[cfg(test)]
 mod cov_tests {
     use super::*;
+    use crate::body::Calendar;
+    use crate::functions::time::julday;
 
     #[test]
     fn eclipse_result_default_is_zeroed() {
@@ -543,5 +543,44 @@ mod cov_tests {
         assert!((norm360(361.0) - 1.0).abs() < 1e-9);
         assert!((norm360(-1.0) - 359.0).abs() < 1e-9);
         assert!((norm360(0.0)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn solar_search_skips_2024_february_non_eclipse() {
+        let start = jd(2024, 1, 20, 0.0);
+        let eclipse = solar_eclipse_when_glob(JulianDay::new(start), 0, false).unwrap();
+        let expected = jd(2024, 4, 8, 18.3);
+        assert_eq!(eclipse.kind, EclipseKind::TotalSolar);
+        assert!((eclipse.tret[0] - expected).abs() < 1.0);
+    }
+
+    #[test]
+    fn solar_partial_annular_and_total_kinds_are_reachable() {
+        assert_next_solar_kind(2025, 3, 1, EclipseKind::PartialSolar);
+        assert_next_solar_kind(2023, 10, 1, EclipseKind::AnnularSolar);
+        assert_next_solar_kind(2024, 4, 1, EclipseKind::TotalSolar);
+    }
+
+    #[test]
+    fn lunar_penumbral_partial_and_total_kinds_are_reachable() {
+        assert_next_lunar_kind(2024, 3, 1, EclipseKind::PenumbralLunar);
+        assert_next_lunar_kind(2023, 10, 1, EclipseKind::PartialLunar);
+        assert_next_lunar_kind(2018, 7, 1, EclipseKind::TotalLunar);
+    }
+
+    fn assert_next_solar_kind(year: i32, month: i32, day: i32, expected: EclipseKind) {
+        let start = jd(year, month, day, 0.0);
+        let eclipse = solar_eclipse_when_glob(JulianDay::new(start), 0, false).unwrap();
+        assert_eq!(eclipse.kind, expected, "solar after {year}-{month}-{day}");
+    }
+
+    fn assert_next_lunar_kind(year: i32, month: i32, day: i32, expected: EclipseKind) {
+        let start = jd(year, month, day, 0.0);
+        let eclipse = lun_eclipse_when(JulianDay::new(start), 0, false).unwrap();
+        assert_eq!(eclipse.kind, expected, "lunar after {year}-{month}-{day}");
+    }
+
+    fn jd(year: i32, month: i32, day: i32, hour: f64) -> f64 {
+        julday(year, month, day, hour, Calendar::Gregorian)
     }
 }

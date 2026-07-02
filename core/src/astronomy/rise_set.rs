@@ -114,6 +114,7 @@ fn rise_set_inner(
     let (ra0, dec0) = body_ra_dec(body, jd0 - 1.0);
     let (ra1, dec1) = body_ra_dec(body, jd0);
     let (ra2, dec2) = body_ra_dec(body, jd0 + 1.0);
+    let (ra0, ra1, ra2) = unwrap_ra_triplet(ra0, ra1, ra2);
 
     // Sidereal time at 0h UT on day (degrees)
     let theta0 = approx_gmst(jd0);
@@ -235,6 +236,19 @@ fn interpolate(y1: f64, y2: f64, y3: f64, n: f64) -> f64 {
     y2 + n / 2.0 * (a + b + n * c)
 }
 
+/// Unwrap three right ascensions so quadratic interpolation follows 359°→0°.
+fn unwrap_ra_triplet(ra0: f64, ra1: f64, ra2: f64) -> (f64, f64, f64) {
+    (
+        unwrap_angle_near(ra0, ra1),
+        ra1,
+        unwrap_angle_near(ra2, ra1),
+    )
+}
+
+fn unwrap_angle_near(angle: f64, reference: f64) -> f64 {
+    reference + (angle - reference + 180.0).rem_euclid(360.0) - 180.0
+}
+
 /// Normalise a day fraction to [0, 1).
 fn norm_frac(f: f64) -> f64 {
     f.rem_euclid(1.0)
@@ -296,5 +310,28 @@ mod tests {
         );
         // During polar day/night the sun may not rise/set — we just check it doesn't panic
         let _ = r;
+    }
+
+    #[test]
+    fn moon_ra_interpolation_unwraps_zero_crossing() {
+        let jd0 = (0..400)
+            .map(|d| 2_451_545.5 + f64::from(d))
+            .find(|&jd| moon_ra_crosses_zero(jd))
+            .expect("Moon RA zero-crossing in 400 days");
+        let (ra0, _) = body_ra_dec(BodyKind::Moon, jd0 - 1.0);
+        let (ra1, _) = body_ra_dec(BodyKind::Moon, jd0);
+        let (ra2, _) = body_ra_dec(BodyKind::Moon, jd0 + 1.0);
+        let raw_mid = interpolate(ra0, ra1, ra2, 0.5).rem_euclid(360.0);
+        let (u0, u1, u2) = unwrap_ra_triplet(ra0, ra1, ra2);
+        let fixed_mid = interpolate(u0, u1, u2, 0.5).rem_euclid(360.0);
+        assert!((20.0..340.0).contains(&raw_mid));
+        assert!(!(20.0..=340.0).contains(&fixed_mid));
+    }
+
+    fn moon_ra_crosses_zero(jd0: f64) -> bool {
+        let (ra0, _) = body_ra_dec(BodyKind::Moon, jd0 - 1.0);
+        let (ra1, _) = body_ra_dec(BodyKind::Moon, jd0);
+        let (ra2, _) = body_ra_dec(BodyKind::Moon, jd0 + 1.0);
+        ra0 > 300.0 && ra1 < 60.0 && ra2 < 80.0
     }
 }
