@@ -204,7 +204,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | ROB-1 | OPEN | M | `core/src/functions/panchanga.rs:235,244` call `calc_ut(...).unwrap_or(<zeroed Planet>)` for Sun and Moon, so an ephemeris failure silently substitutes a 0°/0-speed position and the function returns a plausible-but-wrong panchanga (tithi/nakshatra) instead of surfacing the error. | Verified pattern. Consider propagating the `calc_ut` error (return `Result`) or at least a sentinel the caller can detect; today failure is indistinguishable from a real new-moon result. |
-| ROB-3 | OPEN | S | `rise_set_inner` (`core/src/astronomy/rise_set.rs:126-139`) returns not-found when `cos_h0` is out of ±1 BEFORE checking `event`, so a Transit request for a circumpolar body fails although it transits daily. Verified: `rise_trans(Sun, MTRANSIT)` at 80°N midsummer returns `Err(CircumpolarBody)`. | Skip the cos_h0 rise/set feasibility gate when `event == Transit`. |
 
 ## Scalability
 

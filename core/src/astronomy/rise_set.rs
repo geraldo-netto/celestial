@@ -124,14 +124,14 @@ fn rise_set_inner(
     let (sin_dec1, cos_dec1) = to_rad(dec1).sin_cos();
     let cos_h0 = (-sin_lat).mul_add(sin_dec1, h0.sin()) / (cos_lat * cos_dec1);
 
-    if cos_h0 < -1.0 {
+    if event != RiseSetEvent::Transit && cos_h0 < -1.0 {
         // Circumpolar — never sets
         return RiseSetResult {
             jd_ut: jd0,
             found: false,
         };
     }
-    if cos_h0 > 1.0 {
+    if event != RiseSetEvent::Transit && cos_h0 > 1.0 {
         // Never rises
         return RiseSetResult {
             jd_ut: jd0,
@@ -139,7 +139,11 @@ fn rise_set_inner(
         };
     }
 
-    let h0_deg = to_deg(cos_h0.acos());
+    let h0_deg = if event == RiseSetEvent::Transit {
+        0.0
+    } else {
+        to_deg(cos_h0.acos())
+    };
 
     // Approximate transit fraction of day
     // Meeus eq.15.2: m₀ = (α + L - Θ₀) / 360 where L = longitude WEST positive.

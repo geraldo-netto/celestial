@@ -667,6 +667,26 @@ mod tests {
         );
     }
 
+    #[test]
+    fn rise_trans_circumpolar_transit_returns_event() {
+        let jd_solstice = 2_451_717.0; // approx 2000-06-21
+        let res = rise_trans(
+            JulianDay::new(jd_solstice),
+            Body::SUN,
+            None,
+            CalcFlags::BUILTIN,
+            crate::CALC_MTRANSIT,
+            [0.0, 80.0, 0.0],
+            1013.25,
+            15.0,
+        )
+        .expect("transit should be available for circumpolar bodies");
+        assert!(
+            res.tret.is_finite(),
+            "expected finite transit JD, got {res:?}"
+        );
+    }
+
     /// `rise_trans_true_hor` is a thin wrapper; result must match
     /// `rise_trans` byte-for-byte at horizon_height = 0.
     #[test]
