@@ -1,5 +1,6 @@
 //! Core ephemeris calculation functions.
 
+use crate::astronomy::constants::{norm_deg, to_deg, to_rad};
 use crate::astronomy::fixstars;
 use crate::body::{Body, CalcFlags};
 use crate::error::{Error, Result};
@@ -38,24 +39,83 @@ pub fn calc_pctr(
     center: Body,
     flags: CalcFlags,
 ) -> Result<PlanetPos> {
-    use crate::astronomy::calc_ut as au;
-    let body_pos =
-        au(jd_et, body.as_raw(), flags.as_raw()).map_err(|e| Error::Calc(e.to_string()))?;
-    let center_pos =
-        au(jd_et, center.as_raw(), flags.as_raw()).map_err(|e| Error::Calc(e.to_string()))?;
-    let dlon = body_pos.lon - center_pos.lon;
-    let dlat = body_pos.lat - center_pos.lat;
-    let ddist = body_pos.dist - center_pos.dist;
-    let lon = (dlon + 360.0).rem_euclid(360.0);
+    let jde = jd_et.get();
+    let flags_pos = flags & !(CalcFlags::SPEED | CalcFlags::SPEED3);
+    let (lon, lat, dist) = planetocentric_coords(jde, body, center, flags_pos)?;
+    let (speed_lon, speed_lat, speed_dist) = planetocentric_speed(jde, body, center, flags)?;
     Ok(PlanetPos {
         lon,
-        lat: dlat,
-        dist: ddist.abs(),
-        speed_lon: body_pos.speed_lon - center_pos.speed_lon,
-        speed_lat: body_pos.speed_lat - center_pos.speed_lat,
-        speed_dist: body_pos.speed_dist - center_pos.speed_dist,
+        lat,
+        dist,
+        speed_lon,
+        speed_lat,
+        speed_dist,
         ret_flags: flags.as_raw(),
     })
+}
+
+fn planetocentric_coords(
+    jde: f64,
+    body: Body,
+    center: Body,
+    flags: CalcFlags,
+) -> Result<(f64, f64, f64)> {
+    let body_pos = crate::astronomy::calc_tt(jde, body.as_raw(), flags.as_raw())?;
+    let center_pos = crate::astronomy::calc_tt(jde, center.as_raw(), flags.as_raw())?;
+    let rel = subtract_vec(to_cartesian(&body_pos), to_cartesian(&center_pos));
+    Ok(to_spherical(rel))
+}
+
+fn planetocentric_speed(
+    jde: f64,
+    body: Body,
+    center: Body,
+    flags: CalcFlags,
+) -> Result<(f64, f64, f64)> {
+    if !flags.is_speed() && (flags & CalcFlags::SPEED3).as_raw() == 0 {
+        return Ok((0.0, 0.0, 0.0));
+    }
+    let flags_pos = flags & !(CalcFlags::SPEED | CalcFlags::SPEED3);
+    let plus = planetocentric_coords(jde + 0.5, body, center, flags_pos)?;
+    let minus = planetocentric_coords(jde - 0.5, body, center, flags_pos)?;
+    Ok((
+        angle_delta(plus.0, minus.0),
+        plus.1 - minus.1,
+        plus.2 - minus.2,
+    ))
+}
+
+fn to_cartesian(pos: &PlanetPos) -> [f64; 3] {
+    let lon = to_rad(pos.lon);
+    let lat = to_rad(pos.lat);
+    let (sin_lon, cos_lon) = lon.sin_cos();
+    let (sin_lat, cos_lat) = lat.sin_cos();
+    [
+        pos.dist * cos_lat * cos_lon,
+        pos.dist * cos_lat * sin_lon,
+        pos.dist * sin_lat,
+    ]
+}
+
+fn subtract_vec(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
+    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+
+fn to_spherical(v: [f64; 3]) -> (f64, f64, f64) {
+    let xy = v[0].hypot(v[1]);
+    let dist = xy.hypot(v[2]);
+    if dist == 0.0 {
+        return (0.0, 0.0, 0.0);
+    }
+    (
+        norm_deg(to_deg(v[1].atan2(v[0]))),
+        to_deg(v[2].atan2(xy)),
+        dist,
+    )
+}
+
+fn angle_delta(plus: f64, minus: f64) -> f64 {
+    (plus - minus + 540.0).rem_euclid(360.0) - 180.0
 }
 
 fn fixstar_impl(star: &str, jd: f64, flags: CalcFlags) -> Result<FixStarPos> {

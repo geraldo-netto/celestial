@@ -228,6 +228,48 @@ fn test_calc_pctr_mars_from_jupiter() {
     assert!(r.is_ok(), "calc_pctr failed: {:?}", r.err());
 }
 
+#[test]
+fn test_calc_pctr_uses_tt_cartesian_distance() {
+    let flags = CalcFlags::BUILTIN;
+    let body = calc(JulianDay::new(JD), Body::MARS, flags).unwrap();
+    let center = calc(JulianDay::new(JD), Body::JUPITER, flags).unwrap();
+    let expected = relative_spherical(&body, &center);
+    let old_radial_delta = (body.dist - center.dist).abs();
+    let got = calc_pctr(JulianDay::new(JD), Body::MARS, Body::JUPITER, flags).unwrap();
+
+    assert!((got.lon - expected.0).abs() < 1e-12, "lon = {}", got.lon);
+    assert!((got.lat - expected.1).abs() < 1e-12, "lat = {}", got.lat);
+    assert!((got.dist - expected.2).abs() < 1e-12, "dist = {}", got.dist);
+    assert!((got.dist - old_radial_delta).abs() > 0.01);
+}
+
+fn relative_spherical(body: &PlanetPos, center: &PlanetPos) -> (f64, f64, f64) {
+    let body_vec = test_cartesian(body);
+    let center_vec = test_cartesian(center);
+    let x = body_vec[0] - center_vec[0];
+    let y = body_vec[1] - center_vec[1];
+    let z = body_vec[2] - center_vec[2];
+    let xy = x.hypot(y);
+    let dist = xy.hypot(z);
+    (
+        y.atan2(x).to_degrees().rem_euclid(360.0),
+        z.atan2(xy).to_degrees(),
+        dist,
+    )
+}
+
+fn test_cartesian(pos: &PlanetPos) -> [f64; 3] {
+    let lon = pos.lon.to_radians();
+    let lat = pos.lat.to_radians();
+    let (sin_lon, cos_lon) = lon.sin_cos();
+    let (sin_lat, cos_lat) = lat.sin_cos();
+    [
+        pos.dist * cos_lat * cos_lon,
+        pos.dist * cos_lat * sin_lon,
+        pos.dist * sin_lat,
+    ]
+}
+
 // ─── Longitude crossings ──────────────────────────────────────────────────────
 
 #[test]
