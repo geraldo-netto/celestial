@@ -252,7 +252,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 |---|---|---|---|---|
 
 | UX-1 | OPEN | M | `--chart-type calendar` with no `--calendar` flags renders a bare grid whose subtitle still advertises "overlays: gregorian · omer · sabbats · moon" (`cli/src/cmd/render/pipeline.rs:344`), but 0 day annotations appear (verified vs 2 with `--calendar moon`): `build_calendar_context` defaults `calendars` to all four (pipeline.rs:55-72) while `apply_universal_overlays` keys off the empty `args.calendars`. | Drive `apply_universal_overlays` from the context's `calendars` for the calendar chart-type (or default `overlay_cals` to all-four) so advertised overlays are populated. |
-| UX-2 | OPEN | S | Stray semicolon typo renders literally in the profection SVG legend: output reads `Age 40: House 5 ;profection — Lord: …` (`cli/src/cmd/render/hellenistic.rs:484`; sibling stray `;` in the comment at :473). Verified in output. | Delete the stray `;` from both format strings. |
 
 ## Vectorization
 

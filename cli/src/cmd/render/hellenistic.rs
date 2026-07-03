@@ -470,7 +470,7 @@ pub(super) fn render_profection_svg(ctx: &ChartContext) -> String {
     let arc_y = wy(CY, RO + 10.0, prof_lon, asc);
 
     let mut extra = format!(
-        "  <!-- Profection marker for age {age}, house {prof_house} ;-->\n\
+        "  <!-- Profection marker for age {age}, house {prof_house} -->\n\
          <circle cx=\"{arc_x:.2}\" cy=\"{arc_y:.2}\" r=\"8\" fill=\"{arc_col}\" opacity=\".8\"/>\n\
          <text x=\"{arc_x:.2}\" y=\"{arc_y:.2}\" font-size=\"9\" font-weight=\"700\" \
          text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"{txt}\">{prof_house}</text>\n"
@@ -481,7 +481,7 @@ pub(super) fn render_profection_svg(ctx: &ChartContext) -> String {
     extra.push_str(&format!(
         "  <text x=\"450\" y=\"{ly:.0}\" text-anchor=\"middle\" font-size=\"10\" \
          font-family=\"'Segoe UI',system-ui,sans-serif\" fill=\"{arc_col}\" font-weight=\"600\">\
-         Age {age}: House {prof_house} ;profection — Lord: {prof_lord}</text>\n"
+         Age {age}: House {prof_house} profection — Lord: {prof_lord}</text>\n"
     ));
 
     if let Some(idx) = s.rfind("</svg>") {
