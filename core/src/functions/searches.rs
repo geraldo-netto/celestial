@@ -1,7 +1,7 @@
 //! Iterative aspect and retrograde search functions.
 
 use crate::body::{Body, CalcFlags, HouseSystem};
-use crate::functions::houses::houses;
+use crate::functions::houses::{house_cusp, houses};
 use crate::units::{JulianDay, Latitude, Longitude};
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
@@ -411,14 +411,15 @@ pub fn next_aspect_cusp(
 
     let mut diff_at = |jd: f64| -> Option<f64> {
         let p = calc_ut(JulianDay::new(jd), body, scan_flags).ok()?.lon;
-        let hr = houses(
+        let cusp_lon = house_cusp(
             JulianDay::new(jd),
             Latitude::new(lat),
             Longitude::new(lon),
             hsys,
+            cusp,
         )
         .ok()?;
-        Some(diff_deg_signed(p + aspect, hr.cusps[cusp]))
+        Some(diff_deg_signed(p + aspect, cusp_lon))
     };
 
     let max_jd = jd_start + if backward { -400.0 } else { 400.0 };

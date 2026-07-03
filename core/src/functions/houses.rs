@@ -33,6 +33,22 @@ pub fn houses(
     ))
 }
 
+pub(crate) fn house_cusp(
+    jd_ut: JulianDay,
+    geolat: Latitude,
+    geolon: Longitude,
+    hsys: HouseSystem,
+    cusp: usize,
+) -> Result<f64> {
+    Ok(crate::astronomy::houses::house_cusp(
+        jd_ut,
+        geolat,
+        geolon,
+        hsys.as_raw(),
+        cusp,
+    ))
+}
+
 /// Compute house cusps with flags (UT) — pure-Rust engine.
 pub fn houses_ex(
     _jd_ut: JulianDay,

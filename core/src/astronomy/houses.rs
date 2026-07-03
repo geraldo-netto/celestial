@@ -151,6 +151,22 @@ pub fn houses_armc(armc: Degrees, geolat: Latitude, eps: Degrees, hsys: u8) -> H
     compute_houses(armc, geolat, eps, system)
 }
 
+pub(crate) fn house_cusp(
+    jd_ut: JulianDay,
+    geolat: Latitude,
+    geolon: Longitude,
+    hsys: u8,
+    cusp: usize,
+) -> f64 {
+    let jd_ut = jd_ut.get();
+    let geolat = geolat.get();
+    let geolon = geolon.get();
+    let armc = norm_deg(sidereal_time_deg(JulianDay::new(jd_ut)) + geolon);
+    let eps = obliquity_simple(JulianDay::new(jd_ut));
+    let system = HouseSystem::from_char(hsys).unwrap_or(HouseSystem::Placidus);
+    compute_house_cusp(armc, geolat, eps, system, cusp)
+}
+
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 fn compute_houses(armc: f64, lat: f64, eps: f64, sys: HouseSystem) -> HouseResult {
@@ -184,6 +200,15 @@ fn compute_houses(armc: f64, lat: f64, eps: f64, sys: HouseSystem) -> HouseResul
     ascmc[4] = eq_asc;
 
     HouseResult { cusps, ascmc }
+}
+
+fn compute_house_cusp(armc: f64, lat: f64, eps: f64, sys: HouseSystem, cusp: usize) -> f64 {
+    if sys != HouseSystem::Placidus {
+        return compute_houses(armc, lat, eps, sys).cusps[cusp];
+    }
+    let asc = ascendant(Degrees::new(armc), Latitude::new(lat), Degrees::new(eps));
+    let mc = midheaven(Degrees::new(armc), Degrees::new(eps));
+    placidus_single_cusp(armc, lat, eps, asc, mc, cusp)
 }
 
 // ─── Auxiliary angles ─────────────────────────────────────────────────────────
@@ -312,6 +337,26 @@ fn placidus(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
     }
 
     cusps
+}
+
+fn placidus_single_cusp(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64, cusp: usize) -> f64 {
+    let lat_r = to_rad(lat);
+    let eps_r = to_rad(eps);
+    match cusp {
+        1 => asc,
+        4 => norm_deg(mc + 180.0),
+        7 => norm_deg(asc + 180.0),
+        10 => mc,
+        11 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 1.0 / 3.0, true)),
+        12 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 2.0 / 3.0, true)),
+        5 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 1.0 / 3.0, true) + 180.0),
+        6 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 2.0 / 3.0, true) + 180.0),
+        2 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 1.0 / 3.0, false)),
+        3 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 2.0 / 3.0, false)),
+        8 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 1.0 / 3.0, false) + 180.0),
+        9 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 2.0 / 3.0, false) + 180.0),
+        _ => 0.0,
+    }
 }
 
 /// Iteratively solve for one Placidus intermediate cusp.
@@ -921,6 +966,23 @@ mod tests {
                 (result.cusps[idx] - want).abs() < 1e-6,
                 "Koch cusp {idx}: got {}, want {want}",
                 result.cusps[idx]
+            );
+        }
+    }
+
+    #[test]
+    fn placidus_single_cusp_matches_full_houses() {
+        let jd = JulianDay::new(2_451_545.0);
+        let lat = Latitude::new(51.5);
+        let lon = Longitude::new(-0.1);
+        let full = houses(jd, lat, lon, b'P');
+
+        for cusp in 1..=12 {
+            let single = house_cusp(jd, lat, lon, b'P', cusp);
+            assert!(
+                (single - full.cusps[cusp]).abs() < 1e-10,
+                "cusp {cusp}: single {single}, full {}",
+                full.cusps[cusp]
             );
         }
     }
