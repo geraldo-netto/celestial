@@ -3,8 +3,8 @@
 use super::svg_common::SvgPalette;
 use super::ChartContext;
 use super::{
-    build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX, CY, RH, RI,
-    RO,
+    body_name, build_context, fmt_lon_dms, jd_to_date_str, render_builtin_svg, wx, wy, BODIES, CX,
+    CY, RH, RI, RO,
 };
 use crate::error::CliError;
 use celestial_core::AzAlt;
@@ -68,12 +68,12 @@ pub(super) fn build_dial_context(
         .map(|(b1, b2, mid, triggers)| {
             let dial_mid = mid % 90.0;
             json!({
-                "body1": format!("{b1:?}"),
-                "body2": format!("{b2:?}"),
+                "body1": body_name(*b1),
+                "body2": body_name(*b2),
                 "midpoint_lon": (mid   * 1e4).round() / 1e4,
                 "dial_mid":     (dial_mid * 1e4).round() / 1e4,
                 "triggers": triggers.iter().map(|(b, orb)| json!({
-                    "body": format!("{b:?}"),
+                    "body": body_name(*b),
                     "orb":  (orb * 100.0).round() / 100.0})).collect::<Vec<_>>()})
         })
         .collect();

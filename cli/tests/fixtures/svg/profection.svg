@@ -784,5 +784,5 @@
   <!-- Profection marker for age 0, house 1 -->
 <circle cx="120.00" cy="424.00" r="8" fill="#d4a800" opacity=".8"/>
 <text x="120.00" y="424.00" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#0d0d1e">1</text>
-  <text x="450" y="764" text-anchor="middle" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#d4a800" font-weight="600">Age 0: House 1 profection — Lord: Body(3)</text>
+  <text x="450" y="764" text-anchor="middle" font-size="10" font-family="'Segoe UI',system-ui,sans-serif" fill="#d4a800" font-weight="600">Age 0: House 1 profection — Lord: Venus</text>
 </svg>

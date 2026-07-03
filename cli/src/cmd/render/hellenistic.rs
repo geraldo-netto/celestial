@@ -2,7 +2,10 @@
 
 use super::svg_common::cusps_to_array;
 use super::ChartContext;
-use super::{build_context, jd_to_date_str, key_to_body, render_builtin_svg, wx, wy, CX, CY, RO};
+use super::{
+    body_name, build_context, jd_to_date_str, key_to_body, period_body_name, render_builtin_svg,
+    wx, wy, CX, CY, RO,
+};
 use crate::error::CliError;
 use celestial_core::JulianDay;
 use celestial_core::Latitude;
@@ -68,12 +71,12 @@ pub(super) fn build_hellenistic_context(
 
                 p["dignity5"] = json!(dignity.to_string());
                 p["dignity_score"] = json!(score);
-                p["term_ruler"] = json!(format!("{term_ruler:?}"));
-                p["decan_ruler"] = json!(format!("{decan:?}"));
-                p["triplicity_day"] = json!(format!("{trip_d:?}"));
-                p["triplicity_night"] = json!(format!("{trip_n:?}"));
-                p["triplicity_part"] = json!(format!("{trip_p:?}"));
-                p["almuten"] = json!(format!("{alm:?}"));
+                p["term_ruler"] = json!(body_name(term_ruler));
+                p["decan_ruler"] = json!(body_name(decan));
+                p["triplicity_day"] = json!(body_name(trip_d));
+                p["triplicity_night"] = json!(body_name(trip_n));
+                p["triplicity_part"] = json!(body_name(trip_p));
+                p["almuten"] = json!(body_name(alm));
                 p["almuten_score"] = json!(alm_score);
                 p["same_sect"] = json!(sect_ok);
             } else {
@@ -228,8 +231,8 @@ pub(super) fn build_firdaria_context(
         .iter()
         .map(|p| {
             json!({
-                "major_lord":  format!("{:?}", p.major_lord),
-                "minor_lord":  format!("{:?}", p.minor_lord),
+                "major_lord":  period_body_name(p.major_lord),
+                "minor_lord":  period_body_name(p.minor_lord),
                 "start":       jd_to_date_str(p.start),
                 "end":         jd_to_date_str(p.end),
                 "start_jd":    p.start,
@@ -270,15 +273,15 @@ pub(super) fn render_firdaria_svg(ctx: &ChartContext) -> String {
 
     // Planet colours (same as dasha palette)
     const FIRD_COLORS: &[(&str, &str)] = &[
-        ("SUN", "#e67e22"),
-        ("MOON", "#7f8c8d"),
-        ("MERCURY", "#27ae60"),
-        ("VENUS", "#3498db"),
-        ("MARS", "#e74c3c"),
-        ("JUPITER", "#f39c12"),
-        ("SATURN", "#2c3e50"),
-        ("MEAN_NODE", "#8e44ad"),
-        ("TRUE_NODE", "#d35400"),
+        ("Sun", "#e67e22"),
+        ("Moon", "#7f8c8d"),
+        ("Mercury", "#27ae60"),
+        ("Venus", "#3498db"),
+        ("Mars", "#e74c3c"),
+        ("Jupiter", "#f39c12"),
+        ("Saturn", "#2c3e50"),
+        ("Rahu", "#8e44ad"),
+        ("Ketu", "#d35400"),
     ];
 
     let periods = super::json_array(&ctx["firdaria"]);
@@ -446,7 +449,7 @@ pub(super) fn build_profection_context(
     let mut ctx = build_context(jd, lat, lon, date_str, hsys, vars)?;
     ctx["profection_house"] = json!(house_num);
     ctx["profection_lon"] = json!((prof_lon * 1e4).round() / 1e4);
-    ctx["profection_lord"] = json!(format!("{prof_lord:?}"));
+    ctx["profection_lord"] = json!(body_name(prof_lord));
     ctx["month_house"] = json!(month_house);
     ctx["month_lon"] = json!((month_lon * 1e4).round() / 1e4);
     ctx["profection_age"] = json!(age);

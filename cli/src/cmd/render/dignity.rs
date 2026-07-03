@@ -48,6 +48,30 @@ pub(crate) const BODIES: &[(Body, &str, &str, &str)] = &[
     (Body::CHIRON, "chiron", "Chiron", "\u{26B7}\u{FE0E}"),
 ];
 
+#[must_use]
+pub(crate) fn body_name(body: Body) -> String {
+    known_body_name(body).map_or_else(|| format!("Body {}", body.0), str::to_string)
+}
+
+#[must_use]
+pub(crate) fn period_body_name(body: Body) -> String {
+    match body {
+        Body::MEAN_NODE => "Rahu".to_string(),
+        Body::TRUE_NODE => "Ketu".to_string(),
+        _ => body_name(body),
+    }
+}
+
+fn known_body_name(body: Body) -> Option<&'static str> {
+    if body == Body::TRUE_NODE {
+        return Some("True Node");
+    }
+    BODIES
+        .iter()
+        .find(|(candidate, ..)| *candidate == body)
+        .map(|(_, _, name, _)| *name)
+}
+
 /// Per-body display colour (key → hex). Picked to approximate the
 /// traditional astrological palette used by the World-of-Wisdom PDF
 /// reference: warm metals for the luminaries, mode-coloured outer

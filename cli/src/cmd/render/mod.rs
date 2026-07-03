@@ -78,8 +78,8 @@ pub use args::RenderArgs;
 pub(crate) use chart_context::ChartContext;
 pub(crate) use config::*;
 pub(crate) use dignity::{
-    antiscion_lon, body_color, contra_antiscion_lon, key_to_body, planet_dignity, ASPECT_DEFS,
-    BODIES,
+    antiscion_lon, body_color, body_name, contra_antiscion_lon, key_to_body, period_body_name,
+    planet_dignity, ASPECT_DEFS, BODIES,
 };
 pub(crate) use format::{fmt_lon_dms, jd_to_date_str, moon_phase_str};
 pub(crate) use geometry::{spread_labels, wheel_angle, wx, wy};

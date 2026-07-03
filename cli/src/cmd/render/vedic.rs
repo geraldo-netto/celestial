@@ -2,8 +2,8 @@
 
 use super::ChartContext;
 use super::{
-    fmt_lon_dms, jd_to_date_str, render_south_indian_svg, sarvashtakavarga, BODIES, NI_CELLS,
-    RASI_GLYPHS, RASI_NAMES,
+    fmt_lon_dms, jd_to_date_str, period_body_name, render_south_indian_svg, sarvashtakavarga,
+    BODIES, NI_CELLS, RASI_GLYPHS, RASI_NAMES,
 };
 use crate::error::CliError;
 use celestial_core::JulianDay;
@@ -744,7 +744,7 @@ pub(super) fn build_vedic_context(
                 let start = jd_to_date_str(d.start);
                 let end = jd_to_date_str(d.end);
                 json!({
-                "body": format!("{:?}", d.body),
+                "body": period_body_name(d.body),
                 "years": (d.years * 100.0).round() / 100.0,
                 "start": start,
                 "end":   end,
@@ -854,15 +854,15 @@ pub(super) fn render_dasha_svg(ctx: &ChartContext) -> String {
 
     // Planet colours for dasha bars
     const DASHA_COLORS: &[(&str, &str)] = &[
-        ("SUN", "#e67e22"),
-        ("MOON", "#95a5a6"),
-        ("MARS", "#e74c3c"),
-        ("RAHU", "#8e44ad"),
-        ("JUPITER", "#f1c40f"),
-        ("SATURN", "#2c3e50"),
-        ("MERCURY", "#27ae60"),
-        ("KETU", "#d35400"),
-        ("VENUS", "#3498db"),
+        ("Sun", "#e67e22"),
+        ("Moon", "#95a5a6"),
+        ("Mars", "#e74c3c"),
+        ("Rahu", "#8e44ad"),
+        ("Jupiter", "#f1c40f"),
+        ("Saturn", "#2c3e50"),
+        ("Mercury", "#27ae60"),
+        ("Ketu", "#d35400"),
+        ("Venus", "#3498db"),
     ];
 
     let dashas = super::json_array(&ctx["dashas"]);
