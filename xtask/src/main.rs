@@ -80,11 +80,11 @@ fn internal_fns() -> BTreeSet<String> {
 /// Find the function name on or after line `start`, scanning at most 5 lines.
 fn scan_fn_name(lines: &[&str], start: usize) -> Option<(String, usize)> {
     let n = lines.len();
-    if let Some(j) = (start..n.min(start + 5)).next() {
-        let l = lines[j].trim();
-        let rest = l
-            .strip_prefix("pub fn ")
-            .or_else(|| l.strip_prefix("fn "))?;
+    for (j, line) in lines.iter().enumerate().take(n.min(start + 5)).skip(start) {
+        let l = line.trim();
+        let Some(rest) = l.strip_prefix("pub fn ").or_else(|| l.strip_prefix("fn ")) else {
+            continue;
+        };
         let name = rest.split('(').next()?.trim().to_string();
         return Some((name, j));
     }
@@ -2327,6 +2327,20 @@ fn cmd_apidoc(check: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scan_fn_name_skips_non_fn_lines_in_window() {
+        let lines = [
+            "#[php_function]",
+            "/// Legacy alias.",
+            "#[allow(dead_code)]",
+            "pub fn get_ayanamsa_name(mode: i32) -> String {",
+        ];
+        assert_eq!(
+            scan_fn_name(&lines, 1),
+            Some(("get_ayanamsa_name".to_owned(), 3))
+        );
+    }
 
     // ── rust_type_to_pyi ──────────────────────────────────────────────────────
 
