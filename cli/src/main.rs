@@ -90,7 +90,7 @@ fn main() {
     let lang = Lang::detect();
 
     // --list-plugins
-    if raw.iter().any(|a| a == "--list-plugins") {
+    if raw.len() == 2 && raw[1] == "--list-plugins" {
         let plugins = plugin::discover();
         if plugins.is_empty() {
             eprintln!("No celestial-* plugins found on $PATH.");

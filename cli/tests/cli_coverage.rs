@@ -368,6 +368,23 @@ fn calc_invalid_date_fails() {
 }
 
 #[test]
+fn subcommand_list_plugins_arg_does_not_hijack_dispatch() {
+    celestial()
+        .args([
+            "calc",
+            "-b",
+            "sun",
+            "-d",
+            "2000-01-01 12:00",
+            "--list-plugins",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Sun"))
+        .stdout(predicate::str::contains("Discovered plugins").not());
+}
+
+#[test]
 fn no_args_prints_help_or_fails() {
     // Bare invocation: clap either prints help (exit 2) or usage; never panics.
     celestial().assert().code(predicate::ne(101));

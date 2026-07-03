@@ -222,7 +222,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-| SM-2 | OPEN | S | `raw.iter().any(|a| a == "--list-plugins")` (`cli/src/main.rs:93`) scans the whole arg vector and returns before clap dispatch, so `celestial calc --date … --list-plugins` (verified) silently discards the `calc` computation and just lists plugins. | Only honor `--list-plugins` when no subcommand is present, or let clap own the global flag and handle it after arg-match. |
 
 ## UI / UX
 
