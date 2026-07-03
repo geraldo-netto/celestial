@@ -215,7 +215,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-| SCALE-1 | OPEN | S | `parallel_calc` (`core/src/functions/calc.rs:294`) spawns one OS thread per body with no cap, despite its own doc claiming "up to a cap" (calc.rs:238); bindings feed it an unbounded user `Vec` (python:180, js:313, php:280) — a 100k-element array attempts 100k thread spawns and a spawn failure panics the scope. | Chunk bodies over `available_parallelism()` (or clamp thread count); fix the doc. |
 
 ## Security
 

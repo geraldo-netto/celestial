@@ -235,9 +235,9 @@ pub fn orbit_max_min_true_distance(
 
 /// Compute positions for multiple bodies in parallel using OS threads.
 ///
-/// Spawns one thread per body (up to a cap) using [`std::thread::scope`],
-/// so all bodies are evaluated concurrently.  Ideal for full chart calculations
-/// (12 bodies) where the speedup is proportional to CPU cores.
+/// Spawns up to [`std::thread::available_parallelism`] workers using
+/// [`std::thread::scope`], then chunks bodies across those workers. Ideal for
+/// full chart calculations where the speedup is proportional to CPU cores.
 ///
 /// Results are returned in the same order as the input `bodies` slice.
 ///
@@ -280,7 +280,8 @@ pub fn calc_ut_many(
 /// Internal: evaluate `f(body)` for each body in parallel via scoped threads.
 ///
 /// Uses [`std::thread::scope`] (stable since Rust 1.63) — no external crates needed.
-/// Each body gets its own OS thread; the function blocks until all complete.
+/// Bodies are chunked across a capped worker set; the function blocks until all
+/// chunks complete.
 fn parallel_calc<F>(bodies: &[Body], f: F) -> Vec<crate::error::Result<PlanetPos>>
 where
     F: Fn(Body) -> crate::error::Result<PlanetPos> + Sync + Send + 'static,
@@ -291,26 +292,72 @@ where
     }
     use std::sync::Arc;
     let config = crate::functions::config::current_config();
+    let chunk_size = parallel_chunk_size(bodies.len());
     let f = Arc::new(f);
     std::thread::scope(|s| {
         let handles: Vec<_> = bodies
-            .iter()
-            .map(|&body| {
+            .chunks(chunk_size)
+            .enumerate()
+            .map(|(chunk_idx, chunk)| {
                 let f = Arc::clone(&f);
-                s.spawn(move || {
+                let offset = chunk_idx * chunk_size;
+                let count = chunk.len();
+                let handle = s.spawn(move || {
                     crate::functions::config::set_thread_config(config);
-                    f(body)
-                })
+                    chunk
+                        .iter()
+                        .enumerate()
+                        .map(|(i, &body)| (offset + i, f(body)))
+                        .collect::<Vec<_>>()
+                });
+                (offset, count, handle)
             })
             .collect();
-        handles
-            .into_iter()
-            .map(|h| {
-                h.join()
-                    .unwrap_or_else(|_| Err(crate::error::Error::Calc("thread panicked".into())))
-            })
-            .collect()
+        let mut indexed = Vec::with_capacity(bodies.len());
+        for (offset, count, handle) in handles {
+            match handle.join() {
+                Ok(results) => indexed.extend(results),
+                Err(_) => indexed.extend(thread_panic_results(offset, count)),
+            }
+        }
+        sort_indexed_results(indexed)
     })
+}
+
+fn parallel_worker_count(body_count: usize) -> usize {
+    if body_count == 0 {
+        return 0;
+    }
+    std::thread::available_parallelism()
+        .map(usize::from)
+        .unwrap_or(1)
+        .clamp(1, body_count)
+}
+
+fn parallel_chunk_size(body_count: usize) -> usize {
+    let workers = parallel_worker_count(body_count).max(1);
+    body_count.div_ceil(workers)
+}
+
+fn thread_panic_results(
+    offset: usize,
+    count: usize,
+) -> Vec<(usize, crate::error::Result<PlanetPos>)> {
+    (0..count)
+        .map(|i| {
+            (
+                offset + i,
+                Err(crate::error::Error::Calc("thread panicked".into())),
+            )
+        })
+        .collect()
+}
+
+fn sort_indexed_results(
+    mut indexed: Vec<(usize, crate::error::Result<PlanetPos>)>,
+) -> Vec<crate::error::Result<PlanetPos>> {
+    indexed.sort_by_key(|(i, _)| *i);
+    indexed.into_iter().map(|(_, result)| result).collect()
 }
 
 // ── CalcOptions builder ───────────────────────────────────────────────────────
@@ -319,8 +366,8 @@ where
 ///
 /// - `Sequential` — evaluate bodies one by one in the calling thread.
 ///   Fastest for 1–2 bodies.
-/// - `Parallel` — spawn one OS thread per body. Fastest for 3+ bodies
-///   on multi-core machines.
+/// - `Parallel` — chunk bodies across a capped worker set. Fastest for 3+
+///   bodies on multi-core machines.
 /// - `Auto` (default) — parallel for > 2 bodies, sequential otherwise.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CalcStrategy {
@@ -525,6 +572,39 @@ mod cov_tests {
         });
         assert_eq!(out.len(), 5);
         assert!(out.iter().all(Result::is_ok));
+    }
+
+    #[test]
+    fn parallel_calc_caps_large_inputs_to_worker_count() {
+        let body_count = 100_000;
+        let workers = parallel_worker_count(body_count);
+        let chunk_size = parallel_chunk_size(body_count);
+        let chunk_count = body_count.div_ceil(chunk_size);
+        let cap = std::thread::available_parallelism()
+            .map(usize::from)
+            .unwrap_or(1);
+        assert!(workers <= cap);
+        assert!(chunk_count <= workers);
+    }
+
+    #[test]
+    fn parallel_calc_chunked_path_preserves_input_order() {
+        let bodies: Vec<Body> = (0..64).rev().map(Body).collect();
+        let out = parallel_calc(&bodies, |body| {
+            Ok(PlanetPos {
+                lon: body.as_raw() as f64,
+                ..PlanetPos::default()
+            })
+        });
+        let lons = out
+            .into_iter()
+            .map(|r| r.map(|pos| pos.lon))
+            .collect::<Result<Vec<_>>>();
+        let expected = bodies
+            .iter()
+            .map(|body| body.as_raw() as f64)
+            .collect::<Vec<_>>();
+        assert_eq!(lons.unwrap(), expected);
     }
 
     #[test]
