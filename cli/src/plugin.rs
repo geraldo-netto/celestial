@@ -4,7 +4,7 @@
 //! `celestial <name> [args…]` execs it with the remaining arguments verbatim.
 
 use crate::error::CliError;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 const PREFIX: &str = "celestial-";
 
@@ -29,7 +29,9 @@ pub fn discover() -> Vec<Plugin> {
             if !s.starts_with(PREFIX) {
                 continue;
             }
-            let name = s[PREFIX.len()..].to_string();
+            let Some(name) = plugin_name_from_file_name(&s) else {
+                continue;
+            };
             if name.is_empty() || !seen.insert(name.clone()) {
                 continue;
             }
@@ -47,11 +49,14 @@ pub fn discover() -> Vec<Plugin> {
 /// Only returns on error or when no matching plugin is found.
 pub fn try_exec(subcommand: &str, args: &[String]) -> Result<(), CliError> {
     let target = format!("{PREFIX}{subcommand}");
+    let candidate_names = executable_candidate_names(&target);
     for dir in std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()) {
-        let candidate = dir.join(&target);
-        if is_exec(&candidate) {
-            let err = do_exec(&candidate, args);
-            return Err(CliError::Msg(format!("failed to exec `{target}`: {err}")));
+        for candidate_name in &candidate_names {
+            let candidate = dir.join(candidate_name);
+            if is_exec(&candidate) {
+                let err = do_exec(&candidate, args);
+                return Err(CliError::Msg(format!("failed to exec `{target}`: {err}")));
+            }
         }
     }
     Err(CliError::Msg(format!(
@@ -60,7 +65,80 @@ pub fn try_exec(subcommand: &str, args: &[String]) -> Result<(), CliError> {
     )))
 }
 
-fn is_exec(p: &std::path::Path) -> bool {
+fn plugin_name_from_file_name(file_name: &str) -> Option<String> {
+    plugin_name_from_file_name_with_extensions(file_name, &executable_extensions())
+}
+
+fn plugin_name_from_file_name_with_extensions(
+    file_name: &str,
+    extensions: &[String],
+) -> Option<String> {
+    let raw = file_name.strip_prefix(PREFIX)?;
+    let name = strip_known_extension(raw, extensions).unwrap_or(raw);
+    (!name.is_empty()).then(|| name.to_string())
+}
+
+fn executable_candidate_names(target: &str) -> Vec<String> {
+    executable_candidate_names_with_extensions(target, &executable_extensions())
+}
+
+fn executable_candidate_names_with_extensions(target: &str, extensions: &[String]) -> Vec<String> {
+    let mut names = vec![target.to_string()];
+    for ext in extensions {
+        if !ends_with_ignore_ascii_case(target, ext) {
+            names.push(format!("{target}{ext}"));
+        }
+    }
+    names
+}
+
+fn executable_extensions() -> Vec<String> {
+    #[cfg(unix)]
+    {
+        Vec::new()
+    }
+    #[cfg(not(unix))]
+    {
+        std::env::var_os("PATHEXT")
+            .map(|v| {
+                v.to_string_lossy()
+                    .split(';')
+                    .filter(|ext| ext.starts_with('.') && ext.len() > 1)
+                    .map(str::to_string)
+                    .collect()
+            })
+            .filter(|exts: &Vec<String>| !exts.is_empty())
+            .unwrap_or_else(|| {
+                vec![
+                    ".COM".to_string(),
+                    ".EXE".to_string(),
+                    ".BAT".to_string(),
+                    ".CMD".to_string(),
+                ]
+            })
+    }
+}
+
+fn strip_known_extension<'a>(name: &'a str, extensions: &[String]) -> Option<&'a str> {
+    extensions
+        .iter()
+        .find(|ext| ends_with_ignore_ascii_case(name, ext))
+        .map(|ext| &name[..name.len() - ext.len()])
+}
+
+fn ends_with_ignore_ascii_case(value: &str, suffix: &str) -> bool {
+    value
+        .get(value.len().saturating_sub(suffix.len())..)
+        .is_some_and(|tail| tail.eq_ignore_ascii_case(suffix))
+}
+
+fn has_known_extension(path: &Path, extensions: &[String]) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| strip_known_extension(name, extensions).is_some())
+}
+
+fn is_exec(p: &Path) -> bool {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -69,7 +147,7 @@ fn is_exec(p: &std::path::Path) -> bool {
     }
     #[cfg(not(unix))]
     {
-        p.is_file()
+        p.is_file() && has_known_extension(p, &executable_extensions())
     }
 }
 
@@ -99,7 +177,6 @@ fn do_exec(path: &std::path::Path, args: &[String]) -> std::io::Error {
 mod tests {
     use super::*;
     use std::fs;
-    use std::os::unix::fs::PermissionsExt;
     use std::sync::{Mutex, OnceLock};
 
     /// Serializes tests that mutate the process-global PATH env var.
@@ -119,18 +196,93 @@ mod tests {
         f();
     }
 
+    fn plugin_file_name(name: &str) -> String {
+        #[cfg(unix)]
+        {
+            name.to_string()
+        }
+        #[cfg(not(unix))]
+        {
+            if has_known_extension(std::path::Path::new(name), &executable_extensions()) {
+                name.to_string()
+            } else {
+                format!("{name}.exe")
+            }
+        }
+    }
+
+    fn make_executable(path: &std::path::Path) {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(path).unwrap().permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(path, perms).unwrap();
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = path;
+        }
+    }
+
+    fn make_non_executable(path: &std::path::Path) {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(path).unwrap().permissions();
+            perms.set_mode(0o644);
+            fs::set_permissions(path, perms).unwrap();
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = path;
+        }
+    }
+
     /// Create a temporary executable file, run the test, then clean up.
     fn with_fake_plugin<F: FnOnce(&std::path::Path)>(name: &str, f: F) {
         let dir =
             std::env::temp_dir().join(format!("celestial_plugin_test_{}", std::process::id()));
         let _ = fs::create_dir_all(&dir);
-        let path = dir.join(name);
+        let path = dir.join(plugin_file_name(name));
         fs::write(&path, b"#!/bin/sh\necho hello\n").unwrap();
-        let mut perms = fs::metadata(&path).unwrap().permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(&path, perms).unwrap();
+        make_executable(&path);
         f(&dir);
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn plugin_name_strips_pathext_extension() {
+        let exts = vec![".EXE".to_string(), ".CMD".to_string()];
+        let name = plugin_name_from_file_name_with_extensions("celestial-synastry.exe", &exts);
+        assert_eq!(name.as_deref(), Some("synastry"));
+    }
+
+    #[test]
+    fn executable_candidates_probe_pathext_suffixes() {
+        let exts = vec![".EXE".to_string(), ".CMD".to_string()];
+        let names = executable_candidate_names_with_extensions("celestial-synastry", &exts);
+        assert_eq!(
+            names,
+            vec![
+                "celestial-synastry".to_string(),
+                "celestial-synastry.EXE".to_string(),
+                "celestial-synastry.CMD".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn known_extension_rejects_non_pathext_suffix() {
+        let exts = vec![".EXE".to_string()];
+        assert!(has_known_extension(
+            Path::new("celestial-synastry.exe"),
+            &exts
+        ));
+        assert!(!has_known_extension(
+            Path::new("celestial-synastry.txt"),
+            &exts
+        ));
     }
 
     #[test]
@@ -187,10 +339,7 @@ mod tests {
             let _ = std::fs::create_dir_all(&dir);
             let path = dir.join("celestial-notexec");
             std::fs::write(&path, b"not executable").unwrap();
-            // mode 0o644 — readable but not executable
-            let mut perms = std::fs::metadata(&path).unwrap().permissions();
-            perms.set_mode(0o644);
-            std::fs::set_permissions(&path, perms).unwrap();
+            make_non_executable(&path);
 
             let saved = std::env::var_os("PATH").unwrap_or_default();
             let new_path = format!("{}:{}", dir.display(), saved.to_string_lossy());
@@ -214,11 +363,9 @@ mod tests {
             let dir2 = std::env::temp_dir().join(format!("cel_dup2_{}", std::process::id()));
             for d in [&dir1, &dir2] {
                 let _ = fs::create_dir_all(d);
-                let p = d.join("celestial-dup");
+                let p = d.join(plugin_file_name("celestial-dup"));
                 fs::write(&p, b"#!/bin/sh\n").unwrap();
-                let mut perms = fs::metadata(&p).unwrap().permissions();
-                perms.set_mode(0o755);
-                fs::set_permissions(&p, perms).unwrap();
+                make_executable(&p);
             }
 
             let saved = std::env::var_os("PATH").unwrap_or_default();
@@ -248,11 +395,9 @@ mod tests {
             let dir = std::env::temp_dir().join(format!("cel_sort_{}", std::process::id()));
             let _ = fs::create_dir_all(&dir);
             for name in ["celestial-zzz", "celestial-aaa", "celestial-mmm"] {
-                let p = dir.join(name);
+                let p = dir.join(plugin_file_name(name));
                 fs::write(&p, b"#!/bin/sh\n").unwrap();
-                let mut perms = fs::metadata(&p).unwrap().permissions();
-                perms.set_mode(0o755);
-                fs::set_permissions(&p, perms).unwrap();
+                make_executable(&p);
             }
 
             let saved = std::env::var_os("PATH").unwrap_or_default();

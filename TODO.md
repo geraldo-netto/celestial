@@ -173,7 +173,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-| PLAT-1 | OPEN | M | Windows plugin dispatch is broken: `is_exec` (`cli/src/plugin.rs:70`) only checks `is_file()`, `discover` keeps the extension in the name (`celestial-synastry.exe` → `"synastry.exe"`), but `try_exec` (:49) searches for the extensionless `celestial-<sub>`, so a real `.exe` plugin is never found and non-executable `celestial-*.txt` files are listed as plugins. Windows is in the CI matrix (`celestial-cli.yml:95`). | Strip a trailing `.exe`/PATHEXT from the discovered name and probe candidate names with executable extensions on non-Unix. |
 
 ## Plugin Extensibility
 
