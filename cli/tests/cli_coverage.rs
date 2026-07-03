@@ -228,6 +228,26 @@ fn render_mesoamerican_svg() {
     let _ = std::fs::remove_file(&out);
 }
 
+#[test]
+fn render_profection_return_year_derives_age() {
+    celestial()
+        .args([
+            "render",
+            "--chart-type",
+            "profection",
+            "--date",
+            "2000-01-01 12:00",
+            "--tz",
+            "UTC",
+            "--return-year",
+            "2026",
+            "--print-context",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"profection_age\": 26"));
+}
+
 // ─── SEC-10: user `--var` title/colors must be XML-escaped ────────────────────
 
 #[test]

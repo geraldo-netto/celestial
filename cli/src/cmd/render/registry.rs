@@ -224,11 +224,7 @@ pub(crate) fn dispatch_profection(
     args: &RenderArgs,
     user_vars: &BTreeMap<String, String>,
 ) -> Result<(ChartContext, ChartRenderer), CliError> {
-    let age = args
-        .years
-        .map(|y| y as u32)
-        .or(args.return_year.map(|r| r as u32))
-        .unwrap_or(0);
+    let age = profection_age(jd, args)?;
     let mut v = user_vars.clone();
     v.entry("title".to_string())
         .or_insert_with(|| format!("Profection — Age {age}"));
@@ -239,6 +235,32 @@ pub(crate) fn dispatch_profection(
         .into(),
         hellenistic::render_profection_svg,
     ))
+}
+
+fn profection_age(jd: f64, args: &RenderArgs) -> Result<u32, CliError> {
+    if let Some(years) = args.years {
+        if years < 0.0 {
+            return Err("--years must be non-negative for profection".into());
+        }
+        return Ok(years as u32);
+    }
+
+    let Some(return_year) = args.return_year else {
+        return Ok(0);
+    };
+    let birth_year = civil_year_from_date(&args.date).unwrap_or_else(|| {
+        celestial_core::revjul(JulianDay::new(jd), celestial_core::Calendar::Gregorian).year as i32
+    });
+    let age = return_year - birth_year;
+    if age < 0 {
+        return Err("--return-year must not precede the birth year for profection".into());
+    }
+    Ok(age as u32)
+}
+
+fn civil_year_from_date(date: &str) -> Option<i32> {
+    let year = date.trim().split_once('-')?.0;
+    (year.len() == 4).then(|| year.parse().ok()).flatten()
 }
 
 // ── Remaining chart-type dispatchers ──────────────────────────────────────────

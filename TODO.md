@@ -48,7 +48,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 |---|---|---|---|---|
 | CLI-1 | OPEN | S | `render --lat/--lon/--lat2/--lon2` (`cli/src/cmd/render/args.rs:89,93,151,155`) lack `allow_hyphen_values`, so the space form `render --lat -23.55` dies with `error: unexpected argument '-2' found` — every southern/western coordinate is blocked unless written `--lat=-23.55`. Verified: `houses.rs:19,23` already sets the flag. | Add `allow_hyphen_values = true` to the four render lat/lon args. |
 | CLI-3 | OPEN | S | `--calendar` help/enum text (`cli/src/cmd/render/args.rs:~113`) lists only 5 values (gregorian, omer, sabbats, moon, hebrew), omitting `gregorian-year`/`year-calendar` (`CalendarKind::GregorianYear`) that `resolve_overlay` and README both accept. | Add `gregorian-year` to the help string. |
-| CLI-4 | OPEN | S | `dispatch_profection` (`cli/src/cmd/render/registry.rs:230`) uses `args.return_year` directly as the profection AGE, so `render --chart-type profection --return-year 2026` computes age 2026 (verified: `"profection_age": 2026`, house 11) instead of the profection for target year 2026. | Derive age as `return_year − birth_year`, or reject `--return-year` for profection and require `--years`. |
 
 ## Code Complexity
 
