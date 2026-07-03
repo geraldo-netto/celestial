@@ -138,6 +138,15 @@ fn moon_bad_month_fails() {
         .failure();
 }
 
+#[test]
+fn moon_month_with_phase_flag_fails() {
+    celestial()
+        .args(["moon", "--month", "2025-03", "--new"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--month cannot be combined"));
+}
+
 // ─── sabbats / esbats: next + json ────────────────────────────────────────────
 
 #[test]

@@ -42,15 +42,26 @@ pub struct MoonArgs {
 
 /// Dispatch `moon` to the right mode based on CLI flags.
 pub fn run(args: MoonArgs) -> Result<(), CliError> {
+    if args.month.is_some() && has_phase_request(&args) {
+        return Err(CliError::Parse(
+            "--month cannot be combined with --new, --first-quarter, --full, or --last-quarter"
+                .to_owned(),
+        ));
+    }
+
     let jd = parse::parse_date(&args.date)?;
 
     if let Some(ref ym) = args.month {
         return run_month_mode(ym, args.json);
     }
-    if args.new || args.first_quarter || args.full || args.last_quarter {
+    if has_phase_request(&args) {
         return run_phase_mode(&args, jd);
     }
     run_info_mode(&args, jd)
+}
+
+fn has_phase_request(args: &MoonArgs) -> bool {
+    args.new || args.first_quarter || args.full || args.last_quarter
 }
 
 /// Print all Moon phases for a calendar month (`--month YYYY-MM`).
