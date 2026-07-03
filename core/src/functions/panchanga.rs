@@ -22,7 +22,9 @@
 
 use crate::body::{Body, CalcFlags, Calendar};
 use crate::calc_ut;
+use crate::error::{Error, Result};
 use crate::units::JulianDay;
+use crate::PlanetPos;
 
 /// The 30 Tithis in order.
 pub const TITHI_NAMES: [&str; 30] = [
@@ -216,6 +218,11 @@ pub fn karana_name(karana: u8) -> &'static str {
 /// Uses Lahiri (Chitrapaksha) ayanamsa for sidereal positions.
 #[must_use]
 pub fn panchanga(jd: JulianDay) -> Panchanga {
+    try_panchanga(jd).expect("panchanga Sun/Moon calculation failed")
+}
+
+/// Checked Panchānga calculation that surfaces ephemeris failures.
+pub fn try_panchanga(jd: JulianDay) -> Result<Panchanga> {
     let jd: f64 = jd.into();
     // DEC-1: compute under Lahiri, but the prior code only *set* the
     // process-global sidereal mode and never restored it — leaking
@@ -232,25 +239,28 @@ pub fn panchanga(jd: JulianDay) -> Panchanga {
     crate::set_sid_mode(crate::body::SiderealMode::LAHIRI, 0.0, 0.0);
     let flags = CalcFlags::BUILTIN | CalcFlags::SIDEREAL | CalcFlags::SPEED;
 
-    let sun = calc_ut(JulianDay::new(jd), Body::SUN, flags).unwrap_or(crate::PlanetPos {
-        lon: 0.0,
-        lat: 0.0,
-        dist: 0.0,
-        speed_lon: 0.0,
-        speed_lat: 0.0,
-        speed_dist: 0.0,
-        ret_flags: 0,
-    });
-    let moon = calc_ut(JulianDay::new(jd), Body::MOON, flags).unwrap_or(crate::PlanetPos {
-        lon: 0.0,
-        lat: 0.0,
-        dist: 0.0,
-        speed_lon: 0.0,
-        speed_lat: 0.0,
-        speed_dist: 0.0,
-        ret_flags: 0,
-    });
+    panchanga_from_calc_results(
+        jd,
+        calc_ut(JulianDay::new(jd), Body::SUN, flags),
+        calc_ut(JulianDay::new(jd), Body::MOON, flags),
+    )
+}
 
+fn panchanga_from_calc_results(
+    jd: f64,
+    sun: Result<PlanetPos>,
+    moon: Result<PlanetPos>,
+) -> Result<Panchanga> {
+    let sun = sun.map_err(|e| panchanga_calc_error("Sun", e))?;
+    let moon = moon.map_err(|e| panchanga_calc_error("Moon", e))?;
+    Ok(panchanga_from_positions(jd, sun, moon))
+}
+
+fn panchanga_calc_error(body: &str, err: Error) -> Error {
+    Error::Calc(format!("panchanga {body} calculation failed: {err}"))
+}
+
+fn panchanga_from_positions(jd: f64, sun: PlanetPos, moon: PlanetPos) -> Panchanga {
     let sun_lon = norm_deg(sun.lon);
     let moon_lon = norm_deg(moon.lon);
     let elongation = norm_deg(moon_lon - sun_lon);
@@ -466,6 +476,18 @@ mod tests {
         assert!(p.vara <= 6, "vara={}", p.vara);
         assert!(p.karana >= 1 && p.karana <= 60, "karana={}", p.karana);
         assert!(p.elongation >= 0.0 && p.elongation < 360.0);
+    }
+
+    #[test]
+    fn panchanga_surfaces_sun_calc_error() {
+        let err = panchanga_from_calc_results(
+            2_451_545.0,
+            Err(Error::Calc("synthetic failure".into())),
+            Ok(PlanetPos::default()),
+        )
+        .unwrap_err();
+
+        assert!(err.to_string().contains("Sun calculation failed"));
     }
 
     #[test]
