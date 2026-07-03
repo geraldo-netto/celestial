@@ -841,7 +841,7 @@ pub(super) fn render_dial_svg(ctx: &ChartContext) -> String {
 
     // Degree marks every 5°
     for deg in (0u32..90).step_by(5) {
-        let a = (deg as f64 - 90.0).to_radians();
+        let a = ((deg as f64 * 4.0) - 90.0).to_radians();
         let r1 = CR - 8.0;
         let r2 = CR;
         let (x1, y1) = (350.0 + r1 * a.cos(), 320.0 - r1 * a.sin());
@@ -856,7 +856,7 @@ pub(super) fn render_dial_svg(ctx: &ChartContext) -> String {
     for p in planets {
         let dial_lon = p["dial_lon"].as_f64().unwrap_or(0.0);
         let glyph = p["glyph"].as_str().unwrap_or("●");
-        let a = (dial_lon - 90.0).to_radians();
+        let a = ((dial_lon * 4.0) - 90.0).to_radians();
         let rx = 350.0 + (CR - 18.0) * a.cos();
         let ry = 320.0 - (CR - 18.0) * a.sin();
         let _ = writeln!(
