@@ -334,6 +334,9 @@ pub fn jewish_holiday_jd(hebrew_year: i32, name: &str) -> Option<f64> {
 pub fn hebrew_year_from_jd(jd: JulianDay) -> i32 {
     let jd: f64 = jd.into();
     let mut year = ((jd - 347_997.0) * 98_496.0 / 35_975_351.0) as i32 + 1;
+    while year > 1 && (hebrew_new_year_jd(year) as f64) > jd {
+        year -= 1;
+    }
     while (hebrew_new_year_jd(year + 1) as f64) <= jd {
         year += 1;
     }
@@ -479,5 +482,12 @@ mod tests {
         assert_eq!(y, 5760);
         assert_eq!(m, 10); // Tevet
         assert_eq!(d, 24); // Jan 1, 2000 = 24 Tevet 5760
+    }
+
+    #[test]
+    fn hebrew_year_before_rosh_hashanah_handles_estimate_overshoot() {
+        let jd = crate::julday(1853, 10, 1, 12.0, crate::body::Calendar::Gregorian);
+        assert_eq!(hebrew_year_from_jd(JulianDay::new(jd)), 5613);
+        assert_eq!(jd_to_hebrew_date(JulianDay::new(jd)).0, 5613);
     }
 }
