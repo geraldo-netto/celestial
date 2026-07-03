@@ -407,6 +407,14 @@ mod tests {
         }
     }
 
+    fn config_args(config: std::path::PathBuf) -> RenderArgs {
+        RenderArgs {
+            date: "now".into(),
+            config: Some(config),
+            ..RenderArgs::default()
+        }
+    }
+
     #[test]
     fn compute_natal_returns_svg_payload() {
         match compute(natal_args()).expect("compute ok") {
@@ -567,6 +575,31 @@ mod tests {
             ..RenderArgs::default()
         };
         assert!(compute(b).is_err(), "absolute config out must be rejected");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn compute_rejects_config_template_escape_paths() {
+        let dir = std::env::temp_dir().join(format!("cel_cfgtpl_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+
+        let abs_cfg = dir.join("abs.toml");
+        std::fs::write(
+            &abs_cfg,
+            format!(
+                "[render]\ntemplate = \"{}\"\n",
+                dir.join("secret.tt").display()
+            ),
+        )
+        .unwrap();
+        let abs_err = compute(config_args(abs_cfg)).unwrap_err().to_string();
+        assert!(abs_err.starts_with("config `template` must be a relative path"));
+
+        let parent_cfg = dir.join("parent.toml");
+        std::fs::write(&parent_cfg, b"[render]\ntemplate = \"../secret.tt\"\n").unwrap();
+        let parent_err = compute(config_args(parent_cfg)).unwrap_err().to_string();
+        assert!(parent_err.starts_with("config `template` must be a relative path"));
+
         let _ = std::fs::remove_dir_all(&dir);
     }
 

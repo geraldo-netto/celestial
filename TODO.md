@@ -221,7 +221,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-| SEC-6 | OPEN | M | An untrusted `--config` can set `[render] template` to any absolute path (`cli/src/cmd/render/config.rs:90` assigns `r.template` with no guard), and MiniJinja emits non-`{{}}` file content verbatim into the "SVG" — an arbitrary-file-read/disclosure. The sibling `out` field right below (:101-112) IS path-guarded under the same explicitly-stated "config may be untrusted" SEC-5 threat model, so `template` is an inconsistency in that model. | Apply the same absolute/`..` rejection to config-sourced `template`; leave the explicit `--template` CLI flag unrestricted (mirror the `out` split). |
 
 ## State Machine Integrity
 

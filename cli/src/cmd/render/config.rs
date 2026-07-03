@@ -6,7 +6,7 @@
 //! movement, no behaviour change (re-exported by the facade).
 
 use super::*;
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
 // ─── Config file ──────────────────────────────────────────────────────────────
 
@@ -58,6 +58,17 @@ fn override_if<T>(field: &mut T, candidate: Option<T>, should_override: bool) {
     }
 }
 
+fn reject_unsafe_config_path(field: &str, path: &Path) -> Result<(), CliError> {
+    if path.is_absolute() || path.components().any(|c| matches!(c, Component::ParentDir)) {
+        return Err(CliError::Config(format!(
+            "config `{field}` must be a relative path without `..` (got `{}`); \
+             pass an unrestricted path via the `--{field}` flag instead",
+            path.display()
+        )));
+    }
+    Ok(())
+}
+
 /// Read a TOML config file and merge its defaults into `args` (only fields
 /// still at their sentinel defaults are overridden), returning its `[vars]`
 /// map. Empty map if no config file is specified.
@@ -88,6 +99,9 @@ pub(crate) fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, Stri
         override_if(&mut args.lon, r.lon, lon_at_default);
         override_if(&mut args.hsys, r.hsys, hsys_at_default);
         if args.template.is_none() {
+            if let Some(template) = &r.template {
+                reject_unsafe_config_path("template", template)?;
+            }
             args.template = r.template;
         }
         if args.out.is_none() {
@@ -99,16 +113,7 @@ pub(crate) fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, Stri
             // explicit CLI `--out` is the user's own intent and is
             // left unrestricted (this branch only runs when it's None).
             if let Some(o) = &r.out {
-                if o.is_absolute()
-                    || o.components()
-                        .any(|c| matches!(c, std::path::Component::ParentDir))
-                {
-                    return Err(CliError::Config(format!(
-                        "config `out` must be a relative path without `..` (got `{}`); \
-                         pass an absolute path via the `--out` flag instead",
-                        o.display()
-                    )));
-                }
+                reject_unsafe_config_path("out", o)?;
             }
             args.out = r.out;
         }
