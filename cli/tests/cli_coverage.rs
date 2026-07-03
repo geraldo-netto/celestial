@@ -147,6 +147,29 @@ fn moon_month_with_phase_flag_fails() {
         .stderr(predicate::str::contains("--month cannot be combined"));
 }
 
+#[test]
+fn render_accepts_space_separated_negative_coordinates() {
+    celestial()
+        .args([
+            "render",
+            "--chart-type",
+            "natal",
+            "--date",
+            "2000-01-01 12:00",
+            "--tz",
+            "UTC",
+            "--lat",
+            "-23.55",
+            "--lon",
+            "-46.63",
+            "--print-context",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"lat\": -23.55"))
+        .stdout(predicate::str::contains("\"lon\": -46.63"));
+}
+
 // ─── sabbats / esbats: next + json ────────────────────────────────────────────
 
 #[test]

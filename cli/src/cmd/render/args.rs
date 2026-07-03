@@ -86,11 +86,11 @@ pub struct RenderArgs {
     pub timezone: Option<String>,
 
     /// Geographic latitude in decimal degrees (N positive)
-    #[arg(long, default_value = "0.0")]
+    #[arg(long, default_value = "0.0", allow_hyphen_values = true)]
     pub lat: f64,
 
     /// Geographic longitude in decimal degrees (E positive)
-    #[arg(long, default_value = "0.0")]
+    #[arg(long, default_value = "0.0", allow_hyphen_values = true)]
     pub lon: f64,
 
     /// Jinja-style template file (omit for built-in SVG)
@@ -147,11 +147,11 @@ pub struct RenderArgs {
     pub years: Option<f64>,
 
     /// Second chart latitude (for bi-wheel)
-    #[arg(long)]
+    #[arg(long, allow_hyphen_values = true)]
     pub lat2: Option<f64>,
 
     /// Second chart longitude (for bi-wheel)
-    #[arg(long)]
+    #[arg(long, allow_hyphen_values = true)]
     pub lon2: Option<f64>,
 
     /// House system: P=Placidus K=Koch E=Equal W=WholeSign O=Porphyry …
