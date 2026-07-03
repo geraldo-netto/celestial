@@ -82,7 +82,7 @@ pub(crate) fn dispatch_lunar_return(
     let start = args
         .date2
         .as_deref()
-        .map(crate::parse::parse_date)
+        .map(|date| parse_secondary_date("--date2", date, args))
         .transpose()?
         .unwrap_or(jd);
     let lr_jd = lunar_return_jd(
@@ -146,7 +146,7 @@ pub(crate) fn dispatch_biwheel(
         .date2
         .as_deref()
         .ok_or("--date2 DATE required for biwheel chart")?;
-    let jd2 = crate::parse::parse_date(date2)?;
+    let jd2 = parse_secondary_date("--date2", date2, args)?;
     let lat2 = args.lat2.unwrap_or(args.lat);
     let lon2 = args.lon2.unwrap_or(args.lon);
     let v = vars_with_title(user_vars, "Bi-wheel");
@@ -168,7 +168,7 @@ pub(crate) fn dispatch_composite(
         .date2
         .as_deref()
         .ok_or("--date2 DATE required for composite chart")?;
-    let jd2 = crate::parse::parse_date(date2)?;
+    let jd2 = parse_secondary_date("--date2", date2, args)?;
     let v = vars_with_title(user_vars, "Composite Chart");
     Ok((
         specialist::build_composite_context(
@@ -192,8 +192,8 @@ pub(crate) fn dispatch_triwheel(
         .date3
         .as_deref()
         .ok_or("--date3 required (ring 3) for tri-wheel")?;
-    let jd2 = crate::parse::parse_date(date2)?;
-    let jd3 = crate::parse::parse_date(date3)?;
+    let jd2 = parse_secondary_date("--date2", date2, args)?;
+    let jd3 = parse_secondary_date("--date3", date3, args)?;
     let v = vars_with_title(user_vars, "Tri-wheel");
     Ok((
         specialist::build_triwheel_context(
@@ -261,6 +261,28 @@ fn profection_age(jd: f64, args: &RenderArgs) -> Result<u32, CliError> {
 fn civil_year_from_date(date: &str) -> Option<i32> {
     let year = date.trim().split_once('-')?.0;
     (year.len() == 4).then(|| year.parse().ok()).flatten()
+}
+
+fn parse_secondary_date(field: &str, date: &str, args: &RenderArgs) -> Result<f64, CliError> {
+    let trimmed = date.trim();
+    if trimmed.eq_ignore_ascii_case("now") || trimmed.parse::<f64>().is_ok() {
+        return Ok(crate::parse::parse_date(date)?);
+    }
+    require_secondary_datetime(field, date)?;
+    let tz = args.timezone.as_deref().ok_or_else(|| {
+        format!("missing --timezone: `{field}` is a local civil time and must be converted to UT")
+    })?;
+    let offset = crate::parse::parse_tz_offset(tz)?;
+    Ok(crate::parse::parse_date(date)? - offset / 24.0)
+}
+
+fn require_secondary_datetime(field: &str, date: &str) -> Result<(), CliError> {
+    if crate::parse::require_datetime(date).is_ok() {
+        return Ok(());
+    }
+    Err(CliError::Parse(format!(
+        "{field} `{date}` has no time-of-day; pass it as `{field} \"YYYY-MM-DD HH:MM\"`"
+    )))
 }
 
 // ── Remaining chart-type dispatchers ──────────────────────────────────────────

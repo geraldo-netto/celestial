@@ -29,6 +29,18 @@ fn templates_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates")
 }
 
+fn add_default_time(args: &mut [String], flag: &str) {
+    let Some(i) = args.iter().position(|a| a == flag) else {
+        return;
+    };
+    let Some(date) = args.get_mut(i + 1) else {
+        return;
+    };
+    if !date.contains(' ') && date.parse::<f64>().is_err() && date != "now" {
+        date.push_str(" 12:00");
+    }
+}
+
 /// Render a template and return the SVG bytes. Panics with a useful
 /// message on any of: missing template, non-zero exit, missing output,
 /// non-SVG content.
@@ -47,15 +59,11 @@ fn render_template(template_name: &str, out_name: &str, extra_args: &[&str]) -> 
     let _ = fs::remove_file(&out);
 
     // Natal/derived charts now require an explicit birth time + timezone.
-    // These template tests only assert SVG shape, so normalise any `--date`
+    // These template tests only assert SVG shape, so normalise any date args
     // to carry a time and append a fixed UTC timezone.
     let mut args: Vec<String> = extra_args.iter().map(|s| s.to_string()).collect();
-    if let Some(i) = args.iter().position(|a| a == "--date") {
-        if let Some(d) = args.get_mut(i + 1) {
-            if !d.contains(' ') && d.parse::<f64>().is_err() && d != "now" {
-                d.push_str(" 12:00");
-            }
-        }
+    for flag in ["--date", "--date2", "--date3"] {
+        add_default_time(&mut args, flag);
     }
     if !args.iter().any(|a| a == "--tz" || a == "--timezone") {
         args.push("--tz".into());

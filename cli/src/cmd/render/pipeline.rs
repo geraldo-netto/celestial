@@ -437,6 +437,24 @@ mod tests {
         }
     }
 
+    fn computed_context(mut args: RenderArgs) -> serde_json::Value {
+        args.print_context = true;
+        let RenderOutput::Stdout(body) = compute(args).unwrap() else {
+            panic!("expected context stdout");
+        };
+        serde_json::from_str(&body).unwrap()
+    }
+
+    fn planet_lon(planets: &serde_json::Value, key: &str) -> f64 {
+        planets
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["key"] == key)
+            .and_then(|p| p["lon"].as_f64())
+            .unwrap()
+    }
+
     #[test]
     fn compute_natal_returns_svg_payload() {
         match compute(natal_args()).expect("compute ok") {
@@ -529,8 +547,8 @@ mod tests {
         for ct in types {
             let mut a = natal_args();
             a.chart_type = ct.to_string();
-            a.date2 = Some("1990-01-01".into());
-            a.date3 = Some("2000-06-15".into());
+            a.date2 = Some("1990-01-01 00:00".into());
+            a.date3 = Some("2000-06-15 00:00".into());
             assert!(
                 matches!(compute(a), Ok(RenderOutput::Out { .. })),
                 "compute failed for chart-type `{ct}`"
@@ -544,10 +562,38 @@ mod tests {
             let mut a = natal_args();
             a.chart_type = ct.to_string();
             a.years = Some(35.5);
-            a.date2 = Some("1990-01-01".into());
-            a.date3 = Some("2000-06-15".into());
+            a.date2 = Some("1990-01-01 00:00".into());
+            a.date3 = Some("2000-06-15 00:00".into());
             assert!(compute(a).is_ok(), "compute failed for `{ct}`");
         }
+    }
+
+    #[test]
+    fn compute_biwheel_date2_uses_timezone() {
+        let mut utc = natal_args();
+        utc.chart_type = "biwheel".into();
+        utc.date2 = Some("1990-07-01 12:00".into());
+
+        let mut plus12 = natal_args();
+        plus12.chart_type = "biwheel".into();
+        plus12.timezone = Some("+12:00".into());
+        plus12.date2 = Some("1990-07-01 12:00".into());
+
+        let utc_ctx = computed_context(utc);
+        let plus12_ctx = computed_context(plus12);
+        let utc_sun = planet_lon(&utc_ctx["outer_planets"], "sun");
+        let plus12_sun = planet_lon(&plus12_ctx["outer_planets"], "sun");
+        assert!((utc_sun - plus12_sun).abs() > 0.1);
+    }
+
+    #[test]
+    fn compute_triwheel_date3_requires_datetime() {
+        let mut a = natal_args();
+        a.chart_type = "triwheel".into();
+        a.date2 = Some("1990-01-01 00:00".into());
+        a.date3 = Some("2000-06-15".into());
+        let err = compute(a).unwrap_err().to_string();
+        assert!(err.contains("--date3 `2000-06-15` has no time-of-day"));
     }
 
     #[test]
