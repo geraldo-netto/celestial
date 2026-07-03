@@ -235,7 +235,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-| UX-1 | OPEN | M | `--chart-type calendar` with no `--calendar` flags renders a bare grid whose subtitle still advertises "overlays: gregorian · omer · sabbats · moon" (`cli/src/cmd/render/pipeline.rs:344`), but 0 day annotations appear (verified vs 2 with `--calendar moon`): `build_calendar_context` defaults `calendars` to all four (pipeline.rs:55-72) while `apply_universal_overlays` keys off the empty `args.calendars`. | Drive `apply_universal_overlays` from the context's `calendars` for the calendar chart-type (or default `overlay_cals` to all-four) so advertised overlays are populated. |
 
 ## Vectorization
 

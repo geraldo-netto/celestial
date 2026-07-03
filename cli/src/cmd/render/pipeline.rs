@@ -205,6 +205,32 @@ pub(crate) fn apply_universal_overlays(ctx: &mut serde_json::Value, jd: f64, cal
     }
 }
 
+fn overlay_calendars(args: &RenderArgs, ctx: &serde_json::Value) -> Vec<String> {
+    if !args.calendars.is_empty() {
+        return args
+            .calendars
+            .iter()
+            .map(|c| c.as_str().to_string())
+            .collect();
+    }
+    if args.chart_type == "calendar" {
+        return context_calendar_names(ctx);
+    }
+    Vec::new()
+}
+
+fn context_calendar_names(ctx: &serde_json::Value) -> Vec<String> {
+    ctx["calendars"]
+        .as_array()
+        .map(|calendars| {
+            calendars
+                .iter()
+                .filter_map(|c| c.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// Render the final output: either feeds `ctx` to the built-in renderer
 /// for `chart_type`, or runs `ctx` through the user-supplied template.
 pub(crate) fn render_to_string(
@@ -336,11 +362,7 @@ pub(crate) fn compute(mut args: RenderArgs) -> Result<RenderOutput, CliError> {
     // into the typed `ChartContext` at the render / serialize boundary.
     let mut ctx = ctx.into_value();
 
-    let overlay_cals: Vec<String> = args
-        .calendars
-        .iter()
-        .map(|c| c.as_str().to_string())
-        .collect();
+    let overlay_cals = overlay_calendars(&args, &ctx);
     apply_universal_overlays(&mut ctx, jd, &overlay_cals);
 
     // Expose the input timezone + local civil time to templates and the
@@ -615,6 +637,22 @@ mod tests {
             CalendarKind::GregorianYear,
         ];
         assert!(compute(a).is_ok());
+    }
+
+    #[test]
+    fn compute_calendar_defaults_apply_advertised_overlays() {
+        let mut a = natal_args();
+        a.chart_type = "calendar".into();
+        a.print_context = true;
+        let RenderOutput::Stdout(body) = compute(a).unwrap() else {
+            panic!("expected context stdout");
+        };
+        let ctx: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert!(ctx["omer"].is_object());
+        assert!(ctx["sabbats"].is_object());
+        assert!(ctx["moon"].is_object());
+        let days = ctx["gregorian"]["days"].as_array().unwrap();
+        assert!(days.iter().any(|d| d["moon_illumination_pct"].is_number()));
     }
 
     #[test]
