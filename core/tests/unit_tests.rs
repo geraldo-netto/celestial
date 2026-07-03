@@ -3252,6 +3252,7 @@ fn deltat_ex_global_and_userdef_branches() {
 #[test]
 fn easter_orthodox_known_years() {
     // Published Gregorian-calendar Orthodox Pascha dates.
+    assert_eq!(easter_orthodox(1600), (1600, 4, 2));
     assert_eq!(easter_orthodox(2021), (2021, 5, 2));
     assert_eq!(easter_orthodox(2023), (2023, 4, 16));
     assert_eq!(easter_orthodox(2024), (2024, 5, 5));

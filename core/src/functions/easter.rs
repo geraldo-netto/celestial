@@ -41,7 +41,6 @@ pub fn easter_gregorian(year: i32) -> (i32, u8, u8) {
 ///
 /// Uses the Meeus Julian algorithm.
 /// Returns `(year, month, day)` in the **Julian calendar**.
-/// To convert to Gregorian, add 13 days (for 1900–2099).
 #[must_use]
 pub fn easter_julian(year: i32) -> (i32, u8, u8) {
     let a = year % 4;
@@ -60,16 +59,7 @@ pub fn easter_julian(year: i32) -> (i32, u8, u8) {
 #[must_use]
 pub fn easter_orthodox(year: i32) -> (i32, u8, u8) {
     let (y, m, d) = easter_julian(year);
-    // Julian-to-Gregorian offset: 13 days for 1900-2099
-    let correction = if (1900..=2099).contains(&year) {
-        13i32
-    } else if (1800..1900).contains(&year) {
-        12
-    } else if (1700..1800).contains(&year) {
-        11
-    } else {
-        13
-    };
+    let correction = julian_to_gregorian_offset(year);
 
     // Add correction days
     let mut month = m as i32;
@@ -97,6 +87,10 @@ pub fn easter_orthodox(year: i32) -> (i32, u8, u8) {
         }
     }
     (y, month as u8, day as u8)
+}
+
+fn julian_to_gregorian_offset(year: i32) -> i32 {
+    year / 100 - year / 400 - 2
 }
 
 fn gregorian_to_jd(y: i32, m: i32, d: i32) -> f64 {
@@ -251,6 +245,11 @@ mod tests {
         let (y, m, _d) = easter_orthodox(2025);
         assert_eq!(y, 2025);
         assert!(m == 4 || m == 5); // April or May range
+    }
+
+    #[test]
+    fn easter_orthodox_1600_uses_historical_offset() {
+        assert_eq!(easter_orthodox(1600), (1600, 4, 2));
     }
 
     #[test]
