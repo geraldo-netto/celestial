@@ -424,7 +424,7 @@ pub fn houses_ex(
         HouseSystem(hsys as u8),
     )
     .map(|r| HouseResult {
-        cusps: r.cusps.to_vec(),
+        cusps: r.cusps[1..].to_vec(),
         ascmc: r.ascmc[..8].to_vec(),
     })
     .map_err(to_napi)
@@ -447,9 +447,9 @@ pub fn houses_ex2(
         HouseSystem(hsys as u8),
     )
     .map(|r| HouseResultEx2 {
-        cusps: r.cusps.to_vec(),
+        cusps: r.cusps[1..].to_vec(),
         ascmc: r.ascmc[..8].to_vec(),
-        cusp_speeds: r.cusp_speeds.to_vec(),
+        cusp_speeds: r.cusp_speeds[1..].to_vec(),
         ascmc_speeds: r.ascmc_speeds[..8].to_vec(),
     })
     .map_err(to_napi)

@@ -2157,7 +2157,7 @@ pub fn house_name_str(hsys: i64) -> String {
     celestial::house_name(HouseSystem(hsys as u8)).to_string()
 }
 
-/// House cusps with speeds. Returns [cusps_13, ascmc_10, cusp_speeds_13, ascmc_speeds_10].
+/// House cusps with speeds. Returns [cusps_12, ascmc_8, cusp_speeds_12, ascmc_speeds_8].
 #[php_function]
 pub fn houses_ex2(tjdut: f64, lat: f64, lon: f64, hsys: i64, flags: i64) -> PhpResult<Vec<f64>> {
     celestial::houses_ex2(
@@ -2168,10 +2168,10 @@ pub fn houses_ex2(tjdut: f64, lat: f64, lon: f64, hsys: i64, flags: i64) -> PhpR
         HouseSystem(hsys as u8),
     )
     .map(|r| {
-        let mut v = r.cusps.to_vec();
-        v.extend_from_slice(&r.ascmc);
-        v.extend_from_slice(&r.cusp_speeds);
-        v.extend_from_slice(&r.ascmc_speeds);
+        let mut v = r.cusps[1..].to_vec();
+        v.extend_from_slice(&r.ascmc[..8]);
+        v.extend_from_slice(&r.cusp_speeds[1..]);
+        v.extend_from_slice(&r.ascmc_speeds[..8]);
         v
     })
     .map_err(|e| PhpException::from(e.to_string()))
