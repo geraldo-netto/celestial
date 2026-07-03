@@ -46,7 +46,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| CLI-3 | OPEN | S | `--calendar` help/enum text (`cli/src/cmd/render/args.rs:~113`) lists only 5 values (gregorian, omer, sabbats, moon, hebrew), omitting `gregorian-year`/`year-calendar` (`CalendarKind::GregorianYear`) that `resolve_overlay` and README both accept. | Add `gregorian-year` to the help string. |
 
 ## Code Complexity
 

@@ -170,6 +170,15 @@ fn render_accepts_space_separated_negative_coordinates() {
         .stdout(predicate::str::contains("\"lon\": -46.63"));
 }
 
+#[test]
+fn render_help_lists_gregorian_year_calendar() {
+    celestial()
+        .args(["render", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("gregorian-year"));
+}
+
 // ─── sabbats / esbats: next + json ────────────────────────────────────────────
 
 #[test]

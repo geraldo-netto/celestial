@@ -110,7 +110,7 @@ pub struct RenderArgs {
     pub vars: Vec<String>,
 
     /// Calendar/tradition overlay to merge into the context (repeatable).
-    /// Available: gregorian, omer, sabbats, moon, hebrew. Each adds a
+    /// Available: gregorian, gregorian-year, omer, sabbats, moon, hebrew. Each adds a
     /// top-level field of the same name to the context, accessible from
     /// `--template` files and `--print-context` output. Works with any
     /// `--chart-type` (the `calendar` chart-type also uses these as its
