@@ -34,7 +34,7 @@ use celestial_core::{
     solcross_back_ut, solcross_ut, split_deg, time_equ, tonalpohualli, transit_to_degree,
     triplicity_rulers, true_obliquity, tzolkin, uposatha_days, utc_time_zone, vesak_jd,
     vimshottari_dasha, xiuhpohualli, AspectOrbs, CalcOptions, EsbatName, SabbatKind, UtcDate,
-    CALC_MTRANSIT, CALC_RISE, CALC_SET, ECL_OCCULTATION, SIDM_LAHIRI,
+    CALC_MTRANSIT, CALC_RISE, CALC_SET, ECL_OCCULTATION,
 };
 use celestial_test_util::Xorshift64;
 use std::f64::consts::TAU;
@@ -73,6 +73,14 @@ impl Suite {
             self.name, self.passed, self.failed
         );
         ok
+    }
+}
+
+struct SidModeReset;
+
+impl Drop for SidModeReset {
+    fn drop(&mut self) {
+        set_sid_mode(SiderealMode::FAGAN_BRADLEY, 0.0, 0.0);
     }
 }
 
@@ -381,6 +389,7 @@ fn test_moon(n: u32) -> Suite {
 }
 
 fn test_ayanamsa(n: u32) -> Suite {
+    let _sid_guard = SidModeReset;
     let mut s = Suite::new("ayanamsa");
     let mut rng = Xorshift64::new(0x9999_AAAA_BBBB_CCCC);
 
@@ -3704,6 +3713,7 @@ fn test_equatorial_mode(n: u32) -> Suite {
 }
 
 fn test_sidereal_all_modes(n: u32) -> Suite {
+    let _sid_guard = SidModeReset;
     let mut s = Suite::new("sidereal_all_modes");
     let mut rng = Xorshift64::new(0x0102030405060708);
     for _ in 0..n {
@@ -3732,7 +3742,6 @@ fn test_sidereal_all_modes(n: u32) -> Suite {
             format!("sidereal-tropical diff {diff:.3}° implausible (mode {mode})")
         });
     }
-    set_sid_mode(SiderealMode(SIDM_LAHIRI), 0.0, 0.0);
     s
 }
 

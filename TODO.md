@@ -79,7 +79,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 
-| CONC-2 | OPEN | S | Fuzz suites leak sidereal mode: `test_ayanamsa` (`fuzz/src/main.rs:391`) sets a random sid mode per iteration and never restores; `test_sidereal_all_modes` (:3695) "restores" to LAHIRI instead of the default Fagan-Bradley — suites after `run_core_suites` execute under a leftover mode, making results order/N-dependent. | Wrap both in a save/restore guard like panchanga's `SidModeGuard` (fuzz/src/panchanga.rs:225). |
 
 ## Configuration Discoverability
 
