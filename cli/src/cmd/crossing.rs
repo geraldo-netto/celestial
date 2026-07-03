@@ -45,17 +45,7 @@ pub fn run(args: CrossingArgs) -> Result<(), CliError> {
             1,
         )?
     } else {
-        match body {
-            0 => solcross_ut(Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN)?,
-            1 => mooncross_ut(Longitude::new(lon), JulianDay::new(jd), CalcFlags::BUILTIN)?,
-            _ => helio_cross_ut(
-                Body::from_raw(body),
-                Longitude::new(lon),
-                JulianDay::new(jd),
-                CalcFlags::BUILTIN,
-                1,
-            )?,
-        }
+        geocentric_cross_ut(body, lon, jd)?
     };
 
     let body_label = parse::body_name(Body::from_raw(body));
@@ -86,6 +76,25 @@ pub fn run(args: CrossingArgs) -> Result<(), CliError> {
     println!("  JD {result_jd:.4}");
     println!();
     Ok(())
+}
+
+fn geocentric_cross_ut(body: i32, lon: f64, jd: f64) -> Result<f64, CliError> {
+    match body {
+        0 => Ok(solcross_ut(
+            Longitude::new(lon),
+            JulianDay::new(jd),
+            CalcFlags::BUILTIN,
+        )?),
+        1 => Ok(mooncross_ut(
+            Longitude::new(lon),
+            JulianDay::new(jd),
+            CalcFlags::BUILTIN,
+        )?),
+        _ => Err(CliError::Parse(format!(
+            "geocentric crossing only supports Sun and Moon; pass --helio for {}",
+            parse::body_name(Body::from_raw(body))
+        ))),
+    }
 }
 
 #[cfg(test)]
@@ -121,6 +130,15 @@ mod tests {
         a.body = "mars".into();
         a.lon = 120.0;
         assert!(run(a).is_ok());
+    }
+
+    #[test]
+    fn run_non_luminary_geocentric_errs() {
+        let mut a = base();
+        a.body = "mars".into();
+        a.lon = 120.0;
+        let err = run(a).unwrap_err().to_string();
+        assert!(err.contains("pass --helio for Mars"));
     }
 
     #[test]
