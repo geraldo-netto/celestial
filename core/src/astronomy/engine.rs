@@ -65,12 +65,12 @@ pub fn calc_tt(jde: f64, body_num: i32, flags: i32) -> Result<PlanetPos> {
     let mut lon = if use_equatorial { geo.ra } else { geo.lon };
     let lat = if use_equatorial { geo.dec } else { geo.lat };
 
-    if flags as u32 & flag::FLG_SIDEREAL != 0 {
-        lon = norm_deg(lon - sidereal_ayanamsa(jde));
-    }
-
     if flags & crate::FLG_TOPOCTR != 0 {
         lon = topocentric_lon(jde, &geo, use_equatorial);
+    }
+
+    if flags as u32 & flag::FLG_SIDEREAL != 0 {
+        lon = norm_deg(lon - sidereal_ayanamsa(jde));
     }
 
     let (speed_lon, speed_lat, speed_dist) = compute_speed(jde, body_num, flags, use_equatorial)?;

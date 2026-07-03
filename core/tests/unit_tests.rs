@@ -609,6 +609,35 @@ fn set_topo_changes_moon_position() {
     println!("  Topocentric Moon shift from Tokyo: {diff:.4}°");
 }
 
+#[test]
+fn sidereal_topocentric_keeps_ayanamsa_correction() {
+    set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
+    set_topo(Longitude::new(139.69), Latitude::new(35.69), 40.0);
+    let topo = calc_ut(
+        JulianDay::new(J2000),
+        Body::MOON,
+        CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC,
+    )
+    .unwrap();
+    let sid_topo = calc_ut(
+        JulianDay::new(J2000),
+        Body::MOON,
+        CalcFlags::BUILTIN | CalcFlags::TOPOCENTRIC | CalcFlags::SIDEREAL,
+    )
+    .unwrap();
+    let jde = J2000 + deltat(JulianDay::new(J2000)) / 86_400.0;
+    let ay = ayanamsa(JulianDay::new(jde));
+    set_topo(Longitude::new(0.0), Latitude::new(0.0), 0.0);
+    set_sid_mode(SiderealMode::FAGAN_BRADLEY, 0.0, 0.0);
+    let expected = norm_deg(topo.lon - ay);
+    assert!(
+        diff_deg_signed(sid_topo.lon, expected).abs() < 1e-7,
+        "sidereal topo lon {} should equal tropical topo {} - ayanamsa {ay}",
+        sid_topo.lon,
+        topo.lon
+    );
+}
+
 // ─── Backwards eclipse search ─────────────────────────────────────────────────
 
 #[test]
