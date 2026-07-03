@@ -166,7 +166,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | PERF-9 | DECIDED | S | `parse_chart_type` calls `registered_chart_types()` twice on invalid input. | One-shot CLI parse path; cosmetic micro-perf. |
 | PERF-2/3 | DECIDED | — | Search code re-evaluates final `calc_ut` / `houses` with full flags after bisection. | Authoritative final result, not redundant; locked by regression tests. |
 | PERF-5 | DECIDED | M | `next_aspect_with2` dual-scan merge could be unified. | Precision-sensitive rewrite for marginal gain; byte-identical gate made it a deliberate no-op. |
-| PERF-11 | OPEN | S | `core/src/astronomy/vsop87.rs:74` `eval_vsop_with_deriv` calls `eval_series` then `eval_series_deriv` over the same term slice, building each term's phase `c·τ+b` twice and running `.cos()`/`.sin()` as two separate transcendentals instead of one `sin_cos()` — ~2× transcendental cost on the helio+speed path (moon.rs:86 already pairs them). | Fuse into one term loop computing `arg.sin_cos()` once per term, accumulating value + derivative together. |
 | PERF-12 | OPEN | S | `core/src/functions/searches.rs:412` `next_aspect_cusp`'s scan recomputes all 12 Placidus cusps at every 0.05-day step across an up-to-400-day window but reads only `hr.cusps[cusp]`, discarding ~11/12 of the iterative semi-arc work each step. | Compute only the requested cusp, or hoist ARMC/obliquity-invariant sub-results out of the per-step loop. |
 
 ## Platform

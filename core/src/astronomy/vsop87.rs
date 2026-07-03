@@ -52,13 +52,13 @@ fn eval_vsop(series: &[&[Term]], tau: f64) -> f64 {
     acc * 10.0
 }
 
-/// d/dτ of a VSOP sub-series: `Σ A·cos(B+C·τ)` → `Σ −A·C·sin(B+C·τ)`.
+/// Evaluate a VSOP sub-series and its d/dτ together.
 #[inline]
-fn eval_series_deriv(terms: &[Term], tau: f64) -> f64 {
-    terms
-        .iter()
-        .map(|&Term(a, b, c)| -a * c * c.mul_add(tau, b).sin())
-        .sum()
+fn eval_series_with_deriv(terms: &[Term], tau: f64) -> (f64, f64) {
+    terms.iter().fold((0.0, 0.0), |(val, der), &Term(a, b, c)| {
+        let (sin_arg, cos_arg) = c.mul_add(tau, b).sin_cos();
+        (a.mul_add(cos_arg, val), (-a * c).mul_add(sin_arg, der))
+    })
 }
 
 /// Value **and** analytic dV/dτ of a full VSOP variable.
@@ -72,8 +72,7 @@ fn eval_vsop_with_deriv(series: &[&[Term]], tau: f64) -> (f64, f64) {
     let mut tk = 1.0_f64; // τ^k
     let mut tkm1 = 0.0_f64; // τ^{k-1} (0 for k=0; the k·… term vanishes anyway)
     for (k, s) in series.iter().enumerate() {
-        let sk = eval_series(s, tau);
-        let skp = eval_series_deriv(s, tau);
+        let (sk, skp) = eval_series_with_deriv(s, tau);
         val = tk.mul_add(sk, val);
         der += (k as f64) * tkm1 * sk + tk * skp;
         tkm1 = tk;
