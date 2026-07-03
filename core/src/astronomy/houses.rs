@@ -450,9 +450,9 @@ fn koch(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
     cusps
 }
 
-fn diurnal_semi_arc(_eps_r: f64, lat_r: f64) -> f64 {
-    // Semi-arc of an equatorial point at the celestial equator
-    to_deg((lat_r.tan() * 0.0_f64.tan()).asin()) + 90.0
+fn diurnal_semi_arc(eps_r: f64, lat_r: f64) -> f64 {
+    let arg = (lat_r.tan() * eps_r.tan()).clamp(-1.0, 1.0);
+    to_deg(arg.asin()) + 90.0
 }
 
 fn ecl_lon_from_ra_dec(ra: f64, dec: f64, eps: f64) -> f64 {
@@ -890,6 +890,38 @@ mod tests {
                     result.cusps[h]
                 );
             }
+        }
+    }
+
+    #[test]
+    fn koch_cusps_match_latitude_dependent_semi_arc() {
+        let result = houses(
+            JulianDay::new(2_451_545.0),
+            Latitude::new(51.5),
+            Longitude::new(-0.1),
+            b'K',
+        );
+        let expected = [
+            (1, 24.070_770),
+            (2, 61.683_707),
+            (3, 63.047_038),
+            (4, 99.518_744),
+            (5, 185.885_765),
+            (6, 265.274_225),
+            (7, 204.070_770),
+            (8, 241.683_707),
+            (9, 243.047_038),
+            (10, 279.518_744),
+            (11, 5.885_765),
+            (12, 85.274_225),
+        ];
+
+        for (idx, want) in expected {
+            assert!(
+                (result.cusps[idx] - want).abs() < 1e-6,
+                "Koch cusp {idx}: got {}, want {want}",
+                result.cusps[idx]
+            );
         }
     }
 

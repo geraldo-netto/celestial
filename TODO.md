@@ -196,7 +196,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| REL-13 | OPEN | M | `core/src/astronomy/houses.rs:453 diurnal_semi_arc` is a degenerate stub: `to_deg((lat_r.tan() * 0.0_f64.tan()).asin()) + 90.0` always returns `90.0` (since `tan(0) = 0`), and its `_eps_r` argument is unused — so Koch cusps (houses.rs:396) always divide a fixed 90° semi-arc instead of the latitude/obliquity-dependent value. | Verified degenerate by inspection. Either implement the real diurnal semi-arc (`asin(tan φ · tan δ) + 90`) or document Koch as an approximation. No Koch reference golden currently pins this, so add one with the fix. |
 | REL-24 | OPEN | M | `calc_pctr` (`core/src/functions/calc.rs:41`) takes `jd_et` (TT) but routes through the UT-aliased path, applying ΔT twice (~69 s epoch shift at J2000); and its `dist` is `\|body.dist − center.dist\|` of geocentric distances — not the body–center distance (zero for equidistant bodies 90° apart). | Call `calc_tt`; derive planetocentric coords by Cartesian vector subtraction, not element-wise differences. |
 
 ## Robustness / Recovery
