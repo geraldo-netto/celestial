@@ -2131,6 +2131,21 @@ mod moon_phase_tests {
     }
 
     #[test]
+    fn next_new_moon_after_exact_phase_does_not_go_backwards() {
+        let nm = next_new_moon(JulianDay::new(JD)).unwrap();
+        let start = nm + 0.005;
+        let next = next_new_moon(JulianDay::new(start)).unwrap();
+        assert!(
+            next >= start,
+            "next new moon {next:.6} is before requested start {start:.6}"
+        );
+        assert!(
+            next > start + 20.0,
+            "expected following lunation after start {start:.6}, got {next:.6}"
+        );
+    }
+
+    #[test]
     fn next_first_quarter_after_new_moon() {
         let nm = next_new_moon(JulianDay::new(JD)).unwrap();
         let fq = next_first_quarter(JulianDay::new(nm)).unwrap();

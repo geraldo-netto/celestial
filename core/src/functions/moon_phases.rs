@@ -284,7 +284,7 @@ pub fn next_principal_phase(jd_from: JulianDay, phase: PrincipalPhase) -> Result
             continue;
         }
         if let Ok(jd) = bisect_phase(jd_approx - 2.0, jd_approx + 2.0, target) {
-            if jd >= jd_from - 0.01 {
+            if jd >= jd_from {
                 let elong = moon_elongation(JulianDay::new(jd))?;
                 return Ok(PhaseEvent {
                     phase,
