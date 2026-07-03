@@ -443,7 +443,8 @@ pub(super) fn build_profection_context(
     let cusps_arr: [f64; 13] = cusps_to_array(&h);
 
     let (house_num, prof_lon) = annual_profection(&cusps_arr, age);
-    let (month_house, month_lon) = monthly_profection(&cusps_arr, age, 0);
+    let age_month = profection_age_month(date_str, jd);
+    let (month_house, month_lon) = monthly_profection(&cusps_arr, age, age_month);
     let prof_lord = sign_ruler((prof_lon / 30.0) as u8 % 12);
 
     let mut ctx = build_context(jd, lat, lon, date_str, hsys, vars)?;
@@ -454,6 +455,19 @@ pub(super) fn build_profection_context(
     ctx["month_lon"] = json!((month_lon * 1e4).round() / 1e4);
     ctx["profection_age"] = json!(age);
     Ok(ctx)
+}
+
+fn profection_age_month(date_str: &str, jd: f64) -> u32 {
+    month_from_date(date_str)
+        .or_else(|| month_from_date(&jd_to_date_str(jd)))
+        .map_or(0, |month| month - 1)
+}
+
+fn month_from_date(date_str: &str) -> Option<u32> {
+    let mut parts = date_str.trim().split('-');
+    let _year = parts.next()?;
+    let month = parts.next()?.parse::<u32>().ok()?;
+    (1..=12).contains(&month).then_some(month)
 }
 
 pub(super) fn render_profection_svg(ctx: &ChartContext) -> String {

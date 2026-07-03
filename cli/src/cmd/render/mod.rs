@@ -1717,6 +1717,16 @@ mod tests_vedic {
     }
 
     #[test]
+    fn profection_context_uses_render_month() {
+        let jd = 2_451_576.0;
+        let vars = std::collections::BTreeMap::new();
+        let ctx = build_profection_context(jd, 48.85, 2.35, "2000-02-01", 'P', 0, vars).unwrap();
+        let annual = ctx["profection_lon"].as_f64().unwrap();
+        let monthly = ctx["month_lon"].as_f64().unwrap();
+        assert_ne!(annual, monthly, "monthly profection duplicated annual lon");
+    }
+
+    #[test]
     fn profection_svg_has_marker() {
         let jd = 2_451_545.0;
         let vars = std::collections::BTreeMap::new();

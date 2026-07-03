@@ -243,7 +243,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | WIRE-1 | DECIDED | — | Public Rust API functions such as `ayanamsa_ex`, `current_file_data`, `gauquelin_sector`, `get_orbital_elements`, `heliacal_pheno_ut`, `nod_aps_ut`, `set_tid_acc`, `tid_acc`, and `vis_limit_mag` have no CLI call site. | KEEP — `celestial-core` is a published library crate; these functions are intentionally root-re-exported and parity smoke-tested for external consumers. |
 | WIRE-2 | DECIDED | S | `Body::is_known_id` is only used internally by `try_from_raw` plus tests. | KEEP — useful published predicate for callers that want a cheap bool pre-check. |
 | WIRE-3 | DECIDED | S | `BodyError::OutOfRange { id }` is constructed but bindings stringify it instead of pattern matching. | KEEP — typed Rust variant preserves future extensibility while bindings expose language-native string errors. |
-| WIRE-4 | OPEN | S | `monthly_profection(&cusps_arr, age, 0)` (`cli/src/cmd/render/hellenistic.rs:443`) hardcodes month 0, so the exported `month_house`/`month_lon` context fields always duplicate the annual profection values — no CLI knob ever reaches them. | Feed a real month (from the render date) or delete the two always-redundant fields. |
 
 ## Unused Functions / Methods
 
