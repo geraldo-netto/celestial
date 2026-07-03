@@ -779,6 +779,25 @@ fn sol_eclipse_how_smoke() {
 }
 
 #[test]
+fn sol_eclipse_how_reports_partial_kind() {
+    let eclipse = sol_eclipse_when_glob(
+        JulianDay::new(J2000),
+        CalcFlags::BUILTIN,
+        ECL_PARTIAL,
+        false,
+    )
+    .unwrap();
+    let how = sol_eclipse_how(
+        JulianDay::new(eclipse.tret[0]),
+        CalcFlags::BUILTIN,
+        [0.0_f64, 0.0, 0.0],
+    )
+    .unwrap();
+    assert_eq!(how.ret_flags & ECL_PARTIAL, ECL_PARTIAL);
+    assert_eq!(how.ret_flags & ECL_TOTAL, 0);
+}
+
+#[test]
 fn lun_eclipse_when_loc_smoke() {
     let geopos = [2.35_f64, 48.85, 35.0];
     let r = lun_eclipse_when_loc(JulianDay::new(J2000), CalcFlags::BUILTIN, geopos, false).unwrap();

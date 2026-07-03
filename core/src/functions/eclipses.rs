@@ -102,11 +102,9 @@ pub fn sol_eclipse_how(
 ) -> Result<EclipseHow> {
     let jd_ut: f64 = jd_ut.into();
     let attr = ae::solar_eclipse_attr(JulianDay::new(jd_ut), geopos);
-    let ret_flags = if attr[1] > 0.0 {
-        ae::ECL_TOTAL
-    } else {
-        ae::ECL_PARTIAL
-    };
+    let k = ae::nearest_new_moon_k(jd_ut);
+    let (kind, _, _) = ae::check_solar_eclipse(k);
+    let ret_flags = ae::kind_to_flags(kind);
     Ok(EclipseHow { ret_flags, attr })
 }
 
