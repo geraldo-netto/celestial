@@ -93,7 +93,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | DEC-1 | DECIDED | S | `cli/src/cmd/render/svg_common.rs::write_year_axis` calls `celestial_core::revjul` / `julday` directly from a shared render helper. | Acceptable thin veneer: axis ticks need JD/Gregorian conversion; closure injection would be heavier than the coupling. |
-| DEC-2 | OPEN | M | `secondary_progressions` computes progressed house cusps then discards them (`_houses`) in JS (`bindings/js/src/lib.rs:2416`) and PHP (`bindings/php/src/lib.rs:1767`), while Python (`bindings/python/src/lib.rs:1927`) returns `(positions, cusps)` — progressed houses are unreachable in JS/PHP. | Return the cusps alongside positions in JS+PHP to match Python, or document the intentional omission. |
 
 ## Dependency
 

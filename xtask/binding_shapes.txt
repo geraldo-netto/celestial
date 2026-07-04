@@ -225,7 +225,7 @@ sabbat_jd                            py=float      js=float      php=float
 sabbats_for_year                     py=object     js=array      php=array
 same_sect                            py=bool       js=bool       php=bool
 saturn_4_stars                       py=object     js=array      php=array
-secondary_progressions               py=object     js=array      php=array
+secondary_progressions               py=object     js=object     php=map
 set_delta_t_userdef                  py=void       js=void       php=void
 set_ephe_path                        py=void       js=void       php=void
 set_jpl_file                         py=void       js=void       php=void

@@ -564,7 +564,7 @@ sabbat_jd(year: number, kind: string) -> number
 sabbats_for_year(year: number) -> Array<Array<number>>
 same_sect(body: number, is_day: boolean) -> boolean
 saturn_4_stars(jd: number, flags: number) -> Array<number>
-secondary_progressions(jd_natal: number, years: number, bodies: Array<number>, lat: number, lon: number, hsys: number, flags: number) -> Array<Array<number>>
+secondary_progressions(jd_natal: number, years: number, bodies: Array<number>, lat: number, lon: number, hsys: number, flags: number) -> unknown
 set_delta_t_userdef(dt: number) -> void
 set_ephe_path(path: string) -> void
 set_jpl_file(fname: string) -> void

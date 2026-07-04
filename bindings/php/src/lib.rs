@@ -1751,7 +1751,7 @@ pub fn medicine_wheel_totem(sun_lon: f64) -> Vec<String> {
 // ══════════════════════════════════════════════════════════════════════════════
 
 /// Secondary progressions for a set of bodies.
-/// Returns [[body_index, lon, lat, dist, speed_lon], ...]
+/// Returns ["positions" => [[body_index, lon, lat, dist, speed_lon], ...], "cusps" => [...]]
 #[php_function]
 pub fn secondary_progressions(
     jd_natal: f64,
@@ -1761,12 +1761,12 @@ pub fn secondary_progressions(
     lon: f64,
     hsys: i64,
     flags: i64,
-) -> PhpResult<Vec<Vec<f64>>> {
+) -> PhpResult<HashMap<String, Zval>> {
     let body_list: Vec<Body> = bodies
         .iter()
         .map(|&b| body_of(b))
         .collect::<PhpResult<Vec<_>>>()?;
-    let (positions, _houses) = celestial::secondary_progressions(
+    let (positions, houses) = celestial::secondary_progressions(
         JulianDay::new(jd_natal),
         years,
         &body_list,
@@ -1776,10 +1776,26 @@ pub fn secondary_progressions(
         CalcFlags(flags as i32),
     )
     .map_err(to_php)?;
-    Ok(positions
+    let positions: Vec<Vec<f64>> = positions
         .iter()
         .map(|(b, p)| vec![b.as_raw() as f64, p.lon, p.lat, p.dist, p.speed_lon])
-        .collect())
+        .collect();
+    let mut result = HashMap::with_capacity(2);
+    result.insert(
+        "positions".to_string(),
+        positions
+            .into_zval(false)
+            .map_err(|e| PhpException::from(e.to_string()))?,
+    );
+    result.insert(
+        "cusps".to_string(),
+        houses
+            .cusps
+            .to_vec()
+            .into_zval(false)
+            .map_err(|e| PhpException::from(e.to_string()))?,
+    );
+    Ok(result)
 }
 
 /// Solar arc directions. Returns [arc_degrees, mc_arc, body, directed_lon, ...]

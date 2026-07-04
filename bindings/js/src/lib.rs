@@ -1323,6 +1323,12 @@ pub struct IngressResult {
     pub sign: u32,
 }
 
+#[napi(object)]
+pub struct SecondaryProgressionsResult {
+    pub positions: Vec<Vec<f64>>,
+    pub cusps: Vec<f64>,
+}
+
 /// Next time a body ingresses into any zodiac sign after `jd_start`.
 /// Returns `(jd, sign_number)` where sign is 0–11.
 #[napi(js_name = "signIngressUt")]
@@ -2368,7 +2374,10 @@ fn parse_sabbat_kind(kind: &str) -> Option<celestial::SabbatKind> {
 #[napi(js_name = "nextSabbat")]
 pub fn next_sabbat(jd_from: f64) -> napi::Result<Vec<napi::Either<String, f64>>> {
     let s = celestial::next_sabbat(jd_from).map_err(|e| napi::Error::from_reason(e.to_string()))?;
-    Ok(vec![napi::Either::A(s.name.to_string()), napi::Either::B(s.jd)])
+    Ok(vec![
+        napi::Either::A(s.name.to_string()),
+        napi::Either::B(s.jd),
+    ])
 }
 
 #[cfg(feature = "calendar-traditions")]
@@ -2404,10 +2413,10 @@ pub fn secondary_progressions(
     lon: f64,
     hsys: u8,
     flags: i32,
-) -> napi::Result<Vec<Vec<f64>>> {
+) -> napi::Result<SecondaryProgressionsResult> {
     use celestial::{Body, CalcFlags, HouseSystem};
     let body_list: Vec<Body> = bodies.iter().map(|&b| Body(b)).collect();
-    let (positions, _houses) = celestial::secondary_progressions(
+    let (positions, houses) = celestial::secondary_progressions(
         JulianDay::new(jd_natal),
         years,
         &body_list,
@@ -2417,10 +2426,14 @@ pub fn secondary_progressions(
         CalcFlags(flags),
     )
     .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-    Ok(positions
+    let positions = positions
         .iter()
         .map(|(b, p)| vec![b.as_raw() as f64, p.lon, p.lat, p.dist, p.speed_lon])
-        .collect())
+        .collect();
+    Ok(SecondaryProgressionsResult {
+        positions,
+        cusps: houses.cusps.to_vec(),
+    })
 }
 
 #[napi(js_name = "solarArcDirections")]

@@ -890,10 +890,10 @@ function medicine_wheel_totem(float $sun_lon): array {}
 /** @return string[] */
 function celestial_medicine_wheel_totem(float $sun_lon): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function secondary_progressions(float $jd_natal, float $years, array $bodies, float $lat, float $lon, int $hsys, int $flags): array {}
 
-/** @return array */
+/** @return array<string,mixed> */
 function celestial_secondary_progressions(float $jd_natal, float $years, array $bodies, float $lat, float $lon, int $hsys, int $flags): array {}
 
 /** @return float[] */

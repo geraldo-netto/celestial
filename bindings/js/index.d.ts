@@ -112,6 +112,11 @@ export interface IngressResult {
   sign: number;
 }
 
+export interface SecondaryProgressionsResult {
+  positions: Array<Array<number>>;
+  cusps: Array<number>;
+}
+
 export interface Stations {
   retrograde: number;
   direct: number;
@@ -483,7 +488,7 @@ export declare function sabbatJd(year: number, kind: string): number;
 export declare function nextSabbat(jdFrom: number): Array<unknown>;
 export declare function esbatsForYear(year: number): Array<number>;
 export declare function nextEsbat(jdFrom: number): Array<unknown>;
-export declare function secondaryProgressions(jdNatal: number, years: number, bodies: Array<number>, lat: number, lon: number, hsys: number, flags: number): Array<Array<number>>;
+export declare function secondaryProgressions(jdNatal: number, years: number, bodies: Array<number>, lat: number, lon: number, hsys: number, flags: number): SecondaryProgressionsResult;
 export declare function solarArcDirections(jdNatal: number, years: number, natalPositions: Array<number>, natalMc: number, flags: number): Array<number>;
 export declare function midpointTable(positions: Array<number>, orb: number): Array<Array<number>>;
 export declare function calcChartAspects(positions: Array<number>, aspects: Array<number>, orb: number): Array<Array<number>>;
