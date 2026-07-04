@@ -477,8 +477,8 @@ lun_occult_where(jd_ut: number, body: number, starname: string, flags: number) -
 lunar_return_jd(jd_natal: number, jd_start: number, flags: number) -> number
 match_aspect(pos0: number, speed0: number, pos1: number, speed1: number, aspect: number, orb: number) -> Array<number>
 match_aspect2(pos0: number, speed0: number, pos1: number, speed1: number, aspect: number, orb: number) -> Array<number>
-match_aspect3(pos0: number, speed0: number, pos1: number, speed1: number, aspect: number, app_orb: number, sep_orb: number) -> Array<number>
-match_aspect4(pos0: number, speed0: number, pos1: number, speed1: number, aspect: number, app_orb: number, sep_orb: number) -> Array<number>
+match_aspect3(pos0: number, speed0: number, pos1: number, speed1: number, aspect: number, app_orb: number, sep_orb: number, def_orb: number) -> Array<number>
+match_aspect4(pos0: number, speed0: number, pos1: number, speed1: number, aspect: number, app_orb: number, sep_orb: number, def_orb: number) -> Array<number>
 maya_long_count(jd: number) -> Array<number>
 maya_long_count_str(jd: number) -> string
 mc_transit_ut(planet: number, jd_natal: number, jd_start: number, lat: number, lon: number, hsys: number, flags: number, backward: boolean) -> number
@@ -758,8 +758,8 @@ lun_occult_where(jd_ut: float, body: int, starname: string, flags: int) -> array
 lunar_return_jd(jd_natal: float, jd_start: float, flags: int) -> float
 match_aspect(pos0: float, speed0: float, pos1: float, speed1: float, aspect: float, orb: float) -> array
 match_aspect2(pos0: float, speed0: float, pos1: float, speed1: float, aspect: float, orb: float) -> array
-match_aspect3(pos0: float, speed0: float, pos1: float, speed1: float, aspect: float, app_orb: float, sep_orb: float) -> array
-match_aspect4(pos0: float, speed0: float, pos1: float, speed1: float, aspect: float, app_orb: float, sep_orb: float) -> array
+match_aspect3(pos0: float, speed0: float, pos1: float, speed1: float, aspect: float, app_orb: float, sep_orb: float, def_orb: float) -> array
+match_aspect4(pos0: float, speed0: float, pos1: float, speed1: float, aspect: float, app_orb: float, sep_orb: float, def_orb: float) -> array
 maya_long_count(jd: float) -> array
 maya_long_count_str(jd: float) -> string
 mc_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float

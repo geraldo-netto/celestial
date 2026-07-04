@@ -1101,16 +1101,16 @@ function match_aspect2(float $pos0, float $speed0, float $pos1, float $speed1, f
 function celestial_match_aspect2(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $orb): array {}
 
 /** @return float[] */
-function match_aspect3(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $app_orb, float $sep_orb): array {}
+function match_aspect3(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $app_orb, float $sep_orb, float $def_orb): array {}
 
 /** @return float[] */
-function celestial_match_aspect3(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $app_orb, float $sep_orb): array {}
+function celestial_match_aspect3(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $app_orb, float $sep_orb, float $def_orb): array {}
 
 /** @return float[] */
-function match_aspect4(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $app_orb, float $sep_orb): array {}
+function match_aspect4(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $app_orb, float $sep_orb, float $def_orb): array {}
 
 /** @return float[] */
-function celestial_match_aspect4(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $app_orb, float $sep_orb): array {}
+function celestial_match_aspect4(float $pos0, float $speed0, float $pos1, float $speed1, float $aspect, float $app_orb, float $sep_orb, float $def_orb): array {}
 
 /** @return float */
 function mean_sidtime(float $jd): float {}

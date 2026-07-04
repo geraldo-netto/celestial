@@ -2249,16 +2249,10 @@ pub fn match_aspect3(
     aspect: f64,
     app_orb: f64,
     sep_orb: f64,
+    def_orb: f64,
 ) -> Vec<f64> {
     let r = celestial::match_aspect3(
-        pos0,
-        speed0,
-        pos1,
-        speed1,
-        aspect,
-        app_orb,
-        sep_orb,
-        app_orb.max(sep_orb),
+        pos0, speed0, pos1, speed1, aspect, app_orb, sep_orb, def_orb,
     );
     vec![if r.matched { 1.0 } else { 0.0 }, r.diff, r.speed, r.factor]
 }
@@ -2273,16 +2267,10 @@ pub fn match_aspect4(
     aspect: f64,
     app_orb: f64,
     sep_orb: f64,
+    def_orb: f64,
 ) -> Vec<f64> {
     let r = celestial::match_aspect4(
-        pos0,
-        speed0,
-        pos1,
-        speed1,
-        aspect,
-        app_orb,
-        sep_orb,
-        app_orb.max(sep_orb),
+        pos0, speed0, pos1, speed1, aspect, app_orb, sep_orb, def_orb,
     );
     vec![if r.matched { 1.0 } else { 0.0 }, r.diff, r.speed, r.factor]
 }
