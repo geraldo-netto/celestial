@@ -334,7 +334,7 @@ export declare function solEclipseWhenLoc(tjdStart: number, geopos: Array<number
 export declare function solEclipseHow(jdUt: number, geopos: Array<number>, flags: number): EclipseHow;
 export declare function solEclipseWhere(tjd: number, flags: number): EclipseWhere;
 export declare function lunEclipseWhen(tjdStart: number, flags: number, eclType?: number | null, backwards?: boolean | null): EclipseResult;
-export declare function lunEclipseHow(jdUt: number, flags: number, geopos?: Array<number> | null): EclipseHow;
+export declare function lunEclipseHow(jdUt: number, geopos?: Array<number> | null, flags: number): EclipseHow;
 export declare function riseTrans(tjdut: number, planet: number, epheFlags: number, eventType: number, geopos: Array<number>, pressureMb?: number | null, tempC?: number | null): RiseTrans;
 export declare function julday(year: number, month: number, day: number, hour?: number | null, calendar?: number | null): number;
 export declare function revjul(jd: number, calendar?: number | null): CalDate;

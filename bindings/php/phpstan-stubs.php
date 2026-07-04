@@ -1083,10 +1083,10 @@ function jd_duration(float $jd_start, float $jd_end): array {}
 function celestial_jd_duration(float $jd_start, float $jd_end): array {}
 
 /** @return float[] */
-function lun_eclipse_how(float $jd_ut, int $flags): array {}
+function lun_eclipse_how(float $jd_ut, ?array $geopos, int $flags): array {}
 
 /** @return float[] */
-function celestial_lun_eclipse_how(float $jd_ut, int $flags): array {}
+function celestial_lun_eclipse_how(float $jd_ut, ?array $geopos, int $flags): array {}
 
 /** @return float[] */
 function lun_eclipse_when_loc(float $tjd_start, array $geopos, int $flags, bool $backwards): array {}

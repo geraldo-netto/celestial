@@ -2188,8 +2188,9 @@ pub fn jd_duration(jd_start: f64, jd_end: f64) -> Vec<i64> {
 
 /// Lunar eclipse attributes at a specific time.
 #[php_function]
-pub fn lun_eclipse_how(jd_ut: f64, flags: i64) -> PhpResult<Vec<f64>> {
-    celestial::lun_eclipse_how(JulianDay::new(jd_ut), CalcFlags(flags as i32), None)
+pub fn lun_eclipse_how(jd_ut: f64, geopos: Option<Vec<f64>>, flags: i64) -> PhpResult<Vec<f64>> {
+    let gp = geopos.map(|v| array3(v, "geopos")).transpose()?;
+    celestial::lun_eclipse_how(JulianDay::new(jd_ut), CalcFlags(flags as i32), gp)
         .map(|r| {
             let mut v = vec![r.ret_flags as f64];
             v.extend_from_slice(&r.attr);

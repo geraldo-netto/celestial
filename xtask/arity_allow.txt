@@ -5,7 +5,6 @@
 # binding over adding a line here; tracked gaps live in TODO.md (CLI/adaptability).
 
 utc_to_jd        JS packs the 7 date scalars into a UtcDate object (language idiom) — TODO-tracked as DECIDED.
-lun_eclipse_how  PHP omits the optional geopos observer arg (no local-circumstances path) — TODO gap.
 match_aspect3    Python exposes an extra def_orb tuning arg JS/PHP lack — TODO gap.
 match_aspect4    Python exposes an extra def_orb tuning arg JS/PHP lack — TODO gap.
 houses_ex        PHP param order is (jd, flags, lat, lon, hsys); Py/JS are (jd, lat, lon, hsys, flags) — BIND-5, breaking to fix.

@@ -468,7 +468,7 @@ long_to_navamsa(lon: number) -> number
 long_to_rasi(lon: number) -> number
 losar_jd(year: number) -> number | null
 lower_meridian_transit_ut(body: number, jd_start: number, geopos: Array<number>, flags: number) -> unknown
-lun_eclipse_how(jd_ut: number, flags: number, geopos: Array<number> | null) -> unknown
+lun_eclipse_how(jd_ut: number, geopos: Array<number> | null, flags: number) -> unknown
 lun_eclipse_when(tjd_start: number, flags: number, ecl_type: number | null, backwards: boolean | null) -> unknown
 lun_eclipse_when_loc(tjd_start: number, geopos: Array<number>, flags: number, backwards: boolean) -> unknown
 lun_occult_when_glob(tjd_start: number, body: number, starname: string, flags: number, ecl_type: number, backwards: boolean) -> unknown
@@ -749,7 +749,7 @@ long_to_navamsa(lon: float) -> int
 long_to_rasi(lon: float) -> int
 losar_jd(year: int) -> ?float
 lower_meridian_transit_ut(body: int, jd_start: float, geopos: array, flags: int) -> array
-lun_eclipse_how(jd_ut: float, flags: int) -> array
+lun_eclipse_how(jd_ut: float, geopos: ?array, flags: int) -> array
 lun_eclipse_when(jd_start: float, flags: int, ecl_type: int, backwards: bool) -> array
 lun_eclipse_when_loc(tjd_start: float, geopos: array, flags: int, backwards: bool) -> array
 lun_occult_when_glob(tjd_start: float, body: int, starname: string, flags: int, ecl_type: int, backwards: bool) -> array

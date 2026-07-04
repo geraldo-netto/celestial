@@ -18,7 +18,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| BIND-1 | OPEN | S | `lun_eclipse_how` PHP wrapper (`bindings/php/src/lib.rs:2014`) drops the optional `geopos` observer arg present in Python/JS, so PHP callers cannot get local eclipse circumstances. | Surfaced by `cargo xtask coverage` arity check; parked in `xtask/arity_allow.txt`. Add the `Option<[f64;3]>` param to the PHP wrapper to match, then remove its allow-list line. |
 | BIND-2 | OPEN | S | `match_aspect3`/`match_aspect4` expose an extra `def_orb` tuning arg in Python (`bindings/python/src/lib.rs:725,747`) that JS/PHP omit — inconsistent published arity. | Same gate. Either add `def_orb` to JS+PHP or drop it from Python; then remove the two allow-list lines. |
 | BIND-3 | DECIDED | — | `utc_to_jd` takes 7 date scalars in Python/PHP but a single `UtcDate` object in JS (`bindings/js/src/lib.rs:605`). | KEEP — idiomatic JS object-packing, not drift. Recorded in `xtask/arity_allow.txt`. |
 | BIND-5 | OPEN | M | `houses_ex` parameter ORDER differs: PHP is `(jd, flags, lat, lon, hsys)` but Python/JS are `(jd, lat, lon, hsys, flags)`. Code ported between PHP and Py/JS silently passes flags where lat is expected. | Surfaced by GATE-2 ordered-signature check; parked in `xtask/arity_allow.txt`. Align PHP to the Py/JS order (breaking for PHP callers) then remove the allow line. |

@@ -560,8 +560,8 @@ pub fn lun_eclipse_when(
 #[napi(js_name = "lunEclipseHow")]
 pub fn lun_eclipse_how(
     jd_ut: f64,
-    flags: i32,
     geopos: Option<Vec<f64>>,
+    flags: i32,
 ) -> napi::Result<EclipseHow> {
     let gp = geopos
         .map(|v| -> napi::Result<[f64; 3]> {
