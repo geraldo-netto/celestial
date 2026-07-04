@@ -118,7 +118,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | DOC-4 | DECIDED | M | `celestial-cli` public items are intentionally undocumented. | Binary crate/lib split only exists so `main.rs` and tests can share modules; `#![warn(missing_docs)]` remains core-only. |
-| DOC-13 | OPEN | S | README.md:193 claims "All subcommands accept `--json`", but `celestial render --json` errors with `unexpected argument '--json'` (verified; the other 12 subcommands do accept it). | Scope the claim to the computation subcommands, or note `render` uses `--print-context` for JSON. |
 
 ## Legacy / Deprecation
 

@@ -190,7 +190,8 @@ celestial calendar nowruz --year 2025
 celestial calendar nowruz --bahai --year 2025
 ```
 
-All subcommands accept `--json` for machine-readable output.
+Computation subcommands accept `--json` for machine-readable output. `celestial render`
+uses `--print-context` when template data is needed as JSON.
 
 ---
 
