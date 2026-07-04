@@ -1855,22 +1855,34 @@ fn next_sabbat(jd_from: f64) -> PyResult<(String, f64)> {
 
 #[cfg(feature = "calendar-traditions")]
 #[pyfunction]
-fn sabbat_jd(year: i32, kind: u8) -> PyResult<f64> {
+fn sabbat_jd(year: i32, kind: String) -> PyResult<f64> {
+    let k = parse_sabbat_kind_py(&kind)?;
+    celestial::sabbat_jd(year, k).map_err(|e| PyRuntimeError::new_err(e.to_string()))
+}
+
+#[cfg(feature = "calendar-traditions")]
+fn parse_sabbat_kind_py(kind: &str) -> PyResult<celestial::SabbatKind> {
+    parse_sabbat_kind(kind).ok_or_else(|| {
+        PyRuntimeError::new_err(format!(
+            "Unknown sabbat kind: {kind}. Valid: Yule, Imbolc, Ostara, Beltane, Litha, Lughnasadh, Mabon, Samhain"
+        ))
+    })
+}
+
+#[cfg(feature = "calendar-traditions")]
+fn parse_sabbat_kind(kind: &str) -> Option<celestial::SabbatKind> {
     use celestial::SabbatKind;
-    let kinds = [
-        SabbatKind::Samhain,
-        SabbatKind::Yule,
-        SabbatKind::Imbolc,
-        SabbatKind::Ostara,
-        SabbatKind::Beltane,
-        SabbatKind::Litha,
-        SabbatKind::Lughnasadh,
-        SabbatKind::Mabon,
-    ];
-    let k = kinds
-        .get(kind as usize)
-        .ok_or_else(|| PyRuntimeError::new_err("invalid sabbat kind (0-7)"))?;
-    celestial::sabbat_jd(year, *k).map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    match kind {
+        "Yule" | "yule" => Some(SabbatKind::Yule),
+        "Imbolc" | "imbolc" => Some(SabbatKind::Imbolc),
+        "Ostara" | "ostara" => Some(SabbatKind::Ostara),
+        "Beltane" | "beltane" => Some(SabbatKind::Beltane),
+        "Litha" | "litha" => Some(SabbatKind::Litha),
+        "Lughnasadh" | "lughnasadh" => Some(SabbatKind::Lughnasadh),
+        "Mabon" | "mabon" => Some(SabbatKind::Mabon),
+        "Samhain" | "samhain" => Some(SabbatKind::Samhain),
+        _ => None,
+    }
 }
 
 #[cfg(feature = "calendar-traditions")]

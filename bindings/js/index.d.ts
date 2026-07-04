@@ -479,7 +479,7 @@ export declare function isDayChart(sunLon: number, cusps: Array<number>): boolea
 export declare function meanSidtime(jd: number): number;
 export declare function triplicityRulers(lon: number): Array<number>;
 export declare function sabbatsForYear(year: number): Array<Array<number>>;
-export declare function sabbatJd(year: number, kind: number): number;
+export declare function sabbatJd(year: number, kind: string): number;
 export declare function nextSabbat(jdFrom: number): Array<number>;
 export declare function esbatsForYear(year: number): Array<number>;
 export declare function nextEsbat(jdFrom: number): number;

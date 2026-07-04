@@ -279,7 +279,7 @@ revjul(jd: float, calendar: int) -> object
 revjul_hms(jd: float, calendar: int) -> object
 rise_trans(tjdut: float, planet: int, event_type: int, geopos: object, pressure_mb: float, temp_c: float, flags: int) -> object
 rise_trans_true_hor(tjdut: float, planet: int, flags: int, event_type: int, geopos: object, pressure_mb: float, temp_c: float, horhgt: float) -> object
-sabbat_jd(year: int, kind: int) -> float
+sabbat_jd(year: int, kind: str) -> float
 sabbats_for_year(year: int) -> object
 same_sect(body: int, is_day: bool) -> bool
 saturn_4_stars(jd: float, flags: int) -> object
@@ -560,7 +560,7 @@ revjul(jd: number, calendar: number | null) -> unknown
 revjul_hms(jd: number, calendar: number) -> Array<number>
 rise_trans(tjdut: number, planet: number, ephe_flags: number, event_type: number, geopos: Array<number>, pressure_mb: number | null, temp_c: number | null) -> unknown
 rise_trans_true_hor(tjdut: number, planet: number, flags: number, event_type: number, geopos: Array<number>, pressure_mb: number, temp_c: number, horhgt: number) -> unknown
-sabbat_jd(year: number, kind: number) -> number
+sabbat_jd(year: number, kind: string) -> number
 sabbats_for_year(year: number) -> Array<Array<number>>
 same_sect(body: number, is_day: boolean) -> boolean
 saturn_4_stars(jd: number, flags: number) -> Array<number>
