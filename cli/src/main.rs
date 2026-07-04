@@ -3,7 +3,7 @@
 //! Built-in commands:  calc  houses  render  moon  crossing  eclipse
 //!                     jd  sabbats  esbats  omer  calendar  phenomena
 //!
-//! Plugin commands: any `celestial-<n>` executable on $PATH becomes a subcommand.
+//! Plugin commands: any `celestial-<name>` executable on $PATH becomes a subcommand.
 //! Run `celestial --list-plugins` to see discovered plugins.
 
 use celestial_cli::{

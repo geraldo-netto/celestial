@@ -68,7 +68,7 @@ celestial calc --date 2025-03-20
 celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
 ```
 
-Any executable named `celestial-<n>` on `$PATH` becomes a first-class subcommand:
+Any executable named `celestial-<name>` on `$PATH` becomes a first-class subcommand:
 
 ```bash
 celestial --list-plugins              # discover all installed plugins
