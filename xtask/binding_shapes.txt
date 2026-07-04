@@ -173,7 +173,7 @@ next_aspect_cusp                     py=opt<tuple2> js=opt<array> php=opt<array>
 next_aspect_cusp2                    py=object     js=opt<array> php=opt<array>
 next_aspect_with                     py=object     js=opt<array> php=opt<array>
 next_aspect_with2                    py=object     js=opt<array> php=opt<array>
-next_esbat                           py=tuple2     js=float      php=float
+next_esbat                           py=tuple2     js=array      php=array
 next_first_quarter                   py=float      js=float      php=float
 next_full_moon                       py=float      js=float      php=float
 next_full_moon_after                 py=float      js=float      php=float

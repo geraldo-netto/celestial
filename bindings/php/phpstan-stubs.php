@@ -926,11 +926,11 @@ function monthly_profection(array $cusps, int $age_years, int $age_months): arra
 /** @return float[] */
 function celestial_monthly_profection(array $cusps, int $age_years, int $age_months): array {}
 
-/** @return float */
-function next_esbat(float $jd_from): float {}
+/** @return array */
+function next_esbat(float $jd_from): array {}
 
-/** @return float */
-function celestial_next_esbat(float $jd_from): float {}
+/** @return array */
+function celestial_next_esbat(float $jd_from): array {}
 
 /** @return float[]|null */
 function next_aspect_cusp(int $body, float $aspect, int $cusp, float $jd_start, float $lat, float $lon, int $hsys, bool $backward, int $flags): ?array {}
@@ -1154,10 +1154,10 @@ function next_aspect_with(int $planet, float $aspect, int $other, float $jd_star
 /** @return float[]|null */
 function celestial_next_aspect_with(int $planet, float $aspect, int $other, float $jd_start, bool $backward, float $stop_days, int $flags): ?array {}
 
-/** @return float[] */
+/** @return array */
 function next_sabbat(float $jd_from): array {}
 
-/** @return float[] */
+/** @return array */
 function celestial_next_sabbat(float $jd_from): array {}
 
 /** @return float */

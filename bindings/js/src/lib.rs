@@ -2366,10 +2366,9 @@ fn parse_sabbat_kind(kind: &str) -> Option<celestial::SabbatKind> {
 
 #[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "nextSabbat")]
-pub fn next_sabbat(jd_from: f64) -> napi::Result<Vec<f64>> {
-    // Returns [jd] — name is available via the kind index
+pub fn next_sabbat(jd_from: f64) -> napi::Result<Vec<napi::Either<String, f64>>> {
     let s = celestial::next_sabbat(jd_from).map_err(|e| napi::Error::from_reason(e.to_string()))?;
-    Ok(vec![s.jd])
+    Ok(vec![napi::Either::A(s.name.to_string()), napi::Either::B(s.jd)])
 }
 
 #[cfg(feature = "calendar-traditions")]
@@ -2383,9 +2382,14 @@ pub fn esbats_for_year(year: i32) -> napi::Result<Vec<f64>> {
 
 #[cfg(feature = "calendar-traditions")]
 #[napi(js_name = "nextEsbat")]
-pub fn next_esbat(jd_from: f64) -> napi::Result<f64> {
+pub fn next_esbat(jd_from: f64) -> napi::Result<Vec<napi::Either<String, f64>>> {
     celestial::next_esbat(jd_from)
-        .map(|e| e.jd)
+        .map(|e| {
+            vec![
+                napi::Either::A(e.display_name.to_string()),
+                napi::Either::B(e.jd),
+            ]
+        })
         .map_err(|e| napi::Error::from_reason(e.to_string()))
 }
 

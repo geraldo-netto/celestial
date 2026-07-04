@@ -39,7 +39,9 @@ use celestial::Latitude;
 use celestial::Longitude;
 
 use celestial_ffi as celestial;
+use ext_php_rs::convert::IntoZval;
 use ext_php_rs::prelude::*;
+use ext_php_rs::types::Zval;
 use std::collections::HashMap;
 
 // ─── Error helper ─────────────────────────────────────────────────────────────
@@ -109,6 +111,16 @@ fn rise_trans_map(r: celestial::RiseTransResult) -> HashMap<String, Vec<f64>> {
 /// speed_lat, speed_dist]` array shape used by every `calc*` export.
 fn pos_vec(p: &celestial::PlanetPos) -> Vec<f64> {
     celestial_ffi::pos6(p).to_vec()
+}
+
+fn named_jd_vec(name: &str, jd: f64) -> PhpResult<Vec<Zval>> {
+    Ok(vec![
+        name.to_string()
+            .into_zval(false)
+            .map_err(|e| PhpException::from(e.to_string()))?,
+        jd.into_zval(false)
+            .map_err(|e| PhpException::from(e.to_string()))?,
+    ])
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1882,8 +1894,10 @@ pub fn monthly_profection(cusps: Vec<f64>, age_years: i64, age_months: i64) -> P
 /// Next esbat (named full moon) JD from a given JD.
 #[cfg(feature = "calendar-traditions")]
 #[php_function]
-pub fn next_esbat(jd_from: f64) -> PhpResult<f64> {
-    celestial::next_esbat(jd_from).map(|e| e.jd).map_err(to_php)
+pub fn next_esbat(jd_from: f64) -> PhpResult<Vec<Zval>> {
+    celestial::next_esbat(jd_from)
+        .map_err(to_php)
+        .and_then(|e| named_jd_vec(e.display_name, e.jd))
 }
 
 /// Next time a body reaches aspect to house cusp. Returns [jd, pos_lon] or null.
@@ -2384,13 +2398,13 @@ pub fn next_aspect_with(
     .map(|r| vec![r.jd])
 }
 
-/// Next sabbat. Returns [jd].
+/// Next sabbat. Returns [name, jd].
 #[cfg(feature = "calendar-traditions")]
 #[php_function]
-pub fn next_sabbat(jd_from: f64) -> PhpResult<Vec<f64>> {
+pub fn next_sabbat(jd_from: f64) -> PhpResult<Vec<Zval>> {
     celestial::next_sabbat(jd_from)
-        .map(|s| vec![s.jd])
         .map_err(|e| PhpException::from(e.to_string()))
+        .and_then(|s| named_jd_vec(s.name, s.jd))
 }
 
 /// Ochchabala (exaltation strength). Returns strength value.

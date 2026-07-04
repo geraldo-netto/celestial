@@ -512,7 +512,7 @@ next_aspect_cusp(body: number, aspect: number, cusp: number, jd_start: number, l
 next_aspect_cusp2(body: number, aspect: number, cusp: number, jd_start: number, lat: number, lon: number, hsys: number, backward: boolean, flags: number) -> Array<number> | null
 next_aspect_with(planet: number, aspect: number, other: number, jd_start: number, backward: boolean, stop_days: number, flags: number) -> Array<number> | null
 next_aspect_with2(planet: number, aspect: number, other: number, jd_start: number, backward: boolean, stop_days: number, flags: number) -> Array<number> | null
-next_esbat(jd_from: number) -> number
+next_esbat(jd_from: number) -> Array<unknown>
 next_first_quarter(jd_from: number) -> number
 next_full_moon(jd_start: number) -> number
 next_full_moon_after(jd_start: number) -> number
@@ -522,7 +522,7 @@ next_new_moon(jd_from: number) -> number
 next_new_moon_after(jd_start: number) -> number
 next_principal_phase(jd_from: number, phase: number) -> unknown
 next_retro(planet: number, jd_start: number, backward: boolean, stop_days: number, flags: number) -> Array<number> | null
-next_sabbat(jd_from: number) -> Array<number>
+next_sabbat(jd_from: number) -> Array<unknown>
 next_sabbat_name(jd_from: number) -> string
 nod_aps(jd_et: number, body: number, flags: number, method: number) -> Array<number>
 nod_aps_ut(jd_ut: number, body: number, flags: number, method: number) -> Array<number>
@@ -793,7 +793,7 @@ next_aspect_cusp(body: int, aspect: float, cusp: int, jd_start: float, lat: floa
 next_aspect_cusp2(body: int, aspect: float, cusp: int, jd_start: float, lat: float, lon: float, hsys: int, backward: bool, flags: int) -> ?array
 next_aspect_with(planet: int, aspect: float, other: int, jd_start: float, backward: bool, stop_days: float, flags: int) -> ?array
 next_aspect_with2(planet: int, aspect: float, other: int, jd_start: float, backward: bool, stop_days: float, flags: int) -> ?array
-next_esbat(jd_from: float) -> float
+next_esbat(jd_from: float) -> array
 next_first_quarter(jd_from: float) -> float
 next_full_moon(jd_start: float) -> float
 next_full_moon_after(jd_start: float) -> float
