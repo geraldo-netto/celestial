@@ -66,8 +66,6 @@ format_coord                         py=opt<string> js=opt<string> php=opt<strin
 four_pillars                         py=object     js=array      php=array
 full_dignity                         py=object     js=array      php=array
 geo_to_dms                           py=object     js=array      php=array
-get_ayanamsa                         py=float      js=float      php=float
-get_ayanamsa_name                    py=string     js=string     php=string
 grand_solar_epoch                    py=string     js=opt<string> php=opt<string>
 gregorian_to_hijri_years             py=object     js=object     php=array
 gregorian_to_solar_hijri             py=int        js=int        php=int
@@ -87,7 +85,6 @@ hijri_new_year_jd                    py=float      js=float      php=float
 hijri_to_jd                          py=float      js=float      php=float
 hindu_festivals                      py=object     js=array      php=array
 house_name                           py=string     js=string     php=string
-house_name_str                       py=string     js=string     php=string
 house_pos                            py=float      js=float      php=float
 house_system_char                    py=opt<int>   js=opt<int>   php=opt<int>
 house_system_id                      py=opt<int>   js=opt<int>   php=opt<int>

@@ -118,8 +118,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| LEG-1 | OPEN | S | `get_ayanamsa_name` is a redundant alias of `ayanamsa_name` exported by all three bindings (`bindings/python/src/lib.rs:1541`, `bindings/js/src/lib.rs:2564`, `bindings/php/src/lib.rs:2433` — the PHP one is literally commented "Legacy alias"). Both wrap the same `celestial::ayanamsa_name`. | Counts twice against the 194-function parity surface. If external consumers depend on it, mark `#[deprecated]` and schedule removal; otherwise drop the alias and regenerate stubs. Kept intentionally today, but no deprecation path is recorded. |
-| LEG-2 | OPEN | S | Two more byte-identical legacy aliases across all three bindings, same class as LEG-1: `get_ayanamsa` = `ayanamsa` and `house_name_str` = `house_name` (`bindings/python/src/lib.rs:1580`, `bindings/js/src/lib.rs:796,2682`, `bindings/php/src/lib.rs:2156,2617`). Each inflates the parity surface. | Fold into LEG-1's deprecation decision: `#[deprecated]` + scheduled removal, or drop and regenerate stubs. |
 
 ## Multithreading
 

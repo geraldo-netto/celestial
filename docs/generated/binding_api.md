@@ -58,7 +58,7 @@ link here rather than restating them (prevents DOC-9/DOC-10 drift). -->
 | `FLG_NOABERR` | 1024 |
 | `SIDM_KRISHNAMURTI` | 5 |
 
-## Python — 276 functions
+## Python — 273 functions
 
 ```
 almuten(lon: float, is_day: bool) -> object
@@ -124,8 +124,6 @@ format_coord(coord: float, is_latitude: bool) -> str | None
 four_pillars(jd_ut: float, hour_ut: float, sun_lon: float) -> object
 full_dignity(body_raw: int, lon: float, is_day: bool) -> object
 geo_to_dms(coord: float) -> object
-get_ayanamsa(jd_et: float) -> float
-get_ayanamsa_name(sid_mode: int) -> str
 grand_solar_epoch(jd: float) -> str
 gregorian_to_hijri_years(gregorian_year: int) -> object
 gregorian_to_solar_hijri(year: int) -> int
@@ -145,7 +143,6 @@ hijri_new_year_jd(year: int) -> float
 hijri_to_jd(year: int, month: int, day: int) -> float
 hindu_festivals(gregorian_year: int) -> object
 house_name(hsys: int) -> str
-house_name_str(hsys: int) -> str
 house_pos(armc: float, lat: float, eps: float, hsys: int, lon: float, lat_body: float) -> float
 house_system_char(id: int) -> int | None
 house_system_id(hsys: int) -> int | None
@@ -339,7 +336,7 @@ years_diff(jd1: float, jd2: float, flags: int) -> float
 zodiac_sign_name(sign: int) -> str
 ```
 
-## JavaScript / TypeScript — 276 functions
+## JavaScript / TypeScript — 273 functions
 
 ```
 almuten(lon: number, is_day: boolean) -> Array<number>
@@ -405,8 +402,6 @@ format_coord(coord: number, is_latitude: boolean) -> string | null
 four_pillars(jd_ut: number, hour_ut: number, sun_lon: number) -> Array<Array<string>>
 full_dignity(body_raw: number, lon: number, is_day: boolean) -> Array<unknown>
 geo_to_dms(coord: number) -> Array<number>
-get_ayanamsa(jd_et: number) -> number
-get_ayanamsa_name(sid_mode: number) -> string
 grand_solar_epoch(jd: number) -> string | null
 gregorian_to_hijri_years(gregorian_year: number) -> unknown
 gregorian_to_solar_hijri(year: number) -> number
@@ -426,7 +421,6 @@ hijri_new_year_jd(year: number) -> number
 hijri_to_jd(year: number, month: number, day: number) -> number
 hindu_festivals(gregorian_year: number) -> Array<unknown>
 house_name(hsys: number) -> string
-house_name_str(hsys: number) -> string
 house_pos(armc: number, lat: number, eps: number, hsys: number, lon: number, lat_body: number) -> number
 house_system_char(id: number) -> number | null
 house_system_id(hsys: number) -> number | null
@@ -620,7 +614,7 @@ years_diff(jd1: number, jd2: number, flags: number) -> number
 zodiac_sign_name(sign: number) -> string
 ```
 
-## PHP — 276 functions
+## PHP — 273 functions
 
 ```
 almuten(lon: float, is_day: bool) -> array
@@ -686,8 +680,6 @@ format_coord(coord: float, is_latitude: bool) -> ?string
 four_pillars(jd_ut: float, hour_ut: float, sun_lon: float) -> array
 full_dignity(body: int, lon: float, is_day: bool) -> array
 geo_to_dms(coord: float) -> array
-get_ayanamsa(jd_et: float) -> float
-get_ayanamsa_name(sid_mode: int) -> string
 grand_solar_epoch(jd: float) -> ?string
 gregorian_to_hijri_years(gregorian_year: int) -> array
 gregorian_to_solar_hijri(year: int) -> int
@@ -707,7 +699,6 @@ hijri_new_year_jd(year: int) -> float
 hijri_to_jd(year: int, month: int, day: int) -> float
 hindu_festivals(gregorian_year: int) -> array
 house_name(hsys: int) -> string
-house_name_str(hsys: int) -> string
 house_pos(armc: float, geolat: float, eps: float, hsys: int, lon: float, lat_body: float) -> float
 house_system_char(id: int) -> ?int
 house_system_id(hsys: int) -> ?int

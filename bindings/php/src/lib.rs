@@ -2181,12 +2181,6 @@ pub fn haab(jd: f64) -> Vec<String> {
     vec![m.to_string(), d.to_string(), n.to_string()]
 }
 
-/// House system name by byte code.
-#[php_function]
-pub fn house_name_str(hsys: i64) -> String {
-    celestial::house_name(HouseSystem(hsys as u8)).to_string()
-}
-
 /// House cusps with speeds. Returns [cusps_12, ascmc_8, cusp_speeds_12, ascmc_speeds_8].
 #[php_function]
 pub fn houses_ex2(tjdut: f64, lat: f64, lon: f64, hsys: i64, flags: i64) -> PhpResult<Vec<f64>> {
@@ -2628,20 +2622,6 @@ pub fn degnorm(d: f64) -> f64 {
 #[php_function]
 pub fn difdeg2n(p1: f64, p2: f64) -> f64 {
     celestial::diff_deg_signed(p1, p2)
-}
-
-/// Ayanamsa value at Julian Day (ET), using the currently active sidereal mode.
-/// Legacy alias for `ayanamsa`.
-#[php_function]
-pub fn get_ayanamsa(jd_et: f64) -> f64 {
-    celestial::ayanamsa(JulianDay::new(jd_et))
-}
-
-/// Name of the currently active sidereal mode by SIDM_* constant.
-/// Legacy alias for `ayanamsa_name`.
-#[php_function]
-pub fn get_ayanamsa_name(sid_mode: i64) -> String {
-    celestial::ayanamsa_name(sid_mode as i32).to_string()
 }
 
 /// Next sabbat name after `jd_from`. Returns the sabbat name string.

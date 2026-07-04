@@ -2332,13 +2332,13 @@ mod tests {
     fn scan_fn_name_skips_non_fn_lines_in_window() {
         let lines = [
             "#[php_function]",
-            "/// Legacy alias.",
+            "/// Sidereal mode name.",
             "#[allow(dead_code)]",
-            "pub fn get_ayanamsa_name(mode: i32) -> String {",
+            "pub fn ayanamsa_name(mode: i32) -> String {",
         ];
         assert_eq!(
             scan_fn_name(&lines, 1),
-            Some(("get_ayanamsa_name".to_owned(), 3))
+            Some(("ayanamsa_name".to_owned(), 3))
         );
     }
 

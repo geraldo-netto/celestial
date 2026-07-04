@@ -1064,12 +1064,6 @@ function haab(float $jd): array {}
 /** @return string[] */
 function celestial_haab(float $jd): array {}
 
-/** @return string */
-function house_name_str(int $hsys): string {}
-
-/** @return string */
-function celestial_house_name_str(int $hsys): string {}
-
 /** @return float[] */
 function houses_ex2(float $tjdut, float $lat, float $lon, int $hsys, int $flags): array {}
 
@@ -1273,18 +1267,6 @@ function difdeg2n(float $p1, float $p2): float {}
 
 /** @return float */
 function celestial_difdeg2n(float $p1, float $p2): float {}
-
-/** @return float */
-function get_ayanamsa(float $jd_et): float {}
-
-/** @return float */
-function celestial_get_ayanamsa(float $jd_et): float {}
-
-/** @return string */
-function get_ayanamsa_name(int $sid_mode): string {}
-
-/** @return string */
-function celestial_get_ayanamsa_name(int $sid_mode): string {}
 
 /** @return string */
 function next_sabbat_name(float $jd_from): string {}

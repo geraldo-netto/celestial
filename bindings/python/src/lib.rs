@@ -1517,11 +1517,6 @@ trait Tap: Sized {
 impl Tap for pyo3::Bound<'_, pyo3::types::PyDict> {}
 
 #[pyfunction]
-fn house_name_str(hsys: u8) -> &'static str {
-    celestial::house_name(HouseSystem(hsys))
-}
-
-#[pyfunction]
 fn mooncross_node(py: Python<'_>, jd_et: f64, flags: i32) -> PyResult<PyObject> {
     let n = celestial::mooncross_node(JulianDay::new(jd_et), CalcFlags(flags)).map_err(to_py)?;
     Ok((n.jd_cross, n.xlon).into_py_any(py).unwrap())
@@ -1574,16 +1569,6 @@ fn degnorm(d: f64) -> f64 {
 #[pyfunction]
 fn difdeg2n(p1: f64, p2: f64) -> f64 {
     celestial::diff_deg_signed(p1, p2)
-}
-
-#[pyfunction]
-fn get_ayanamsa(jd_et: f64) -> f64 {
-    celestial::ayanamsa(JulianDay::new(jd_et))
-}
-
-#[pyfunction]
-fn get_ayanamsa_name(sid_mode: i32) -> String {
-    celestial::ayanamsa_name(sid_mode).to_string()
 }
 
 #[cfg(feature = "calendar-traditions")]
@@ -2168,8 +2153,6 @@ fn register_calc_fns(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(ayanamsa, m)?)?;
     m.add_function(wrap_pyfunction!(ayanamsa_ut, m)?)?;
     m.add_function(wrap_pyfunction!(ayanamsa_name, m)?)?;
-    m.add_function(wrap_pyfunction!(get_ayanamsa, m)?)?;
-    m.add_function(wrap_pyfunction!(get_ayanamsa_name, m)?)?;
     m.add_function(wrap_pyfunction!(planet_name, m)?)?;
     Ok(())
 }
@@ -2180,7 +2163,6 @@ fn register_houses_eclipses(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(houses_ex2, m)?)?;
     m.add_function(wrap_pyfunction!(house_pos, m)?)?;
     m.add_function(wrap_pyfunction!(house_name, m)?)?;
-    m.add_function(wrap_pyfunction!(house_name_str, m)?)?;
     m.add_function(wrap_pyfunction!(sol_eclipse_when_glob, m)?)?;
     m.add_function(wrap_pyfunction!(sol_eclipse_when_loc, m)?)?;
     m.add_function(wrap_pyfunction!(sol_eclipse_how, m)?)?;

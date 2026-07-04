@@ -109,11 +109,11 @@ assert_eq(house_name(ord('K')), 'Koch',     'house_name Koch');
 // ── Ayanamsa ────────────────────────────────────────────────────────────────────
 
 set_sid_mode(SIDM_LAHIRI, 0.0, 0.0);
-$ay = get_ayanamsa($jd);
+$ay = ayanamsa($jd);
 // Lahiri ayanamsa in 2002 ≈ 23.88°
 assert_approx($ay, 23.88, 0.1, 'Lahiri ayanamsa');
 
-assert_eq(get_ayanamsa_name(SIDM_LAHIRI), 'Lahiri', 'ayanamsa name');
+assert_eq(ayanamsa_name(SIDM_LAHIRI), 'Lahiri', 'ayanamsa name');
 
 // ── Crossings ───────────────────────────────────────────────────────────────────
 

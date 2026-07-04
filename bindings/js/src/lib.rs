@@ -791,12 +791,6 @@ pub fn planet_name(planet: i32) -> &'static str {
     celestial::planet_name(Body::from_raw(planet))
 }
 
-/// Full name of a house system from its one-letter code (e.g. `P` → `"Placidus"`).
-#[napi(js_name = "houseNameStr")]
-pub fn house_name_str(hsys: u32) -> &'static str {
-    celestial::house_name(HouseSystem(hsys as u8))
-}
-
 /// Duration between two JDs → [days, hours, minutes, seconds].
 #[napi(js_name = "jdDuration")]
 pub fn jd_duration(jd_start: f64, jd_end: f64) -> Vec<i32> {
@@ -2693,16 +2687,6 @@ pub fn degnorm(d: f64) -> f64 {
 #[napi(js_name = "difdeg2n")]
 pub fn difdeg2n(p1: f64, p2: f64) -> f64 {
     celestial::diff_deg_signed(p1, p2)
-}
-
-#[napi(js_name = "getAyanamsa")]
-pub fn get_ayanamsa(jd_et: f64) -> f64 {
-    celestial::ayanamsa(JulianDay::new(jd_et))
-}
-
-#[napi(js_name = "getAyanamsaName")]
-pub fn get_ayanamsa_name(sid_mode: i32) -> String {
-    celestial::ayanamsa_name(sid_mode).to_string()
 }
 
 #[cfg(feature = "calendar-traditions")]

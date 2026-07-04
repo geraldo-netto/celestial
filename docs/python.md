@@ -504,8 +504,6 @@ These SwissEph-compatible names are available alongside their canonical equivale
 from celestial_py import (
     degnorm,          # → norm_deg()
     difdeg2n,         # → diff_deg_signed()
-    get_ayanamsa,     # → ayanamsa()
-    get_ayanamsa_name,# → ayanamsa_name()
     next_sabbat_name, # → next_sabbat() — returns name only
     next_full_moon,   # → next_full_moon_after()
     solcross_ut,      # finds when Sun crosses a given degree

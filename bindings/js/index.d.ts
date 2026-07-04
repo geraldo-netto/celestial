@@ -357,7 +357,6 @@ export declare function azalt(tjdut: number, calcFlag: number, geopos: Array<num
 export declare function refrac(altitude: number, pressureMb: number, tempC: number, calcFlag: number): number;
 export declare function refracExtended(altitude: number, geoalt: number, pressureMb: number, tempC: number, lapseRate: number, calcFlag: number): RefracExt;
 export declare function planetName(planet: number): string;
-export declare function houseNameStr(hsys: number): string;
 export declare function jdDuration(jdStart: number, jdEnd: number): Array<number>;
 export declare function jdToIsoString(jd: number, calendar: number): string;
 export declare function mooncrossNode(jdEt: number, flags: number): MoonCrossNodeResult;
@@ -502,8 +501,6 @@ export declare function nextAspectCusp(body: number, aspect: number, cusp: numbe
 export declare function nextAspectCusp2(body: number, aspect: number, cusp: number, jdStart: number, lat: number, lon: number, hsys: number, backward: boolean, flags: number): Array<number> | null;
 export declare function degnorm(d: number): number;
 export declare function difdeg2n(p1: number, p2: number): number;
-export declare function getAyanamsa(jdEt: number): number;
-export declare function getAyanamsaName(sidMode: number): string;
 export declare function nextFullMoon(jdStart: number): number;
 export declare function nextSabbatName(jdFrom: number): string;
 export declare function solcrossUt(x2cross: number, jdUt: number, flags: number): number;

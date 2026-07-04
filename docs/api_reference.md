@@ -661,8 +661,6 @@ in Python, JavaScript, and PHP.
 |-------|-----------|-------|
 | `degnorm(d)` | `norm_deg(d)` | Normalise degrees to [0°, 360°) |
 | `difdeg2n(p1, p2)` | `diff_deg_signed(p1, p2)` | Signed diff in (−180°, +180°] |
-| `get_ayanamsa(jd_et)` | `ayanamsa(jd_et)` | SwissEph `get_` prefix |
-| `get_ayanamsa_name(mode)` | `ayanamsa_name(mode)` | SwissEph `get_` prefix |
 | `next_sabbat_name(jd)` | `next_sabbat(jd)` | Returns name string only |
 | `next_full_moon(jd)` | `next_full_moon_after(jd)` | Short name variant |
 
