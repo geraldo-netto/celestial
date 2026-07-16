@@ -811,6 +811,9 @@ fn write_traditional_indicators(
 
 fn write_almuten_figuris(s: &mut String, pal: &Palette, almuten: &Value, y: f64) {
     let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
+    if almuten["available"].as_bool() == Some(false) {
+        return write_unavailable_almuten(s, ring, txt, almuten, y);
+    }
     let name = almuten["name"].as_str().unwrap_or("unavailable");
     let glyph = almuten["glyph"].as_str().unwrap_or("");
     let total = almuten["total_score"].as_i64().unwrap_or(0);
@@ -830,6 +833,18 @@ fn write_almuten_figuris(s: &mut String, pal: &Palette, almuten: &Value, y: f64)
         y + 16.0,
         y + 16.0,
         y + 31.0,
+    );
+}
+
+fn write_unavailable_almuten(s: &mut String, ring: &str, txt: &str, almuten: &Value, y: f64) {
+    let reason = almuten["reason"]
+        .as_str()
+        .unwrap_or("calculation unavailable");
+    let _ = writeln!(
+        s,
+        r##"  <text x="26" y="{y:.2}" font-size="9" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".65">Almuten Figuris</text>
+  <text x="48" y="{:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".55">Unavailable · {reason}</text>"##,
+        y + 16.0
     );
 }
 

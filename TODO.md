@@ -186,7 +186,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| REL-18 | OPEN | S | `traditional::almuten_figuris` collapses calculation/missing-body failures to JSON `null`, while `builtin_svg.rs:801-806` renders that as `unavailable` with numeric zero scores and the full template renders blank values. | Return a typed `Result`/explicit availability state and render one consistent unavailable/error state; do not turn failed calculations into valid-looking zero scores. |
 
 ## Robustness / Recovery
 

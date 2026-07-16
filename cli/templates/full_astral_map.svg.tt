@@ -202,13 +202,19 @@
       Almuten Figuris
     </text>
     <text x="0" y="18" font-size="12" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      {% if almuten_figuris.available %}
       {{ almuten_figuris.glyph }} {{ almuten_figuris.name }}
+      {% else %}
+      Unavailable · {{ almuten_figuris.reason }}
+      {% endif %}
     </text>
+    {% if almuten_figuris.available %}
     <text x="0" y="34" font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">
       {{ almuten_figuris.total_score }} total · {{ almuten_figuris.essential_score }} essential
     </text>
     <text x="0" y="48" font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">
       Day lord {{ almuten_figuris.day_lord }} · Hour lord {{ almuten_figuris.hour_lord }}
     </text>
+    {% endif %}
   </g>
 </svg>

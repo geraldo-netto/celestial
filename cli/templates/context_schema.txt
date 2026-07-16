@@ -121,6 +121,8 @@ fixed_star_conjunctions[] — fixed stars within 1° of a body or angle
 ──────────────────────────────────────────────────────────────────────
 almuten_figuris — Ibn Ezra five-point Almuten Figuris result
 ──────────────────────────────────────────────────────────────────────
+  available           boolean  Whether the calculation completed
+  reason              string   Present only when unavailable
   name                string   Winning traditional planet
   glyph               string   Winning planet glyph
   essential_score     number   Five hylegical-point dignity total

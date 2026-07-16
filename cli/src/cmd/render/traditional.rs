@@ -134,6 +134,11 @@ pub(super) struct AlmutenFiguris {
     pub(super) scores: Vec<AlmutenScore>,
 }
 
+pub(super) enum AlmutenOutcome {
+    Available(AlmutenFiguris),
+    Unavailable(&'static str),
+}
+
 pub(super) fn fixed_star_conjunctions(
     planets: &[ChartPoint],
     fixed_stars: &[FixedStarPosition],
@@ -191,22 +196,24 @@ pub(super) fn almuten_figuris(
     planets: &[BodyPosition],
     fortune_lon: f64,
     method: &'static TraditionalMethod,
-) -> Option<AlmutenFiguris> {
+) -> AlmutenOutcome {
     let Some((syzygy_jd, syzygy_lon, syzygy_name)) = prenatal_syzygy(jd) else {
-        return None;
+        return AlmutenOutcome::Unavailable("prenatal syzygy unavailable");
     };
     let Some(sun_lon) = planet_lon(planets, Body::SUN) else {
-        return None;
+        return AlmutenOutcome::Unavailable("Sun position unavailable");
     };
     let Some(moon_lon) = planet_lon(planets, Body::MOON) else {
-        return None;
+        return AlmutenOutcome::Unavailable("Moon position unavailable");
     };
     let points = [sun_lon, moon_lon, houses.ascmc[0], fortune_lon, syzygy_lon];
     let lords = planetary_lords(jd, lat, lon);
     let mut scores = score_planets(planets, houses, &points, lords, method);
     sort_scores(&mut scores);
-    let winner = scores.first()?;
-    Some(AlmutenFiguris {
+    let Some(winner) = scores.first() else {
+        return AlmutenOutcome::Unavailable("traditional planet scores unavailable");
+    };
+    AlmutenOutcome::Available(AlmutenFiguris {
         method: method.description,
         winner: winner.body,
         essential_score: winner.essential_score,
@@ -525,6 +532,21 @@ mod tests {
         let full_moon_chart = julday(1986, 5, 30, 9.0, Calendar::Gregorian);
         assert_eq!(prenatal_syzygy(new_moon_chart).unwrap().2, "New Moon");
         assert_eq!(prenatal_syzygy(full_moon_chart).unwrap().2, "Full Moon");
+    }
+
+    #[test]
+    fn missing_planets_return_an_explicit_unavailable_result() {
+        let jd = julday(2000, 1, 1, 12.0, Calendar::Gregorian);
+        let houses = celestial_core::houses_ex(
+            JulianDay::new(jd),
+            CalcFlags::BUILTIN,
+            celestial_core::Latitude::new(0.0),
+            celestial_core::Longitude::new(0.0),
+            celestial_core::body::HouseSystem::PLACIDUS,
+        )
+        .unwrap();
+        let outcome = almuten_figuris(jd, 0.0, 0.0, &houses, &[], 0.0, &IBN_EZRA_METHOD);
+        assert!(matches!(outcome, AlmutenOutcome::Unavailable(_)));
     }
 
     #[test]

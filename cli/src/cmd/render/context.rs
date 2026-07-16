@@ -664,9 +664,12 @@ fn traditional_conjunction_values(
         .collect()
 }
 
-fn traditional_almuten_value(result: Option<super::traditional::AlmutenFiguris>) -> Value {
-    let Some(result) = result else {
-        return Value::Null;
+fn traditional_almuten_value(result: super::traditional::AlmutenOutcome) -> Value {
+    let result = match result {
+        super::traditional::AlmutenOutcome::Available(result) => result,
+        super::traditional::AlmutenOutcome::Unavailable(reason) => {
+            return json!({"available": false, "reason": reason});
+        }
     };
     let winner = Body::from_raw(result.winner);
     let syzygy = result.prenatal_syzygy;
@@ -676,6 +679,7 @@ fn traditional_almuten_value(result: Option<super::traditional::AlmutenFiguris>)
         .map(traditional_score_value)
         .collect::<Vec<_>>();
     json!({
+        "available": true,
         "name": body_name(winner),
         "glyph": body_glyph(winner),
         "essential_score": result.essential_score,
