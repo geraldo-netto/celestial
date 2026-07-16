@@ -193,6 +193,10 @@ pub(super) fn build_composite_context(
     // Override planets with composite positions
     ctx["planets"] = Value::Array(planets);
     ctx["asc"] = json!((comp_asc * 1e4).round() / 1e4);
+    if let Some(context) = ctx.as_object_mut() {
+        context.remove("fixed_star_conjunctions");
+        context.remove("almuten_figuris");
+    }
     Ok(ctx)
 }
 

@@ -110,8 +110,13 @@ pub(crate) fn render_builtin_svg(ctx: &ChartContext) -> String {
     let houses = super::json_array(&ctx["houses"]);
     let aspects = super::json_array(&ctx["aspects"]);
     let fixed_star_conjunctions = super::json_array(&ctx["fixed_star_conjunctions"]);
+    let has_traditional = ctx["almuten_figuris"].is_object();
 
-    let layout = Layout::compute(planets.len(), aspects.len(), fixed_star_conjunctions.len());
+    let layout = Layout::compute(
+        planets.len(),
+        aspects.len(),
+        has_traditional.then_some(fixed_star_conjunctions.len()),
+    );
 
     let mut s = String::with_capacity(64 * 1024);
 
@@ -130,13 +135,15 @@ pub(crate) fn render_builtin_svg(ctx: &ChartContext) -> String {
     write_aspects_legend(&mut s, &pal, aspects, c3x, layout.ly);
 
     write_dignities(&mut s, &pal, planets, c1x, layout.dig_y);
-    write_traditional_indicators(
-        &mut s,
-        &pal,
-        &ctx["almuten_figuris"],
-        fixed_star_conjunctions,
-        layout.traditional_y,
-    );
+    if let Some(y) = layout.traditional_y {
+        write_traditional_indicators(
+            &mut s,
+            &pal,
+            &ctx["almuten_figuris"],
+            fixed_star_conjunctions,
+            y,
+        );
+    }
     write_glyph_legend(&mut s, &pal, layout.gl_y);
 
     write_footer(&mut s, &pal, layout.footer_y);
@@ -152,14 +159,14 @@ pub(crate) fn render_builtin_svg(ctx: &ChartContext) -> String {
 struct Layout {
     ly: f64,
     dig_y: f64,
-    traditional_y: f64,
+    traditional_y: Option<f64>,
     gl_y: f64,
     footer_y: f64,
     page_h: f64,
 }
 
 impl Layout {
-    fn compute(planets_n: usize, aspects_n: usize, fixed_conjunctions_n: usize) -> Self {
+    fn compute(planets_n: usize, aspects_n: usize, fixed_conjunctions_n: Option<usize>) -> Self {
         const LEGEND_GAP: f64 = 12.0; // same as planet→dignities gap
         const FOOTER_PAD: f64 = 20.0;
         let planets_f = planets_n as f64;
@@ -173,10 +180,12 @@ impl Layout {
         let dig_y = ly + 16.0 + planets_f * RH2 + LEGEND_GAP;
         let dig_bottom = dig_y + 26.0 + planets_f * RH2;
         let aspects_bottom = ly + 16.0 + aspects_f * 15.0;
-        let traditional_y = dig_bottom.max(aspects_bottom) + LEGEND_GAP;
-        let traditional_rows = fixed_conjunctions_n.clamp(2, 5) as f64;
-        let traditional_bottom = traditional_y + 22.0 + traditional_rows * 15.0;
-        let gl_y = traditional_bottom + LEGEND_GAP;
+        let content_bottom = dig_bottom.max(aspects_bottom);
+        let traditional_y = fixed_conjunctions_n.map(|_| content_bottom + LEGEND_GAP);
+        let gl_y = traditional_y.map_or(content_bottom + LEGEND_GAP, |y| {
+            let rows = fixed_conjunctions_n.unwrap_or(0).clamp(2, 5) as f64;
+            y + 22.0 + rows * 15.0 + LEGEND_GAP
+        });
         let legend_rows = 12.0_f64; // longest column (signs)
         let gl_bottom = gl_y + 36.0 + legend_rows * RH2;
         let footer_y = gl_bottom + FOOTER_PAD;

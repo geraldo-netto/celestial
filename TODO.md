@@ -190,7 +190,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| REL-17 | OPEN | M | `specialist.rs:192-195` computes `fixed_star_conjunctions` and `almuten_figuris` for the midpoint-JD base context, then replaces `planets` and `asc` with composite values without recomputing them; the composite SVG therefore lists indicators for positions it does not draw. | Apply traditional enrichment only after composite planets/angles/houses are finalized, or omit it for composite charts until a documented composite interpretation exists. Add an invariant test that every reported conjunction matches the final context longitude. |
 | REL-18 | OPEN | S | `traditional::almuten_figuris` collapses calculation/missing-body failures to JSON `null`, while `builtin_svg.rs:801-806` renders that as `unavailable` with numeric zero scores and the full template renders blank values. | Return a typed `Result`/explicit availability state and render one consistent unavailable/error state; do not turn failed calculations into valid-looking zero scores. |
 
 ## Robustness / Recovery

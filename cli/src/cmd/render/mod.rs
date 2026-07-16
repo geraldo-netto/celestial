@@ -1092,6 +1092,8 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
         let jd2 = jd1 + 180.0; // 6 months apart
         let vars = std::collections::BTreeMap::new();
         let ctx = build_composite_context(jd1, jd2, 0.0, 0.0, "date1", "date2", 'P', vars).unwrap();
+        assert!(ctx.get("fixed_star_conjunctions").is_none());
+        assert!(ctx.get("almuten_figuris").is_none());
         let planets = ctx["planets"].as_array().unwrap();
         assert_eq!(planets.len(), 12);
         // Composite ASC should be the midpoint of the two individual ASCs
