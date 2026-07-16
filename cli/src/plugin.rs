@@ -132,6 +132,7 @@ fn ends_with_ignore_ascii_case(value: &str, suffix: &str) -> bool {
         .is_some_and(|tail| tail.eq_ignore_ascii_case(suffix))
 }
 
+#[cfg(any(not(unix), test))]
 fn has_known_extension(path: &Path, extensions: &[String]) -> bool {
     path.file_name()
         .and_then(|name| name.to_str())
