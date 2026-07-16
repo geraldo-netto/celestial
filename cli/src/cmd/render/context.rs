@@ -73,7 +73,7 @@ fn build_context(
     let signs = build_signs(asc);
     let houses = build_houses(&h, asc);
     let aspects = compute_aspects(planets, asc, mc);
-    let arabic_parts = build_arabic_parts(planets, &h, asc);
+    let calculated_parts = build_arabic_parts(planets, &h, asc);
     let calculated_stars = build_fixed_stars(jd, asc);
     let angles = build_angles(asc, mc, ic, dsc);
     let traditional = include_traditional.then(|| {
@@ -84,7 +84,7 @@ fn build_context(
             &h,
             &calculated_planets,
             &calculated_stars,
-            &arabic_parts,
+            calculated_parts.fortune_lon,
             [asc, mc, ic, dsc],
         )
     });
@@ -127,7 +127,7 @@ fn build_context(
         houses,
         angles,
         aspects,
-        arabic_parts,
+        arabic_parts: calculated_parts.values,
         fixed_stars: calculated_stars.values,
         fixed_star_conjunctions: traditional
             .as_ref()
@@ -207,7 +207,7 @@ fn build_traditional_indicators(
     houses: &celestial_core::HouseResult,
     planets: &CalculatedPlanets,
     stars: &CalculatedStars,
-    arabic_parts: &[Value],
+    fortune_lon: f64,
     angles: [f64; 4],
 ) -> TraditionalIndicators {
     let [asc, mc, ic, dsc] = angles;
@@ -215,11 +215,6 @@ fn build_traditional_indicators(
     let angle_points = traditional_angle_points(asc, mc, ic, dsc);
     let conjunctions =
         traditional_conjunction_values(&planets.points, &stars.positions, &angle_points, method);
-    let fortune_lon = arabic_parts
-        .iter()
-        .find(|part| part["name"] == "Lot of Fortune")
-        .and_then(|part| part["lon"].as_f64())
-        .unwrap_or(asc);
     let almuten = traditional_almuten_value(super::traditional::almuten_figuris(
         jd,
         lat,
@@ -512,7 +507,16 @@ fn sun_house_index(cusps: &[f64], sun_lon: f64) -> usize {
         .map_or(1, |i| i + 1)
 }
 
-fn build_arabic_parts(planets: &[Value], h: &celestial_core::HouseResult, asc: f64) -> Vec<Value> {
+struct CalculatedArabicParts {
+    values: Vec<Value>,
+    fortune_lon: f64,
+}
+
+fn build_arabic_parts(
+    planets: &[Value],
+    h: &celestial_core::HouseResult,
+    asc: f64,
+) -> CalculatedArabicParts {
     let b = collect_body_longitudes(planets);
     let is_day = sun_house_index(&h.cusps, b.sun) >= 7;
     let raw = arabic_parts_seven(
@@ -526,7 +530,9 @@ fn build_arabic_parts(planets: &[Value], h: &celestial_core::HouseResult, asc: f
         Longitude::new(b.venus),
         is_day,
     );
-    raw.iter()
+    let fortune_lon = raw.first().map_or(asc, |part| part.degree);
+    let values = raw
+        .iter()
         .map(|p| {
             let (sign_idx, deg_in_sign) = lon_to_sign(p.degree);
             json!({
@@ -540,7 +546,11 @@ fn build_arabic_parts(planets: &[Value], h: &celestial_core::HouseResult, asc: f
                 "y":        (wy(CY, RH + 2.0, p.degree, asc) * 100.0).round() / 100.0,
                 "is_day":   is_day})
         })
-        .collect()
+        .collect();
+    CalculatedArabicParts {
+        values,
+        fortune_lon,
+    }
 }
 
 const TOP_STARS: &[(&str, &str)] = &[

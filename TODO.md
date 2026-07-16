@@ -93,7 +93,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | DEC-1 | DECIDED | S | `cli/src/cmd/render/svg_common.rs::write_year_axis` calls `celestial_core::revjul` / `julday` directly from a shared render helper. | Acceptable thin veneer: axis ticks need JD/Gregorian conversion; closure injection would be heavier than the coupling. |
-| DEC-4 | OPEN | S | `context.rs:57-61` recovers Fortune by matching the display label `"Lot of Fortune"` inside serialized JSON, so renaming/localizing presentation text silently substitutes the Ascendant. | Preserve the typed `ArabicPart` result until enrichment, or add a stable `ArabicPartKind`/key and select by that identifier without an `unwrap_or(asc)` fallback. |
 
 ## Dependency
 
