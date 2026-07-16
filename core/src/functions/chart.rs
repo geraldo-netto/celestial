@@ -966,7 +966,7 @@ pub fn sign_exaltation(body: Body) -> i8 {
     match body.as_raw() {
         0 => 0,  // Sun exalted in Aries
         1 => 1,  // Moon exalted in Taurus
-        2 => 6,  // Mercury exalted in Virgo (or Aquarius)
+        2 => 5,  // Mercury exalted in Virgo
         3 => 11, // Venus exalted in Pisces
         4 => 9,  // Mars exalted in Capricorn
         5 => 3,  // Jupiter exalted in Cancer

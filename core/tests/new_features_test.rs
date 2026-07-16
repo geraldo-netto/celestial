@@ -1866,6 +1866,11 @@ fn sign_exaltation_known_values() {
     assert_eq!(sign_exaltation(Body::SUN), 0, "Sun exalted in Aries");
     assert_eq!(sign_exaltation(Body::MOON), 1, "Moon exalted in Taurus");
     assert_eq!(
+        sign_exaltation(Body::MERCURY),
+        5,
+        "Mercury exalted in Virgo"
+    );
+    assert_eq!(
         sign_exaltation(Body::JUPITER),
         3,
         "Jupiter exalted in Cancer"
