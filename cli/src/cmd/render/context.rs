@@ -1,6 +1,9 @@
 //! `build_context` — converts CLI args + calculated astronomy data into
 //! the `serde_json::Value` that drives SVG template rendering.
 //!
+//! Traditional data follows one direction: finalized typed chart positions,
+//! typed enrichment, context DTO formatting, then SVG/template rendering.
+//!
 //! Extracted from `mod.rs` to reduce that file's size.
 
 #![allow(clippy::too_many_arguments)]
@@ -77,16 +80,18 @@ fn build_context(
     let calculated_stars = build_fixed_stars(jd, asc);
     let angles = build_angles(asc, mc, ic, dsc);
     let traditional = include_traditional.then(|| {
-        build_traditional_indicators(
+        FinalizedTraditionalChart {
             jd,
             lat,
             lon,
-            &h,
-            &calculated_planets,
-            &calculated_stars,
-            calculated_parts.fortune_lon,
-            [asc, mc, ic, dsc],
-        )
+            houses: &h,
+            planets: &calculated_planets,
+            stars: &calculated_stars,
+            fortune_lon: calculated_parts.fortune_lon,
+            angles: [asc, mc, ic, dsc],
+        }
+        .enrich(&super::traditional::IBN_EZRA_METHOD)
+        .into_dto()
     });
     let illum_pct = (moon_illumination(JulianDay::new(jd)).unwrap_or(0.0) * 1000.0).round() / 10.0;
     let solar_cycle_json = build_solar_cycle(jd);
@@ -194,48 +199,77 @@ struct CalculatedPlanets {
     body_positions: Vec<super::traditional::BodyPosition>,
 }
 
-struct TraditionalIndicators {
+struct TraditionalIndicatorsDto {
     conjunctions: Vec<Value>,
     almuten: Value,
     method: Value,
 }
 
-fn build_traditional_indicators(
+struct FinalizedTraditionalChart<'a> {
     jd: f64,
     lat: f64,
     lon: f64,
-    houses: &celestial_core::HouseResult,
-    planets: &CalculatedPlanets,
-    stars: &CalculatedStars,
+    houses: &'a celestial_core::HouseResult,
+    planets: &'a CalculatedPlanets,
+    stars: &'a CalculatedStars,
     fortune_lon: f64,
     angles: [f64; 4],
-) -> TraditionalIndicators {
-    let [asc, mc, ic, dsc] = angles;
-    let method = &super::traditional::IBN_EZRA_METHOD;
-    let angle_points = traditional_angle_points(asc, mc, ic, dsc);
-    let conjunctions =
-        traditional_conjunction_values(&planets.points, &stars.positions, &angle_points, method);
-    let almuten = traditional_almuten_value(super::traditional::almuten_figuris(
-        jd,
-        lat,
-        lon,
-        houses,
-        &planets.body_positions,
-        fortune_lon,
-        method,
-    ));
-    let method = json!({
+}
+
+struct TraditionalEnrichment {
+    conjunctions: Vec<super::traditional::FixedStarConjunction>,
+    almuten: super::traditional::AlmutenOutcome,
+    method: &'static super::traditional::TraditionalMethod,
+}
+
+impl FinalizedTraditionalChart<'_> {
+    fn enrich(
+        &self,
+        method: &'static super::traditional::TraditionalMethod,
+    ) -> TraditionalEnrichment {
+        let [asc, mc, ic, dsc] = self.angles;
+        let angle_points = traditional_angle_points(asc, mc, ic, dsc);
+        let conjunctions = super::traditional::fixed_star_conjunctions(
+            &self.planets.points,
+            &self.stars.positions,
+            &angle_points,
+            method,
+        );
+        let almuten = super::traditional::almuten_figuris(
+            self.jd,
+            self.lat,
+            self.lon,
+            self.houses,
+            &self.planets.body_positions,
+            self.fortune_lon,
+            method,
+        );
+        TraditionalEnrichment {
+            conjunctions,
+            almuten,
+            method,
+        }
+    }
+}
+
+impl TraditionalEnrichment {
+    fn into_dto(self) -> TraditionalIndicatorsDto {
+        TraditionalIndicatorsDto {
+            conjunctions: traditional_conjunction_values(self.conjunctions),
+            almuten: traditional_almuten_value(self.almuten),
+            method: traditional_method_value(self.method),
+        }
+    }
+}
+
+fn traditional_method_value(method: &super::traditional::TraditionalMethod) -> Value {
+    json!({
         "name": method.name,
         "description": method.description,
         "fixed_star_orb": method.fixed_star_orb,
         "fixed_star_orb_label": fmt_orb_compact(method.fixed_star_orb),
         "max_conjunctions": method.max_conjunctions,
-    });
-    TraditionalIndicators {
-        conjunctions,
-        almuten,
-        method,
-    }
+    })
 }
 
 fn build_planets(jd: f64, asc: f64) -> CalculatedPlanets {
@@ -641,12 +675,9 @@ fn traditional_angle_points(
 }
 
 fn traditional_conjunction_values(
-    planets: &[super::traditional::ChartPoint],
-    stars: &[super::traditional::FixedStarPosition],
-    angles: &[super::traditional::ChartPoint],
-    method: &super::traditional::TraditionalMethod,
+    conjunctions: Vec<super::traditional::FixedStarConjunction>,
 ) -> Vec<Value> {
-    super::traditional::fixed_star_conjunctions(planets, stars, angles, method)
+    conjunctions
         .into_iter()
         .map(|hit| {
             json!({
