@@ -485,6 +485,29 @@ fn builtin_natal_renders_reference_traditional_indicators() {
 }
 
 #[test]
+fn traditional_indicators_follow_essential_dignities() {
+    let svg = render_builtin(
+        "1986-05-30 09:00",
+        "-23.533333",
+        "-46.633333",
+        "natal_traditional_layout.svg",
+    );
+    let dignity_bottom = svg
+        .lines()
+        .find(|line| line.contains("x=\"244.00\"") && line.contains(">Node (South)</text>"))
+        .and_then(|line| extract_attr(line, "y"))
+        .expect("last dignity row missing");
+    let traditional_y = svg
+        .lines()
+        .find(|line| line.contains(">Traditional Indicators</text>"))
+        .and_then(|line| extract_attr(line, "y"))
+        .expect("traditional indicators heading missing");
+    assert_eq!(traditional_y - dignity_bottom, 28.0);
+    assert!(svg.contains("x1=\"24\" y1="));
+    assert!(svg.contains("x2=\"564\""));
+}
+
+#[test]
 fn builtin_natal_renders_an_empty_fixed_star_result() {
     let svg = render_builtin(
         "2000-01-01 12:00",

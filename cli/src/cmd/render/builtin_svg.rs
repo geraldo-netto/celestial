@@ -153,12 +153,11 @@ pub(crate) fn render_builtin_svg(ctx: &ChartContext) -> String {
     s
 }
 
-/// Vertical positions for the table block beneath the wheel. The
-/// "symbol-reference" legend sits at the same `LEGEND_GAP` distance
-/// below the deepest of the dignities and aspects columns as the gap
-/// between the planet-list and dignities columns (12 px). Page height
-/// then shrinks to fit the legend bottom plus a footer band — charts
-/// with fewer aspects produce a shorter page than busy charts.
+/// Vertical positions for the table block beneath the wheel. Traditional
+/// indicators follow the dignities in the first two columns while aspects
+/// can continue independently in the third. The symbol reference starts
+/// below whichever side is taller. Page height then shrinks to fit the
+/// legend bottom plus a footer band.
 struct Layout {
     ly: f64,
     dig_y: f64,
@@ -183,12 +182,13 @@ impl Layout {
         let dig_y = ly + 16.0 + planets_f * RH2 + LEGEND_GAP;
         let dig_bottom = dig_y + 26.0 + planets_f * RH2;
         let aspects_bottom = ly + 16.0 + aspects_f * 15.0;
-        let content_bottom = dig_bottom.max(aspects_bottom);
-        let traditional_y = fixed_conjunctions_n.map(|_| content_bottom + LEGEND_GAP);
-        let gl_y = traditional_y.map_or(content_bottom + LEGEND_GAP, |y| {
+        let traditional_y = fixed_conjunctions_n.map(|_| dig_bottom + LEGEND_GAP);
+        let traditional_bottom = traditional_y.map(|y| {
             let rows = fixed_conjunctions_n.unwrap_or(0).clamp(2, 5) as f64;
-            y + 22.0 + rows * 15.0 + LEGEND_GAP
+            y + 22.0 + rows * 15.0
         });
+        let content_bottom = traditional_bottom.unwrap_or(dig_bottom).max(aspects_bottom);
+        let gl_y = content_bottom + LEGEND_GAP;
         let legend_rows = 12.0_f64; // longest column (signs)
         let gl_bottom = gl_y + 36.0 + legend_rows * RH2;
         let footer_y = gl_bottom + FOOTER_PAD;
@@ -801,7 +801,7 @@ fn write_traditional_indicators(
     let _ = writeln!(
         s,
         r##"  <text x="24" y="{y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Traditional Indicators</text>
-  <line x1="24" y1="{:.2}" x2="876" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
+  <line x1="24" y1="{:.2}" x2="564" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
         y + 3.0,
         y + 3.0
     );
@@ -860,12 +860,12 @@ fn write_fixed_star_conjunctions(
     let max_conjunctions = method["max_conjunctions"].as_u64().unwrap_or(5) as usize;
     let _ = writeln!(
         s,
-        r##"  <text x="450" y="{y:.2}" font-size="9" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".65">Fixed-star conjunctions · orb ≤ {orb}</text>"##
+        r##"  <text x="314" y="{y:.2}" font-size="9" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".65">Fixed-star conjunctions · orb ≤ {orb}</text>"##
     );
     if conjunctions.is_empty() {
         let _ = writeln!(
             s,
-            r##"  <text x="450" y="{:.2}" font-size="9" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".45">None</text>"##,
+            r##"  <text x="314" y="{:.2}" font-size="9" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".45">None</text>"##,
             y + 16.0
         );
         return;
@@ -883,8 +883,7 @@ fn write_fixed_star_conjunction(s: &mut String, pal: &Palette, hit: &Value, y: f
     let orb = hit["orb_dms"].as_str().unwrap_or("");
     let _ = writeln!(
         s,
-        r##"  <text x="450" y="{y:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{star} ({constellation}) conjunct {point}</text>
-  <text x="750" y="{y:.2}" font-size="9" dominant-baseline="central" font-family="ui-monospace,monospace" fill="{ring}" opacity=".6">orb {orb}</text>"##
+        r##"  <text x="314" y="{y:.2}" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{star} ({constellation}) conjunct {point}<tspan font-family="ui-monospace,monospace" fill="{ring}" opacity=".6"> · orb {orb}</tspan></text>"##
     );
 }
 
