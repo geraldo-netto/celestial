@@ -93,7 +93,7 @@ pub(crate) use south_indian::{
 };
 
 use builtin_svg::render_builtin_svg;
-use context::build_context;
+use context::{build_base_context as build_context, build_natal_context};
 use derived::{
     build_biwheel_context, build_progressed_context, build_solar_arc_context, render_biwheel_svg,
     render_cosmogram_svg, render_progressed_svg,

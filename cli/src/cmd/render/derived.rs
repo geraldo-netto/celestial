@@ -13,7 +13,7 @@ use celestial_core::body::{Body, CalcFlags};
 use celestial_core::calc_ut;
 
 use super::builtin_svg::render_builtin_svg;
-use super::context::build_context;
+use super::context::build_base_context as build_context;
 use super::jd_to_date_str;
 
 pub(super) fn build_progressed_context(

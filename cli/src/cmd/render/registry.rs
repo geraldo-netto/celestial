@@ -29,7 +29,7 @@ pub(crate) fn dispatch_natal(
 ) -> Result<(ChartContext, ChartRenderer), CliError> {
     let v = vars_with_title(user_vars, "Natal Chart");
     Ok((
-        build_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
+        build_natal_context(jd, args.lat, args.lon, &args.date, args.hsys, v)?.into(),
         render_builtin_svg,
     ))
 }

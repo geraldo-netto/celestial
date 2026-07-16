@@ -25,13 +25,36 @@ use super::{
     moon_phase_str, planet_dignity, wx, wy, ASPECT_DEFS, BODIES, CX, CY, RC, RH, RI, RM, RO, RP,
 };
 
-pub(crate) fn build_context(
+pub(crate) fn build_base_context(
     jd: f64,
     lat: f64,
     lon: f64,
     date_str: &str,
     hsys: char,
     user_vars: BTreeMap<String, String>,
+) -> Result<Value, CliError> {
+    build_context(jd, lat, lon, date_str, hsys, user_vars, false)
+}
+
+pub(crate) fn build_natal_context(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    date_str: &str,
+    hsys: char,
+    user_vars: BTreeMap<String, String>,
+) -> Result<Value, CliError> {
+    build_context(jd, lat, lon, date_str, hsys, user_vars, true)
+}
+
+fn build_context(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    date_str: &str,
+    hsys: char,
+    user_vars: BTreeMap<String, String>,
+    include_traditional: bool,
 ) -> Result<Value, CliError> {
     let h = houses_ex(
         JulianDay::new(jd),
@@ -53,34 +76,17 @@ pub(crate) fn build_context(
     let arabic_parts = build_arabic_parts(planets, &h, asc);
     let calculated_stars = build_fixed_stars(jd, asc);
     let angles = build_angles(asc, mc, ic, dsc);
-    let angle_points = traditional_angle_points(asc, mc, ic, dsc);
-    let traditional_method = &super::traditional::IBN_EZRA_METHOD;
-    let fixed_star_conjunctions = traditional_conjunction_values(
-        &calculated_planets.points,
-        &calculated_stars.positions,
-        &angle_points,
-        traditional_method,
-    );
-    let fortune_lon = arabic_parts
-        .iter()
-        .find(|part| part["name"] == "Lot of Fortune")
-        .and_then(|part| part["lon"].as_f64())
-        .unwrap_or(asc);
-    let almuten_figuris = traditional_almuten_value(super::traditional::almuten_figuris(
-        jd,
-        lat,
-        lon,
-        &h,
-        &calculated_planets.body_positions,
-        fortune_lon,
-        traditional_method,
-    ));
-    let traditional_method = json!({
-        "name": traditional_method.name,
-        "description": traditional_method.description,
-        "fixed_star_orb": traditional_method.fixed_star_orb,
-        "fixed_star_orb_label": fmt_orb_compact(traditional_method.fixed_star_orb),
-        "max_conjunctions": traditional_method.max_conjunctions,
+    let traditional = include_traditional.then(|| {
+        build_traditional_indicators(
+            jd,
+            lat,
+            lon,
+            &h,
+            &calculated_planets,
+            &calculated_stars,
+            &arabic_parts,
+            [asc, mc, ic, dsc],
+        )
     });
     let illum_pct = (moon_illumination(JulianDay::new(jd)).unwrap_or(0.0) * 1000.0).round() / 10.0;
     let solar_cycle_json = build_solar_cycle(jd);
@@ -123,9 +129,13 @@ pub(crate) fn build_context(
         aspects,
         arabic_parts,
         fixed_stars: calculated_stars.values,
-        fixed_star_conjunctions,
-        almuten_figuris,
-        traditional_method,
+        fixed_star_conjunctions: traditional
+            .as_ref()
+            .map(|indicators| indicators.conjunctions.clone()),
+        almuten_figuris: traditional
+            .as_ref()
+            .map(|indicators| indicators.almuten.clone()),
+        traditional_method: traditional.map(|indicators| indicators.method),
         solar_cycle: solar_cycle_json,
         vars: Value::Object(vars),
     };
@@ -168,9 +178,12 @@ struct NatalContext {
     aspects: Vec<Value>,
     arabic_parts: Vec<Value>,
     fixed_stars: Vec<Value>,
-    fixed_star_conjunctions: Vec<Value>,
-    almuten_figuris: Value,
-    traditional_method: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fixed_star_conjunctions: Option<Vec<Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    almuten_figuris: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    traditional_method: Option<Value>,
     solar_cycle: Value,
     vars: Value,
 }
@@ -179,6 +192,55 @@ struct CalculatedPlanets {
     values: Vec<Value>,
     points: Vec<super::traditional::ChartPoint>,
     body_positions: Vec<super::traditional::BodyPosition>,
+}
+
+struct TraditionalIndicators {
+    conjunctions: Vec<Value>,
+    almuten: Value,
+    method: Value,
+}
+
+fn build_traditional_indicators(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    houses: &celestial_core::HouseResult,
+    planets: &CalculatedPlanets,
+    stars: &CalculatedStars,
+    arabic_parts: &[Value],
+    angles: [f64; 4],
+) -> TraditionalIndicators {
+    let [asc, mc, ic, dsc] = angles;
+    let method = &super::traditional::IBN_EZRA_METHOD;
+    let angle_points = traditional_angle_points(asc, mc, ic, dsc);
+    let conjunctions =
+        traditional_conjunction_values(&planets.points, &stars.positions, &angle_points, method);
+    let fortune_lon = arabic_parts
+        .iter()
+        .find(|part| part["name"] == "Lot of Fortune")
+        .and_then(|part| part["lon"].as_f64())
+        .unwrap_or(asc);
+    let almuten = traditional_almuten_value(super::traditional::almuten_figuris(
+        jd,
+        lat,
+        lon,
+        houses,
+        &planets.body_positions,
+        fortune_lon,
+        method,
+    ));
+    let method = json!({
+        "name": method.name,
+        "description": method.description,
+        "fixed_star_orb": method.fixed_star_orb,
+        "fixed_star_orb_label": fmt_orb_compact(method.fixed_star_orb),
+        "max_conjunctions": method.max_conjunctions,
+    });
+    TraditionalIndicators {
+        conjunctions,
+        almuten,
+        method,
+    }
 }
 
 fn build_planets(jd: f64, asc: f64) -> CalculatedPlanets {

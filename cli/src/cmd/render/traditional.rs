@@ -422,11 +422,11 @@ mod tests {
     use serde_json::Value;
 
     use super::*;
-    use crate::cmd::render::context::build_context;
+    use crate::cmd::render::context::build_natal_context;
 
     fn chart_context(year: i32, month: i32) -> Value {
         let jd = julday(year, month, 15, 6.0, Calendar::Gregorian);
-        build_context(jd, 0.0, 0.0, "test", 'P', BTreeMap::new()).unwrap()
+        build_natal_context(jd, 0.0, 0.0, "test", 'P', BTreeMap::new()).unwrap()
     }
 
     fn star(name: &str, lon: f64) -> FixedStarPosition {
@@ -485,7 +485,8 @@ mod tests {
     #[test]
     fn chart_star_conjunctions_can_be_empty_or_select_other_stars() {
         let j2000 = julday(2000, 1, 1, 12.0, Calendar::Gregorian);
-        let paris = build_context(j2000, 48.8566, 2.3522, "test", 'P', BTreeMap::new()).unwrap();
+        let paris =
+            build_natal_context(j2000, 48.8566, 2.3522, "test", 'P', BTreeMap::new()).unwrap();
         assert!(paris["fixed_star_conjunctions"]
             .as_array()
             .unwrap()
