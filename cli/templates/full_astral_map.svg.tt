@@ -179,9 +179,9 @@
   {# Footer with traditional indicators + arabic parts #}
   <g transform="translate(50, {{ page_h - 90 }})">
     <text x="0" y="0" font-size="11" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
-      Fixed-star conjunctions · orb ≤ 1°
+      Fixed-star conjunctions · orb ≤ {{ traditional_method.fixed_star_orb_label }}
     </text>
-    {% for hit in fixed_star_conjunctions[:4] %}
+    {% for hit in fixed_star_conjunctions[:traditional_method.max_conjunctions] %}
     <text x="0" y="{{ 16 + loop.index0 * 14 }}" font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">
       {{ hit.star }} ({{ hit.constellation }}) conjunct {{ hit.point }} · orb {{ hit.orb_dms }}
     </text>

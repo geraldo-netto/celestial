@@ -111,11 +111,13 @@ pub(crate) fn render_builtin_svg(ctx: &ChartContext) -> String {
     let aspects = super::json_array(&ctx["aspects"]);
     let fixed_star_conjunctions = super::json_array(&ctx["fixed_star_conjunctions"]);
     let has_traditional = ctx["almuten_figuris"].is_object();
+    let traditional_method = &ctx["traditional_method"];
+    let max_conjunctions = traditional_method["max_conjunctions"].as_u64().unwrap_or(5) as usize;
 
     let layout = Layout::compute(
         planets.len(),
         aspects.len(),
-        has_traditional.then_some(fixed_star_conjunctions.len()),
+        has_traditional.then_some(fixed_star_conjunctions.len().min(max_conjunctions)),
     );
 
     let mut s = String::with_capacity(64 * 1024);
@@ -141,6 +143,7 @@ pub(crate) fn render_builtin_svg(ctx: &ChartContext) -> String {
             &pal,
             &ctx["almuten_figuris"],
             fixed_star_conjunctions,
+            traditional_method,
             y,
         );
     }
@@ -791,6 +794,7 @@ fn write_traditional_indicators(
     pal: &Palette,
     almuten: &Value,
     conjunctions: &[Value],
+    method: &Value,
     y: f64,
 ) {
     let ring = pal.ring.as_str();
@@ -802,7 +806,7 @@ fn write_traditional_indicators(
         y + 3.0
     );
     write_almuten_figuris(s, pal, almuten, y + 19.0);
-    write_fixed_star_conjunctions(s, pal, conjunctions, y + 19.0);
+    write_fixed_star_conjunctions(s, pal, conjunctions, method, y + 19.0);
 }
 
 fn write_almuten_figuris(s: &mut String, pal: &Palette, almuten: &Value, y: f64) {
@@ -829,11 +833,19 @@ fn write_almuten_figuris(s: &mut String, pal: &Palette, almuten: &Value, y: f64)
     );
 }
 
-fn write_fixed_star_conjunctions(s: &mut String, pal: &Palette, conjunctions: &[Value], y: f64) {
+fn write_fixed_star_conjunctions(
+    s: &mut String,
+    pal: &Palette,
+    conjunctions: &[Value],
+    method: &Value,
+    y: f64,
+) {
     let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
+    let orb = method["fixed_star_orb_label"].as_str().unwrap_or("1°");
+    let max_conjunctions = method["max_conjunctions"].as_u64().unwrap_or(5) as usize;
     let _ = writeln!(
         s,
-        r##"  <text x="450" y="{y:.2}" font-size="9" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".65">Fixed-star conjunctions · orb ≤ 1°</text>"##
+        r##"  <text x="450" y="{y:.2}" font-size="9" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".65">Fixed-star conjunctions · orb ≤ {orb}</text>"##
     );
     if conjunctions.is_empty() {
         let _ = writeln!(
@@ -843,7 +855,7 @@ fn write_fixed_star_conjunctions(s: &mut String, pal: &Palette, conjunctions: &[
         );
         return;
     }
-    for (i, conjunction) in conjunctions.iter().take(5).enumerate() {
+    for (i, conjunction) in conjunctions.iter().take(max_conjunctions).enumerate() {
         write_fixed_star_conjunction(s, pal, conjunction, y + 16.0 + i as f64 * 15.0);
     }
 }

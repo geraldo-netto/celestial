@@ -896,6 +896,7 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
             "aspects",
             "fixed_star_conjunctions",
             "almuten_figuris",
+            "traditional_method",
             "vars",
         ] {
             assert!(

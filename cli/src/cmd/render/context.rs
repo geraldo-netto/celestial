@@ -54,10 +54,12 @@ pub(crate) fn build_context(
     let calculated_stars = build_fixed_stars(jd, asc);
     let angles = build_angles(asc, mc, ic, dsc);
     let angle_points = traditional_angle_points(asc, mc, ic, dsc);
+    let traditional_method = &super::traditional::IBN_EZRA_METHOD;
     let fixed_star_conjunctions = traditional_conjunction_values(
         &calculated_planets.points,
         &calculated_stars.positions,
         &angle_points,
+        traditional_method,
     );
     let fortune_lon = arabic_parts
         .iter()
@@ -71,7 +73,15 @@ pub(crate) fn build_context(
         &h,
         &calculated_planets.body_positions,
         fortune_lon,
+        traditional_method,
     ));
+    let traditional_method = json!({
+        "name": traditional_method.name,
+        "description": traditional_method.description,
+        "fixed_star_orb": traditional_method.fixed_star_orb,
+        "fixed_star_orb_label": fmt_orb_compact(traditional_method.fixed_star_orb),
+        "max_conjunctions": traditional_method.max_conjunctions,
+    });
     let illum_pct = (moon_illumination(JulianDay::new(jd)).unwrap_or(0.0) * 1000.0).round() / 10.0;
     let solar_cycle_json = build_solar_cycle(jd);
     let vars = build_vars(&user_vars);
@@ -115,6 +125,7 @@ pub(crate) fn build_context(
         fixed_stars: calculated_stars.values,
         fixed_star_conjunctions,
         almuten_figuris,
+        traditional_method,
         solar_cycle: solar_cycle_json,
         vars: Value::Object(vars),
     };
@@ -159,6 +170,7 @@ struct NatalContext {
     fixed_stars: Vec<Value>,
     fixed_star_conjunctions: Vec<Value>,
     almuten_figuris: Value,
+    traditional_method: Value,
     solar_cycle: Value,
     vars: Value,
 }
@@ -560,8 +572,9 @@ fn traditional_conjunction_values(
     planets: &[super::traditional::ChartPoint],
     stars: &[super::traditional::FixedStarPosition],
     angles: &[super::traditional::ChartPoint],
+    method: &super::traditional::TraditionalMethod,
 ) -> Vec<Value> {
-    super::traditional::fixed_star_conjunctions(planets, stars, angles)
+    super::traditional::fixed_star_conjunctions(planets, stars, angles, method)
         .into_iter()
         .map(|hit| {
             json!({
@@ -604,7 +617,7 @@ fn traditional_almuten_value(result: Option<super::traditional::AlmutenFiguris>)
             "dms": fmt_lon_dms(syzygy.longitude),
         },
         "scores": scores,
-        "method": "Ibn Ezra: five hylegical points, all triplicity rulers, house/day/hour bonuses",
+        "method": result.method,
     })
 }
 
@@ -641,6 +654,15 @@ fn fmt_orb(orb: f64) -> String {
         total_minutes / 60,
         total_minutes % 60
     )
+}
+
+fn fmt_orb_compact(orb: f64) -> String {
+    let minutes = (orb * 60.0).round() as u32;
+    if minutes % 60 == 0 {
+        format!("{}\u{00B0}", minutes / 60)
+    } else {
+        fmt_orb(orb)
+    }
 }
 
 const VAR_DEFAULTS: &[(&str, &str)] = &[

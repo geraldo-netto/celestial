@@ -6,8 +6,6 @@ use celestial_core::{
 };
 use serde::Serialize;
 
-const FIXED_STAR_ORB: f64 = 1.0;
-const HOUSE_SCORES: [i8; 12] = [12, 6, 3, 9, 7, 1, 10, 5, 4, 11, 8, 2];
 const TRADITIONAL: [Body; 7] = [
     Body::SUN,
     Body::MOON,
@@ -35,6 +33,36 @@ const CHALDEAN_ORDER: [Body; 7] = [
     Body::MERCURY,
     Body::MOON,
 ];
+
+pub(super) struct TraditionalMethod {
+    pub(super) name: &'static str,
+    pub(super) description: &'static str,
+    pub(super) fixed_star_orb: f64,
+    pub(super) max_conjunctions: usize,
+    house_scores: [i8; 12],
+    domicile: i8,
+    exaltation: i8,
+    triplicity: i8,
+    term: i8,
+    decan: i8,
+    day_bonus: i16,
+    hour_bonus: i16,
+}
+
+pub(super) const IBN_EZRA_METHOD: TraditionalMethod = TraditionalMethod {
+    name: "Ibn Ezra five-point",
+    description: "Ibn Ezra: five hylegical points, all triplicity rulers, house/day/hour bonuses",
+    fixed_star_orb: 1.0,
+    max_conjunctions: 5,
+    house_scores: [12, 6, 3, 9, 7, 1, 10, 5, 4, 11, 8, 2],
+    domicile: 5,
+    exaltation: 4,
+    triplicity: 3,
+    term: 2,
+    decan: 1,
+    day_bonus: 7,
+    hour_bonus: 6,
+};
 
 #[derive(Clone)]
 pub(super) struct BodyPosition {
@@ -96,6 +124,7 @@ pub(super) struct PrenatalSyzygy {
 
 #[derive(Serialize)]
 pub(super) struct AlmutenFiguris {
+    pub(super) method: &'static str,
     pub(super) winner: i32,
     pub(super) essential_score: i16,
     pub(super) total_score: i16,
@@ -109,11 +138,12 @@ pub(super) fn fixed_star_conjunctions(
     planets: &[ChartPoint],
     fixed_stars: &[FixedStarPosition],
     angles: &[ChartPoint],
+    method: &TraditionalMethod,
 ) -> Vec<FixedStarConjunction> {
     let mut hits = Vec::new();
     for star in fixed_stars {
-        append_star_hits(&mut hits, star, planets);
-        append_star_hits(&mut hits, star, angles);
+        append_star_hits(&mut hits, star, planets, method.fixed_star_orb);
+        append_star_hits(&mut hits, star, angles, method.fixed_star_orb);
     }
     hits.sort_by(|a, b| a.orb.total_cmp(&b.orb));
     hits
@@ -123,17 +153,22 @@ fn append_star_hits(
     hits: &mut Vec<FixedStarConjunction>,
     star: &FixedStarPosition,
     points: &[ChartPoint],
+    orb_limit: f64,
 ) {
     for point in points {
-        if let Some(hit) = fixed_star_hit(star, point) {
+        if let Some(hit) = fixed_star_hit(star, point, orb_limit) {
             hits.push(hit);
         }
     }
 }
 
-fn fixed_star_hit(star: &FixedStarPosition, point: &ChartPoint) -> Option<FixedStarConjunction> {
+fn fixed_star_hit(
+    star: &FixedStarPosition,
+    point: &ChartPoint,
+    orb_limit: f64,
+) -> Option<FixedStarConjunction> {
     let orb = diff_deg_signed(star.longitude, point.longitude).abs();
-    if orb > FIXED_STAR_ORB {
+    if orb > orb_limit {
         return None;
     }
     Some(FixedStarConjunction {
@@ -155,6 +190,7 @@ pub(super) fn almuten_figuris(
     houses: &HouseResult,
     planets: &[BodyPosition],
     fortune_lon: f64,
+    method: &'static TraditionalMethod,
 ) -> Option<AlmutenFiguris> {
     let Some((syzygy_jd, syzygy_lon, syzygy_name)) = prenatal_syzygy(jd) else {
         return None;
@@ -167,10 +203,11 @@ pub(super) fn almuten_figuris(
     };
     let points = [sun_lon, moon_lon, houses.ascmc[0], fortune_lon, syzygy_lon];
     let lords = planetary_lords(jd, lat, lon);
-    let mut scores = score_planets(planets, houses, &points, lords);
+    let mut scores = score_planets(planets, houses, &points, lords, method);
     sort_scores(&mut scores);
     let winner = scores.first()?;
     Some(AlmutenFiguris {
+        method: method.description,
         winner: winner.body,
         essential_score: winner.essential_score,
         total_score: winner.total_score,
@@ -190,10 +227,11 @@ fn score_planets(
     houses: &HouseResult,
     points: &[f64; 5],
     lords: Option<(Body, Body)>,
+    method: &TraditionalMethod,
 ) -> Vec<AlmutenScore> {
     TRADITIONAL
         .iter()
-        .filter_map(|&body| score_planet(body, planets, houses, points, lords))
+        .filter_map(|&body| score_planet(body, planets, houses, points, lords, method))
         .collect()
 }
 
@@ -203,16 +241,17 @@ fn score_planet(
     houses: &HouseResult,
     points: &[f64; 5],
     lords: Option<(Body, Body)>,
+    method: &TraditionalMethod,
 ) -> Option<AlmutenScore> {
     let lon = planet_lon(planets, body)?;
     let essential: i16 = points
         .iter()
-        .map(|&point| i16::from(dignity_claim(body, point)))
+        .map(|&point| i16::from(dignity_claim(body, point, method)))
         .sum();
     let house = planet_house_number(lon, &houses.cusps);
-    let house_score = i16::from(HOUSE_SCORES[usize::from(house - 1)]);
-    let day_bonus = bonus_for(lords.map(|v| v.0), body, 7);
-    let hour_bonus = bonus_for(lords.map(|v| v.1), body, 6);
+    let house_score = i16::from(method.house_scores[usize::from(house - 1)]);
+    let day_bonus = bonus_for(lords.map(|v| v.0), body, method.day_bonus);
+    let hour_bonus = bonus_for(lords.map(|v| v.1), body, method.hour_bonus);
     Some(AlmutenScore {
         body: body.as_raw(),
         essential_score: essential,
@@ -224,24 +263,24 @@ fn score_planet(
     })
 }
 
-fn dignity_claim(body: Body, lon: f64) -> i8 {
+fn dignity_claim(body: Body, lon: f64, method: &TraditionalMethod) -> i8 {
     let sign = ((lon.rem_euclid(360.0) / 30.0) as u8) % 12;
     let mut score = 0;
     if sign_ruler(sign) == body {
-        score += 5;
+        score += method.domicile;
     }
     if sign_exaltation(body) == sign as i8 {
-        score += 4;
+        score += method.exaltation;
     }
     let (day_ruler, night_ruler, participating_ruler) = triplicity_rulers(Longitude::new(lon));
     if [day_ruler, night_ruler, participating_ruler].contains(&body) {
-        score += 3;
+        score += method.triplicity;
     }
     if egyptian_terms_ruler(Longitude::new(lon)) == body {
-        score += 2;
+        score += method.term;
     }
     if decan_ruler(Longitude::new(lon)) == body {
-        score += 1;
+        score += method.decan;
     }
     score
 }
@@ -409,7 +448,7 @@ mod tests {
 
     #[test]
     fn dignity_claim_sums_all_five_levels() {
-        assert_eq!(dignity_claim(Body::MERCURY, 151.0), 11);
+        assert_eq!(dignity_claim(Body::MERCURY, 151.0, &IBN_EZRA_METHOD), 11);
     }
 
     #[test]
@@ -471,7 +510,7 @@ mod tests {
             point("Angle", 101.0, PointKind::Angle),
             point("Too far", 201.000_1, PointKind::Angle),
         ];
-        let hits = fixed_star_conjunctions(&planets, &stars, &angles);
+        let hits = fixed_star_conjunctions(&planets, &stars, &angles, &IBN_EZRA_METHOD);
         assert_eq!(hits.len(), 2);
         assert_eq!(hits[0].star, "Wrap");
         assert_eq!(round4(hits[0].orb), 0.4);

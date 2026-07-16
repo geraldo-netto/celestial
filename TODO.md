@@ -30,7 +30,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | ARCH-10 | DECIDED | L | Bindings still expose broad per-language adapter surfaces rather than shared codegen-only APIs. | Same as DUP-1 / DP-4; byte/API churn and PHP unverifiable path made full codegen net-negative. |
 | ARCH-11 | DECIDED | S | `bindings/ffi/src/lib.rs:18` uses `pub use celestial_core::*`, so new core public API can expand binding compile surfaces. | KEEP — bindings intentionally consume the whole published core facade. Explicit lists would duplicate 200+ root exports. |
 | ARCH-12 | DECIDED | S | `core/src/lib.rs` re-exports raw Swiss-Ephemeris-style constants alongside typed `Body` / `CalcFlags` APIs. | Back-compat layer for bindings and existing Rust users; tightening would be a published API break. |
-| ARCH-14 | OPEN | M | The Almuten variant and fixed-star policy are hard-coded across calculation and presentation: dignity/house/day/hour weights, all-triplicity treatment, 1° orb, method label, and renderer row caps have no shared policy object. | Define a named `TraditionalMethod`/config with calculation parameters and result metadata; have renderers display metadata from the result instead of restating policy literals. |
 
 ## Business / Design Patterns / DDD
 
