@@ -11,7 +11,7 @@ use celestial_core::Latitude;
 use celestial_core::Longitude;
 use std::collections::BTreeMap;
 
-use celestial_core::body::{CalcFlags, HouseSystem};
+use celestial_core::body::{Body, CalcFlags, HouseSystem};
 use celestial_core::solar::{solar_cycle, SolarCycleInfo};
 use celestial_core::Degrees;
 use celestial_core::{
@@ -21,8 +21,8 @@ use celestial_core::{
 use serde_json::{json, Value};
 
 use super::{
-    antiscion_lon, body_color, contra_antiscion_lon, fmt_lon_dms, jd_to_date_str, moon_phase_str,
-    planet_dignity, wx, wy, ASPECT_DEFS, BODIES, CX, CY, RC, RH, RI, RM, RO, RP,
+    antiscion_lon, body_color, body_name, contra_antiscion_lon, fmt_lon_dms, jd_to_date_str,
+    moon_phase_str, planet_dignity, wx, wy, ASPECT_DEFS, BODIES, CX, CY, RC, RH, RI, RM, RO, RP,
 };
 
 pub(crate) fn build_context(
@@ -45,22 +45,33 @@ pub(crate) fn build_context(
     let ic = (mc + 180.0).rem_euclid(360.0);
     let dsc = (asc + 180.0).rem_euclid(360.0);
 
-    let planets = build_planets(jd, asc);
+    let calculated_planets = build_planets(jd, asc);
+    let planets = &calculated_planets.values;
     let signs = build_signs(asc);
     let houses = build_houses(&h, asc);
-    let aspects = compute_aspects(&planets, asc, mc);
-    let arabic_parts = build_arabic_parts(&planets, &h, asc);
-    let fixed_stars = build_fixed_stars(jd, asc);
+    let aspects = compute_aspects(planets, asc, mc);
+    let arabic_parts = build_arabic_parts(planets, &h, asc);
+    let calculated_stars = build_fixed_stars(jd, asc);
     let angles = build_angles(asc, mc, ic, dsc);
-    let fixed_star_conjunctions =
-        super::traditional::fixed_star_conjunctions(&planets, &fixed_stars, &angles);
+    let angle_points = traditional_angle_points(asc, mc, ic, dsc);
+    let fixed_star_conjunctions = traditional_conjunction_values(
+        &calculated_planets.points,
+        &calculated_stars.positions,
+        &angle_points,
+    );
     let fortune_lon = arabic_parts
         .iter()
         .find(|part| part["name"] == "Lot of Fortune")
         .and_then(|part| part["lon"].as_f64())
         .unwrap_or(asc);
-    let almuten_figuris =
-        super::traditional::almuten_figuris(jd, lat, lon, &h, &planets, fortune_lon);
+    let almuten_figuris = traditional_almuten_value(super::traditional::almuten_figuris(
+        jd,
+        lat,
+        lon,
+        &h,
+        &calculated_planets.body_positions,
+        fortune_lon,
+    ));
     let illum_pct = (moon_illumination(JulianDay::new(jd)).unwrap_or(0.0) * 1000.0).round() / 10.0;
     let solar_cycle_json = build_solar_cycle(jd);
     let vars = build_vars(&user_vars);
@@ -95,13 +106,13 @@ pub(crate) fn build_context(
         r_house: RH,
         r_planet: RP,
         r_inner: RC,
-        planets,
+        planets: calculated_planets.values,
         signs,
         houses,
         angles,
         aspects,
         arabic_parts,
-        fixed_stars,
+        fixed_stars: calculated_stars.values,
         fixed_star_conjunctions,
         almuten_figuris,
         solar_cycle: solar_cycle_json,
@@ -152,11 +163,29 @@ struct NatalContext {
     vars: Value,
 }
 
-fn build_planets(jd: f64, asc: f64) -> Vec<Value> {
+struct CalculatedPlanets {
+    values: Vec<Value>,
+    points: Vec<super::traditional::ChartPoint>,
+    body_positions: Vec<super::traditional::BodyPosition>,
+}
+
+fn build_planets(jd: f64, asc: f64) -> CalculatedPlanets {
     let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
     let mut planets = Vec::with_capacity(BODIES.len() + 1);
+    let mut points = Vec::with_capacity(BODIES.len() + 1);
+    let mut body_positions = Vec::with_capacity(BODIES.len());
     for &(body, key, name, glyph) in BODIES {
         if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
+            points.push(super::traditional::ChartPoint {
+                name: name.to_string(),
+                glyph: glyph.to_string(),
+                longitude: pos.lon,
+                kind: super::traditional::PointKind::Planet,
+            });
+            body_positions.push(super::traditional::BodyPosition {
+                body,
+                longitude: pos.lon,
+            });
             let (sign_idx, deg_in_sign) = lon_to_sign(pos.lon);
             let sign_full = zodiac_sign_name(sign_idx);
             let sign_short = &sign_full[..sign_full
@@ -205,9 +234,21 @@ fn build_planets(jd: f64, asc: f64) -> Vec<Value> {
         }
     }
     if let Some(south) = synthesize_south_node(&planets, asc) {
+        if let Some(north) = points.iter().find(|point| point.name == "Node (North)") {
+            points.push(super::traditional::ChartPoint {
+                name: "Node (South)".to_string(),
+                glyph: "\u{260B}\u{FE0E}".to_string(),
+                longitude: (north.longitude + 180.0).rem_euclid(360.0),
+                kind: super::traditional::PointKind::Planet,
+            });
+        }
         planets.push(south);
     }
-    planets
+    CalculatedPlanets {
+        values: planets,
+        points,
+        body_positions,
+    }
 }
 
 /// The South Lunar Node (☋) is the point diametrically opposite the
@@ -446,8 +487,13 @@ const TOP_STARS: &[(&str, &str)] = &[
     ("Achernar", "Eridanus"),
 ];
 
-fn build_fixed_stars(jd: f64, asc: f64) -> Vec<Value> {
-    TOP_STARS
+struct CalculatedStars {
+    values: Vec<Value>,
+    positions: Vec<super::traditional::FixedStarPosition>,
+}
+
+fn build_fixed_stars(jd: f64, asc: f64) -> CalculatedStars {
+    let stars = TOP_STARS
         .iter()
         .filter_map(|&(name, constellation)| {
             let pos = fixstar_ut(name, JulianDay::new(jd), CalcFlags::BUILTIN).ok()?;
@@ -455,7 +501,7 @@ fn build_fixed_stars(jd: f64, asc: f64) -> Vec<Value> {
             let lat_s = pos.xx[1];
             let mag = fixstar_mag(name).unwrap_or(3.0);
             let (sign_idx, deg_in_sign) = lon_to_sign(lon_s);
-            Some(json!({
+            let value = json!({
                 "name":        name,
                 "constellation": constellation,
                 "mag":         mag,
@@ -464,9 +510,17 @@ fn build_fixed_stars(jd: f64, asc: f64) -> Vec<Value> {
                 "sign":        zodiac_sign_name(sign_idx),
                 "deg_in_sign": (deg_in_sign * 100.0).round() / 100.0,
                 "x":  (wx(CX, RI + 8.0, lon_s, asc) * 100.0).round() / 100.0,
-                "y":  (wy(CY, RI + 8.0, lon_s, asc) * 100.0).round() / 100.0}))
+                "y":  (wy(CY, RI + 8.0, lon_s, asc) * 100.0).round() / 100.0});
+            let position = super::traditional::FixedStarPosition {
+                name: name.to_string(),
+                constellation: constellation.to_string(),
+                longitude: lon_s,
+            };
+            Some((value, position))
         })
-        .collect()
+        .collect::<Vec<_>>();
+    let (values, positions) = stars.into_iter().unzip();
+    CalculatedStars { values, positions }
 }
 
 fn build_angles(asc: f64, mc: f64, ic: f64, dsc: f64) -> Vec<Value> {
@@ -483,6 +537,110 @@ fn build_angles(asc: f64, mc: f64, ic: f64, dsc: f64) -> Vec<Value> {
                 "ly":    (wy(CY, RI + 18.0, lon2, asc) * 100.0).round() / 100.0})
         })
         .collect()
+}
+
+fn traditional_angle_points(
+    asc: f64,
+    mc: f64,
+    ic: f64,
+    dsc: f64,
+) -> Vec<super::traditional::ChartPoint> {
+    [("ASC", asc), ("MC", mc), ("IC", ic), ("DSC", dsc)]
+        .into_iter()
+        .map(|(name, longitude)| super::traditional::ChartPoint {
+            name: name.to_string(),
+            glyph: String::new(),
+            longitude,
+            kind: super::traditional::PointKind::Angle,
+        })
+        .collect()
+}
+
+fn traditional_conjunction_values(
+    planets: &[super::traditional::ChartPoint],
+    stars: &[super::traditional::FixedStarPosition],
+    angles: &[super::traditional::ChartPoint],
+) -> Vec<Value> {
+    super::traditional::fixed_star_conjunctions(planets, stars, angles)
+        .into_iter()
+        .map(|hit| {
+            json!({
+                "star": hit.star,
+                "constellation": hit.constellation,
+                "star_dms": fmt_lon_dms(hit.star_lon),
+                "point": hit.point,
+                "point_glyph": hit.point_glyph,
+                "point_dms": fmt_lon_dms(hit.point_lon),
+                "point_kind": hit.point_kind,
+                "orb": round4(hit.orb),
+                "orb_dms": fmt_orb(hit.orb),
+            })
+        })
+        .collect()
+}
+
+fn traditional_almuten_value(result: Option<super::traditional::AlmutenFiguris>) -> Value {
+    let Some(result) = result else {
+        return Value::Null;
+    };
+    let winner = Body::from_raw(result.winner);
+    let syzygy = result.prenatal_syzygy;
+    let scores = result
+        .scores
+        .into_iter()
+        .map(traditional_score_value)
+        .collect::<Vec<_>>();
+    json!({
+        "name": body_name(winner),
+        "glyph": body_glyph(winner),
+        "essential_score": result.essential_score,
+        "total_score": result.total_score,
+        "day_lord": result.day_lord.map(|body| body_name(Body::from_raw(body))),
+        "hour_lord": result.hour_lord.map(|body| body_name(Body::from_raw(body))),
+        "prenatal_syzygy": {
+            "name": syzygy.name,
+            "jd": round4(syzygy.jd),
+            "lon": round4(syzygy.longitude),
+            "dms": fmt_lon_dms(syzygy.longitude),
+        },
+        "scores": scores,
+        "method": "Ibn Ezra: five hylegical points, all triplicity rulers, house/day/hour bonuses",
+    })
+}
+
+fn traditional_score_value(score: super::traditional::AlmutenScore) -> Value {
+    let body = Body::from_raw(score.body);
+    json!({
+        "body": score.body,
+        "name": body_name(body),
+        "glyph": body_glyph(body),
+        "essential_score": score.essential_score,
+        "house": score.house,
+        "house_score": score.house_score,
+        "day_bonus": score.day_bonus,
+        "hour_bonus": score.hour_bonus,
+        "total_score": score.total_score,
+    })
+}
+
+fn body_glyph(body: Body) -> &'static str {
+    BODIES
+        .iter()
+        .find(|(candidate, _, _, _)| *candidate == body)
+        .map_or("", |(_, _, _, glyph)| *glyph)
+}
+
+fn round4(value: f64) -> f64 {
+    (value * 10_000.0).round() / 10_000.0
+}
+
+fn fmt_orb(orb: f64) -> String {
+    let total_minutes = (orb * 60.0).round() as u32;
+    format!(
+        "{}\u{00B0}{:02}\u{2032}",
+        total_minutes / 60,
+        total_minutes % 60
+    )
 }
 
 const VAR_DEFAULTS: &[(&str, &str)] = &[

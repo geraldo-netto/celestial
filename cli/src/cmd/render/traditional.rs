@@ -4,9 +4,7 @@ use celestial_core::{
     planet_house_number, sign_exaltation, sign_ruler, triplicity_rulers, HouseResult, JulianDay,
     Longitude, PrincipalPhase, RiseTransOptions, CALC_RISE, CALC_SET,
 };
-use serde_json::{json, Value};
-
-use super::{body_name, fmt_lon_dms, key_to_body};
+use serde::Serialize;
 
 const FIXED_STAR_ORB: f64 = 1.0;
 const HOUSE_SCORES: [i8; 12] = [12, 6, 3, 9, 7, 1, 10, 5, 4, 11, 8, 2];
@@ -38,46 +36,116 @@ const CHALDEAN_ORDER: [Body; 7] = [
     Body::MOON,
 ];
 
+#[derive(Clone)]
+pub(super) struct BodyPosition {
+    pub(super) body: Body,
+    pub(super) longitude: f64,
+}
+
+#[derive(Clone)]
+pub(super) struct ChartPoint {
+    pub(super) name: String,
+    pub(super) glyph: String,
+    pub(super) longitude: f64,
+    pub(super) kind: PointKind,
+}
+
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub(super) enum PointKind {
+    Planet,
+    Angle,
+}
+
+#[derive(Clone)]
+pub(super) struct FixedStarPosition {
+    pub(super) name: String,
+    pub(super) constellation: String,
+    pub(super) longitude: f64,
+}
+
+#[derive(Serialize)]
+pub(super) struct FixedStarConjunction {
+    pub(super) star: String,
+    pub(super) constellation: String,
+    pub(super) star_lon: f64,
+    pub(super) point: String,
+    pub(super) point_glyph: String,
+    pub(super) point_lon: f64,
+    pub(super) point_kind: PointKind,
+    pub(super) orb: f64,
+}
+
+#[derive(Serialize)]
+pub(super) struct AlmutenScore {
+    pub(super) body: i32,
+    pub(super) essential_score: i16,
+    pub(super) house: u8,
+    pub(super) house_score: i16,
+    pub(super) day_bonus: i16,
+    pub(super) hour_bonus: i16,
+    pub(super) total_score: i16,
+}
+
+#[derive(Serialize)]
+pub(super) struct PrenatalSyzygy {
+    pub(super) name: &'static str,
+    pub(super) jd: f64,
+    pub(super) longitude: f64,
+}
+
+#[derive(Serialize)]
+pub(super) struct AlmutenFiguris {
+    pub(super) winner: i32,
+    pub(super) essential_score: i16,
+    pub(super) total_score: i16,
+    pub(super) day_lord: Option<i32>,
+    pub(super) hour_lord: Option<i32>,
+    pub(super) prenatal_syzygy: PrenatalSyzygy,
+    pub(super) scores: Vec<AlmutenScore>,
+}
+
 pub(super) fn fixed_star_conjunctions(
-    planets: &[Value],
-    fixed_stars: &[Value],
-    angles: &[Value],
-) -> Vec<Value> {
+    planets: &[ChartPoint],
+    fixed_stars: &[FixedStarPosition],
+    angles: &[ChartPoint],
+) -> Vec<FixedStarConjunction> {
     let mut hits = Vec::new();
     for star in fixed_stars {
-        append_star_hits(&mut hits, star, planets, "planet");
-        append_star_hits(&mut hits, star, angles, "angle");
+        append_star_hits(&mut hits, star, planets);
+        append_star_hits(&mut hits, star, angles);
     }
-    hits.sort_by(|a, b| value_f64(a, "orb").total_cmp(&value_f64(b, "orb")));
+    hits.sort_by(|a, b| a.orb.total_cmp(&b.orb));
     hits
 }
 
-fn append_star_hits(hits: &mut Vec<Value>, star: &Value, points: &[Value], kind: &str) {
+fn append_star_hits(
+    hits: &mut Vec<FixedStarConjunction>,
+    star: &FixedStarPosition,
+    points: &[ChartPoint],
+) {
     for point in points {
-        if let Some(hit) = fixed_star_hit(star, point, kind) {
+        if let Some(hit) = fixed_star_hit(star, point) {
             hits.push(hit);
         }
     }
 }
 
-fn fixed_star_hit(star: &Value, point: &Value, kind: &str) -> Option<Value> {
-    let star_lon = star["lon"].as_f64()?;
-    let point_lon = point["lon"].as_f64()?;
-    let orb = diff_deg_signed(star_lon, point_lon).abs();
+fn fixed_star_hit(star: &FixedStarPosition, point: &ChartPoint) -> Option<FixedStarConjunction> {
+    let orb = diff_deg_signed(star.longitude, point.longitude).abs();
     if orb > FIXED_STAR_ORB {
         return None;
     }
-    Some(json!({
-        "star": star["name"],
-        "constellation": star["constellation"],
-        "star_dms": fmt_lon_dms(star_lon),
-        "point": point["name"],
-        "point_glyph": point.get("glyph").and_then(Value::as_str).unwrap_or(""),
-        "point_dms": fmt_lon_dms(point_lon),
-        "point_kind": kind,
-        "orb": round4(orb),
-        "orb_dms": fmt_orb(orb),
-    }))
+    Some(FixedStarConjunction {
+        star: star.name.clone(),
+        constellation: star.constellation.clone(),
+        star_lon: star.longitude,
+        point: point.name.clone(),
+        point_glyph: point.glyph.clone(),
+        point_lon: point.longitude,
+        point_kind: point.kind,
+        orb,
+    })
 }
 
 pub(super) fn almuten_figuris(
@@ -85,47 +153,44 @@ pub(super) fn almuten_figuris(
     lat: f64,
     lon: f64,
     houses: &HouseResult,
-    planets: &[Value],
+    planets: &[BodyPosition],
     fortune_lon: f64,
-) -> Value {
+) -> Option<AlmutenFiguris> {
     let Some((syzygy_jd, syzygy_lon, syzygy_name)) = prenatal_syzygy(jd) else {
-        return Value::Null;
+        return None;
     };
     let Some(sun_lon) = planet_lon(planets, Body::SUN) else {
-        return Value::Null;
+        return None;
     };
     let Some(moon_lon) = planet_lon(planets, Body::MOON) else {
-        return Value::Null;
+        return None;
     };
     let points = [sun_lon, moon_lon, houses.ascmc[0], fortune_lon, syzygy_lon];
     let lords = planetary_lords(jd, lat, lon);
     let mut scores = score_planets(planets, houses, &points, lords);
     sort_scores(&mut scores);
-    let winner = scores.first().cloned().unwrap_or(Value::Null);
-    json!({
-        "name": winner["name"],
-        "glyph": winner["glyph"],
-        "essential_score": winner["essential_score"],
-        "total_score": winner["total_score"],
-        "day_lord": lords.map(|v| body_name(v.0)),
-        "hour_lord": lords.map(|v| body_name(v.1)),
-        "prenatal_syzygy": {
-            "name": syzygy_name,
-            "jd": round4(syzygy_jd),
-            "lon": round4(syzygy_lon),
-            "dms": fmt_lon_dms(syzygy_lon),
+    let winner = scores.first()?;
+    Some(AlmutenFiguris {
+        winner: winner.body,
+        essential_score: winner.essential_score,
+        total_score: winner.total_score,
+        day_lord: lords.map(|v| v.0.as_raw()),
+        hour_lord: lords.map(|v| v.1.as_raw()),
+        prenatal_syzygy: PrenatalSyzygy {
+            name: syzygy_name,
+            jd: syzygy_jd,
+            longitude: syzygy_lon,
         },
-        "scores": scores,
-        "method": "Ibn Ezra: five hylegical points, all triplicity rulers, house/day/hour bonuses",
+        scores,
     })
 }
 
 fn score_planets(
-    planets: &[Value],
+    planets: &[BodyPosition],
     houses: &HouseResult,
     points: &[f64; 5],
     lords: Option<(Body, Body)>,
-) -> Vec<Value> {
+) -> Vec<AlmutenScore> {
     TRADITIONAL
         .iter()
         .filter_map(|&body| score_planet(body, planets, houses, points, lords))
@@ -134,13 +199,12 @@ fn score_planets(
 
 fn score_planet(
     body: Body,
-    planets: &[Value],
+    planets: &[BodyPosition],
     houses: &HouseResult,
     points: &[f64; 5],
     lords: Option<(Body, Body)>,
-) -> Option<Value> {
-    let entry = planet_value(planets, body)?;
-    let lon = entry["lon"].as_f64()?;
+) -> Option<AlmutenScore> {
+    let lon = planet_lon(planets, body)?;
     let essential: i16 = points
         .iter()
         .map(|&point| i16::from(dignity_claim(body, point)))
@@ -149,17 +213,15 @@ fn score_planet(
     let house_score = i16::from(HOUSE_SCORES[usize::from(house - 1)]);
     let day_bonus = bonus_for(lords.map(|v| v.0), body, 7);
     let hour_bonus = bonus_for(lords.map(|v| v.1), body, 6);
-    Some(json!({
-        "body": body.as_raw(),
-        "name": entry["name"],
-        "glyph": entry["glyph"],
-        "essential_score": essential,
-        "house": house,
-        "house_score": house_score,
-        "day_bonus": day_bonus,
-        "hour_bonus": hour_bonus,
-        "total_score": essential + house_score + day_bonus + hour_bonus,
-    }))
+    Some(AlmutenScore {
+        body: body.as_raw(),
+        essential_score: essential,
+        house,
+        house_score,
+        day_bonus,
+        hour_bonus,
+        total_score: essential + house_score + day_bonus + hour_bonus,
+    })
 }
 
 fn dignity_claim(body: Body, lon: f64) -> i8 {
@@ -192,12 +254,12 @@ fn bonus_for(lord: Option<Body>, body: Body, points: i16) -> i16 {
     }
 }
 
-fn sort_scores(scores: &mut [Value]) {
+fn sort_scores(scores: &mut [AlmutenScore]) {
     scores.sort_by(|a, b| {
-        value_i64(b, "total_score")
-            .cmp(&value_i64(a, "total_score"))
-            .then_with(|| value_i64(b, "essential_score").cmp(&value_i64(a, "essential_score")))
-            .then_with(|| value_i64(a, "body").cmp(&value_i64(b, "body")))
+        b.total_score
+            .cmp(&a.total_score)
+            .then_with(|| b.essential_score.cmp(&a.essential_score))
+            .then_with(|| a.body.cmp(&b.body))
     });
 }
 
@@ -301,35 +363,16 @@ fn event_after(events: &[f64], jd: f64) -> Option<f64> {
         .min_by(f64::total_cmp)
 }
 
-fn planet_value(planets: &[Value], body: Body) -> Option<&Value> {
+fn planet_lon(planets: &[BodyPosition], body: Body) -> Option<f64> {
     planets
         .iter()
-        .find(|planet| planet["key"].as_str().and_then(key_to_body) == Some(body))
+        .find(|planet| planet.body == body)
+        .map(|planet| planet.longitude)
 }
 
-fn planet_lon(planets: &[Value], body: Body) -> Option<f64> {
-    planet_value(planets, body)?.get("lon")?.as_f64()
-}
-
-fn value_f64(value: &Value, key: &str) -> f64 {
-    value[key].as_f64().unwrap_or(f64::INFINITY)
-}
-
-fn value_i64(value: &Value, key: &str) -> i64 {
-    value[key].as_i64().unwrap_or(i64::MIN)
-}
-
+#[cfg(test)]
 fn round4(value: f64) -> f64 {
     (value * 10_000.0).round() / 10_000.0
-}
-
-fn fmt_orb(orb: f64) -> String {
-    let total_minutes = (orb * 60.0).round() as u32;
-    format!(
-        "{}\u{00B0}{:02}\u{2032}",
-        total_minutes / 60,
-        total_minutes % 60
-    )
 }
 
 #[cfg(test)]
@@ -337,6 +380,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use celestial_core::{julday, Calendar};
+    use serde_json::Value;
 
     use super::*;
     use crate::cmd::render::context::build_context;
@@ -346,12 +390,21 @@ mod tests {
         build_context(jd, 0.0, 0.0, "test", 'P', BTreeMap::new()).unwrap()
     }
 
-    fn star(name: &str, lon: f64) -> Value {
-        json!({"name": name, "constellation": "Test", "lon": lon})
+    fn star(name: &str, lon: f64) -> FixedStarPosition {
+        FixedStarPosition {
+            name: name.to_string(),
+            constellation: "Test".to_string(),
+            longitude: lon,
+        }
     }
 
-    fn point(name: &str, lon: f64) -> Value {
-        json!({"name": name, "glyph": "", "lon": lon})
+    fn point(name: &str, lon: f64, kind: PointKind) -> ChartPoint {
+        ChartPoint {
+            name: name.to_string(),
+            glyph: String::new(),
+            longitude: lon,
+            kind,
+        }
     }
 
     #[test]
@@ -413,14 +466,17 @@ mod tests {
             star("Boundary", 100.0),
             star("Outside", 200.0),
         ];
-        let planets = [point("Planet", 0.2)];
-        let angles = [point("Angle", 101.0), point("Too far", 201.000_1)];
+        let planets = [point("Planet", 0.2, PointKind::Planet)];
+        let angles = [
+            point("Angle", 101.0, PointKind::Angle),
+            point("Too far", 201.000_1, PointKind::Angle),
+        ];
         let hits = fixed_star_conjunctions(&planets, &stars, &angles);
         assert_eq!(hits.len(), 2);
-        assert_eq!(hits[0]["star"], "Wrap");
-        assert_eq!(hits[0]["orb"], 0.4);
-        assert_eq!(hits[1]["star"], "Boundary");
-        assert_eq!(hits[1]["orb"], 1.0);
+        assert_eq!(hits[0].star, "Wrap");
+        assert_eq!(round4(hits[0].orb), 0.4);
+        assert_eq!(hits[1].star, "Boundary");
+        assert_eq!(round4(hits[1].orb), 1.0);
     }
 
     #[test]
