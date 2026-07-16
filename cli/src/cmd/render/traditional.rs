@@ -234,7 +234,7 @@ fn planetary_lords(jd: f64, lat: f64, lon: f64) -> Option<(Body, Body)> {
     let future_rise = event_after(&rises, jd)?;
     let past_set = event_before(&sets, jd)?;
     let future_set = event_after(&sets, jd)?;
-    let day_lord = weekday_lord(past_rise);
+    let day_lord = weekday_lord(past_rise, lon);
     let hour_index = planetary_hour_index(jd, past_rise, future_rise, past_set, future_set);
     Some((day_lord, advance_chaldean(day_lord, hour_index)))
 }
@@ -271,8 +271,9 @@ fn planetary_hour_index(
     offset + hour.clamp(0.0, 11.0) as usize
 }
 
-fn weekday_lord(sunrise_jd: f64) -> Body {
-    let weekday = ((sunrise_jd + 1.5).floor() as i64).rem_euclid(7) as usize;
+fn weekday_lord(sunrise_jd: f64, lon: f64) -> Body {
+    let local_solar_jd = sunrise_jd + lon / 360.0;
+    let weekday = ((local_solar_jd + 1.5).floor() as i64).rem_euclid(7) as usize;
     WEEKDAY_LORDS[weekday]
 }
 
@@ -360,9 +361,16 @@ mod tests {
 
     #[test]
     fn thursday_last_night_hour_is_sun() {
-        let day_lord = weekday_lord(2_446_579.902_8);
+        let day_lord = weekday_lord(2_446_579.902_8, 0.0);
         assert_eq!(day_lord, Body::JUPITER);
         assert_eq!(advance_chaldean(day_lord, 23), Body::SUN);
+    }
+
+    #[test]
+    fn planetary_day_uses_local_solar_date() {
+        let jd = julday(2024, 1, 15, 3.0, Calendar::Gregorian);
+        let lords = planetary_lords(jd, 35.6762, 139.6503).unwrap();
+        assert_eq!(lords.0, Body::MOON);
     }
 
     #[test]

@@ -30,6 +30,8 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | ARCH-10 | DECIDED | L | Bindings still expose broad per-language adapter surfaces rather than shared codegen-only APIs. | Same as DUP-1 / DP-4; byte/API churn and PHP unverifiable path made full codegen net-negative. |
 | ARCH-11 | DECIDED | S | `bindings/ffi/src/lib.rs:18` uses `pub use celestial_core::*`, so new core public API can expand binding compile surfaces. | KEEP — bindings intentionally consume the whole published core facade. Explicit lists would duplicate 200+ root exports. |
 | ARCH-12 | DECIDED | S | `core/src/lib.rs` re-exports raw Swiss-Ephemeris-style constants alongside typed `Body` / `CalcFlags` APIs. | Back-compat layer for bindings and existing Rust users; tightening would be a published API break. |
+| ARCH-13 | OPEN | L | `cli/src/cmd/render/traditional.rs` implements domain calculations over `serde_json::Value` and emits display-ready JSON (`glyph`, DMS strings, English method text), coupling astrology rules to the render schema and consuming already-rounded longitudes from `context.rs`. | Introduce typed traditional-calculation inputs/results in `celestial-core` (or a typed CLI domain layer), keep raw longitudes through calculation, and serialize/format only at the context boundary. This also makes the feature reusable by bindings and non-SVG callers. |
+| ARCH-14 | OPEN | M | The Almuten variant and fixed-star policy are hard-coded across calculation and presentation: dignity/house/day/hour weights, all-triplicity treatment, 1° orb, method label, and renderer row caps have no shared policy object. | Define a named `TraditionalMethod`/config with calculation parameters and result metadata; have renderers display metadata from the result instead of restating policy literals. |
 
 ## Business / Design Patterns / DDD
 
@@ -93,6 +95,8 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | DEC-1 | DECIDED | S | `cli/src/cmd/render/svg_common.rs::write_year_axis` calls `celestial_core::revjul` / `julday` directly from a shared render helper. | Acceptable thin veneer: axis ticks need JD/Gregorian conversion; closure injection would be heavier than the coupling. |
+| DEC-3 | OPEN | M | `context::build_context` eagerly adds natal traditional indicators to the shared base used by cosmogram, returns, progressions, biwheel, composite, triwheel, profection, and Hellenistic charts; all 11 shared SVG snapshots changed even when the chart type did not request the feature. | Split base chart construction from optional enrichments and let each dispatcher opt in after its primary positions/angles are final. This prevents cross-feature churn and gives derived chart types explicit semantics. |
+| DEC-4 | OPEN | S | `context.rs:57-61` recovers Fortune by matching the display label `"Lot of Fortune"` inside serialized JSON, so renaming/localizing presentation text silently substitutes the Ascendant. | Preserve the typed `ArabicPart` result until enrichment, or add a stable `ArabicPartKind`/key and select by that identifier without an `unwrap_or(asc)` fallback. |
 
 ## Dependency
 
@@ -186,6 +190,8 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
+| REL-17 | OPEN | M | `specialist.rs:192-195` computes `fixed_star_conjunctions` and `almuten_figuris` for the midpoint-JD base context, then replaces `planets` and `asc` with composite values without recomputing them; the composite SVG therefore lists indicators for positions it does not draw. | Apply traditional enrichment only after composite planets/angles/houses are finalized, or omit it for composite charts until a documented composite interpretation exists. Add an invariant test that every reported conjunction matches the final context longitude. |
+| REL-18 | OPEN | S | `traditional::almuten_figuris` collapses calculation/missing-body failures to JSON `null`, while `builtin_svg.rs:801-806` renders that as `unavailable` with numeric zero scores and the full template renders blank values. | Return a typed `Result`/explicit availability state and render one consistent unavailable/error state; do not turn failed calculations into valid-looking zero scores. |
 
 ## Robustness / Recovery
 
