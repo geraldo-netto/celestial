@@ -1,0 +1,436 @@
+use celestial_core::body::{Body, CalcFlags};
+use celestial_core::{
+    calc_ut, decan_ruler, diff_deg_signed, egyptian_terms_ruler, next_principal_phase,
+    planet_house_number, sign_exaltation, sign_ruler, triplicity_rulers, HouseResult, JulianDay,
+    Longitude, PrincipalPhase, RiseTransOptions, CALC_RISE, CALC_SET,
+};
+use serde_json::{json, Value};
+
+use super::{body_name, fmt_lon_dms, key_to_body};
+
+const FIXED_STAR_ORB: f64 = 1.0;
+const HOUSE_SCORES: [i8; 12] = [12, 6, 3, 9, 7, 1, 10, 5, 4, 11, 8, 2];
+const TRADITIONAL: [Body; 7] = [
+    Body::SUN,
+    Body::MOON,
+    Body::MERCURY,
+    Body::VENUS,
+    Body::MARS,
+    Body::JUPITER,
+    Body::SATURN,
+];
+const WEEKDAY_LORDS: [Body; 7] = [
+    Body::SUN,
+    Body::MOON,
+    Body::MARS,
+    Body::MERCURY,
+    Body::JUPITER,
+    Body::VENUS,
+    Body::SATURN,
+];
+const CHALDEAN_ORDER: [Body; 7] = [
+    Body::SATURN,
+    Body::JUPITER,
+    Body::MARS,
+    Body::SUN,
+    Body::VENUS,
+    Body::MERCURY,
+    Body::MOON,
+];
+
+pub(super) fn fixed_star_conjunctions(
+    planets: &[Value],
+    fixed_stars: &[Value],
+    angles: &[Value],
+) -> Vec<Value> {
+    let mut hits = Vec::new();
+    for star in fixed_stars {
+        append_star_hits(&mut hits, star, planets, "planet");
+        append_star_hits(&mut hits, star, angles, "angle");
+    }
+    hits.sort_by(|a, b| value_f64(a, "orb").total_cmp(&value_f64(b, "orb")));
+    hits
+}
+
+fn append_star_hits(hits: &mut Vec<Value>, star: &Value, points: &[Value], kind: &str) {
+    for point in points {
+        if let Some(hit) = fixed_star_hit(star, point, kind) {
+            hits.push(hit);
+        }
+    }
+}
+
+fn fixed_star_hit(star: &Value, point: &Value, kind: &str) -> Option<Value> {
+    let star_lon = star["lon"].as_f64()?;
+    let point_lon = point["lon"].as_f64()?;
+    let orb = diff_deg_signed(star_lon, point_lon).abs();
+    if orb > FIXED_STAR_ORB {
+        return None;
+    }
+    Some(json!({
+        "star": star["name"],
+        "constellation": star["constellation"],
+        "star_dms": fmt_lon_dms(star_lon),
+        "point": point["name"],
+        "point_glyph": point.get("glyph").and_then(Value::as_str).unwrap_or(""),
+        "point_dms": fmt_lon_dms(point_lon),
+        "point_kind": kind,
+        "orb": round4(orb),
+        "orb_dms": fmt_orb(orb),
+    }))
+}
+
+pub(super) fn almuten_figuris(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    houses: &HouseResult,
+    planets: &[Value],
+    fortune_lon: f64,
+) -> Value {
+    let Some((syzygy_jd, syzygy_lon, syzygy_name)) = prenatal_syzygy(jd) else {
+        return Value::Null;
+    };
+    let Some(sun_lon) = planet_lon(planets, Body::SUN) else {
+        return Value::Null;
+    };
+    let Some(moon_lon) = planet_lon(planets, Body::MOON) else {
+        return Value::Null;
+    };
+    let points = [sun_lon, moon_lon, houses.ascmc[0], fortune_lon, syzygy_lon];
+    let lords = planetary_lords(jd, lat, lon);
+    let mut scores = score_planets(planets, houses, &points, lords);
+    sort_scores(&mut scores);
+    let winner = scores.first().cloned().unwrap_or(Value::Null);
+    json!({
+        "name": winner["name"],
+        "glyph": winner["glyph"],
+        "essential_score": winner["essential_score"],
+        "total_score": winner["total_score"],
+        "day_lord": lords.map(|v| body_name(v.0)),
+        "hour_lord": lords.map(|v| body_name(v.1)),
+        "prenatal_syzygy": {
+            "name": syzygy_name,
+            "jd": round4(syzygy_jd),
+            "lon": round4(syzygy_lon),
+            "dms": fmt_lon_dms(syzygy_lon),
+        },
+        "scores": scores,
+        "method": "Ibn Ezra: five hylegical points, all triplicity rulers, house/day/hour bonuses",
+    })
+}
+
+fn score_planets(
+    planets: &[Value],
+    houses: &HouseResult,
+    points: &[f64; 5],
+    lords: Option<(Body, Body)>,
+) -> Vec<Value> {
+    TRADITIONAL
+        .iter()
+        .filter_map(|&body| score_planet(body, planets, houses, points, lords))
+        .collect()
+}
+
+fn score_planet(
+    body: Body,
+    planets: &[Value],
+    houses: &HouseResult,
+    points: &[f64; 5],
+    lords: Option<(Body, Body)>,
+) -> Option<Value> {
+    let entry = planet_value(planets, body)?;
+    let lon = entry["lon"].as_f64()?;
+    let essential: i16 = points
+        .iter()
+        .map(|&point| i16::from(dignity_claim(body, point)))
+        .sum();
+    let house = planet_house_number(lon, &houses.cusps);
+    let house_score = i16::from(HOUSE_SCORES[usize::from(house - 1)]);
+    let day_bonus = bonus_for(lords.map(|v| v.0), body, 7);
+    let hour_bonus = bonus_for(lords.map(|v| v.1), body, 6);
+    Some(json!({
+        "body": body.as_raw(),
+        "name": entry["name"],
+        "glyph": entry["glyph"],
+        "essential_score": essential,
+        "house": house,
+        "house_score": house_score,
+        "day_bonus": day_bonus,
+        "hour_bonus": hour_bonus,
+        "total_score": essential + house_score + day_bonus + hour_bonus,
+    }))
+}
+
+fn dignity_claim(body: Body, lon: f64) -> i8 {
+    let sign = ((lon.rem_euclid(360.0) / 30.0) as u8) % 12;
+    let mut score = 0;
+    if sign_ruler(sign) == body {
+        score += 5;
+    }
+    if sign_exaltation(body) == sign as i8 {
+        score += 4;
+    }
+    let (day_ruler, night_ruler, participating_ruler) = triplicity_rulers(Longitude::new(lon));
+    if [day_ruler, night_ruler, participating_ruler].contains(&body) {
+        score += 3;
+    }
+    if egyptian_terms_ruler(Longitude::new(lon)) == body {
+        score += 2;
+    }
+    if decan_ruler(Longitude::new(lon)) == body {
+        score += 1;
+    }
+    score
+}
+
+fn bonus_for(lord: Option<Body>, body: Body, points: i16) -> i16 {
+    if lord == Some(body) {
+        points
+    } else {
+        0
+    }
+}
+
+fn sort_scores(scores: &mut [Value]) {
+    scores.sort_by(|a, b| {
+        value_i64(b, "total_score")
+            .cmp(&value_i64(a, "total_score"))
+            .then_with(|| value_i64(b, "essential_score").cmp(&value_i64(a, "essential_score")))
+            .then_with(|| value_i64(a, "body").cmp(&value_i64(b, "body")))
+    });
+}
+
+fn prenatal_syzygy(jd: f64) -> Option<(f64, f64, &'static str)> {
+    let new_moon = previous_phase(jd, PrincipalPhase::NewMoon)?;
+    let full_moon = previous_phase(jd, PrincipalPhase::FullMoon)?;
+    let (phase_jd, body, name) = if full_moon > new_moon {
+        (full_moon, Body::MOON, "Full Moon")
+    } else {
+        (new_moon, Body::SUN, "New Moon")
+    };
+    let pos = calc_ut(JulianDay::new(phase_jd), body, CalcFlags::BUILTIN).ok()?;
+    Some((phase_jd, pos.lon, name))
+}
+
+fn previous_phase(jd: f64, phase: PrincipalPhase) -> Option<f64> {
+    let mut cursor = jd - 40.0;
+    let mut previous = None;
+    for _ in 0..3 {
+        let event = next_principal_phase(JulianDay::new(cursor), phase).ok()?;
+        if event.jd >= jd {
+            break;
+        }
+        previous = Some(event.jd);
+        cursor = event.jd + 0.01;
+    }
+    previous
+}
+
+fn planetary_lords(jd: f64, lat: f64, lon: f64) -> Option<(Body, Body)> {
+    let rises = solar_events(jd, lat, lon, CALC_RISE);
+    let sets = solar_events(jd, lat, lon, CALC_SET);
+    let past_rise = event_before(&rises, jd)?;
+    let future_rise = event_after(&rises, jd)?;
+    let past_set = event_before(&sets, jd)?;
+    let future_set = event_after(&sets, jd)?;
+    let day_lord = weekday_lord(past_rise);
+    let hour_index = planetary_hour_index(jd, past_rise, future_rise, past_set, future_set);
+    Some((day_lord, advance_chaldean(day_lord, hour_index)))
+}
+
+fn solar_events(jd: f64, lat: f64, lon: f64, event: i32) -> Vec<f64> {
+    let mut events = [-1.5, -0.5, 0.5, 1.5]
+        .iter()
+        .filter_map(|offset| {
+            RiseTransOptions::new(JulianDay::new(jd + offset), Body::SUN, [lon, lat, 0.0])
+                .event(event)
+                .search()
+                .ok()
+                .map(|result| result.tret)
+        })
+        .collect::<Vec<_>>();
+    events.sort_by(f64::total_cmp);
+    events.dedup_by(|a, b| (*a - *b).abs() < 1.0e-6);
+    events
+}
+
+fn planetary_hour_index(
+    jd: f64,
+    past_rise: f64,
+    future_rise: f64,
+    past_set: f64,
+    future_set: f64,
+) -> usize {
+    let (start, end, offset) = if past_rise > past_set {
+        (past_rise, future_set, 0)
+    } else {
+        (past_set, future_rise, 12)
+    };
+    let hour = ((jd - start) / ((end - start) / 12.0)).floor();
+    offset + hour.clamp(0.0, 11.0) as usize
+}
+
+fn weekday_lord(sunrise_jd: f64) -> Body {
+    let weekday = ((sunrise_jd + 1.5).floor() as i64).rem_euclid(7) as usize;
+    WEEKDAY_LORDS[weekday]
+}
+
+fn advance_chaldean(lord: Body, steps: usize) -> Body {
+    let start = CHALDEAN_ORDER
+        .iter()
+        .position(|&body| body == lord)
+        .unwrap_or(0);
+    CHALDEAN_ORDER[(start + steps) % CHALDEAN_ORDER.len()]
+}
+
+fn event_before(events: &[f64], jd: f64) -> Option<f64> {
+    events
+        .iter()
+        .copied()
+        .filter(|event| *event <= jd)
+        .max_by(f64::total_cmp)
+}
+
+fn event_after(events: &[f64], jd: f64) -> Option<f64> {
+    events
+        .iter()
+        .copied()
+        .filter(|event| *event > jd)
+        .min_by(f64::total_cmp)
+}
+
+fn planet_value(planets: &[Value], body: Body) -> Option<&Value> {
+    planets
+        .iter()
+        .find(|planet| planet["key"].as_str().and_then(key_to_body) == Some(body))
+}
+
+fn planet_lon(planets: &[Value], body: Body) -> Option<f64> {
+    planet_value(planets, body)?.get("lon")?.as_f64()
+}
+
+fn value_f64(value: &Value, key: &str) -> f64 {
+    value[key].as_f64().unwrap_or(f64::INFINITY)
+}
+
+fn value_i64(value: &Value, key: &str) -> i64 {
+    value[key].as_i64().unwrap_or(i64::MIN)
+}
+
+fn round4(value: f64) -> f64 {
+    (value * 10_000.0).round() / 10_000.0
+}
+
+fn fmt_orb(orb: f64) -> String {
+    let total_minutes = (orb * 60.0).round() as u32;
+    format!(
+        "{}\u{00B0}{:02}\u{2032}",
+        total_minutes / 60,
+        total_minutes % 60
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use celestial_core::{julday, Calendar};
+
+    use super::*;
+    use crate::cmd::render::context::build_context;
+
+    fn chart_context(year: i32, month: i32) -> Value {
+        let jd = julday(year, month, 15, 6.0, Calendar::Gregorian);
+        build_context(jd, 0.0, 0.0, "test", 'P', BTreeMap::new()).unwrap()
+    }
+
+    fn star(name: &str, lon: f64) -> Value {
+        json!({"name": name, "constellation": "Test", "lon": lon})
+    }
+
+    fn point(name: &str, lon: f64) -> Value {
+        json!({"name": name, "glyph": "", "lon": lon})
+    }
+
+    #[test]
+    fn dignity_claim_sums_all_five_levels() {
+        assert_eq!(dignity_claim(Body::MERCURY, 151.0), 11);
+    }
+
+    #[test]
+    fn thursday_last_night_hour_is_sun() {
+        let day_lord = weekday_lord(2_446_579.902_8);
+        assert_eq!(day_lord, Body::JUPITER);
+        assert_eq!(advance_chaldean(day_lord, 23), Body::SUN);
+    }
+
+    #[test]
+    fn varied_charts_can_select_every_traditional_planet() {
+        let cases = [
+            (1900, 1, "Mars"),
+            (1900, 4, "Sun"),
+            (1900, 7, "Jupiter"),
+            (1900, 10, "Venus"),
+            (1901, 1, "Moon"),
+            (1902, 10, "Mercury"),
+            (1903, 1, "Saturn"),
+        ];
+        for (year, month, expected) in cases {
+            let context = chart_context(year, month);
+            assert_eq!(context["almuten_figuris"]["name"], expected);
+        }
+    }
+
+    #[test]
+    fn chart_star_conjunctions_can_be_empty_or_select_other_stars() {
+        let j2000 = julday(2000, 1, 1, 12.0, Calendar::Gregorian);
+        let paris = build_context(j2000, 48.8566, 2.3522, "test", 'P', BTreeMap::new()).unwrap();
+        assert!(paris["fixed_star_conjunctions"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+
+        let historical = chart_context(1902, 7);
+        let hits = historical["fixed_star_conjunctions"].as_array().unwrap();
+        assert_eq!(hits.len(), 2);
+        assert_eq!(hits[0]["star"], "Pollux");
+        assert_eq!(hits[1]["star"], "Capella");
+    }
+
+    #[test]
+    fn fixed_star_orb_includes_boundary_wraps_and_sorts() {
+        let stars = [
+            star("Wrap", 359.8),
+            star("Boundary", 100.0),
+            star("Outside", 200.0),
+        ];
+        let planets = [point("Planet", 0.2)];
+        let angles = [point("Angle", 101.0), point("Too far", 201.000_1)];
+        let hits = fixed_star_conjunctions(&planets, &stars, &angles);
+        assert_eq!(hits.len(), 2);
+        assert_eq!(hits[0]["star"], "Wrap");
+        assert_eq!(hits[0]["orb"], 0.4);
+        assert_eq!(hits[1]["star"], "Boundary");
+        assert_eq!(hits[1]["orb"], 1.0);
+    }
+
+    #[test]
+    fn prenatal_syzygy_selects_new_and_full_moons() {
+        let new_moon_chart = julday(1902, 7, 15, 6.0, Calendar::Gregorian);
+        let full_moon_chart = julday(1986, 5, 30, 9.0, Calendar::Gregorian);
+        assert_eq!(prenatal_syzygy(new_moon_chart).unwrap().2, "New Moon");
+        assert_eq!(prenatal_syzygy(full_moon_chart).unwrap().2, "Full Moon");
+    }
+
+    #[test]
+    fn planetary_day_changes_at_sunrise() {
+        let jd = julday(2024, 1, 15, 6.0, Calendar::Gregorian);
+        let rises = solar_events(jd, 0.0, 0.0, CALC_RISE);
+        let sunrise = event_after(&rises, jd - 0.5).unwrap();
+        let before = planetary_lords(sunrise - 1.0 / 1_440.0, 0.0, 0.0).unwrap();
+        let after = planetary_lords(sunrise + 1.0 / 1_440.0, 0.0, 0.0).unwrap();
+        assert_eq!(before.0, Body::SUN);
+        assert_eq!(after, (Body::MOON, Body::MOON));
+    }
+}

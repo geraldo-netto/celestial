@@ -107,6 +107,31 @@ aspects[]    — array of aspect lines drawn between body pairs
   x2, y2        number   Endpoint 2
 
 ──────────────────────────────────────────────────────────────────────
+fixed_star_conjunctions[] — fixed stars within 1° of a body or angle
+──────────────────────────────────────────────────────────────────────
+  star          string   Fixed-star name, e.g. "Rigel"
+  constellation string   IAU constellation name, e.g. "Orion"
+  star_dms      string   Star longitude formatted as zodiacal DMS
+  point         string   Planet or angle name, e.g. "Mercury" or "MC"
+  point_dms     string   Planet/angle longitude formatted as zodiacal DMS
+  point_kind    string   "planet" or "angle"
+  orb           number   Absolute conjunction orb in degrees
+  orb_dms       string   Orb formatted as degrees and minutes
+
+──────────────────────────────────────────────────────────────────────
+almuten_figuris — Ibn Ezra five-point Almuten Figuris result
+──────────────────────────────────────────────────────────────────────
+  name                string   Winning traditional planet
+  glyph               string   Winning planet glyph
+  essential_score     number   Five hylegical-point dignity total
+  total_score         number   Essential + house/day/hour total
+  day_lord            string   Planetary day ruler (day begins at sunrise)
+  hour_lord           string   Unequal planetary-hour ruler
+  prenatal_syzygy     object   Previous new/full Moon: name, jd, lon, dms
+  scores[]            array    Per-planet score breakdown
+  method              string   Calculation variant used
+
+──────────────────────────────────────────────────────────────────────
 vars.*       — all keys from `[vars]` config table or --var KEY=VALUE
 ──────────────────────────────────────────────────────────────────────
 Templates can use any custom var via `{vars.my_color}`. The default

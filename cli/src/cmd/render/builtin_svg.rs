@@ -109,8 +109,9 @@ pub(crate) fn render_builtin_svg(ctx: &ChartContext) -> String {
     let signs = super::json_array(&ctx["signs"]);
     let houses = super::json_array(&ctx["houses"]);
     let aspects = super::json_array(&ctx["aspects"]);
+    let fixed_star_conjunctions = super::json_array(&ctx["fixed_star_conjunctions"]);
 
-    let layout = Layout::compute(planets.len(), aspects.len());
+    let layout = Layout::compute(planets.len(), aspects.len(), fixed_star_conjunctions.len());
 
     let mut s = String::with_capacity(64 * 1024);
 
@@ -129,6 +130,13 @@ pub(crate) fn render_builtin_svg(ctx: &ChartContext) -> String {
     write_aspects_legend(&mut s, &pal, aspects, c3x, layout.ly);
 
     write_dignities(&mut s, &pal, planets, c1x, layout.dig_y);
+    write_traditional_indicators(
+        &mut s,
+        &pal,
+        &ctx["almuten_figuris"],
+        fixed_star_conjunctions,
+        layout.traditional_y,
+    );
     write_glyph_legend(&mut s, &pal, layout.gl_y);
 
     write_footer(&mut s, &pal, layout.footer_y);
@@ -144,13 +152,14 @@ pub(crate) fn render_builtin_svg(ctx: &ChartContext) -> String {
 struct Layout {
     ly: f64,
     dig_y: f64,
+    traditional_y: f64,
     gl_y: f64,
     footer_y: f64,
     page_h: f64,
 }
 
 impl Layout {
-    fn compute(planets_n: usize, aspects_n: usize) -> Self {
+    fn compute(planets_n: usize, aspects_n: usize, fixed_conjunctions_n: usize) -> Self {
         const LEGEND_GAP: f64 = 12.0; // same as planet→dignities gap
         const FOOTER_PAD: f64 = 20.0;
         let planets_f = planets_n as f64;
@@ -164,7 +173,10 @@ impl Layout {
         let dig_y = ly + 16.0 + planets_f * RH2 + LEGEND_GAP;
         let dig_bottom = dig_y + 26.0 + planets_f * RH2;
         let aspects_bottom = ly + 16.0 + aspects_f * 15.0;
-        let gl_y = dig_bottom.max(aspects_bottom) + LEGEND_GAP;
+        let traditional_y = dig_bottom.max(aspects_bottom) + LEGEND_GAP;
+        let traditional_rows = fixed_conjunctions_n.clamp(2, 5) as f64;
+        let traditional_bottom = traditional_y + 22.0 + traditional_rows * 15.0;
+        let gl_y = traditional_bottom + LEGEND_GAP;
         let legend_rows = 12.0_f64; // longest column (signs)
         let gl_bottom = gl_y + 36.0 + legend_rows * RH2;
         let footer_y = gl_bottom + FOOTER_PAD;
@@ -172,6 +184,7 @@ impl Layout {
         Self {
             ly,
             dig_y,
+            traditional_y,
             gl_y,
             footer_y,
             page_h,
@@ -761,6 +774,81 @@ fn write_dignity_row(s: &mut String, pal: &Palette, p: &Value, c1x: f64, ry: f64
         c1x + 20.0,
         c1x + 140.0,
         c1x + 220.0,
+    );
+}
+
+fn write_traditional_indicators(
+    s: &mut String,
+    pal: &Palette,
+    almuten: &Value,
+    conjunctions: &[Value],
+    y: f64,
+) {
+    let ring = pal.ring.as_str();
+    let _ = writeln!(
+        s,
+        r##"  <text x="24" y="{y:.2}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}">Traditional Indicators</text>
+  <line x1="24" y1="{:.2}" x2="876" y2="{:.2}" stroke="{ring}" stroke-width=".5" opacity=".35"/>"##,
+        y + 3.0,
+        y + 3.0
+    );
+    write_almuten_figuris(s, pal, almuten, y + 19.0);
+    write_fixed_star_conjunctions(s, pal, conjunctions, y + 19.0);
+}
+
+fn write_almuten_figuris(s: &mut String, pal: &Palette, almuten: &Value, y: f64) {
+    let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
+    let name = almuten["name"].as_str().unwrap_or("unavailable");
+    let glyph = almuten["glyph"].as_str().unwrap_or("");
+    let total = almuten["total_score"].as_i64().unwrap_or(0);
+    let essential = almuten["essential_score"].as_i64().unwrap_or(0);
+    let day_lord = almuten["day_lord"].as_str().unwrap_or("—");
+    let hour_lord = almuten["hour_lord"].as_str().unwrap_or("—");
+    let _ = writeln!(
+        s,
+        r##"  <text x="26" y="{y:.2}" font-size="9" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".65">Almuten Figuris</text>"##
+    );
+    emit_glyph(s, glyph, 34.0, y + 16.0, 18.0, ring);
+    let _ = writeln!(
+        s,
+        r##"  <text x="48" y="{:.2}" font-size="11" font-weight="600" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{name}</text>
+  <text x="150" y="{:.2}" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".65">{total} total · {essential} essential</text>
+  <text x="48" y="{:.2}" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".5">Day lord {day_lord} · Hour lord {hour_lord}</text>"##,
+        y + 16.0,
+        y + 16.0,
+        y + 31.0,
+    );
+}
+
+fn write_fixed_star_conjunctions(s: &mut String, pal: &Palette, conjunctions: &[Value], y: f64) {
+    let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
+    let _ = writeln!(
+        s,
+        r##"  <text x="450" y="{y:.2}" font-size="9" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif" fill="{ring}" opacity=".65">Fixed-star conjunctions · orb ≤ 1°</text>"##
+    );
+    if conjunctions.is_empty() {
+        let _ = writeln!(
+            s,
+            r##"  <text x="450" y="{:.2}" font-size="9" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}" opacity=".45">None</text>"##,
+            y + 16.0
+        );
+        return;
+    }
+    for (i, conjunction) in conjunctions.iter().take(5).enumerate() {
+        write_fixed_star_conjunction(s, pal, conjunction, y + 16.0 + i as f64 * 15.0);
+    }
+}
+
+fn write_fixed_star_conjunction(s: &mut String, pal: &Palette, hit: &Value, y: f64) {
+    let (ring, txt) = (pal.ring.as_str(), pal.txt.as_str());
+    let star = hit["star"].as_str().unwrap_or("");
+    let constellation = hit["constellation"].as_str().unwrap_or("");
+    let point = hit["point"].as_str().unwrap_or("");
+    let orb = hit["orb_dms"].as_str().unwrap_or("");
+    let _ = writeln!(
+        s,
+        r##"  <text x="450" y="{y:.2}" font-size="10" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{star} ({constellation}) conjunct {point}</text>
+  <text x="750" y="{y:.2}" font-size="9" dominant-baseline="central" font-family="ui-monospace,monospace" fill="{ring}" opacity=".6">orb {orb}</text>"##
     );
 }
 

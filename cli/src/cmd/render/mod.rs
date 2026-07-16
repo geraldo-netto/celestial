@@ -73,6 +73,7 @@ mod palette;
 mod pipeline;
 mod registry;
 mod south_indian;
+mod traditional;
 
 pub use args::RenderArgs;
 pub(crate) use chart_context::ChartContext;
@@ -893,6 +894,8 @@ cond: {% if x > 10 and y < 50 %}both true{% else %}fallthrough{% endif %}
             "signs",
             "houses",
             "aspects",
+            "fixed_star_conjunctions",
+            "almuten_figuris",
             "vars",
         ] {
             assert!(

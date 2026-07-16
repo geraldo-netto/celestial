@@ -52,6 +52,15 @@ pub(crate) fn build_context(
     let arabic_parts = build_arabic_parts(&planets, &h, asc);
     let fixed_stars = build_fixed_stars(jd, asc);
     let angles = build_angles(asc, mc, ic, dsc);
+    let fixed_star_conjunctions =
+        super::traditional::fixed_star_conjunctions(&planets, &fixed_stars, &angles);
+    let fortune_lon = arabic_parts
+        .iter()
+        .find(|part| part["name"] == "Lot of Fortune")
+        .and_then(|part| part["lon"].as_f64())
+        .unwrap_or(asc);
+    let almuten_figuris =
+        super::traditional::almuten_figuris(jd, lat, lon, &h, &planets, fortune_lon);
     let illum_pct = (moon_illumination(JulianDay::new(jd)).unwrap_or(0.0) * 1000.0).round() / 10.0;
     let solar_cycle_json = build_solar_cycle(jd);
     let vars = build_vars(&user_vars);
@@ -93,6 +102,8 @@ pub(crate) fn build_context(
         aspects,
         arabic_parts,
         fixed_stars,
+        fixed_star_conjunctions,
+        almuten_figuris,
         solar_cycle: solar_cycle_json,
         vars: Value::Object(vars),
     };
@@ -135,6 +146,8 @@ struct NatalContext {
     aspects: Vec<Value>,
     arabic_parts: Vec<Value>,
     fixed_stars: Vec<Value>,
+    fixed_star_conjunctions: Vec<Value>,
+    almuten_figuris: Value,
     solar_cycle: Value,
     vars: Value,
 }
@@ -415,28 +428,28 @@ fn build_arabic_parts(planets: &[Value], h: &celestial_core::HouseResult, asc: f
         .collect()
 }
 
-const TOP_STARS: &[&str] = &[
-    "Algol",
-    "Pleiades",
-    "Aldebaran",
-    "Rigel",
-    "Capella",
-    "Sirius",
-    "Pollux",
-    "Regulus",
-    "Spica",
-    "Arcturus",
-    "Antares",
-    "Vega",
-    "Altair",
-    "Fomalhaut",
-    "Achernar",
+const TOP_STARS: &[(&str, &str)] = &[
+    ("Algol", "Perseus"),
+    ("Pleiades", "Taurus"),
+    ("Aldebaran", "Taurus"),
+    ("Rigel", "Orion"),
+    ("Capella", "Auriga"),
+    ("Sirius", "Canis Major"),
+    ("Pollux", "Gemini"),
+    ("Regulus", "Leo"),
+    ("Spica", "Virgo"),
+    ("Arcturus", "Boötes"),
+    ("Antares", "Scorpius"),
+    ("Vega", "Lyra"),
+    ("Altair", "Aquila"),
+    ("Fomalhaut", "Piscis Austrinus"),
+    ("Achernar", "Eridanus"),
 ];
 
 fn build_fixed_stars(jd: f64, asc: f64) -> Vec<Value> {
     TOP_STARS
         .iter()
-        .filter_map(|&name| {
+        .filter_map(|&(name, constellation)| {
             let pos = fixstar_ut(name, JulianDay::new(jd), CalcFlags::BUILTIN).ok()?;
             let lon_s = pos.xx[0];
             let lat_s = pos.xx[1];
@@ -444,6 +457,7 @@ fn build_fixed_stars(jd: f64, asc: f64) -> Vec<Value> {
             let (sign_idx, deg_in_sign) = lon_to_sign(lon_s);
             Some(json!({
                 "name":        name,
+                "constellation": constellation,
                 "mag":         mag,
                 "lon":         (lon_s * 1e4).round() / 1e4,
                 "lat":         (lat_s * 1e4).round() / 1e4,

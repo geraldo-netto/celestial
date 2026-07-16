@@ -460,6 +460,53 @@ fn builtin_natal_renders_symbol_legend_table() {
     );
 }
 
+#[test]
+fn builtin_natal_renders_reference_traditional_indicators() {
+    let svg = render_builtin(
+        "1986-05-30 09:00",
+        "-23.533333",
+        "-46.633333",
+        "natal_traditional.svg",
+    );
+    for expected in [
+        "Traditional Indicators",
+        "Almuten Figuris",
+        ">Jupiter<",
+        "39 total · 21 essential",
+        "Day lord Jupiter · Hour lord Sun",
+        "Rigel (Orion) conjunct Mercury",
+        "orb 0°54′",
+    ] {
+        assert!(
+            svg.contains(expected),
+            "traditional indicator `{expected}` missing"
+        );
+    }
+}
+
+#[test]
+fn builtin_natal_renders_an_empty_fixed_star_result() {
+    let svg = render_builtin(
+        "2000-01-01 12:00",
+        "48.8566",
+        "2.3522",
+        "natal_traditional_empty.svg",
+    );
+    for expected in [
+        "Almuten Figuris",
+        ">Saturn<",
+        "39 total · 20 essential",
+        "Fixed-star conjunctions · orb ≤ 1°",
+        ">None<",
+    ] {
+        assert!(
+            svg.contains(expected),
+            "traditional indicator `{expected}` missing"
+        );
+    }
+    assert!(!svg.contains("Rigel (Orion) conjunct Mercury"));
+}
+
 fn extract_attr(line: &str, attr: &str) -> Option<f64> {
     let key = format!("{attr}=\"");
     let i = line.find(&key)? + key.len();

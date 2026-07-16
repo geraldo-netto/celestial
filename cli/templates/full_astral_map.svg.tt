@@ -176,14 +176,14 @@
     {% endfor %}
   </g>
 
-  {# Footer with fixed stars + arabic parts (use actual field names from context) #}
+  {# Footer with traditional indicators + arabic parts #}
   <g transform="translate(50, {{ page_h - 90 }})">
     <text x="0" y="0" font-size="11" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
-      Fixed stars near chart bodies ({{ fixed_stars | length }} catalogued)
+      Fixed-star conjunctions · orb ≤ 1°
     </text>
-    {% for fs in fixed_stars[:4] %}
+    {% for hit in fixed_star_conjunctions[:4] %}
     <text x="0" y="{{ 16 + loop.index0 * 14 }}" font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">
-      {{ fs.name }}  ·  {{ fs.deg_in_sign | round(2) }}° {{ fs.sign }}  ·  mag {{ fs.mag | round(1) }}
+      {{ hit.star }} ({{ hit.constellation }}) conjunct {{ hit.point }} · orb {{ hit.orb_dms }}
     </text>
     {% endfor %}
   </g>
@@ -196,5 +196,19 @@
       {{ ap.name }}: {{ ap.dms }}  ({{ ap.formula }})
     </text>
     {% endfor %}
+  </g>
+  <g transform="translate(1000, {{ page_h - 90 }})">
+    <text x="0" y="0" font-size="11" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      Almuten Figuris
+    </text>
+    <text x="0" y="18" font-size="12" font-weight="600" font-family="Georgia,serif" fill="{{ ink }}">
+      {{ almuten_figuris.glyph }} {{ almuten_figuris.name }}
+    </text>
+    <text x="0" y="34" font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">
+      {{ almuten_figuris.total_score }} total · {{ almuten_figuris.essential_score }} essential
+    </text>
+    <text x="0" y="48" font-size="9" font-family="system-ui,sans-serif" fill="{{ muted }}">
+      Day lord {{ almuten_figuris.day_lord }} · Hour lord {{ almuten_figuris.hour_lord }}
+    </text>
   </g>
 </svg>

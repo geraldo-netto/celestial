@@ -232,6 +232,8 @@ fn renders_full_astral_map() {
     assert_contains(&svg, "Planets", "full_astral_map.svg.tt");
     assert_contains(&svg, "Aspects", "full_astral_map.svg.tt");
     assert_contains(&svg, "Arabic parts", "full_astral_map.svg.tt");
+    assert_contains(&svg, "Almuten Figuris", "full_astral_map.svg.tt");
+    assert_contains(&svg, "Fixed-star conjunctions", "full_astral_map.svg.tt");
 }
 
 /// `bazi_chart.svg.tt` — Chinese 4-pillars chart.

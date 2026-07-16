@@ -428,6 +428,12 @@ contra_antiscion(lon)  = (360° − lon) mod 360°
 
 **Fixed stars** — 15 significant fixed stars (Algol, Aldebaran, Sirius, Regulus, Spica, Antares, etc.) plotted as magnitude-proportional dots on the sign band.
 
+**Traditional indicators** — the generated SVG lists fixed-star conjunctions
+within a 1° orb and the Almuten Figuris. The latter follows the Ibn Ezra
+five-point method (Sun, Moon, Ascendant, Lot of Fortune, and prenatal syzygy),
+then adds house strength plus planetary day and unequal-hour rulers. Planetary
+days begin at local sunrise.
+
 **Essential dignities table**:
 
 | Status | Description |
