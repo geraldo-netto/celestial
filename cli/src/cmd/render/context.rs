@@ -765,8 +765,9 @@ fn fmt_orb(orb: f64) -> String {
 
 fn fmt_orb_compact(orb: f64) -> String {
     let minutes = (orb * 60.0).round() as u32;
-    if minutes % 60 == 0 {
-        format!("{}\u{00B0}", minutes / 60)
+    let degrees = minutes / 60;
+    if degrees * 60 == minutes {
+        format!("{degrees}\u{00B0}")
     } else {
         fmt_orb(orb)
     }
