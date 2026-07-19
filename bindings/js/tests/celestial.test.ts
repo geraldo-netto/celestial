@@ -173,8 +173,8 @@ describeModule("houses", () => {
   });
 
   test("houseName", () => {
-    expect(celestial!.houseNameStr("P".charCodeAt(0))).toBe("Placidus");
-    expect(celestial!.houseNameStr("K".charCodeAt(0))).toBe("Koch");
+    expect(celestial!.houseName("P".charCodeAt(0))).toBe("Placidus");
+    expect(celestial!.houseName("K".charCodeAt(0))).toBe("Koch");
   });
 });
 
