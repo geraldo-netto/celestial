@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console -- this file IS a console test runner */
 /**
  * Standalone pure-logic test runner for celestial-js.
  * Tests every calculation that does NOT require the compiled .node addon —
