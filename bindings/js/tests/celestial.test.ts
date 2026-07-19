@@ -1,5 +1,5 @@
 /**
- * Jest test suite for celestial-js (napi-rs bindings).
+ * Vitest suite for celestial-js (napi-rs bindings).
  *
  * The `../index` module is generated at build time by napi-rs.
  * A stub declaration is provided below so this file type-checks
@@ -15,6 +15,7 @@
 // without the .node binary (tests will be skipped automatically).
 
 import type * as CelestialModule from "../index";
+import { afterAll, beforeEach, describe, expect, test } from "vitest";
 let celestial: typeof CelestialModule | null = null;
 try {
   celestial = require("../index");
@@ -26,7 +27,7 @@ const EPHE_PATH = process.env.SWISSEPH_EPHE_PATH ?? "";
 const HAS_MODULE = celestial !== null;
 const HAS_EPHE = HAS_MODULE && EPHE_PATH !== "";
 
-// Jest `describe.skipIf` shim
+// Conditional suite shim
 const describeModule = HAS_MODULE ? describe : describe.skip;
 const describeEphe = HAS_EPHE ? describe : describe.skip;
 

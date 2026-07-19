@@ -188,7 +188,7 @@ jobs:
           # A compiled addon with test failures → exit 1 (hard failure).
           if [ -f *.node ]; then
             echo "Addon found — running full integration test suite"
-            npx jest tests/celestial.test.ts --testTimeout=30000
+            npx vitest run tests/celestial.test.ts --testTimeout=30000
           else
             echo "No compiled addon found — skipping integration tests"
             echo "  (build the addon with 'npm run build' to run them)"
