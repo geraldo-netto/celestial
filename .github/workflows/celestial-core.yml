@@ -1,6 +1,6 @@
 # ─── celestial-core pipeline ──────────────────────────────────────────────────────
 #
-# Triggers: any change to core/, fuzz/, Cargo.toml, Cargo.lock, rustfmt.toml
+# Triggers: changes to any root-workspace member or shared build configuration
 # Jobs:
 #   lint           → cargo clippy -D correctness -D suspicious -D perf
 #   test           → cargo test --package celestial-core
@@ -16,7 +16,13 @@ on:
     branches: ["main", "master", "develop"]
     paths:
       - "core/**"
+      - "bindings/ffi/**"
+      - "bindings/python/**"
+      - "bindings/js/**"
       - "fuzz/**"
+      - "cli/**"
+      - "xtask/**"
+      - "tests/**"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rustfmt.toml"
@@ -25,7 +31,13 @@ on:
   pull_request:
     paths:
       - "core/**"
+      - "bindings/ffi/**"
+      - "bindings/python/**"
+      - "bindings/js/**"
       - "fuzz/**"
+      - "cli/**"
+      - "xtask/**"
+      - "tests/**"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rustfmt.toml"
