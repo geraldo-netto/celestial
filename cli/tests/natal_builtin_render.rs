@@ -485,6 +485,62 @@ fn builtin_natal_renders_reference_traditional_indicators() {
 }
 
 #[test]
+fn fixed_star_conjunctions_use_separate_svg_rows() {
+    let svg = render_builtin(
+        "1986-05-30 09:00",
+        "-23.533333",
+        "-46.633333",
+        "natal_fixed_star_rows.svg",
+    );
+    let conjunction_rows = fixed_star_rows(&svg, " conjunct ");
+    let orb_rows = fixed_star_rows(&svg, ">orb ");
+    assert_eq!(conjunction_rows.len(), 4);
+    assert_eq!(orb_rows.len(), conjunction_rows.len());
+
+    for (conjunction, orb) in conjunction_rows.iter().zip(&orb_rows) {
+        let conjunction_y = row_y(conjunction);
+        let orb_y = row_y(orb);
+        assert_eq!(orb_y - conjunction_y, 11.0);
+        assert!(!conjunction.contains(">orb "));
+    }
+    for rows in conjunction_rows.windows(2) {
+        assert_eq!(row_y(rows[1]) - row_y(rows[0]), 26.0);
+    }
+}
+
+#[test]
+fn fixed_star_svg_rasterizes_to_valid_png() {
+    let svg = render_builtin(
+        "1986-05-30 09:00",
+        "-23.533333",
+        "-46.633333",
+        "natal_fixed_star_png.svg",
+    );
+    let conjunction_rows = fixed_star_rows(&svg, " conjunct ");
+    let orb_rows = fixed_star_rows(&svg, ">orb ");
+    let top = row_y(conjunction_rows[0]) - 8.0;
+    let bottom = row_y(orb_rows.last().expect("fixed-star orb rows missing")) + 8.0;
+    let height = bottom - top;
+    let rows = conjunction_rows
+        .iter()
+        .chain(&orb_rows)
+        .copied()
+        .collect::<Vec<_>>()
+        .join("\n");
+    let fragment = format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="300 {top} 280 {height}" width="280" height="{height}">
+<rect x="300" y="{top}" width="280" height="{height}" fill="#ffffff"/>
+{rows}
+</svg>"##
+    );
+    let png = rasterize_png(&fragment, "natal_fixed_star.png");
+    for row in conjunction_rows.into_iter().chain(orb_rows) {
+        let y = (row_y(row) - top).round() as u32;
+        assert!(row_band_has_ink(&png, y), "PNG row at y={y} is blank");
+    }
+}
+
+#[test]
 fn traditional_indicators_follow_essential_dignities() {
     let svg = render_builtin(
         "1986-05-30 09:00",
@@ -535,6 +591,55 @@ fn extract_attr(line: &str, attr: &str) -> Option<f64> {
     let i = line.find(&key)? + key.len();
     let j = i + line[i..].find('"')?;
     line[i..j].parse().ok()
+}
+
+fn fixed_star_rows<'a>(svg: &'a str, content: &str) -> Vec<&'a str> {
+    svg.lines()
+        .filter(|line| line.contains("x=\"314\"") && line.contains(content))
+        .collect()
+}
+
+fn row_y(row: &str) -> f64 {
+    extract_attr(row, "y").expect("fixed-star row has no y coordinate")
+}
+
+fn rasterize_png(svg: &str, out_name: &str) -> resvg::tiny_skia::Pixmap {
+    let mut options = resvg::usvg::Options::default();
+    options.fontdb_mut().load_system_fonts();
+    let tree = resvg::usvg::Tree::from_str(svg, &options).expect("SVG parse failed");
+    let size = tree.size().to_int_size();
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(size.width(), size.height())
+        .expect("pixmap allocation failed");
+    resvg::render(
+        &tree,
+        resvg::tiny_skia::Transform::default(),
+        &mut pixmap.as_mut(),
+    );
+
+    let out = std::env::temp_dir().join(out_name);
+    pixmap.save_png(&out).expect("PNG encoding failed");
+    let bytes = fs::read(&out).expect("PNG output unreadable");
+    assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
+    let decoded = resvg::tiny_skia::Pixmap::load_png(&out).expect("PNG decode failed");
+    assert_eq!(
+        (decoded.width(), decoded.height()),
+        (size.width(), size.height())
+    );
+    decoded
+}
+
+fn row_band_has_ink(pixmap: &resvg::tiny_skia::Pixmap, y: u32) -> bool {
+    let top = y.saturating_sub(4);
+    let bottom = (y + 4).min(pixmap.height() - 1);
+    (top..=bottom).any(|row| (8..pixmap.width() - 8).any(|x| pixel_is_ink(pixmap, x, row)))
+}
+
+fn pixel_is_ink(pixmap: &resvg::tiny_skia::Pixmap, x: u32, y: u32) -> bool {
+    let offset = ((y * pixmap.width() + x) * 4) as usize;
+    pixmap.data()[offset + 3] > 0
+        && pixmap.data()[offset..offset + 3]
+            .iter()
+            .any(|channel| *channel < 200)
 }
 
 /// Euclidean length of a `<line>` element. Used to verify a cusp spoke

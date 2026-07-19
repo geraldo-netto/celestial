@@ -18,6 +18,7 @@ fn trunc_chars(s: &str, n: usize) -> &str {
 
 const LABEL_R: f64 = RP + 26.0;
 const RH2: f64 = 16.0;
+const FIXED_STAR_ROW_HEIGHT: f64 = 26.0;
 
 const DIG_COLORS: [(&str, &str); 5] = [
     ("domicile", "#1a7a1a"),
@@ -185,7 +186,7 @@ impl Layout {
         let traditional_y = fixed_conjunctions_n.map(|_| dig_bottom + LEGEND_GAP);
         let traditional_bottom = traditional_y.map(|y| {
             let rows = fixed_conjunctions_n.unwrap_or(0).clamp(2, 5) as f64;
-            y + 22.0 + rows * 15.0
+            y + 22.0 + rows * FIXED_STAR_ROW_HEIGHT
         });
         let content_bottom = traditional_bottom.unwrap_or(dig_bottom).max(aspects_bottom);
         let gl_y = content_bottom + LEGEND_GAP;
@@ -871,7 +872,12 @@ fn write_fixed_star_conjunctions(
         return;
     }
     for (i, conjunction) in conjunctions.iter().take(max_conjunctions).enumerate() {
-        write_fixed_star_conjunction(s, pal, conjunction, y + 16.0 + i as f64 * 15.0);
+        write_fixed_star_conjunction(
+            s,
+            pal,
+            conjunction,
+            y + 16.0 + i as f64 * FIXED_STAR_ROW_HEIGHT,
+        );
     }
 }
 
@@ -883,7 +889,9 @@ fn write_fixed_star_conjunction(s: &mut String, pal: &Palette, hit: &Value, y: f
     let orb = hit["orb_dms"].as_str().unwrap_or("");
     let _ = writeln!(
         s,
-        r##"  <text x="314" y="{y:.2}" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{star} ({constellation}) conjunct {point}<tspan font-family="ui-monospace,monospace" fill="{ring}" opacity=".6"> · orb {orb}</tspan></text>"##
+        r##"  <text x="314" y="{y:.2}" font-size="9" dominant-baseline="central" font-family="'Segoe UI',system-ui,sans-serif" fill="{txt}">{star} ({constellation}) conjunct {point}</text>
+  <text x="314" y="{:.2}" font-size="8" dominant-baseline="central" font-family="ui-monospace,monospace" fill="{ring}" opacity=".6">orb {orb}</text>"##,
+        y + 11.0
     );
 }
 

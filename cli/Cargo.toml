@@ -30,3 +30,4 @@ toml         = "0.8"
 assert_cmd            = "2"
 celestial-test-util   = { path = "../tests/test-util" }
 predicates            = "3"
+resvg                 = { version = "=0.45.1", default-features = false, features = ["text", "system-fonts"] }
