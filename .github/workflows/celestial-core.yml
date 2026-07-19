@@ -106,11 +106,11 @@ jobs:
             cargo clean -p "$crate" || true
           done
           cargo llvm-cov clean --workspace
-          cargo llvm-cov --no-report --workspace
-          cargo llvm-cov run --no-report --release \
+          cargo llvm-cov --no-report --workspace --remap-path-prefix
+          cargo llvm-cov run --no-report --release --remap-path-prefix \
             --manifest-path fuzz/Cargo.toml --bin run_prop_tests
-          cargo llvm-cov report --lcov --output-path lcov.info
-          cargo llvm-cov report --fail-under-lines 75 \
+          cargo llvm-cov report --lcov --output-path lcov.info --remap-path-prefix
+          cargo llvm-cov report --remap-path-prefix --fail-under-lines 75 \
             --fail-under-functions 78 \
             --ignore-filename-regex '(fuzz/|xtask/|/tests/|bindings/|astronomy/vsop87\.rs)'
 
