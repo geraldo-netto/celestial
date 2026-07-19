@@ -138,9 +138,38 @@ jobs:
         # in sonar-project.properties (`sonar.rust.lcov.reportPaths`).
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SCANNER_VERSION: 8.1.0.6389
+          SONAR_KEY_FINGERPRINT: 679F1EE92B19609DE816FDE81DB198F93525EC1A
+        run: |
+          scanner_url="https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SCANNER_VERSION-linux-x64.zip"
+          key_url="https://keys.openpgp.org/vks/v1/by-fingerprint/$SONAR_KEY_FINGERPRINT"
+          archive="$RUNNER_TEMP/sonar-scanner.zip"
+          signature="$archive.asc"
+          public_key="$RUNNER_TEMP/sonar-public-key.asc"
+          keyring="$RUNNER_TEMP/sonar-public-key.gpg"
+          gpg_home="$RUNNER_TEMP/sonar-gpg"
+          install_dir="$RUNNER_TEMP/sonar-scanner"
+
+          curl --fail --silent --show-error --location --retry 3 "$scanner_url" --output "$archive"
+          curl --fail --silent --show-error --location --retry 3 "$scanner_url.asc" --output "$signature"
+          curl --fail --silent --show-error --location --retry 3 "$key_url" --output "$public_key"
+
+          mkdir -m 700 "$gpg_home"
+          gpg --homedir "$gpg_home" --batch --import "$public_key"
+          actual_fingerprint=$(gpg --homedir "$gpg_home" --batch --with-colons \
+            --fingerprint "$SONAR_KEY_FINGERPRINT" | awk -F: '$1 == "fpr" { print $10; exit }')
+          if [ "$actual_fingerprint" != "$SONAR_KEY_FINGERPRINT" ]; then
+            echo "Unexpected SonarSource signing key: $actual_fingerprint"
+            exit 1
+          fi
+          gpg --homedir "$gpg_home" --batch --export "$SONAR_KEY_FINGERPRINT" > "$keyring"
+          gpgv --keyring "$keyring" "$signature" "$archive"
+
+          unzip -q "$archive" -d "$install_dir"
+          "$install_dir/sonar-scanner-$SCANNER_VERSION-linux-x64/bin/sonar-scanner" \
+            -Dsonar.projectBaseDir=.
 
   lint:
     name: clippy
