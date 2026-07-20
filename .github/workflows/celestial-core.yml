@@ -133,7 +133,23 @@ jobs:
       - name: Download coverage report
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name lcov-coverage
+        run: |
+          download_errors="$RUNNER_TEMP/lcov-download-errors"
+          for attempt in 1 2 3 4 5 6; do
+            download_dir="$RUNNER_TEMP/lcov-coverage-$attempt"
+            if gh run download "$GITHUB_RUN_ID" \
+              --repo "$GITHUB_REPOSITORY" \
+              --name lcov-coverage \
+              --dir "$download_dir" 2>"$download_errors"; then
+              mv "$download_dir/lcov.info" lcov.info
+              exit 0
+            fi
+            if [ "$attempt" -eq 6 ]; then
+              sed -n '1,$p' "$download_errors" >&2
+              exit 1
+            fi
+            sleep $((attempt * 5))
+          done
         # Sonar reads `lcov.info` from the project root — matches the path
         # in sonar-project.properties (`sonar.rust.lcov.reportPaths`).
 
