@@ -243,13 +243,13 @@ All commands accepting `--date` also accept a separate `--time` flag:
 
 ```bash
 # Equivalent — time embedded in date string:
-celestial render --chart-type natal --date "1990-05-15 14:30" --lat 48.85 --lon 2.35
+celestial render --chart-type natal --date "1990-05-15 14:30" --timezone UTC --lat 48.85 --lon 2.35
 
 # Or separated — easier for scripts:
-celestial render --chart-type natal --date 1990-05-15 --time 14:30 --lat 48.85 --lon 2.35
+celestial render --chart-type natal --date 1990-05-15 --time 14:30 --timezone UTC --lat 48.85 --lon 2.35
 
 # Seconds accepted; display truncates to HH:MM:
-celestial render --date 1990-05-15 --time 14:30:45  # shows "14:30 UT"
+celestial render --date 1990-05-15 --time 14:30:45 --timezone UTC
 ```
 
 ---

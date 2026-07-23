@@ -2,8 +2,9 @@
 {# Indigenous Medicine Wheel — visualizes the four directions, four
    seasons, four elements, and the spirit guides associated with the
    solar position at the given date.
-   Run: celestial render --chart-type medicine-wheel --date X --lat Y --lon=-Z
-        --template medicine_wheel.svg.tt --out wheel.svg #}
+   Run: celestial render --chart-type medicine-wheel \
+        --date "2000-01-01 00:00" --timezone UTC --lat 48.85 --lon 2.35 \
+        --template cli/templates/medicine_wheel.svg.tt --out wheel.svg #}
 {% set page_w = 900 %}
 {% set page_h = 900 %}
 {% set bg = "#ffffff" %}

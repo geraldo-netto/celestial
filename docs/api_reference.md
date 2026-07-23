@@ -783,13 +783,13 @@ The `render` subcommand accepts a separate `--time` argument for convenience:
 
 ```bash
 # Equivalent — time embedded in date string:
-celestial render --chart-type natal --date "1990-05-15 14:30" --lat 48.85 --lon 2.35
+celestial render --chart-type natal --date "1990-05-15 14:30" --timezone UTC --lat 48.85 --lon 2.35
 
 # Or separated — easier for scripts:
-celestial render --chart-type natal --date 1990-05-15 --time 14:30 --lat 48.85 --lon 2.35
+celestial render --chart-type natal --date 1990-05-15 --time 14:30 --timezone UTC --lat 48.85 --lon 2.35
 
-# Seconds accepted; display truncates to HH:MM UT:
-celestial render --date 1990-05-15 --time 14:30:45
+# Seconds accepted; display truncates to HH:MM:
+celestial render --date 1990-05-15 --time 14:30:45 --timezone UTC
 ```
 
 `--time` is ignored when `--date` already contains a time, is `"now"`, or is a

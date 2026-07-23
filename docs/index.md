@@ -65,7 +65,8 @@ println!("Sun longitude: {:.4}°", pos.lon);
 
 ```bash
 celestial calc --date 2025-03-20
-celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
+celestial render --date "2025-03-20 00:00" --timezone UTC \
+  --lat 48.85 --lon 2.35 --out chart.svg
 ```
 
 Any executable named `celestial-<name>` on `$PATH` becomes a first-class subcommand:

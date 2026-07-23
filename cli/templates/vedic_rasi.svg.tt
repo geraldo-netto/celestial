@@ -2,8 +2,9 @@
 {# Vedic Rasi (sign) chart in North-Indian "diamond" style.
    The 12 signs are laid out in a fixed 4x4 box with the chart centered;
    planets are placed in the box of their sidereal rasi.
-   Run: celestial render --chart-type rasi --date X --lat Y --lon=-Z
-        --template vedic_rasi.svg.tt --out rasi.svg #}
+   Run: celestial render --chart-type rasi \
+        --date "1990-05-15 00:00" --timezone +05:30 --lat 13.08 --lon 80.27 \
+        --template cli/templates/vedic_rasi.svg.tt --out rasi.svg #}
 {% set page_w = 1100 %}
 {% set page_h = 900 %}
 {% set bg = "#ffffff" %}

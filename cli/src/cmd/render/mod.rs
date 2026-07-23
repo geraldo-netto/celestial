@@ -3,17 +3,18 @@
 //! ## Usage
 //! ```text
 //! # Use the built-in SVG (default):
-//! celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 --out chart.svg
+//! celestial render --date "2025-03-20 00:00" --timezone UTC \
+//!     --lat 48.85 --lon 2.35 --out chart.svg
 //!
 //! # Use your own template:
-//! celestial render --date 2025-03-20 --lat 48.85 --lon 2.35 \
-//!     --template my.tmpl --out chart.svg
+//! celestial render --date "2025-03-20 00:00" --timezone UTC \
+//!     --lat 48.85 --lon 2.35 --template my.tmpl --out chart.svg
 //!
 //! # Bootstrap an example template showing all available variables:
 //! celestial render --print-template > my.tmpl
 //!
 //! # Dump the JSON context so you know what to reference in templates:
-//! celestial render --date 2025-03-20 --print-context
+//! celestial render --date "2025-03-20 00:00" --timezone UTC --print-context
 //!
 //! # Custom variables via --var or [vars] in a TOML config:
 //! celestial render --config chart.toml --var title="My Chart"
@@ -22,11 +23,12 @@
 //! ## TOML config
 //! ```toml
 //! [render]
-//! date  = "2025-03-20"
-//! lat   = 48.85
-//! lon   = 2.35
-//! out   = "chart.svg"
-//! hsys  = "P"
+//! date     = "2025-03-20 00:00"
+//! timezone = "UTC"
+//! lat      = 48.85
+//! lon      = 2.35
+//! out      = "chart.svg"
+//! hsys     = "P"
 //!
 //! [vars]
 //! title        = "Spring Equinox 2025"

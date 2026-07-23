@@ -5,8 +5,9 @@
    - Maya Tzolk'in       (260-day sacred count)
    - Maya Haab           (365-day solar count)
    - Aztec Xiuhpohualli  (365-day solar count, "year-bearer")
-   Run: celestial render --chart-type mesoamerican --date X --lat Y --lon=-Z
-        --template mesoamerican_calendars.svg.tt --out chart.svg #}
+   Run: celestial render --chart-type mesoamerican \
+        --date "1990-05-15 14:30" --timezone UTC --lat 40.71 --lon=-74.0 \
+        --template cli/templates/mesoamerican_calendars.svg.tt --out chart.svg #}
 {% set page_w = 1200 %}
 {% set page_h = 800 %}
 {% set bg     = "#ffffff" %}

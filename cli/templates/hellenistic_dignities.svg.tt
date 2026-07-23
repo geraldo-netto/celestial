@@ -6,8 +6,9 @@
    - Five-fold dignity score (out of 5)
    - Decan ruler & Almuten of the chart
    - Day/Night sect
-   Run: celestial render --chart-type hellenistic --date X --lat Y --lon=-Z
-        --template hellenistic_dignities.svg.tt --out chart.svg #}
+   Run: celestial render --chart-type hellenistic \
+        --date "1985-07-15 00:00" --timezone +02:00 --lat 48.85 --lon 2.35 \
+        --template cli/templates/hellenistic_dignities.svg.tt --out chart.svg #}
 {% set page_w = 1200 %}
 {% set page_h = 900 %}
 {% set bg = "#ffffff" %}

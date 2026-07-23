@@ -3,8 +3,10 @@
    Inner ring: natal chart (planets array)
    Outer ring: transiting/partner chart (outer_planets array)
    Cross-aspects between the two are listed in a table.
-   Run: celestial render --chart-type biwheel --date X --lat Y --lon=-Z
-        --date2 OTHER --template biwheel_synastry.svg.tt --out chart.svg #}
+   Run: celestial render --chart-type biwheel \
+        --date "1985-07-15 00:00" --date2 "2025-03-20 00:00" \
+        --timezone UTC --lat 48.85 --lon 2.35 \
+        --template cli/templates/biwheel_synastry.svg.tt --out chart.svg #}
 {% set page_w = 1400 %}
 {% set page_h = 1000 %}
 {% set bg = "#ffffff" %}

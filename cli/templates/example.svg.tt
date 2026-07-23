@@ -18,7 +18,7 @@
        Filters: round, length, upper, lower, format
        Conditions: if/elif/else with comparison + logical operators
        Loop vars: loop.index, loop.index0, loop.first, loop.last
-     Run: celestial render print-context flag to see all values as JSON.
+     Run celestial render with --print-context to see all values as JSON.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 800" width="297mm" height="210mm" preserveAspectRatio="xMidYMid meet">
   <rect width="900" height="800" fill="{{ vars.bg_color }}"/>

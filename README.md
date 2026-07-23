@@ -159,6 +159,7 @@ celestial eclipse --type lunar
 celestial render \
   --chart-type natal \
   --date "1985-07-14 14:30" \
+  --timezone +02:00 \
   --lat 48.8566 \
   --lon 2.3522 \
   --var title="Bastille Day 1985" \
@@ -344,6 +345,7 @@ traditions:
 # Natal wheel tagged with the current Omer day, sabbats of the year,
 # and the principal moon phases for the natal month
 celestial render --chart-type natal --date "1990-05-15 14:30" \
+  --timezone=-04:00 \
   --lat 40.71 --lon=-74.0 \
   --calendar omer --calendar sabbats --calendar moon \
   --template my_chart.svg.tt --out chart.svg
@@ -392,6 +394,7 @@ Run any of these with:
 
 ```bash
 celestial render --chart-type natal --date "2024-05-15 12:00" \
+  --timezone +02:00 \
   --lat 48.85 --lon 2.35 \
   --calendar omer --calendar sabbats --calendar moon \
   --template cli/templates/natal_with_overlays.svg.tt \
@@ -450,27 +453,33 @@ days begin at local sunrise.
 
 ```bash
 # Cosmogram (wheel without houses)
-celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --chart-type cosmogram
+celestial render --date "2000-01-01 00:00" --timezone UTC \
+  --lat 48.85 --lon 2.35 --chart-type cosmogram
 
 # Solar Return (specify the return year)
-celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
+celestial render --date "1985-07-15 00:00" --timezone UTC \
+  --lat 48.85 --lon 2.35 \
   --chart-type solar-return --return-year 2025
 
 # Lunar Return (search from --date2)
-celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
-  --chart-type lunar-return --date2 2025-01-01
+celestial render --date "1985-07-15 00:00" --timezone UTC \
+  --lat 48.85 --lon 2.35 \
+  --chart-type lunar-return --date2 "2025-01-01 00:00"
 
 # Secondary Progressions
-celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
+celestial render --date "1985-07-15 00:00" --timezone UTC \
+  --lat 48.85 --lon 2.35 \
   --chart-type progressed --years 39.5
 
 # Solar Arc Directions
-celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
+celestial render --date "1985-07-15 00:00" --timezone UTC \
+  --lat 48.85 --lon 2.35 \
   --chart-type solar-arc --years 39.5
 
 # Bi-wheel (synastry / transit overlay)
-celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
-  --chart-type biwheel --date2 2025-03-20
+celestial render --date "1985-07-15 00:00" --timezone UTC \
+  --lat 48.85 --lon 2.35 \
+  --chart-type biwheel --date2 "2025-03-20 00:00"
 ```
 
 The bi-wheel draws natal planets as the inner ring and second-date planets on the outer ring (rendered in green). Cross-aspects between rings are shown as dashed lines.
@@ -481,21 +490,26 @@ The bi-wheel draws natal planets as the inner ring and second-date planets on th
 
 ```bash
 # 90° Midpoint Dial (Uranian/Hamburg)
-celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --chart-type dial
+celestial render --date "2000-01-01 00:00" --timezone UTC \
+  --lat 48.85 --lon 2.35 --chart-type dial
 
 # Composite chart (midpoint of two nativities)
-celestial render --date 1985-07-15 --date2 1990-03-20 \
+celestial render --date "1985-07-15 00:00" --timezone UTC \
+  --date2 "1990-03-20 00:00" \
   --lat 48.85 --lon 2.35 --chart-type composite
 
 # Tri-wheel (natal + progressed + transits)
-celestial render --date 1985-07-15 --date2 2010-01-01 --date3 2025-03-20 \
+celestial render --date "1985-07-15 00:00" --timezone UTC \
+  --date2 "2010-01-01 00:00" --date3 "2025-03-20 00:00" \
   --lat 48.85 --lon 2.35 --chart-type triwheel
 
 # Graphic Ephemeris (planetary motion over time)
-celestial render --date 2025-01-01 --date2 2025-12-31 --chart-type ephemeris
+celestial render --date "2025-01-01 00:00" --timezone UTC \
+  --date2 "2025-12-31 00:00" --chart-type ephemeris
 
 # Local Space chart (azimuth-based compass)
-celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --chart-type local-space
+celestial render --date "2000-01-01 00:00" --timezone UTC \
+  --lat 48.85 --lon 2.35 --chart-type local-space
 ```
 
 The **90° dial** compresses all four zodiacal quadrants onto a single circle. Midpoints triggered by a planet within 1.5° are shown as tick marks and listed in the legend.
@@ -510,22 +524,28 @@ All Vedic charts use sidereal (Lahiri ayanamsa) positions via `--chart-type`:
 
 ```bash
 # South Indian Rasi chart (fixed-sign 4×4 grid)
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type rasi
+celestial render --date "1990-05-15 00:00" --timezone +05:30 \
+  --lat 13.08 --lon 80.27 --chart-type rasi
 
 # North Indian chart (rotating diamond layout, lagna = ASC sign)
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type north-indian
+celestial render --date "1990-05-15 00:00" --timezone +05:30 \
+  --lat 13.08 --lon 80.27 --chart-type north-indian
 
 # Navamsa D9 divisional chart
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type navamsa
+celestial render --date "1990-05-15 00:00" --timezone +05:30 \
+  --lat 13.08 --lon 80.27 --chart-type navamsa
 
 # Vimshottari dasha timeline (120-year bar chart)
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type dasha
+celestial render --date "1990-05-15 00:00" --timezone +05:30 \
+  --lat 13.08 --lon 80.27 --chart-type dasha
 
 # Ashtakavarga (7×12 bindu table + Sarvashtakavarga totals)
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type ashtakavarga
+celestial render --date "1990-05-15 00:00" --timezone +05:30 \
+  --lat 13.08 --lon 80.27 --chart-type ashtakavarga
 
 # Shadbala planetary strength
-celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type shadbala
+celestial render --date "1990-05-15 00:00" --timezone +05:30 \
+  --lat 13.08 --lon 80.27 --chart-type shadbala
 ```
 
 **Ashtakavarga** — 8-source bindu system. 7 planet rows × 12 sign columns (0–8 bindus each) plus a Sarvashtakavarga totals row (0–56). Green = strong (≥ 5 / ≥ 28), red = weak (≤ 2 / ≤ 18).
@@ -538,13 +558,16 @@ celestial render --date 1990-05-15 --lat 13.08 --lon 80.27 --chart-type shadbala
 
 ```bash
 # Hellenistic natal chart with full dignity overlay
-celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --chart-type hellenistic
+celestial render --date "1985-07-15 00:00" --timezone +02:00 \
+  --lat 48.85 --lon 2.35 --chart-type hellenistic
 
 # Persian Firdaria timeline (75-year period chart)
-celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 --chart-type firdaria
+celestial render --date "1985-07-15 00:00" --timezone +02:00 \
+  --lat 48.85 --lon 2.35 --chart-type firdaria
 
 # Annual profection wheel (specify age with --years)
-celestial render --date 1985-07-15 --lat 48.85 --lon 2.35 \
+celestial render --date "1985-07-15 00:00" --timezone +02:00 \
+  --lat 48.85 --lon 2.35 \
   --chart-type profection --years 39
 ```
 
@@ -575,7 +598,7 @@ Core Hellenistic API functions:
 
 ```bash
 # Four Pillars of Destiny (Ba Zi)
-celestial render --date 1985-07-15 --chart-type bazi
+celestial render --date "1985-07-15 00:00" --timezone UTC --chart-type bazi
 ```
 
 The chart shows four pillars (Year, Month, Day, Hour), each with Heavenly Stem (天干), Earthly Branch (地支), element, and Yin/Yang polarity. An element balance bar chart shows Wood/Fire/Earth/Metal/Water distribution. The current solar term (节气) is displayed with degrees remaining until the next term.
@@ -595,7 +618,7 @@ The chart shows four pillars (Year, Month, Day, Hour), each with Heavenly Stem (
 
 ```bash
 # Aztec + Maya calendar positions for any date
-celestial render --date 2000-01-01 --chart-type mesoamerican
+celestial render --date "2000-01-01 00:00" --timezone UTC --chart-type mesoamerican
 ```
 
 | Calendar | Cycle | Description |
@@ -622,7 +645,8 @@ The **Calendar Round** (52-year cycle) is LCM(260, 365) = 18,980 days. All calcu
 
 ```bash
 # Medicine Wheel + Egyptian decans
-celestial render --date 2000-01-01 --lat 48.85 --lon 2.35 --chart-type medicine-wheel
+celestial render --date "2000-01-01 00:00" --timezone UTC \
+  --lat 48.85 --lon 2.35 --chart-type medicine-wheel
 ```
 
 **Medicine Wheel** — compass-rose wheel using the Sun Bear / Wabun Wind synthesis (1980). 12 birth totems correspond to ~30° Sun longitude segments: Snow Goose · Otter · Cougar · Red Hawk · Beaver · Deer · Flicker · Sturgeon · Brown Bear · Raven · Snake · Elk. Each totem belongs to a clan (Turtle/Earth, Butterfly/Air, Thunderbird/Fire, Frog/Water) and a season.

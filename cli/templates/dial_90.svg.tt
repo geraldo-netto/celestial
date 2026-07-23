@@ -3,8 +3,9 @@
    Each planet's longitude is reduced mod 90° to the dial position.
    Cardinal/Fixed/Mutable signs that land on the same dial degree create
    a "midpoint axis". The classic uranian dial reveals these alignments.
-   Run: celestial render --chart-type dial --date X --lat Y --lon=-Z
-        --template dial_90.svg.tt --out dial.svg #}
+   Run: celestial render --chart-type dial \
+        --date "2000-01-01 00:00" --timezone UTC --lat 48.85 --lon 2.35 \
+        --template cli/templates/dial_90.svg.tt --out dial.svg #}
 {% set page_w = 1100 %}
 {% set page_h = 1100 %}
 {% set bg     = "#ffffff" %}

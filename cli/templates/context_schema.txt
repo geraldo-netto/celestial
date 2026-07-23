@@ -162,8 +162,9 @@ Chart-type-specific extensions
   hellenistic          — adds `dignity5[]`, `is_day`, `sect`
   profection           — adds `profected_house`, `profected_lord`
 
-For any chart type, run `celestial render --type X --print-context …`
-to see the exact set of fields populated.
+For any chart type, run `celestial render --chart-type X
+--date "2025-03-20 00:00" --timezone UTC --print-context` to see the exact
+set of fields populated.
 
 ──────────────────────────────────────────────────────────────────────
 Calendar/tradition overlays  (--calendar X, repeatable)

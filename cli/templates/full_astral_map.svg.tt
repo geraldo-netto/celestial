@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 {# Complete astral map showing the natal wheel + tables.
-   Run: celestial render TYPE natal DATE birth LAT lat LON lon
-        template full_astral_map.svg.tt out astral.svg #}
+   Run: celestial render --chart-type natal \
+        --date "1985-07-15 00:00" --timezone UTC --lat 48.85 --lon 2.35 \
+        --template cli/templates/full_astral_map.svg.tt --out astral.svg #}
 {% set page_w = 1400 %}
 {% set page_h = 1100 %}
 {% set bg = "#ffffff" %}

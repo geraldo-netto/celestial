@@ -180,7 +180,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| PROD-1 | OPEN | M | 23 of 36 `celestial render` examples in README use bare `--date YYYY-MM-DD` and/or omit `--timezone` (README.md:446,449-466,477-491,506-521,534-541,571,591,618,345,393; docs/index.md:68; docs/building.md:246-252), so every one fails on the shipped binary with "has no time-of-day" / "missing --timezone" — verified by executing cosmogram, solar-return, bazi, mesoamerican, dial, natal+overlays, template-run, and the `--time` form. The examples contradict the tz-requirement section README itself introduces at :226-262. | Either update every example to carry time+`--tz`, or relax `require_datetime` (pipeline.rs:309) for chart types that don't need a birth instant (mesoamerican, ephemeris, calendar…). Also fix docs/building.md:252's now-false `shows "14:30 UT"` claim. |
 
 ## Purpose
 
@@ -194,6 +193,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | REL-16 | OPEN | L | Public TT/ET and UT variants have contradictory time-scale behavior. `fixstar_ut`, `fixstar2_ut`, `nod_aps_ut`, `ayanamsa_ut`, and `ayanamsa_ex_ut` pass UT straight into TT math; `solcross` / `mooncross` are documented as ET but search with `calc_ut`; `helio_cross_ut` is an exact alias of the ET function. Tests often require equality for the same numeric JD, locking in the mismatch. | Define the scale of every input/output, apply ΔT conversion at one boundary, and replace alias-equality tests with equivalent-instant tests (UT input versus TT input shifted by ΔT) plus external reference values. |
+| REL-17 | OPEN | S | `mesoamerican_calendars.svg.tt` fails with `undefined value (in t:75)` for the valid instant `2000-01-01 00:00 UTC`, although the built-in Mesoamerican renderer and `--print-context` succeed with complete data. | Reproduce with the bundled template, isolate the zero-index calendar value that MiniJinja rejects, and add a second template integration case covering this instant. |
 
 ## Robustness / Recovery
 

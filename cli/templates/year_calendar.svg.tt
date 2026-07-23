@@ -7,8 +7,10 @@ shows: day number, Omer day badge (purple), moon-phase glyph (amber),
 sabbat highlight (green tint), Lag Ba'Omer (amber tint), Hebrew holiday (H).
 
 Run: celestial render with calendar overlays, e.g.:
-  celestial render TYPE natal DATE 2024 01 01 LAT 0 LON 0 [calendar flags]
-  template year_calendar.svg.tt out year2024.svg
+  celestial render --chart-type natal --date "2024-01-01 00:00" \
+  --timezone UTC --lat 0 --lon 0 --calendar gregorian-year --calendar omer \
+  --calendar moon --calendar sabbats --calendar hebrew \
+  --template cli/templates/year_calendar.svg.tt --out year2024.svg
 -->
 {% set page_w = 1700 %}
 {% set page_h = 1300 %}
