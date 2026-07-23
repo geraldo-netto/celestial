@@ -1,5 +1,7 @@
 # Celestial — TODO
 
+Rescan: **2026-07-23** (whole-project tracked-source scan: 258 files / 107,775 lines; skipped `target`, `node_modules`, cache directories, and ignored compiled/build outputs; source-controlled generated API docs and stubs were checked as contracts). Added confirmed findings: CLI-4..7, LINT-1, CONF-1/2, DOC-13, LEG-3, PLUG-1, PROD-2, REL-16, ROB-3, SEC-7. Static passes also found no new production `unsafe`, panic/todo stubs, broken relative Markdown links, tracked build artifacts, or unaccounted public-shaped dead callables.
+2026-07-23 verification: `cargo test --workspace --exclude celestial-fuzz`; `cargo fmt --all -- --check`; minimal/default core feature checks; `cargo xtask parity` (270 each), `coverage` (309 core / 270 bound / 39 allow-listed), `shapes --check`, `apidoc --check`, `pyi --check`, `dts --check`; fuzz harness (88 suites); JS pure logic (162), typecheck, and ESLint; PHP `cargo check`, format, clippy, and stub syntax; Python native-import smoke; tracked JSON/TOML/YAML/shell syntax. Full JS native test is red as PROD-2; Python `pytest` is unavailable in this environment. Clippy's remaining warnings are recorded in CC-1 and LINT-1.
 Rescan: **2026-07-02c** (follow-up all-category rescan incl. the core-correctness cluster that aborted in 02b; 4 parallel audit agents — core astronomy math numerically verified with a scratch harness, core infra/concurrency, soft categories verified by executing the shipped binary, cli-render/xtask re-sweep). Current open rows from this pass remain in the tables below; rows fixed in the follow-up implementation were removed. Checked-clean: ELP2000 vs Meeus 47.a, computus, molad/dechiyot, tabular Hijri, coptic/ethiopic, no static-mut/atomics in core, SVG goldens pinned.
 Rescan: **2026-07-02b** (deep all-category rescan; 5 parallel audit agents over core/cli/bindings/perf/security; findings source-verified — CLI ones confirmed by running the built binary; high-severity binding/CLI/security claims spot-checked before entry). New: CLI-1..3, SM-1/2, ROB-2, UX-1, REL-14/15, DEC-2, SEC-6, PLAT-1, PERF-11/12, DOC-12, LEG-2, BIND-8. NOTE: the core-correctness cluster (astronomy math / calendars) aborted on a session limit with no output — re-run that cluster next pass. Baseline: `cargo test --workspace --exclude celestial-fuzz` green, `clippy -W cognitive_complexity` = 0.
 Rescan: **2026-07-02** (whole-project scan across all categories in `AGENTS.md`; 5 parallel category-cluster audits, findings verified against source before entry, speculative/false-positive claims dropped).
@@ -42,6 +44,10 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
+| CLI-4 | OPEN | S | `DateJd::from_str` accepts bare `NaN`, `inf`, and `-inf` as Julian days. `render --date NaN --print-context` exits 0 with a null-filled chart; `--date inf` panics on integer overflow in `next_principal_phase`. | Reject non-finite and out-of-domain JDs at the shared parse boundary. `cli_fuzz::boundary_non_finite_and_extreme_floats` currently calls `parse_date` but never asserts rejection or exercises a downstream command. |
+| CLI-5 | OPEN | S | Civil dates/times are normalized instead of validated: bad time components use `unwrap_or(0.0)`, month/day/time ranges are unchecked, and `2024-01-01 nope:nope` silently becomes midnight. A test explicitly accepts `1986-13-99 09:00`. | Parse the documented formats strictly, validate Gregorian fields and clock ranges, and add rejection tests for malformed and normalized-away input. |
+| CLI-6 | OPEN | M | Numeric validation is command-specific and incomplete. `houses --lat NaN --json` succeeds and emits invalid JSON containing bare `NaN`; render accepts non-finite `--years` and produces null-heavy progressed charts. | Reuse finite/range validators for every geographic and calculation scalar at the CLI boundary, including `houses` lat/lon and render progression/secondary-coordinate inputs. |
+| CLI-7 | OPEN | S | `houses --json` serializes `cusps` as a quoted string (`"cusps":"[...]"`) rather than a JSON array. | Replace the string-guessing `fmt::json_obj` path with a typed `serde_json` value/struct and assert field types after parsing command output. |
 
 ## Code Complexity
 
@@ -50,12 +56,13 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | CC-1 | DECIDED | — | `cli/tests/cli_fuzz.rs:225 boundary_empty_null_and_oversize_strings` CC 16/10 and `cli/src/parse.rs:423 parse_tz_forms` CC 14/10. | Test-only assertion/matcher density; real branching is low. `cargo clippy --workspace --all-targets -- -W clippy::cognitive_complexity` reports only these two. |
 | CC-6 | DECIDED | S | `cli/src/cmd/render/calendar_overlays.rs:509 render_day_cell` sits at exactly CC 10. | Compliant but no headroom. If extended, split moon-glyph and omer-badge rendering into helpers. |
 | CC-7 | DECIDED | S | `core/src/body/mod.rs:119 Body::is_known_id` is a flat range ladder. | Still compliant; flat documented id windows are clearer than hiding the ranges in a table. |
+| LINT-1 | OPEN | S | Warning-clean clippy is not maintained across all tracked Rust: `core/src/astronomy/houses.rs:923` triggers `byte_char_slices`, and standalone PHP `match_aspect3` / `match_aspect4` trigger `too_many_arguments`. | Apply the byte-slice suggestion; for the published flat FFI signatures, add the same targeted lint rationale already used by core/Python or refactor all bindings together. |
 
 ## Code Duplication
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| DUP-1 | DECIDED | L | Binding return-adapter stubs remain repeated across JS/Python/PHP. | Per-language return shapes are intentionally different. `cargo xtask parity` confirms all 194 function exports stay aligned. |
+| DUP-1 | DECIDED | L | Binding return-adapter stubs remain repeated across JS/Python/PHP. | Per-language return shapes are intentionally different. `cargo xtask parity` confirms all 270 function exports stay aligned. |
 | DUP-2 | DECIDED | S | `body_of(n)` validation helpers are present in each binding. | Per-language error mapping is the irreducible part; sharing would obscure simple error flow. |
 | DUP-3 | DECIDED | — | Deterministic `core/tests/rel_clamps.rs` and randomized `fuzz/src/main.rs::test_rel_clamps` overlap on body-id edge coverage. | Intentional two-tier coverage split: `cargo test` regression plus opt-in fuzz/property run. |
 | DUP-4 | DECIDED | — | `revjul` / `revjul_hms` have three language-specific return shapes. | Published API idioms differ; normalizing would break bindings. |
@@ -78,8 +85,8 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-
-(no findings — render config precedence, unsafe config `out` rejection, `--var` override handling, and config error paths are tested.)
+| CONF-1 | OPEN | S | `render::compute` validates arguments before `load_config`, so config-provided values bypass validation. A config with `lat = 999` renders successfully and exposes 999 in the context. | Merge config first, then validate the effective arguments; add config-path tests for non-finite and out-of-range values. |
+| CONF-2 | OPEN | M | Config precedence infers whether the CLI supplied a value by comparing it with sentinel defaults (`now`, `0.0`, `P`). Explicit `--lat 0 --lon 0`, `--date now`, or `--hsys P` can therefore be overwritten by config despite the documented “CLI flags take precedence” rule. | Preserve Clap value-source information or model defaultable fields as `Option<T>` until after config merging. |
 
 ## Data Structure
 
@@ -113,11 +120,13 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | DOC-4 | DECIDED | M | `celestial-cli` public items are intentionally undocumented. | Binary crate/lib split only exists so `main.rs` and tests can share modules; `#![warn(missing_docs)]` remains core-only. |
+| DOC-13 | OPEN | S | Current docs/CI comments retain obsolete inventory: README says 1496 tests / 84 fuzz suites; docs say 1174 core tests and 194 binding functions; the core workflow header promises ≥80% line / ≥90% function coverage while commands enforce 75% / 78%. Current checks report 1555 workspace tests, 88 fuzz suites, and 270 parity exports. | Update current-facing counts or make them generated/link to authoritative outputs; align the workflow header with its actual thresholds. Historical rescan records above should remain unchanged. |
 
 ## Legacy / Deprecation
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
+| LEG-3 | OPEN | M | Public Swiss-compatible setup APIs advertise state changes but silently no-op: `set_ephe_path` / `set_jpl_file` always return `Ok(())`, `set_tid_acc` / `set_lapse_rate` discard input, and `tid_acc` always returns 0. They are exported through the bindings as working setters. | Either implement observable supported behavior or explicitly mark/deprecate compatibility no-ops and return an unsupported error where signatures permit. Keep `FLG_JPL`'s documented built-in fallback distinct from accepting a file that is never used. |
 
 ## Multithreading
 
@@ -166,14 +175,14 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-
-(no findings — plugin discovery ignores non-executables, deduplicates names, sorts output, and returns actionable unknown-command errors.)
+| PLUG-1 | OPEN | S | `discover()` inserts a plugin name into `seen` before checking executability. A non-executable `celestial-foo` earlier on `PATH` suppresses a later executable one from `--list-plugins`, while `try_exec` independently scans onward and can dispatch it. | Mark a name seen only after accepting an executable candidate; add a two-directory PATH test that keeps discovery and dispatch consistent. |
 
 ## Product Engineering
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | PROD-1 | OPEN | M | 23 of 36 `celestial render` examples in README use bare `--date YYYY-MM-DD` and/or omit `--timezone` (README.md:446,449-466,477-491,506-521,534-541,571,591,618,345,393; docs/index.md:68; docs/building.md:246-252), so every one fails on the shipped binary with "has no time-of-day" / "missing --timezone" — verified by executing cosmogram, solar-return, bazi, mesoamerican, dial, natal+overlays, template-run, and the `--time` form. The examples contradict the tz-requirement section README itself introduces at :226-262. | Either update every example to carry time+`--tz`, or relax `require_datetime` (pipeline.rs:309) for chart types that don't need a birth instant (mesoamerican, ephemeris, calendar…). Also fix docs/building.md:252's now-false `shows "14:30 UT"` claim. |
+| PROD-2 | OPEN | M | The Node package is not loadable after its documented build: `package.json` points `main` to absent `index.js`, while napi creates only a platform `.node` file. `npm test` then fails during module evaluation at `tests/celestial.test.ts:108` instead of running/skipping tests; the CI build job invokes this same failing path whenever a `.node` exists. | Add and package a cross-platform napi loader (or correct package exports/main), make missing-addon skips avoid eager `celestial!` dereferences, and assert `require("celestial-js")` in the post-build job. |
 
 ## Purpose
 
@@ -186,11 +195,13 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
+| REL-16 | OPEN | L | Public TT/ET and UT variants have contradictory time-scale behavior. `fixstar_ut`, `fixstar2_ut`, `nod_aps_ut`, `ayanamsa_ut`, and `ayanamsa_ex_ut` pass UT straight into TT math; `solcross` / `mooncross` are documented as ET but search with `calc_ut`; `helio_cross_ut` is an exact alias of the ET function. Tests often require equality for the same numeric JD, locking in the mismatch. | Define the scale of every input/output, apply ΔT conversion at one boundary, and replace alias-equality tests with equivalent-instant tests (UT input versus TT input shifted by ΔT) plus external reference values. |
 
 ## Robustness / Recovery
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
+| ROB-3 | OPEN | M | Normal broken-pipe use panics: piping a rendered chart to `head` exits 101 from a stdout write failure. Output is spread across `print!` / `println!`, so other verbose commands have the same failure mode. | Route stdout through fallible buffered writes and treat `BrokenPipe` as a clean early exit; add a subprocess pipe-closure regression test. |
 
 ## Scalability
 
@@ -202,6 +213,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
+| SEC-7 | OPEN | M | Config path containment rejects absolute paths and `..` but follows symlinks. A relative config `out = "escape/chart.svg"` writes outside cwd when `escape` is a symlink; config `template` can likewise read outside. This contradicts the code's untrusted-config containment claim. | Resolve/open relative to a trusted cwd directory handle with symlink-safe containment (including existing ancestors and the final target); add symlink escape tests for both read and write paths. |
 
 
 ## State Machine Integrity
