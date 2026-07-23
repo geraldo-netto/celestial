@@ -310,7 +310,7 @@ class TestRiseTrans:
     def test_moon_rise(self):
         tjdut = 2459414.1041666665
         geopos = (6.57, 43.21, 0.0)
-        res, tret = celestial.rise_trans(tjdut, celestial.MOON, 0, geopos, 0, 0, 0)
+        res, tret = celestial.rise_trans(tjdut, celestial.MOON, 0, 0, geopos, 0, 0)
         assert res == 0
         assert abs(tret - 2459415.105139496) < 1e-7
 

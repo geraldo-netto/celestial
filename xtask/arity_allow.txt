@@ -5,4 +5,3 @@
 # binding over adding a line here; tracked gaps live in TODO.md (CLI/adaptability).
 
 utc_to_jd        JS packs the 7 date scalars into a UtcDate object (language idiom) — TODO-tracked as DECIDED.
-rise_trans       Python omits ephe_flags and puts flags last; JS/PHP put flags 3rd — BIND-6, breaking to fix.

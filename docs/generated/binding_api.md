@@ -274,7 +274,7 @@ residential_strength(graha: float, bm: object) -> object
 retrograde_station_ut(planet: int, jd: float, flags: int) -> object
 revjul(jd: float, calendar: int) -> object
 revjul_hms(jd: float, calendar: int) -> object
-rise_trans(tjdut: float, planet: int, event_type: int, geopos: object, pressure_mb: float, temp_c: float, flags: int) -> object
+rise_trans(tjdut: float, planet: int, flags: int, event_type: int, geopos: object, pressure_mb: float, temp_c: float) -> object
 rise_trans_true_hor(tjdut: float, planet: int, flags: int, event_type: int, geopos: object, pressure_mb: float, temp_c: float, horhgt: float) -> object
 sabbat_jd(year: int, kind: str) -> float
 sabbats_for_year(year: int) -> object

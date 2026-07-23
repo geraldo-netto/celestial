@@ -497,16 +497,16 @@ fn lun_eclipse_how(
 /// Rise/set/transit calculation. Returns `(ret_flags, tret)`.
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (tjdut, planet, event_type, geopos, pressure_mb = 0.0, temp_c = 0.0, flags = 0))]
+#[pyo3(signature = (tjdut, planet, flags, event_type, geopos, pressure_mb = 0.0, temp_c = 0.0))]
 fn rise_trans(
     py: Python<'_>,
     tjdut: f64,
     planet: i32,
+    flags: i32,
     event_type: i32,
     geopos: [f64; 3],
     pressure_mb: f64,
     temp_c: f64,
-    flags: i32,
 ) -> PyResult<PyObject> {
     let r = celestial::rise_trans(
         JulianDay::new(tjdut),

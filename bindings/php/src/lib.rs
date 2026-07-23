@@ -508,7 +508,7 @@ pub fn lun_eclipse_when(
 /// @param array $geopos   [lon, lat, alt_m]
 /// @param float $pressure_mb  Atmospheric pressure (mbar)
 /// @param float $temp_c   Atmospheric temperature (°C)
-/// @return array          ["ret" => int, "tret" => float[10]]
+/// @return array          ["ret" => int[1], "tret" => float[1]]
 #[php_function]
 pub fn rise_trans(
     tjdut: f64,
