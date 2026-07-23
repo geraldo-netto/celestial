@@ -141,14 +141,14 @@ $mag  = celestial_fixstar_mag('Aldebaran');
 ### Houses
 
 ```php
-// Returns ['cusps' => float[13], 'ascmc' => float[8]]
-// cusps[1..12] are the house cusps; cusps[0] is unused
+// Returns ['cusps' => float[12], 'ascmc' => float[8]]
+// cusps[0..11] are the twelve house cusps
 // ascmc[0]=ASC, ascmc[1]=MC, ascmc[2]=ARMC, ascmc[3]=Vertex
-$h = celestial_houses_ex($jd, 0, 48.85, 2.35, ord('P'));
+$h = celestial_houses_ex($jd, 48.85, 2.35, ord('P'), 0);
 printf("ASC=%.2f°  MC=%.2f°\n", $h['ascmc'][0], $h['ascmc'][1]);
 
 // With flags (e.g. sidereal)
-$hSid = celestial_houses_ex($jd, FLG_SIDEREAL, 48.85, 2.35, ord('P'));
+$hSid = celestial_houses_ex($jd, 48.85, 2.35, ord('P'), FLG_SIDEREAL);
 ```
 
 **House system codes:** `ord('P')` Placidus · `ord('K')` Koch · `ord('E')` Equal · `ord('W')` Whole-Sign · `ord('O')` Porphyry · `ord('R')` Regiomontanus
@@ -226,7 +226,7 @@ foreach (array_slice($dashas, 0, 3) as $d) {
 
 ```php
 $sun = celestial_calc_ut($jd, SE_SUN, FLG_BUILTIN);
-$h   = celestial_houses_ex($jd, 0, 48.85, 2.35, ord('P'));
+$h   = celestial_houses_ex($jd, 48.85, 2.35, ord('P'), 0);
 
 // Day or night chart
 $isDay = celestial_is_day_chart($sun[0], $h['cusps']);

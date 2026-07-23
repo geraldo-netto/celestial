@@ -279,10 +279,10 @@ function houses(float $jdut, float $geolat, float $geolon, int $hsys): array {}
 function celestial_houses(float $jdut, float $geolat, float $geolon, int $hsys): array {}
 
 /** @return array<string,mixed> */
-function houses_ex(float $jdut, int $flags, float $geolat, float $geolon, int $hsys): array {}
+function houses_ex(float $tjdut, float $lat, float $lon, int $hsys, int $flags): array {}
 
 /** @return array<string,mixed> */
-function celestial_houses_ex(float $jdut, int $flags, float $geolat, float $geolon, int $hsys): array {}
+function celestial_houses_ex(float $tjdut, float $lat, float $lon, int $hsys, int $flags): array {}
 
 /** @return string */
 function house_name(int $hsys): string {}

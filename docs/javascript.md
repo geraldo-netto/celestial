@@ -141,12 +141,12 @@ const gmst: number = celestial.mean_sidtime(jd);  // degrees
 
 ```typescript
 // Placidus
-const h: HouseResult = celestial.houses_ex(jd, 0, 48.85, 2.35, "P".charCodeAt(0));
+const h: HouseResult = celestial.housesEx(jd, 48.85, 2.35, "P".charCodeAt(0), 0);
 console.log(`ASC=${h.ascmc[0].toFixed(2)}°  MC=${h.ascmc[1].toFixed(2)}°`);
-// h.cusps[1..12] are the twelve house cusps
+// h.cusps[0..11] are the twelve house cusps
 
 // With sidereal flag
-const hSid = celestial.houses_ex(jd, 65536, 48.85, 2.35, "P".charCodeAt(0));
+const hSid = celestial.housesEx(jd, 48.85, 2.35, "P".charCodeAt(0), 65536);
 ```
 
 **House system codes:** `"P".charCodeAt(0)` Placidus · `"K"` Koch · `"E"` Equal · `"W"` Whole-Sign · `"O"` Porphyry · `"R"` Regiomontanus
@@ -183,7 +183,7 @@ const fullMoon = celestial.next_full_moon_phase(jd);
 
 ```typescript
 const sun = celestial.calc_ut(jd, 0, 2 | 256);
-const h   = celestial.houses_ex(jd, 0, 48.85, 2.35, "P".charCodeAt(0));
+const h   = celestial.housesEx(jd, 48.85, 2.35, "P".charCodeAt(0), 0);
 
 // Day or night chart
 const isDay: boolean = celestial.is_day_chart(sun.lon, h.cusps);

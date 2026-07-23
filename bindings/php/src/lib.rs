@@ -360,7 +360,7 @@ pub fn fixstar_mag(star: String) -> PhpResult<f64> {
 /// @param float  $geolat Geographic latitude (degrees, N positive)
 /// @param float  $geolon Geographic longitude (degrees, E positive)
 /// @param int    $hsys   House system byte (ord('P') = Placidus, ord('K') = Koch, …)
-/// @return array         ["cusps" => float[13], "ascmc" => float[10]]
+/// @return array         ["cusps" => float[12], "ascmc" => float[8]]
 #[php_function]
 pub fn houses(
     jdut: f64,
@@ -386,17 +386,17 @@ pub fn houses(
 /// House cusps with extended flags (sidereal, topocentric, etc.).
 #[php_function]
 pub fn houses_ex(
-    jdut: f64,
-    flags: i64,
-    geolat: f64,
-    geolon: f64,
+    tjdut: f64,
+    lat: f64,
+    lon: f64,
     hsys: i64,
+    flags: i64,
 ) -> PhpResult<HashMap<String, Vec<f64>>> {
     let r = celestial::houses_ex(
-        JulianDay::new(jdut),
+        JulianDay::new(tjdut),
         CalcFlags(flags as i32),
-        Latitude::new(geolat),
-        Longitude::new(geolon),
+        Latitude::new(lat),
+        Longitude::new(lon),
         HouseSystem(hsys as u8),
     )
     .map_err(to_php)?;

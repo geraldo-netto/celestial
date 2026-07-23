@@ -102,6 +102,10 @@ assert_eq(count($h['ascmc']),  8, 'houses ascmc count');
 $asc = $h['ascmc'][0];
 assert_approx($asc >= 0.0 && $asc < 360.0 ? 1.0 : 0.0, 1.0, 0, 'ASC in [0,360)');
 
+$h_ex = houses_ex($jd, 48.85, 2.35, ord('P'), FLG_BUILTIN);
+assert_eq(count($h_ex['cusps']), 12, 'houses_ex cusps count');
+assert_eq(count($h_ex['ascmc']), 8, 'houses_ex ascmc count');
+
 // house_name
 assert_eq(house_name(ord('P')), 'Placidus', 'house_name Placidus');
 assert_eq(house_name(ord('K')), 'Koch',     'house_name Koch');

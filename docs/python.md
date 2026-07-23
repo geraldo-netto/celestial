@@ -120,12 +120,12 @@ mag  = celestial.fixstar_mag("Aldebaran")
 
 ```python
 # Standard house calculation
-h = celestial.houses_ex(jd, 0, 48.85, 2.35, ord('P'))
+h = celestial.houses_ex(jd, 48.85, 2.35, ord('P'), 0)
 print(f"ASC={h.ascmc[0]:.2f}°  MC={h.ascmc[1]:.2f}°")
-# h.cusps[0..12], h.ascmc[0..8]
+# h.cusps[0..11], h.ascmc[0..7]
 
 # With sidereal flag
-h_sid = celestial.houses_ex(jd, celestial.FLG_SIDEREAL, 48.85, 2.35, ord('P'))
+h_sid = celestial.houses_ex(jd, 48.85, 2.35, ord('P'), celestial.FLG_SIDEREAL)
 ```
 
 **House system codes:** `ord('P')` Placidus · `ord('K')` Koch · `ord('E')` Equal · `ord('W')` Whole-Sign · `ord('O')` Porphyry · `ord('R')` Regiomontanus
@@ -206,7 +206,7 @@ och = celestial.ochchabala(celestial.SUN, pos.lon)  # 0–60
 
 ```python
 pos = celestial.calc_ut(jd, celestial.SUN, celestial.FLG_BUILTIN)
-h   = celestial.houses_ex(jd, 0, 48.85, 2.35, ord('P'))
+h   = celestial.houses_ex(jd, 48.85, 2.35, ord('P'), 0)
 
 # Day or night chart
 is_day = celestial.is_day_chart(pos.lon, list(h.cusps))

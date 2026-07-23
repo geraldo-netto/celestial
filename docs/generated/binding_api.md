@@ -705,7 +705,7 @@ house_system_id(hsys: int) -> ?int
 houses(jdut: float, geolat: float, geolon: float, hsys: int) -> array
 houses_armc(armc: float, lat: float, eps: float, hsys: int) -> array
 houses_armc_ex2(armc: float, lat: float, eps: float, hsys: int) -> array
-houses_ex(jdut: float, flags: int, geolat: float, geolon: float, hsys: int) -> array
+houses_ex(tjdut: float, lat: float, lon: float, hsys: int, flags: int) -> array
 houses_ex2(tjdut: float, lat: float, lon: float, hsys: int, flags: int) -> array
 houses_from_armc(armc: float, lat: float, eps: float, hsys: int) -> array
 ic_transit_ut(planet: int, jd_natal: float, jd_start: float, lat: float, lon: float, hsys: int, flags: int, backward: bool) -> float
