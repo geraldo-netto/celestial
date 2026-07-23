@@ -21,7 +21,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | BIND-3 | DECIDED | — | `utc_to_jd` takes 7 date scalars in Python/PHP but a single `UtcDate` object in JS (`bindings/js/src/lib.rs:605`). | KEEP — idiomatic JS object-packing, not drift. Recorded in `xtask/arity_allow.txt`. |
-| GATE-5 | OPEN | M | No cross-language RUNTIME behaviour parity: nothing calls the built addons and diffs `calc_ut`/`houses` numbers across Python/JS/PHP/core. `reference_values.json` only covers ~15 categories in pure-logic (re-implemented math, not the native call). Deferred from the GATE-1..4 pass: needs built native addons executed in CI (an infra change), unlike the source-level gates. | Plan: (1) `cargo xtask golden` generates `tests/fixtures/binding_golden.json` from core for a fixed input set (`--check` keeps it synced to core); (2) each binding's native test suite loads the built addon and asserts equality vs the fixture; (3) wire them into build jobs. Confirmed blockers: PHP checks the wrong extension name, JS lacks its package loader (PROD-2), and Python's only rise-time test is ephemeris-gated/skipped while its expected value differs from the pure core. |
+| BIND-9 | OPEN | L | PHP stubs and `docs/php.md` advertise 273 `celestial_*` aliases, but the built extension exports only the 273 unprefixed functions; the newly unskipped native suite failed immediately on nonexistent `celestial_version()`. | Choose one public naming contract: generate and runtime-test real aliases, or remove the fictional aliases from stub generation/docs and publish the unprefixed API as canonical. |
 
 ## Architecture / Modularity / SOLID
 
@@ -181,7 +181,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | PROD-1 | OPEN | M | 23 of 36 `celestial render` examples in README use bare `--date YYYY-MM-DD` and/or omit `--timezone` (README.md:446,449-466,477-491,506-521,534-541,571,591,618,345,393; docs/index.md:68; docs/building.md:246-252), so every one fails on the shipped binary with "has no time-of-day" / "missing --timezone" — verified by executing cosmogram, solar-return, bazi, mesoamerican, dial, natal+overlays, template-run, and the `--time` form. The examples contradict the tz-requirement section README itself introduces at :226-262. | Either update every example to carry time+`--tz`, or relax `require_datetime` (pipeline.rs:309) for chart types that don't need a birth instant (mesoamerican, ephemeris, calendar…). Also fix docs/building.md:252's now-false `shows "14:30 UT"` claim. |
-| PROD-2 | OPEN | M | The Node package is not loadable after its documented build: `package.json` points `main` to absent `index.js`, while napi creates only a platform `.node` file. `npm test` then fails during module evaluation at `tests/celestial.test.ts:108` instead of running/skipping tests; the CI build job invokes this same failing path whenever a `.node` exists. | Add and package a cross-platform napi loader (or correct package exports/main), make missing-addon skips avoid eager `celestial!` dereferences, and assert `require("celestial-js")` in the post-build job. |
 
 ## Purpose
 

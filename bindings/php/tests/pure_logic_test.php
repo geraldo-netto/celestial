@@ -2,9 +2,8 @@
 /**
  * Pure-logic tests for the PHP binding documentation examples.
  *
- * These tests do NOT require the compiled extension.
- * They validate the documented PHP call patterns are syntactically correct,
- * and serve as reference examples.
+ * These tests require the compiled extension and validate the documented PHP
+ * call patterns against the native implementation.
  *
  * To run (requires the extension):
  *   php tests/pure_logic_test.php
@@ -41,7 +40,7 @@ function assert_eq(mixed $actual, mixed $expected, string $label = ''): void {
 
 // ── Extension availability check ───────────────────────────────────────────────
 
-if (!extension_loaded('celestial')) {
+if (!extension_loaded('celestial-php')) {
     echo "SKIP: celestial extension not loaded.\n";
     echo "Build with: cd bindings/php && cargo build --release\n";
     echo "Then add to php.ini: extension=/path/to/libcelestial.so\n";
@@ -251,9 +250,9 @@ assert_approx($n3, 0.5, 1e-9, 'degnorm(720.5) = 0.5');
 $d = difdeg2n(360.5, 540.0);
 assert_approx($d, -179.5, 1e-9, 'difdeg2n(360.5, 540) = -179.5');
 
-// celestial_version
-$v = celestial_version();
-assert_eq(strlen($v) > 0 ? 1 : 0, 1, 'celestial_version() not empty');
+// version
+$v = version();
+assert_eq(strlen($v) > 0 ? 1 : 0, 1, 'version() not empty');
 
 
 // ── mean_sidtime: GMST without equation of the equinoxes ─────────────────────

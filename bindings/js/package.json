@@ -15,7 +15,7 @@
   "scripts": {
     "build": "napi build --platform --release",
     "build:dev": "napi build --platform",
-    "test": "vitest run tests/celestial.test.ts",
+    "test": "vitest run tests/celestial.test.ts tests/binding_golden.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint tests/"
   },

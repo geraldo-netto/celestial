@@ -1,9 +1,8 @@
 /**
  * Vitest suite for celestial-js (napi-rs bindings).
  *
- * The `../index` module is generated at build time by napi-rs.
- * A stub declaration is provided below so this file type-checks
- * before the native addon is compiled.
+ * The checked-in `../index` loader resolves the platform addon generated
+ * by napi-rs. The declaration file lets this test type-check before build.
  *
  * Run:
  *   npm run build && npm test

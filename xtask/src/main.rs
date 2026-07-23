@@ -12,6 +12,7 @@
 //!   cargo xtask test-stubs       Validate phpstan-stubs.php for PHP 8.0 syntax.
 //!   cargo xtask pyi              Regenerate bindings/python/python/celestial_py/celestial_py.pyi.
 //!   cargo xtask dts              Regenerate bindings/js/index.d.ts.
+//!   cargo xtask golden           Regenerate native binding parity fixtures.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -33,9 +34,10 @@ fn main() {
         Some("test-stubs") => cmd_test_stubs(),
         Some("pyi") => cmd_pyi(args.any(|a| a == "--check")),
         Some("dts") => cmd_dts(args.any(|a| a == "--check")),
+        Some("golden") => cmd_golden(args.any(|a| a == "--check")),
         _ => {
             eprintln!(
-                "USAGE\n  cargo xtask parity\n  cargo xtask coverage [--write-allow]   Core→binding coverage + arity parity\n  cargo xtask shapes [--check]           Return-shape contract snapshot\n  cargo xtask apidoc [--check]           Generate docs/generated/binding_api.md\n  cargo xtask codegen [--apply]\n  cargo xtask stubs\n  cargo xtask test-stubs\n  cargo xtask pyi        Regenerate bindings/python/python/celestial_py/celestial_py.pyi\n  cargo xtask dts        Regenerate bindings/js/index.d.ts"
+                "USAGE\n  cargo xtask parity\n  cargo xtask coverage [--write-allow]   Core→binding coverage + arity parity\n  cargo xtask shapes [--check]           Return-shape contract snapshot\n  cargo xtask apidoc [--check]           Generate docs/generated/binding_api.md\n  cargo xtask golden [--check]           Native binding numeric fixture\n  cargo xtask codegen [--apply]\n  cargo xtask stubs\n  cargo xtask test-stubs\n  cargo xtask pyi        Regenerate bindings/python/python/celestial_py/celestial_py.pyi\n  cargo xtask dts        Regenerate bindings/js/index.d.ts"
             );
             std::process::exit(1);
         }
@@ -2322,11 +2324,114 @@ fn cmd_apidoc(check: bool) {
     write_or_check(&path, &out, check, "signatures", "apidoc", total);
 }
 
+// ─── native binding golden fixture ──────────────────────────────────────────
+
+fn binding_golden() -> serde_json::Value {
+    use celestial_core::{
+        calc_ut, houses_ex, rise_trans, Body, CalcFlags, HouseSystem, JulianDay, Latitude,
+        Longitude, CALC_RISE,
+    };
+
+    let calc_jd = 2_452_275.5;
+    let calc_flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
+    let calc_cases = [Body::SUN, Body::MOON, Body::MARS, Body::SATURN]
+        .into_iter()
+        .map(|body| {
+            let pos = calc_ut(JulianDay::new(calc_jd), body, calc_flags)
+                .expect("golden calc_ut must succeed");
+            serde_json::json!({
+                "body": body.as_raw(),
+                "position": [
+                    pos.lon,
+                    pos.lat,
+                    pos.dist,
+                    pos.speed_lon,
+                    pos.speed_lat,
+                    pos.speed_dist,
+                ],
+            })
+        })
+        .collect::<Vec<_>>();
+
+    let house_jd = 2_452_275.499_255_786;
+    let house_flags = CalcFlags::BUILTIN;
+    let houses = houses_ex(
+        JulianDay::new(house_jd),
+        house_flags,
+        Latitude::new(48.85),
+        Longitude::new(2.35),
+        HouseSystem::PLACIDUS,
+    )
+    .expect("golden houses_ex must succeed");
+
+    let rise_jd = 2_459_414.104_166_666_5;
+    let geopos = [6.57, 43.21, 0.0];
+    let rise = rise_trans(
+        JulianDay::new(rise_jd),
+        Body::MOON,
+        None,
+        CalcFlags::BUILTIN,
+        CALC_RISE,
+        geopos,
+        0.0,
+        0.0,
+    )
+    .expect("golden rise_trans must succeed");
+
+    serde_json::json!({
+        "_generated_by": "cargo xtask golden",
+        "schema_version": 1,
+        "tolerance": 1.0e-10,
+        "calc_ut": {
+            "jd": calc_jd,
+            "flags": calc_flags.as_raw(),
+            "cases": calc_cases,
+        },
+        "houses_ex": {
+            "jd": house_jd,
+            "lat": 48.85,
+            "lon": 2.35,
+            "hsys": HouseSystem::PLACIDUS.as_raw(),
+            "flags": house_flags.as_raw(),
+            "cusps": houses.cusps[1..].to_vec(),
+            "ascmc": houses.ascmc[..8].to_vec(),
+        },
+        "rise_trans": {
+            "jd": rise_jd,
+            "planet": Body::MOON.as_raw(),
+            "flags": CalcFlags::BUILTIN.as_raw(),
+            "event_type": CALC_RISE,
+            "geopos": geopos,
+            "pressure_mb": 0.0,
+            "temp_c": 0.0,
+            "ret_flags": rise.ret_flags,
+            "tret": rise.tret,
+        },
+    })
+}
+
+fn cmd_golden(check: bool) {
+    let path = workspace_root().join("tests/fixtures/binding_golden.json");
+    let mut output =
+        serde_json::to_string_pretty(&binding_golden()).expect("golden fixture must serialize");
+    output.push('\n');
+    write_or_check(&path, &output, check, "fixture", "golden", 1);
+}
+
 // ─── unit tests ──────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn binding_golden_covers_native_contracts() {
+        let fixture = binding_golden();
+        assert_eq!(fixture["schema_version"], 1);
+        assert_eq!(fixture["calc_ut"]["cases"].as_array().unwrap().len(), 4);
+        assert_eq!(fixture["houses_ex"]["cusps"].as_array().unwrap().len(), 12);
+        assert!(fixture["rise_trans"]["tret"].as_f64().unwrap().is_finite());
+    }
 
     #[test]
     fn scan_fn_name_skips_non_fn_lines_in_window() {

@@ -6,7 +6,7 @@
 #   lint-py  → ruff + mypy on Python files only (.py files only)
 #   test     → pytest pure_logic_test.py (no compiled extension needed)
 #   fuzz     → TestFuzzingBoundary + randomised full suite (no extension needed)
-#   build    → maturin build wheel + full test suite — matrix: Python 3.12 × 3 OS
+#   build    → wheel + full suite + native golden parity — Python 3.12 × 3 OS
 #
 # Scope guarantee:
 #   lint-rs installs NO Python tooling and touches NO .py files.
@@ -21,6 +21,7 @@ on:
     paths:
       - "bindings/python/**"
       - "core/**"
+      - "tests/fixtures/binding_golden.json"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/celestial-python.yml"
@@ -28,6 +29,7 @@ on:
     paths:
       - "bindings/python/**"
       - "core/**"
+      - "tests/fixtures/binding_golden.json"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/celestial-python.yml"
@@ -228,7 +230,7 @@ jobs:
           print("ERROR: could not find compiled _celestial_py extension in site-packages")
           sys.exit(1)
 
-      - name: Run full test suite
+      - name: Run native suite including binding golden parity
         run: python3 -m pytest python/celestial_py/tests/ -v --tb=short
         working-directory: bindings/python
 

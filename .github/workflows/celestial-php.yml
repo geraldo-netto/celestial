@@ -5,7 +5,7 @@
 #   lint-rs          → cargo clippy + phpstan on the PHP binding
 #   test             → php pure_logic_test.php (after build, ubuntu only)
 #   fuzz             → adversarial inputs on the pure-logic functions
-#   build            → cargo build --release + upload .so (matrix: PHP 8.1)
+#   build            → release build + native golden parity + upload .so
 #
 # Scope guarantee:
 #   lint-rs runs `cargo clippy` from bindings/php/ — the PHP binding has its
@@ -22,6 +22,7 @@ on:
     paths:
       - "bindings/php/**"
       - "core/**"
+      - "tests/fixtures/binding_golden.json"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/celestial-php.yml"
@@ -29,6 +30,7 @@ on:
     paths:
       - "bindings/php/**"
       - "core/**"
+      - "tests/fixtures/binding_golden.json"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/celestial-php.yml"
@@ -131,10 +133,12 @@ jobs:
         run: ls -lh target/release/libcelestial.so
         working-directory: bindings/php
 
-      - name: Run pure-logic tests
+      - name: Run native tests and binding golden parity
         run: |
           php -d extension=target/release/libcelestial.so \
               tests/pure_logic_test.php
+          php -d extension=target/release/libcelestial.so \
+              tests/binding_golden_test.php
         working-directory: bindings/php
 
       - name: Upload .so artifact

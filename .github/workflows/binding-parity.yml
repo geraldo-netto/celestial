@@ -12,6 +12,7 @@ on:
     paths:
       - "bindings/**"
       - "core/**"
+      - "tests/fixtures/binding_golden.json"
       - "xtask/**"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -20,6 +21,7 @@ on:
     paths:
       - "bindings/**"
       - "core/**"
+      - "tests/fixtures/binding_golden.json"
       - "xtask/**"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -64,6 +66,7 @@ jobs:
           cargo xtask test-stubs
           cargo xtask pyi --check
           cargo xtask dts --check
+          cargo xtask golden --check
 
       - name: Validate phpstan-stubs.php syntax
         run: cargo xtask test-stubs
@@ -81,6 +84,7 @@ jobs:
           echo "             update docs/generated + the language guide too)"
           echo "  apidoc   → cargo xtask apidoc            (regenerate the API doc)"
           echo "  pyi/dts  → cargo xtask pyi / dts         (regenerate stubs)"
+          echo "  golden   → cargo xtask golden             (regenerate native fixture)"
           echo "  Review every generated diff before committing."
           echo "──────────────────────────────────────────────────────────────"
           cargo xtask codegen || true

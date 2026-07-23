@@ -768,6 +768,8 @@ cargo xtask pyi               # Regenerate bindings/python/.../celestial_py.pyi 
 cargo xtask pyi --check       # Verify .pyi is in sync (CI gate)
 cargo xtask dts               # Regenerate bindings/js/index.d.ts (~275 declarations — struct interfaces, constants, functions)
 cargo xtask dts --check       # Verify .d.ts is in sync (CI gate)
+cargo xtask golden            # Regenerate native binding numeric fixtures from core
+cargo xtask golden --check    # Verify native fixtures are in sync (CI gate)
 ```
 
 The `--check` variants exit non-zero if the generated file is out of sync,

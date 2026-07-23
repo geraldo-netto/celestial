@@ -276,6 +276,10 @@ cargo xtask shapes --check    # CI gate: fail if a return shape drifted
 cargo xtask apidoc            # regenerate docs/generated/binding_api.md
 cargo xtask apidoc --check    # CI gate: fail if out of sync with source
 
+# Native binding numeric contract generated from celestial-core.
+cargo xtask golden            # regenerate tests/fixtures/binding_golden.json
+cargo xtask golden --check    # CI gate: fail if the fixture is out of sync
+
 # Generate stub skeletons for functions missing from a binding
 cargo xtask codegen            # preview only
 cargo xtask codegen --apply    # write into binding files (review diff before committing)

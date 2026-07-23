@@ -6,7 +6,7 @@
 #   lint-ts  → tsc --noEmit + eslint on the TS side
 #   test     → node pure_logic.test.mjs (no compiled addon, runs on all Node versions)
 #   fuzz     → fuzzing describe block + randomised runs across 5 seeds
-#   build    → napi build (.node addon) — matrix: Node 22 × 3 OS
+#   build    → napi build + native golden parity — matrix: Node 22 × 3 OS
 #
 # Separation rationale:
 #   lint-rs and lint-ts are independent tools checking different file types.
@@ -22,6 +22,7 @@ on:
     paths:
       - "bindings/js/**"
       - "core/**"
+      - "tests/fixtures/binding_golden.json"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/celestial-js.yml"
@@ -29,6 +30,7 @@ on:
     paths:
       - "bindings/js/**"
       - "core/**"
+      - "tests/fixtures/binding_golden.json"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/celestial-js.yml"
@@ -180,20 +182,7 @@ jobs:
       - name: Run integration tests against compiled addon
         working-directory: bindings/js
         shell: bash
-        run: |
-          # The test file guards all ephe-dependent tests with describeEphe (skipped
-          # when SWISSEPH_EPHE_PATH is unset) and all addon-dependent tests with
-          # describeModule (skipped when require("../index") throws).
-          # A missing addon → all 30 tests skipped, 0 failed → exit 0.
-          # A compiled addon with test failures → exit 1 (hard failure).
-          if [ -f *.node ]; then
-            echo "Addon found — running full integration test suite"
-            npx vitest run tests/celestial.test.ts --testTimeout=30000
-          else
-            echo "No compiled addon found — skipping integration tests"
-            echo "  (build the addon with 'npm run build' to run them)"
-          fi
-        # No continue-on-error — failures are real and must fail the job
+        run: npm test -- --testTimeout=30000
 
       - name: Upload .node artifact
         uses: actions/upload-artifact@v7
