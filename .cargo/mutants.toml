@@ -1,0 +1,10 @@
+exclude_re = [
+  # OR and XOR are identical for these fixed, pairwise-disjoint bit constants.
+  '^core/src/constants\.rs:178:46: replace \| with \^$',
+  '^core/src/constants\.rs:347:(?:17|34|46|60|74): replace \| with \^$',
+  '^core/src/constants\.rs:349:(?:47|61): replace \| with \^$',
+  '^core/src/constants\.rs:402:(?:51|71): replace \| with \^$',
+  '^core/src/body/mod\.rs:(?:329:50|343:43): replace \| with \^$',
+  '^core/src/astronomy/eclipses\.rs:(?:296:46|297:50|298:48|299:50): replace \| with \^ in kind_to_flags$',
+  '^core/src/astronomy/crossings\.rs:30:43: replace \| with \^ in crossing_scan_flags$',
+]
