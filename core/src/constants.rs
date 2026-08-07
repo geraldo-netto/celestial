@@ -576,3 +576,63 @@ pub const OBLIQUITY_J2000: f64 = 23.439_291_111;
 pub const ARCSEC_PER_RAD: f64 = 206_264.806;
 /// Radians per arcsecond.
 pub const RAD_PER_ARCSEC: f64 = 1.0 / 206_264.806;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn derived_integer_constants_match_public_contract() {
+        let cases = [
+            (ECL_NUT, -1),
+            (VARUNA, 30_000),
+            (NALL_NAT_POINTS, 38),
+            (FIXSTAR, -10),
+            (FLG_ASTROMETRIC, 1_536),
+            (ECL_ALLTYPES_SOLAR, 63),
+            (ECL_ALLTYPES_LUNAR, 84),
+            (ECL_ONE_TRY, 32_768),
+            (BIT_HINDU_RISING, 896),
+            (HELFLAG_SEARCH_1_PERIOD, 2_048),
+            (HELFLAG_VISLIM_DARK, 4_096),
+            (HELFLAG_VISLIM_NOMOON, 8_192),
+            (HELFLAG_VISLIM_PHOTOPIC, 16_384),
+            (HELFLAG_VISLIM_SCOTOPIC, 32_768),
+            (HELFLAG_AV, 65_536),
+            (HELFLAG_AVKIND_VR, 65_536),
+            (HELFLAG_AVKIND_PTO, 131_072),
+            (HELFLAG_AVKIND_MIN7, 262_144),
+            (HELFLAG_AVKIND_MIN9, 524_288),
+        ];
+
+        for (actual, expected) in cases {
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn tidal_acceleration_constants_keep_negative_signs() {
+        let cases = [
+            (TIDAL_DE200, -23.8946),
+            (TIDAL_DE403, -25.580),
+            (TIDAL_DE404, -25.580),
+            (TIDAL_DE405, -25.826),
+            (TIDAL_DE406, -25.826),
+            (TIDAL_DE421, -25.85),
+            (TIDAL_DE422, -25.85),
+            (TIDAL_DE430, -25.82),
+            (TIDAL_DE431, -25.82),
+            (TIDAL_26, -26.0),
+            (TIDAL_STEPHENSON_2016, -25.85),
+        ];
+
+        for (actual, expected) in cases {
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn radians_per_arcsecond_is_reciprocal() {
+        assert!((RAD_PER_ARCSEC - 4.848_136_816_903_219e-6).abs() < f64::EPSILON);
+    }
+}
