@@ -159,11 +159,14 @@ pub fn parse_coord(s: &str) -> Option<f64> {
         Some('n') | Some('s') => 90.0,
         _ => 180.0,
     };
-    if deg > max_deg || min >= 60.0 || sec >= 60.0 {
+    if min >= 60.0 || sec >= 60.0 {
         return None;
     }
 
     let val = deg + min / 60.0 + sec / 3600.0;
+    if val > max_deg {
+        return None;
+    }
     let negative = match dir {
         Some('s') | Some('w') => true,
         None => leading_neg,
@@ -175,19 +178,17 @@ pub fn parse_coord(s: &str) -> Option<f64> {
 /// Decompose a geographic coordinate into `[degrees, minutes, seconds]` (all positive).
 #[must_use]
 pub fn geo_to_dms(coord: f64) -> [i32; 3] {
-    let c = coord.abs();
-    let deg = c as i32;
-    let rem = c - deg as f64;
-    let min = (rem * 60.0).round() as i32;
-    let rem2 = rem - min as f64 / 60.0;
-    let sec = (rem2 * 3600.0).round() as i32;
-    [deg, min, sec.max(0)]
+    let total_seconds = (coord.abs() * 3600.0).round() as i64;
+    let deg = total_seconds / 3600;
+    let min = total_seconds % 3600 / 60;
+    let sec = total_seconds % 60;
+    [deg as i32, min as i32, sec as i32]
 }
 
 /// Format a geographic coordinate as `"DD:N|S:MM:SS"` (latitude) or `"DDD:E|W:MM:SS"` (longitude).
 pub fn format_coord(coord: f64, is_latitude: bool) -> Option<String> {
     let max = if is_latitude { 90.0 } else { 180.0 };
-    if coord.abs() > max {
+    if !coord.is_finite() || coord.abs() > max {
         return None;
     }
     let [d, m, s] = geo_to_dms(coord);
@@ -270,5 +271,161 @@ mod cov_tests {
     fn norm360_helper_wraps() {
         assert!((norm360(361.0) - 1.0).abs() < 1e-9);
         assert!((norm360(-1.0) - 359.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn degree_helpers_lock_wrap_boundaries() {
+        for (input, expected) in [(0.0, 0.0), (360.0, 0.0), (-360.0, 0.0), (721.0, 1.0)] {
+            assert_eq!(norm360(input), expected);
+        }
+        for (p1, p2, expected) in [
+            (10.0, 20.0, 10.0),
+            (10.0, 350.0, -20.0),
+            (0.0, 180.0, 180.0),
+            (0.0, 181.0, -179.0),
+        ] {
+            assert_eq!(diff_deg_signed(p1, p2), expected);
+        }
+        for (p1, p2, expected) in [(10.0, 20.0, 10.0), (350.0, 10.0, 20.0)] {
+            assert_eq!(diff_deg(p1, p2), expected);
+        }
+    }
+
+    #[test]
+    fn degsplit_locks_zodiac_components() {
+        for (input, expected) in [
+            (0.0, [0, 0, 0, 0]),
+            (123.5, [3, 4, 30, 0]),
+            (123.501, [3, 4, 30, 3]),
+            (-1.0, [29, 11, 0, 0]),
+            (361.25, [1, 0, 15, 0]),
+        ] {
+            assert_eq!(degsplit(input), expected);
+        }
+    }
+
+    #[test]
+    fn names_and_house_systems_are_exact() {
+        let signs = [
+            "Aries",
+            "Taurus",
+            "Gemini",
+            "Cancer",
+            "Leo",
+            "Virgo",
+            "Libra",
+            "Scorpio",
+            "Sagittarius",
+            "Capricorn",
+            "Aquarius",
+            "Pisces",
+        ];
+        for (index, expected) in signs.into_iter().enumerate() {
+            assert_eq!(sign_name(index as i32), Some(expected));
+        }
+        assert_eq!(sign_name(-1), None);
+        assert_eq!(sign_name(12), None);
+
+        for &(code, id, alias) in HOUSE_SYSTEMS {
+            assert_eq!(house_system_id(code), Some(id));
+            assert_eq!(house_system_char(id), Some(code));
+            if let Some(alias) = alias {
+                assert_eq!(house_system_id(alias), Some(id));
+            }
+        }
+        assert_eq!(house_system_id(b'!'), None);
+        assert_eq!(house_system_char(-1), None);
+        assert_eq!(house_system_char(16), None);
+    }
+
+    #[test]
+    fn sidereal_modes_lock_boundaries() {
+        assert_eq!(sidereal_mode_flag(0), Some(256));
+        assert_eq!(sidereal_mode_flag(22), Some(255));
+        assert_eq!(sidereal_mode_flag(-1), None);
+        assert_eq!(sidereal_mode_flag(23), None);
+        for mode in 1..=21 {
+            assert_eq!(sidereal_mode_flag(mode), Some(mode - 1));
+            assert_eq!(sidereal_mode_id(mode - 1), Some(mode));
+        }
+        assert_eq!(sidereal_mode_id(255), Some(22));
+        assert_eq!(sidereal_mode_id(256), Some(0));
+        assert_eq!(sidereal_mode_id(-1), None);
+        assert_eq!(sidereal_mode_id(21), None);
+    }
+
+    #[test]
+    fn coordinate_parsing_locks_formats_and_signs() {
+        for (input, expected) in [
+            ("51:30:36N", 51.51),
+            ("51°30'36\"S", -51.51),
+            ("2:20E", 2.0 + 20.0 / 60.0),
+            ("2:20W", -(2.0 + 20.0 / 60.0)),
+            ("-48.9", -48.9),
+            ("-48.9N", 48.9),
+            ("90N", 90.0),
+            ("180W", -180.0),
+        ] {
+            assert_eq!(parse_coord(input), Some(expected));
+        }
+    }
+
+    #[test]
+    fn coordinate_parsing_rejects_invalid_ranges() {
+        for input in [
+            "",
+            "garbage",
+            "91N",
+            "181E",
+            "90:00:01N",
+            "180:00:01E",
+            "12:60N",
+            "12:00:60W",
+        ] {
+            assert_eq!(parse_coord(input), None, "input={input}");
+        }
+    }
+
+    #[test]
+    fn coordinate_decomposition_rounds_total_seconds() {
+        for (input, expected) in [
+            (0.0, [0, 0, 0]),
+            (51.5074, [51, 30, 27]),
+            (-2.35, [2, 21, 0]),
+            (51.509, [51, 30, 32]),
+            (12.9999, [13, 0, 0]),
+        ] {
+            assert_eq!(geo_to_dms(input), expected);
+        }
+    }
+
+    #[test]
+    fn coordinate_formatting_is_exact() {
+        for (coord, latitude, expected) in [
+            (51.5, true, Some("51:N:30:00")),
+            (-51.5, true, Some("51:S:30:00")),
+            (2.35, false, Some("002:E:21:00")),
+            (-2.35, false, Some("002:W:21:00")),
+            (90.0, true, Some("90:N:00:00")),
+            (180.0, false, Some("180:E:00:00")),
+            (90.1, true, None),
+            (180.1, false, None),
+        ] {
+            assert_eq!(format_coord(coord, latitude).as_deref(), expected);
+        }
+        assert_eq!(format_coord(f64::NAN, true), None);
+        assert_eq!(format_coord(f64::INFINITY, false), None);
+    }
+
+    #[test]
+    fn centisecond_formatters_are_exact() {
+        assert_eq!(centisec_to_deg_str(366_123), "  1°01'01\"");
+        assert_eq!(centisec_to_deg_str(-366_123), " -1°01'01\"");
+        assert_eq!(centisec_to_lonlat_str(366_123, 'E', 'W'), "  1E01'01\"");
+        assert_eq!(centisec_to_lonlat_str(-366_123, 'E', 'W'), "  1W01'01\"");
+        assert_eq!(centisec_to_time_str(366_123, ':', false), "01:01:01");
+        assert_eq!(centisec_to_time_str(6_123, ':', false), "00:01:01");
+        assert_eq!(centisec_to_time_str(6_123, ':', true), "01:01");
+        assert_eq!(centisec_to_time_str(0, '-', true), "00-00");
     }
 }
