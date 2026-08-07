@@ -30,6 +30,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | ARCH-10 | DECIDED | L | Bindings still expose broad per-language adapter surfaces rather than shared codegen-only APIs. | Same as DUP-1 / DP-4; byte/API churn and PHP unverifiable path made full codegen net-negative. |
 | ARCH-11 | DECIDED | S | `bindings/ffi/src/lib.rs:18` uses `pub use celestial_core::*`, so new core public API can expand binding compile surfaces. | KEEP — bindings intentionally consume the whole published core facade. Explicit lists would duplicate 200+ root exports. |
 | ARCH-12 | DECIDED | S | `core/src/lib.rs` re-exports raw Swiss-Ephemeris-style constants alongside typed `Body` / `CalcFlags` APIs. | Back-compat layer for bindings and existing Rust users; tightening would be a published API break. |
+| SONAR-ARCH-1 | OPEN | S | SonarCloud `rust:S2208` reports wildcard parent imports in `render/config.rs`, `pipeline.rs`, and `registry.rs`. | Replace each wildcard with its explicit module dependencies. |
 
 ## Business / Design Patterns / DDD
 
@@ -55,6 +56,8 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | CC-6 | DECIDED | S | `cli/src/cmd/render/calendar_overlays.rs:509 render_day_cell` sits at exactly CC 10. | Compliant but no headroom. If extended, split moon-glyph and omer-badge rendering into helpers. |
 | CC-7 | DECIDED | S | `core/src/body/mod.rs:119 Body::is_known_id` is a flat range ladder. | Still compliant; flat documented id windows are clearer than hiding the ranges in a table. |
 | LINT-1 | OPEN | S | Warning-clean clippy is not maintained across all tracked Rust: `core/src/astronomy/houses.rs:923` triggers `byte_char_slices`, and standalone PHP `match_aspect3` / `match_aspect4` trigger `too_many_arguments`. | Apply the byte-slice suggestion; for the published flat FFI signatures, add the same targeted lint rationale already used by core/Python or refactor all bindings together. |
+| SONAR-CC-1 | OPEN | S | SonarCloud `rust:S3776` reports cognitive complexity 16 in `render/config.rs::load_config` and `fuzz/src/main.rs::test_secondary_progressions_midpoints`. | Extract cohesive helpers; keep every resulting function at complexity 10 or below. |
+| SONAR-CC-2 | OPEN | — | SonarCloud `php:S107` reports 20 high-arity declarations in generated `phpstan-stubs.php`. | Generated published API contract; cover with the generated-file analysis decision in SONAR-CONF-1. |
 
 ## Code Duplication
 
@@ -65,6 +68,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | DUP-3 | DECIDED | — | Deterministic `core/tests/rel_clamps.rs` and randomized `fuzz/src/main.rs::test_rel_clamps` overlap on body-id edge coverage. | Intentional two-tier coverage split: `cargo test` regression plus opt-in fuzz/property run. |
 | DUP-4 | DECIDED | — | `revjul` / `revjul_hms` have three language-specific return shapes. | Published API idioms differ; normalizing would break bindings. |
 | DUP-5 | DECIDED | — | Per-tradition SVG wheel geometry uses similar-looking constants. | Distinct layout contracts; shared pieces are already factored. |
+| SONAR-DUP-1 | OPEN | S | SonarCloud `python:S5976` reports three copy-shaped Easter computus tests. | Consolidate cases with `subTest` while preserving individual case labels. |
 
 ## Composition
 
@@ -85,6 +89,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 |---|---|---|---|---|
 | CONF-1 | OPEN | S | `render::compute` validates arguments before `load_config`, so config-provided values bypass validation. A config with `lat = 999` renders successfully and exposes 999 in the context. | Merge config first, then validate the effective arguments; add config-path tests for non-finite and out-of-range values. |
 | CONF-2 | OPEN | M | Config precedence infers whether the CLI supplied a value by comparing it with sentinel defaults (`now`, `0.0`, `P`). Explicit `--lat 0 --lon 0`, `--date now`, or `--hsys P` can therefore be overwritten by config despite the documented “CLI flags take precedence” rule. | Preserve Clap value-source information or model defaultable fields as `Option<T>` until after config merging. |
+| SONAR-CONF-1 | OPEN | S | SonarCloud analyzes generated `bindings/php/phpstan-stubs.php`, producing 1,824 non-actionable `php:S1172`, `php:S100`, and `php:S107` findings from empty stub bodies, snake_case public API names, and parity-mandated arities. | Exclude only this auto-generated contract from source analysis; retain syntax and binding parity gates. |
 
 ## Data Structure
 
@@ -103,8 +108,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-
-(no findings — dependency set is small and feature checks pass for default, minimal, timezone-only, and calendar-only core builds.)
+| SONAR-DEP-1 | OPEN | S | SonarCloud `text:S8565` reports that Python build/dev dependencies lack a recognized lock file. | Generate and validate `bindings/python/uv.lock`; use it in Python CI so lock is operational, not decorative. |
 
 ## Design Thinking
 
@@ -194,6 +198,9 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 |---|---|---|---|---|
 | REL-16 | OPEN | L | Public TT/ET and UT variants have contradictory time-scale behavior. `fixstar_ut`, `fixstar2_ut`, `nod_aps_ut`, `ayanamsa_ut`, and `ayanamsa_ex_ut` pass UT straight into TT math; `solcross` / `mooncross` are documented as ET but search with `calc_ut`; `helio_cross_ut` is an exact alias of the ET function. Tests often require equality for the same numeric JD, locking in the mismatch. | Define the scale of every input/output, apply ΔT conversion at one boundary, and replace alias-equality tests with equivalent-instant tests (UT input versus TT input shifted by ΔT) plus external reference values. |
 | REL-17 | OPEN | S | `mesoamerican_calendars.svg.tt` fails with `undefined value (in t:75)` for the valid instant `2000-01-01 00:00 UTC`, although the built-in Mesoamerican renderer and `--print-context` succeed with complete data. | Reproduce with the bundled template, isolate the zero-index calendar value that MiniJinja rejects, and add a second template integration case covering this instant. |
+| SONAR-REL-1 | OPEN | S | SonarCloud `python:S5863` reports 16 tautological Python assertions that compare literals or expressions with themselves. | Delete tests with no production behavior; replace any retained case with meaningful expected-output assertions. |
+| SONAR-REL-2 | OPEN | M | SonarCloud `rust:S2193` reports 14 floating-point-driven loops across astronomy search and rendering code. | Use integer-bounded iteration or closed-form normalization where applicable; preserve search bounds and add/retain boundary coverage. |
+| SONAR-REL-3 | OPEN | S | SonarCloud `typescript:S5906` reports five generic array-length assertions in native JS tests. | Use Jest's `toHaveLength` matcher for better diagnostics. |
 
 ## Robustness / Recovery
 
@@ -246,3 +253,4 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | UNUSED-1 | DECIDED | — | No new unused public-shaped production callables found in this rescan. | `cargo xtask parity`, binding stub checks, workspace tests, and prior public API review all remain green; existing library-only APIs are accounted for under WIRE-1. |
+| SONAR-UNUSED-1 | OPEN | — | SonarCloud `php:S1172` reports 1,290 unused parameters in generated PHP stub declarations. | Empty bodies are required by the stub format and signatures mirror the published API; cover with SONAR-CONF-1. |
