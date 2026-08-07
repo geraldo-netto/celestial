@@ -8,14 +8,14 @@ if (!extension_loaded('celestial-php')) {
 }
 
 /** @return array<mixed> */
-function expect_array(mixed $value): array {
+function expectArray(mixed $value): array {
     if (!is_array($value)) {
         throw new RuntimeException('expected array in binding golden fixture');
     }
     return $value;
 }
 
-function assert_close(float $actual, float $expected, float $tolerance, string $label): void {
+function assertClose(float $actual, float $expected, float $tolerance, string $label): void {
     if (!is_finite($actual) || abs($actual - $expected) > $tolerance) {
         throw new RuntimeException("$label: expected $expected, got $actual");
     }
@@ -25,7 +25,7 @@ function assert_close(float $actual, float $expected, float $tolerance, string $
  * @param array<mixed> $actual
  * @param array<mixed> $expected
  */
-function assert_vector_close(
+function assertVectorClose(
     array $actual,
     array $expected,
     float $tolerance,
@@ -35,7 +35,7 @@ function assert_vector_close(
         throw new RuntimeException("$label: vector length mismatch");
     }
     foreach ($actual as $index => $value) {
-        assert_close((float)$value, (float)$expected[$index], $tolerance, "{$label}[$index]");
+        assertClose((float)$value, (float)$expected[$index], $tolerance, "{$label}[$index]");
     }
 }
 
@@ -44,22 +44,22 @@ $fixture_json = file_get_contents($fixture_path);
 if ($fixture_json === false) {
     throw new RuntimeException("cannot read $fixture_path");
 }
-$fixture = expect_array(json_decode($fixture_json, true, flags: JSON_THROW_ON_ERROR));
+$fixture = expectArray(json_decode($fixture_json, true, flags: JSON_THROW_ON_ERROR));
 $tolerance = (float)$fixture['tolerance'];
 
-$calc = expect_array($fixture['calc_ut']);
-foreach (expect_array($calc['cases']) as $raw_case) {
-    $case = expect_array($raw_case);
+$calc = expectArray($fixture['calc_ut']);
+foreach (expectArray($calc['cases']) as $raw_case) {
+    $case = expectArray($raw_case);
     $position = calc_ut((float)$calc['jd'], (int)$case['body'], (int)$calc['flags']);
-    assert_vector_close(
+    assertVectorClose(
         $position,
-        expect_array($case['position']),
+        expectArray($case['position']),
         $tolerance,
         "calc_ut body {$case['body']}"
     );
 }
 
-$houses = expect_array($fixture['houses_ex']);
+$houses = expectArray($fixture['houses_ex']);
 $house_result = houses_ex(
     (float)$houses['jd'],
     (float)$houses['lat'],
@@ -67,36 +67,36 @@ $house_result = houses_ex(
     (int)$houses['hsys'],
     (int)$houses['flags']
 );
-assert_vector_close(
-    expect_array($house_result['cusps']),
-    expect_array($houses['cusps']),
+assertVectorClose(
+    expectArray($house_result['cusps']),
+    expectArray($houses['cusps']),
     $tolerance,
     'houses_ex cusps'
 );
-assert_vector_close(
-    expect_array($house_result['ascmc']),
-    expect_array($houses['ascmc']),
+assertVectorClose(
+    expectArray($house_result['ascmc']),
+    expectArray($houses['ascmc']),
     $tolerance,
     'houses_ex ascmc'
 );
 
-$rise = expect_array($fixture['rise_trans']);
+$rise = expectArray($fixture['rise_trans']);
 $rise_result = rise_trans(
     (float)$rise['jd'],
     (int)$rise['planet'],
     (int)$rise['flags'],
     (int)$rise['event_type'],
-    expect_array($rise['geopos']),
+    expectArray($rise['geopos']),
     (float)$rise['pressure_mb'],
     (float)$rise['temp_c']
 );
-assert_close(
+assertClose(
     (float)$rise_result['ret'][0],
     (float)$rise['ret_flags'],
     0.0,
     'rise_trans ret_flags'
 );
-assert_close(
+assertClose(
     (float)$rise_result['tret'][0],
     (float)$rise['tret'],
     $tolerance,
