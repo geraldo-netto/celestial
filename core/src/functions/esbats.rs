@@ -361,6 +361,162 @@ mod cov_tests {
     use super::*;
 
     #[test]
+    fn names_and_alternates_are_exact() {
+        let cases = [
+            (
+                EsbatName::Wolf,
+                "Wolf Moon",
+                &["Old Moon", "Ice Moon", "Moon After Yule"][..],
+            ),
+            (
+                EsbatName::Snow,
+                "Snow Moon",
+                &["Hunger Moon", "Storm Moon", "Bone Moon"],
+            ),
+            (
+                EsbatName::Worm,
+                "Worm Moon",
+                &["Crow Moon", "Sap Moon", "Sugar Moon", "Crust Moon"],
+            ),
+            (
+                EsbatName::Pink,
+                "Pink Moon",
+                &["Egg Moon", "Fish Moon", "Sprouting Grass Moon"],
+            ),
+            (
+                EsbatName::Flower,
+                "Flower Moon",
+                &["Corn Planting Moon", "Milk Moon"],
+            ),
+            (
+                EsbatName::Strawberry,
+                "Strawberry Moon",
+                &["Rose Moon", "Hot Moon", "Honey Moon", "Mead Moon"],
+            ),
+            (
+                EsbatName::Buck,
+                "Buck Moon",
+                &["Thunder Moon", "Hay Moon", "Wort Moon"],
+            ),
+            (
+                EsbatName::Sturgeon,
+                "Sturgeon Moon",
+                &["Grain Moon", "Green Corn Moon", "Red Moon"],
+            ),
+            (EsbatName::Harvest, "Harvest Moon", &["Corn Moon"]),
+            (
+                EsbatName::Hunter,
+                "Hunter's Moon",
+                &["Blood Moon", "Dying Grass Moon", "Travel Moon"],
+            ),
+            (
+                EsbatName::Beaver,
+                "Beaver Moon",
+                &["Frost Moon", "Mourning Moon"],
+            ),
+            (
+                EsbatName::Cold,
+                "Cold Moon",
+                &["Long Nights Moon", "Oak Moon", "Moon Before Yule"],
+            ),
+            (EsbatName::Blue, "Blue Moon", &["Full Moon", "Aerra Geola"]),
+        ];
+        for (name, display, alternates) in cases {
+            assert_eq!(name.display_name(), display);
+            assert_eq!(name.alt_names(), alternates);
+        }
+    }
+
+    #[test]
+    fn full_moon_algorithms_match_regression_vectors() {
+        assert_eq!(elongation(2_451_545.0).unwrap(), 302.947_972_773_529_44);
+        assert_eq!(
+            full_moon_signed(2_451_545.0).unwrap(),
+            122.947_972_773_529_44
+        );
+        assert_eq!(next_full_moon(2_451_545.0).unwrap(), 2_451_564.695_414_848);
+        assert_eq!(
+            newton_refine_full_moon(2_451_564.7, 2_451_563.0, 2_451_566.0).unwrap(),
+            2_451_564.695_414_705
+        );
+        assert_eq!(
+            bisect_full_moon(2_451_563.0, 2_451_566.0).unwrap(),
+            2_451_564.695_414_848_6
+        );
+        assert_eq!(
+            bisect_fallback_full_moon(2_451_563.0, 2_451_566.0).unwrap(),
+            2_451_564.695_373_535
+        );
+
+        let esbat = next_esbat(2_451_545.0).unwrap();
+        assert_eq!(esbat.name, EsbatName::Wolf);
+        assert_eq!(esbat.display_name, "Wolf Moon");
+        assert_eq!(esbat.jd, 2_451_564.695_414_848);
+
+        let year = esbats_for_year(2024).unwrap();
+        assert_eq!(year.len(), 12);
+        assert_eq!(
+            year.iter().map(|esbat| esbat.jd).collect::<Vec<_>>(),
+            [
+                2_460_335.246_546_664,
+                2_460_365.021_785_906,
+                2_460_394.792_341_809,
+                2_460_424.492_619_832_5,
+                2_460_454.078_767_684_8,
+                2_460_483.547_498_919_5,
+                2_460_512.929_167_372,
+                2_460_542.268_537_950_7,
+                2_460_571.607_732_561_4,
+                2_460_600.976_912_261,
+                2_460_630.395_015_158_7,
+                2_460_659.876_584_482_4,
+            ]
+        );
+
+        let year_end = crate::julday(2024, 12, 31, 0.0, Calendar::Gregorian);
+        assert_eq!(
+            next_esbat(year_end).unwrap(),
+            esbats_for_year(2025).unwrap()[0]
+        );
+    }
+
+    #[test]
+    fn naming_priorities_and_month_defaults_are_exact() {
+        let jd = |month, day| crate::julday(2024, month, day, 0.0, Calendar::Gregorian);
+        let moons = [jd(1, 5), jd(1, 30), jd(9, 20), jd(10, 20), jd(11, 20)];
+        assert_eq!(
+            assign_names(&moons, jd(9, 22)),
+            [
+                EsbatName::Wolf,
+                EsbatName::Blue,
+                EsbatName::Harvest,
+                EsbatName::Hunter,
+                EsbatName::Beaver,
+            ]
+        );
+        assert!(assign_names(&[], jd(9, 22)).is_empty());
+
+        let expected = [
+            EsbatName::Wolf,
+            EsbatName::Snow,
+            EsbatName::Worm,
+            EsbatName::Pink,
+            EsbatName::Flower,
+            EsbatName::Strawberry,
+            EsbatName::Buck,
+            EsbatName::Sturgeon,
+            EsbatName::Sturgeon,
+            EsbatName::Hunter,
+            EsbatName::Beaver,
+            EsbatName::Cold,
+        ];
+        for (month, expected) in (1..=12).zip(expected) {
+            assert_eq!(name_by_month(month), expected);
+        }
+        assert_eq!(name_by_month(0), EsbatName::Blue);
+    }
+
+    #[test]
     fn bisect_fallback_full_moon_brackets_around_known_full() {
         // Full moon near JD 2_451_553 (J2000 + ~8d). Use a 4-day window around it.
         let jd = bisect_fallback_full_moon(2_451_551.0, 2_451_555.0).expect("bracket");
