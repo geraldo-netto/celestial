@@ -40,7 +40,7 @@ pub fn calc_pctr(
     flags: CalcFlags,
 ) -> Result<PlanetPos> {
     let jde = jd_et.get();
-    let flags_pos = flags & !(CalcFlags::SPEED | CalcFlags::SPEED3);
+    let flags_pos = planetocentric_position_flags(flags);
     let (lon, lat, dist) = planetocentric_coords(jde, body, center, flags_pos)?;
     let (speed_lon, speed_lat, speed_dist) = planetocentric_speed(jde, body, center, flags)?;
     Ok(PlanetPos {
@@ -72,10 +72,10 @@ fn planetocentric_speed(
     center: Body,
     flags: CalcFlags,
 ) -> Result<(f64, f64, f64)> {
-    if !flags.is_speed() && (flags & CalcFlags::SPEED3).as_raw() == 0 {
+    if !planetocentric_speed_requested(flags) {
         return Ok((0.0, 0.0, 0.0));
     }
-    let flags_pos = flags & !(CalcFlags::SPEED | CalcFlags::SPEED3);
+    let flags_pos = planetocentric_position_flags(flags);
     let plus = planetocentric_coords(jde + 0.5, body, center, flags_pos)?;
     let minus = planetocentric_coords(jde - 0.5, body, center, flags_pos)?;
     Ok((
@@ -83,6 +83,14 @@ fn planetocentric_speed(
         plus.1 - minus.1,
         plus.2 - minus.2,
     ))
+}
+
+fn planetocentric_position_flags(flags: CalcFlags) -> CalcFlags {
+    flags & !(CalcFlags::SPEED | CalcFlags::SPEED3)
+}
+
+fn planetocentric_speed_requested(flags: CalcFlags) -> bool {
+    flags.is_speed() || (flags & CalcFlags::SPEED3).as_raw() != 0
 }
 
 fn to_cartesian(pos: &PlanetPos) -> [f64; 3] {
@@ -360,7 +368,7 @@ where
             .enumerate()
             .map(|(chunk_idx, chunk)| {
                 let f = Arc::clone(&f);
-                let offset = chunk_idx * chunk_size;
+                let offset = chunk_offset(chunk_idx, chunk_size);
                 let count = chunk.len();
                 let handle = s.spawn(move || {
                     crate::functions::config::set_thread_config(config);
@@ -382,6 +390,10 @@ where
         }
         sort_indexed_results(indexed)
     })
+}
+
+fn chunk_offset(chunk_index: usize, chunk_size: usize) -> usize {
+    chunk_index * chunk_size
 }
 
 fn parallel_worker_count(body_count: usize) -> usize {
@@ -550,11 +562,7 @@ impl<'a> MultiCalc<'a> {
     /// Order is guaranteed to match the input `bodies` slice.
     #[must_use]
     pub fn get_many(self) -> Vec<Result<PlanetPos>> {
-        let use_parallel = match self.opts.strategy {
-            CalcStrategy::Sequential => false,
-            CalcStrategy::Parallel => true,
-            CalcStrategy::Auto => self.bodies.len() > 2,
-        };
+        let use_parallel = should_parallel(self.opts.strategy, self.bodies.len());
 
         if use_parallel {
             if self.opts.use_ut {
@@ -581,6 +589,14 @@ impl<'a> MultiCalc<'a> {
     }
 }
 
+fn should_parallel(strategy: CalcStrategy, body_count: usize) -> bool {
+    match strategy {
+        CalcStrategy::Sequential => false,
+        CalcStrategy::Parallel => true,
+        CalcStrategy::Auto => body_count > 2,
+    }
+}
+
 #[cfg(test)]
 mod cov_tests {
     use super::*;
@@ -604,6 +620,253 @@ mod cov_tests {
 
     fn lon_diff(a: f64, b: f64) -> f64 {
         (a - b + 180.0).rem_euclid(360.0) - 180.0
+    }
+
+    fn assert_position(actual: &PlanetPos, expected: [f64; 6]) {
+        let fields = [
+            actual.lon,
+            actual.lat,
+            actual.dist,
+            actual.speed_lon,
+            actual.speed_lat,
+            actual.speed_dist,
+        ];
+        for (actual, expected) in fields.into_iter().zip(expected) {
+            assert!((actual - expected).abs() < 1e-12, "{actual} != {expected}");
+        }
+    }
+
+    #[test]
+    fn planetocentric_positions_and_speed_flags_are_exact() {
+        let jd = JulianDay::new(2_451_545.0);
+        let base = calc_pctr(jd, Body::MARS, Body::JUPITER, CalcFlags::BUILTIN).unwrap();
+        let speed = calc_pctr(
+            jd,
+            Body::MARS,
+            Body::JUPITER,
+            CalcFlags::BUILTIN | CalcFlags::SPEED,
+        )
+        .unwrap();
+        assert_position(
+            &base,
+            [
+                228.270_388_568_179_87,
+                0.976_173_096_554_336_8,
+                3.935_184_916_548_827_5,
+                0.0,
+                0.0,
+                0.0,
+            ],
+        );
+        assert_position(
+            &speed,
+            [
+                228.270_388_568_179_87,
+                0.976_173_096_554_336_8,
+                3.935_184_916_548_827_5,
+                -0.029_579_185_672_673_702,
+                0.005_806_338_871_955_696,
+                -0.010_004_481_699_836_809,
+            ],
+        );
+        assert_eq!(base.ret_flags, CalcFlags::BUILTIN.as_raw());
+        assert_eq!(
+            speed.ret_flags,
+            (CalcFlags::BUILTIN | CalcFlags::SPEED).as_raw()
+        );
+
+        let speed3 = calc_pctr(
+            jd,
+            Body::MARS,
+            Body::JUPITER,
+            CalcFlags::BUILTIN | CalcFlags::SPEED3,
+        )
+        .unwrap();
+        assert_position(
+            &speed3,
+            [
+                speed.lon,
+                speed.lat,
+                speed.dist,
+                speed.speed_lon,
+                speed.speed_lat,
+                speed.speed_dist,
+            ],
+        );
+
+        let future = JulianDay::new(2_463_456.789);
+        let regular_future =
+            calc_pctr(future, Body::MARS, Body::JUPITER, CalcFlags::BUILTIN).unwrap();
+        let equatorial = calc_pctr(
+            future,
+            Body::MARS,
+            Body::JUPITER,
+            CalcFlags::BUILTIN | CalcFlags::EQUATORIAL,
+        )
+        .unwrap();
+        let equatorial_speed = calc_pctr(
+            future,
+            Body::MARS,
+            Body::JUPITER,
+            CalcFlags::BUILTIN | CalcFlags::EQUATORIAL | CalcFlags::SPEED,
+        )
+        .unwrap();
+        assert_position(
+            &equatorial_speed,
+            [
+                equatorial.lon,
+                equatorial.lat,
+                equatorial.dist,
+                equatorial_speed.speed_lon,
+                equatorial_speed.speed_lat,
+                equatorial_speed.speed_dist,
+            ],
+        );
+        assert_ne!(equatorial.lon, regular_future.lon);
+    }
+
+    #[test]
+    fn planetocentric_flag_helpers_distinguish_speed_modes() {
+        let frame = CalcFlags::BUILTIN | CalcFlags::EQUATORIAL;
+        assert_eq!(planetocentric_position_flags(frame), frame);
+        assert_eq!(
+            planetocentric_position_flags(frame | CalcFlags::SPEED | CalcFlags::SPEED3),
+            frame
+        );
+        assert!(!planetocentric_speed_requested(frame));
+        assert!(planetocentric_speed_requested(frame | CalcFlags::SPEED));
+        assert!(planetocentric_speed_requested(frame | CalcFlags::SPEED3));
+    }
+
+    #[test]
+    fn fixed_star_magnitude_alias_preserves_catalog_value() {
+        assert_eq!(fixstar_mag("Sirius").unwrap(), -1.46);
+        assert_eq!(fixstar2_mag("Sirius").unwrap(), -1.46);
+    }
+
+    #[test]
+    fn vector_helpers_cover_zero_axes_and_angle_seam() {
+        assert_eq!(
+            subtract_vec([3.0, -2.0, 7.0], [1.0, 4.0, -1.0]),
+            [2.0, -6.0, 8.0]
+        );
+        assert_eq!(to_spherical([0.0, 0.0, 0.0]), (0.0, 0.0, 0.0));
+        assert_eq!(to_spherical([1.0, 0.0, 0.0]), (0.0, 0.0, 1.0));
+        assert_eq!(to_spherical([0.0, 1.0, 0.0]), (90.0, 0.0, 1.0));
+        assert_eq!(to_spherical([0.0, 0.0, 1.0]), (0.0, 90.0, 1.0));
+        assert_eq!(angle_delta(1.0, 359.0), 2.0);
+        assert_eq!(angle_delta(359.0, 1.0), -2.0);
+        assert_eq!(angle_delta(180.0, 0.0), -180.0);
+
+        let pos = PlanetPos {
+            lon: 0.0,
+            lat: 0.0,
+            dist: 2.0,
+            ..PlanetPos::default()
+        };
+        assert_eq!(to_cartesian(&pos), [2.0, 0.0, 0.0]);
+
+        let same = calc_pctr(
+            JulianDay::new(2_451_545.0),
+            Body::MARS,
+            Body::MARS,
+            CalcFlags::BUILTIN | CalcFlags::SPEED,
+        )
+        .unwrap();
+        assert_position(&same, [0.0; 6]);
+    }
+
+    #[test]
+    fn lunar_nodes_wrapper_preserves_opposite_points() {
+        let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
+        let result = nod_aps(JulianDay::new(2_451_545.0), Body::MOON, flags, 0).unwrap();
+        assert_eq!(result.nasc[0], 125.044_555_501);
+        assert_eq!(result.ndsc[0], 305.044_555_501);
+        assert_eq!(result.peri[0], 83.353_243);
+        assert_eq!(result.aphe[0], 263.353_243);
+        assert_eq!(result.ret_flags, flags.as_raw());
+    }
+
+    #[test]
+    fn planetary_node_speed_flag_controls_velocity() {
+        let jd = JulianDay::new(2_451_545.0);
+        let base = nod_aps(jd, Body::MARS, CalcFlags::BUILTIN, 0).unwrap();
+        let speed = nod_aps(jd, Body::MARS, CalcFlags::BUILTIN | CalcFlags::SPEED, 0).unwrap();
+        assert_eq!((base.nasc[3], base.peri[3]), (0.0, 0.0));
+        assert_ne!(speed.nasc[3], 0.0);
+        assert_ne!(speed.peri[3], 0.0);
+    }
+
+    #[test]
+    fn orbital_distance_extrema_follow_elements() {
+        let jd = JulianDay::new(2_451_545.0);
+        let elements = get_orbital_elements(jd, Body::MARS, CalcFlags::BUILTIN).unwrap();
+        let distances = orbit_max_min_true_distance(jd, Body::MARS, CalcFlags::BUILTIN).unwrap();
+        assert_eq!(
+            distances.dmax,
+            elements.semi_major_axis * (1.0 + elements.eccentricity)
+        );
+        assert_eq!(
+            distances.dmin,
+            elements.semi_major_axis * (1.0 - elements.eccentricity)
+        );
+        assert_eq!(distances.dtrue, elements.semi_major_axis);
+    }
+
+    #[test]
+    fn parallel_policy_and_recovery_helpers_are_exact() {
+        assert_eq!(parallel_worker_count(0), 0);
+        assert_eq!(chunk_offset(0, 4), 0);
+        assert_eq!(chunk_offset(3, 4), 12);
+
+        assert!(!should_parallel(CalcStrategy::Sequential, 10));
+        assert!(should_parallel(CalcStrategy::Parallel, 0));
+        assert!(!should_parallel(CalcStrategy::Auto, 2));
+        assert!(should_parallel(CalcStrategy::Auto, 3));
+
+        let failures = thread_panic_results(7, 3);
+        assert_eq!(failures.len(), 3);
+        assert_eq!(
+            failures.iter().map(|(index, _)| *index).collect::<Vec<_>>(),
+            [7, 8, 9]
+        );
+        for (_, result) in failures {
+            assert!(matches!(result, Err(Error::Calc(message)) if message == "thread panicked"));
+        }
+    }
+
+    #[test]
+    fn calculation_builders_return_requested_positions() {
+        let jd = JulianDay::new(2_451_545.0);
+        let flags = CalcFlags::BUILTIN;
+        let single = CalcOptions::tt(jd, flags).body(Body::MARS).get().unwrap();
+        let direct = calc(jd, Body::MARS, flags).unwrap();
+        assert_position(
+            &single,
+            [direct.lon, direct.lat, direct.dist, 0.0, 0.0, 0.0],
+        );
+
+        let bodies = [Body::SUN, Body::MOON, Body::MARS];
+        let many = CalcOptions::tt(jd, flags)
+            .strategy(CalcStrategy::Sequential)
+            .bodies(&bodies)
+            .get_many();
+        assert_eq!(many.len(), bodies.len());
+        for (result, body) in many.into_iter().zip(bodies) {
+            assert_eq!(result.unwrap().lon, calc(jd, body, flags).unwrap().lon);
+        }
+    }
+
+    #[test]
+    fn calc_many_returns_one_position_per_body() {
+        let jd = JulianDay::new(2_451_545.0);
+        let flags = CalcFlags::BUILTIN;
+        let bodies = [Body::SUN, Body::MOON, Body::MARS];
+        let many = calc_many(jd, &bodies, flags);
+        assert_eq!(many.len(), bodies.len());
+        for (result, body) in many.into_iter().zip(bodies) {
+            assert_eq!(result.unwrap().lon, calc(jd, body, flags).unwrap().lon);
+        }
     }
 
     #[test]
