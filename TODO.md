@@ -30,6 +30,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | ARCH-10 | DECIDED | L | Bindings still expose broad per-language adapter surfaces rather than shared codegen-only APIs. | Same as DUP-1 / DP-4; byte/API churn and PHP unverifiable path made full codegen net-negative. |
 | ARCH-11 | DECIDED | S | `bindings/ffi/src/lib.rs:18` uses `pub use celestial_core::*`, so new core public API can expand binding compile surfaces. | KEEP — bindings intentionally consume the whole published core facade. Explicit lists would duplicate 200+ root exports. |
 | ARCH-12 | DECIDED | S | `core/src/lib.rs` re-exports raw Swiss-Ephemeris-style constants alongside typed `Body` / `CalcFlags` APIs. | Back-compat layer for bindings and existing Rust users; tightening would be a published API break. |
+| SONAR-PHP-2 | DECIDED | — | Sonar `php:S112` flags four generic `RuntimeException` throws in the standalone PHP golden-test executable. | KEEP — the process has one uncaught failure path; dedicated exception subclasses add no handling or diagnostic value. |
 
 ## Business / Design Patterns / DDD
 
@@ -161,6 +162,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | PERF-9 | DECIDED | S | `parse_chart_type` calls `registered_chart_types()` twice on invalid input. | One-shot CLI parse path; cosmetic micro-perf. |
 | PERF-2/3 | DECIDED | — | Search code re-evaluates final `calc_ut` / `houses` with full flags after bisection. | Authoritative final result, not redundant; locked by regression tests. |
 | PERF-5 | DECIDED | M | `next_aspect_with2` dual-scan merge could be unified. | Precision-sensitive rewrite for marginal gain; byte-identical gate made it a deliberate no-op. |
+| SONAR-JS-3 | DECIDED | — | Sonar `javascript:S7721` asks to hoist two helpers out of test-suite callbacks. | KEEP — each callback executes once; moving local fixture helpers outward adds scope without avoiding repeated allocation. |
 
 ## Platform
 
@@ -190,6 +192,10 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
+| MUT-1 | OPEN | L | Full `cargo-mutants` baseline finds surviving core mutants, beginning with unasserted rise/set dispatch arms, body mappings, and derived constant values. | Add focused regression tests for every applicable survivor; document only proven equivalent or unreachable mutants, then rerun the survivor set to green. |
+| REL-43 | OPEN — parked | L | `losar_jd` assumes Losar is always the second new moon after the winter solstice; it returns 2025-01-29, while the official 2025 Tibetan Losar date is 2025-02-28 because the shortcut omits Phugpa leap-month rules. | Needs the full Phugpa true-month/intercalation, true-date correction, and skipped/repeated-day algorithm; do not substitute a one-year table or heuristic. Validate Janson's 2019–2027 vectors plus official dates when implemented. |
+| SONAR-BIND-1 | DECIDED | — | Sonar `typescript:S7758` prefers `codePointAt` at four FFI house-system call sites. | KEEP — `charCodeAt(0)` intentionally supplies a required one-byte ASCII integer; `codePointAt` widens the type with `undefined` without supporting a valid extra input. |
+| SONAR-PY-3 | DECIDED | — | Sonar `python:S1244` flags two exact float equalities in binding tests. | KEEP — half-day Julian values are exactly representable and coordinate transformation must preserve the distance component bit-for-bit. |
 | REL-16 | OPEN | L | Public TT/ET and UT variants have contradictory time-scale behavior. `fixstar_ut`, `fixstar2_ut`, `nod_aps_ut`, `ayanamsa_ut`, and `ayanamsa_ex_ut` pass UT straight into TT math; `solcross` / `mooncross` are documented as ET but search with `calc_ut`; `helio_cross_ut` is an exact alias of the ET function. Tests often require equality for the same numeric JD, locking in the mismatch. | Define the scale of every input/output, apply ΔT conversion at one boundary, and replace alias-equality tests with equivalent-instant tests (UT input versus TT input shifted by ΔT) plus external reference values. |
 | REL-17 | OPEN | S | `mesoamerican_calendars.svg.tt` fails with `undefined value (in t:75)` for the valid instant `2000-01-01 00:00 UTC`, although the built-in Mesoamerican renderer and `--print-context` succeed with complete data. | Reproduce with the bundled template, isolate the zero-index calendar value that MiniJinja rejects, and add a second template integration case covering this instant. |
 
