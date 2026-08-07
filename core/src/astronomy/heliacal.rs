@@ -38,6 +38,11 @@ fn extinction_mag(alt_deg: f64, pressure_mb: f64, temp_c: f64) -> f64 {
     k * airmass(alt_deg)
 }
 
+fn angular_separation(first: f64, second: f64) -> f64 {
+    let delta = (first - second).rem_euclid(360.0);
+    180.0 - (delta - 180.0).abs()
+}
+
 // ─── Sky brightness ───────────────────────────────────────────────────────────
 
 /// Sky surface brightness (mag/arcsec²) as function of altitude above horizon
@@ -45,12 +50,12 @@ fn extinction_mag(alt_deg: f64, pressure_mb: f64, temp_c: f64) -> f64 {
 #[must_use]
 pub fn sky_brightness(alt_deg: f64, sun_alt_deg: f64, moon_alt_deg: f64) -> f64 {
     // Sky brightness near astronomical twilight
-    let solar_component = if sun_alt_deg < -18.0 {
+    let solar_component = if (..-18.0).contains(&sun_alt_deg) {
         22.0 // dark sky
-    } else if sun_alt_deg < -12.0 {
+    } else if (-18.0..-12.0).contains(&sun_alt_deg) {
         // Astronomical to nautical twilight
         22.0 - (sun_alt_deg + 18.0) * 0.5
-    } else if sun_alt_deg < -6.0 {
+    } else if (-12.0..-6.0).contains(&sun_alt_deg) {
         // Civil to nautical twilight
         19.0 - (sun_alt_deg + 12.0) * 0.8
     } else {
@@ -58,14 +63,14 @@ pub fn sky_brightness(alt_deg: f64, sun_alt_deg: f64, moon_alt_deg: f64) -> f64 
     };
 
     // Moon contribution (simplified)
-    let moon_component = if moon_alt_deg > 0.0 {
+    let moon_component = if (0.0..).contains(&moon_alt_deg) {
         -0.8 * moon_alt_deg.sqrt()
     } else {
         0.0
     };
 
     // Brighter horizon (lower altitude)
-    let horizon_factor = if alt_deg < 10.0 {
+    let horizon_factor = if (..10.0).contains(&alt_deg) {
         -0.05 * (10.0 - alt_deg)
     } else {
         0.0
@@ -111,11 +116,11 @@ pub fn arcus_visionis(
     // Approximate: arc of vision ≈ 5° × (mag_limit - obj_mag)
     // where mag_limit depends on solar depression
     let solar_dep = -sun_alt; // positive when sun is below horizon
-    let mag_limit = if solar_dep < 6.0 {
+    let mag_limit = if (..6.0).contains(&solar_dep) {
         0.0 // impossible
-    } else if solar_dep < 12.0 {
+    } else if (6.0..12.0).contains(&solar_dep) {
         1.0 + (solar_dep - 6.0) * 0.8
-    } else if solar_dep < 18.0 {
+    } else if (12.0..18.0).contains(&solar_dep) {
         5.8 + (solar_dep - 12.0) * 0.5
     } else {
         8.8 // dark sky NELM
@@ -152,7 +157,6 @@ impl HeliacalEvent {
     /// Ephemeris' tolerant behaviour for unknown event codes.
     pub fn from_i32(v: i32) -> Self {
         match v {
-            1 => Self::HeliacalRising,
             2 => Self::HeliacalSetting,
             3 => Self::EveningFirst,
             4 => Self::MorningLast,
@@ -221,12 +225,7 @@ fn try_heliacal_at(
     let body = calc_ut(JulianDay::new(jd_event), body_num, 0).ok()?;
     let sun = calc_ut(JulianDay::new(jd_event), 0, 0).ok()?;
 
-    let elong_raw = (body.lon - sun.lon + 360.0).rem_euclid(360.0);
-    let elong = if elong_raw > 180.0 {
-        360.0 - elong_raw
-    } else {
-        elong_raw
-    };
+    let elong = angular_separation(body.lon, sun.lon);
     let obj_alt = elong.abs().clamp(0.0, 90.0) * 0.5;
 
     let arcv = arcus_visionis(body.lon, sun_alt_at_event, pressure_mb, temp_c);
@@ -295,18 +294,11 @@ pub fn heliacal_pheno(
 
     let pressure_mb = datm[0].max(900.0);
     let temp_c = datm[1];
-    let age = if dobs[0] > 0.0 { dobs[0] } else { 45.0 };
+    let age = dobs[0];
 
     if let Ok(body) = crate::astronomy::calc_ut(JulianDay::new(jd_ut), body_num, 0) {
         if let Ok(sun) = crate::astronomy::calc_ut(JulianDay::new(jd_ut), 0, 0) {
-            let elong = {
-                let d = (body.lon - sun.lon + 360.0).rem_euclid(360.0);
-                if d > 180.0 {
-                    360.0 - d
-                } else {
-                    d
-                }
-            };
+            let elong = angular_separation(body.lon, sun.lon);
 
             // Sun altitude (approx civil twilight)
             let sun_alt = -6.0;
@@ -346,7 +338,7 @@ pub fn vis_limit_mag(
 ) -> [f64; 8] {
     let pressure_mb = datm[0].max(900.0);
     let temp_c = datm[1];
-    let age = if dobs[0] > 0.0 { dobs[0] } else { 45.0 };
+    let age = dobs[0];
     let _ = helflag;
 
     let mut out = [0.0f64; 8];
@@ -360,14 +352,7 @@ pub fn vis_limit_mag(
         Err(_) => return out,
     };
 
-    let elong = {
-        let d = (body_pos.lon - sun_pos.lon + 360.0).rem_euclid(360.0);
-        if d > 180.0 {
-            360.0 - d
-        } else {
-            d
-        }
-    };
+    let elong = angular_separation(body_pos.lon, sun_pos.lon);
 
     // Approximate sun altitude at civil twilight
     let sun_alt = -6.0_f64;
@@ -479,5 +464,254 @@ mod tests {
         assert!(bortle9 >= 3.0, "bortle9 below floor: {bortle9}");
         // Monotone in the active range
         assert!(bright > bortle9, "bright={bright} bortle9={bortle9}");
+    }
+
+    #[test]
+    fn atmospheric_models_match_regression_vectors() {
+        assert_eq!(angular_separation(10.0, 350.0), 20.0);
+        assert_eq!(angular_separation(350.0, 10.0), 20.0);
+        assert_eq!(angular_separation(190.0, 10.0), 180.0);
+        assert_eq!(angular_separation(10.0, 10.0), 0.0);
+
+        let extinction = [
+            ((1013.25, 15.0, 550.0), 0.182_599_999_999_999_98),
+            ((700.0, -20.0, 400.0), 0.151_682_395_803_59),
+            ((1100.0, 40.0, 700.0), 0.188_610_020_641_511_06),
+        ];
+        for ((pressure, temp, wavelength), expected) in extinction {
+            assert_eq!(extinction_coeff(pressure, temp, wavelength), expected);
+        }
+        assert_eq!(extinction_mag(5.0, 1013.25, 15.0), 1.886_934_642_445_98);
+        assert_eq!(extinction_mag(60.0, 700.0, -20.0), 0.172_698_090_622_032_95);
+
+        let air = [
+            (-1.0, 40.0),
+            (0.0, 38.749_398_755_780_355),
+            (10.0, 5.580_737_148_681_893_5),
+            (90.0, 1.000_000_196_171_337),
+        ];
+        for (alt, expected) in air {
+            assert_eq!(airmass(alt), expected);
+        }
+
+        let sky = [
+            ((5.0, -20.0, -5.0), 21.75),
+            ((5.0, -15.0, 45.0), 14.883_436_854_000_504),
+            ((45.0, -8.0, -5.0), 15.8),
+            ((45.0, -9.0, -5.0), 16.6),
+            ((45.0, -6.0, -5.0), 15.0),
+            ((45.0, -3.0, -5.0), 15.0),
+        ];
+        for ((alt, sun_alt, moon_alt), expected) in sky {
+            assert_eq!(sky_brightness(alt, sun_alt, moon_alt), expected);
+        }
+
+        let limits = [
+            ((22.0, -1.0), 8.5),
+            ((8.0, 45.0), 6.5),
+            ((8.0, 90.0), 4.452_500_000_000_001),
+            ((4.0, 0.0), 3.0),
+        ];
+        for ((brightness, age), expected) in limits {
+            assert_eq!(limiting_magnitude(brightness, 1013.25, 15.0, age), expected);
+        }
+
+        let arcus = [
+            ((-1.0, -3.0), 11.5),
+            ((0.0, -6.0), 11.5),
+            ((1.0, -9.0), 12.2),
+            ((3.0, -15.0), 13.15),
+            ((8.8, -20.0), 0.0),
+            ((20.0, -20.0), 0.0),
+        ];
+        for ((magnitude, sun_alt), expected) in arcus {
+            assert_eq!(arcus_visionis(magnitude, sun_alt, 1013.25, 15.0), expected);
+        }
+    }
+
+    #[test]
+    fn public_outputs_match_regression_vectors() {
+        let dgeo = [12.5, 37.5, 0.0];
+        let datm = [1013.25, 15.0, 0.0, 0.0];
+        let dobs = [45.0; 6];
+        let pheno = heliacal_pheno(2_463_456.789, dgeo, datm, dobs, 5);
+        assert_eq!(
+            pheno[..10],
+            [
+                153.857_907_271_980_08,
+                0.0,
+                293.997_262_096_252_1,
+                -0.509_432_053_720_327_2,
+                -6.0,
+                8.5,
+                15.0,
+                4.199_116_747_226_824_5,
+                1013.25,
+                15.0,
+            ]
+        );
+        assert_eq!(
+            vis_limit_mag(2_463_456.789, dgeo, datm, dobs, 5, 0),
+            [
+                8.5,
+                -2.709_926_504_057_772,
+                15.0,
+                153.857_907_271_980_08,
+                0.0,
+                -6.0,
+                1013.25,
+                15.0,
+            ]
+        );
+        assert_eq!(
+            heliacal_pheno(2_463_456.789, dgeo, datm, dobs, 6)[..10],
+            [
+                47.064_334_913_488_95,
+                0.0,
+                93.075_019_910_783_06,
+                -0.981_274_194_832_353_3,
+                -6.0,
+                8.5,
+                15.0,
+                9.699_312_468_196_453,
+                1013.25,
+                15.0,
+            ]
+        );
+        let aged = [100.0; 6];
+        assert_eq!(
+            heliacal_pheno(2_463_456.789, dgeo, datm, aged, 5)[5],
+            8.3025
+        );
+        assert_eq!(
+            vis_limit_mag(2_463_456.789, dgeo, datm, aged, 5, 0)[0],
+            8.3025
+        );
+        let default_age = [0.0; 6];
+        assert_eq!(
+            heliacal_pheno(2_463_456.789, dgeo, datm, default_age, 5)[5],
+            8.5
+        );
+        assert_eq!(
+            vis_limit_mag(2_463_456.789, dgeo, datm, default_age, 5, 0)[0],
+            8.5
+        );
+        let thin_air = [700.0, 15.0, 0.0, 0.0];
+        assert_eq!(
+            heliacal_pheno(2_463_456.789, dgeo, thin_air, dobs, 5)[8],
+            900.0
+        );
+        assert_eq!(
+            vis_limit_mag(2_463_456.789, dgeo, thin_air, dobs, 5, 0)[6],
+            900.0
+        );
+        assert_eq!(
+            heliacal_pheno(2_463_456.789, dgeo, datm, dobs, i32::MAX),
+            vec![0.0; 50]
+        );
+        assert_eq!(
+            vis_limit_mag(2_463_456.789, dgeo, datm, dobs, i32::MAX, 0),
+            [0.0; 8]
+        );
+    }
+
+    #[test]
+    fn event_codes_and_morning_classification_are_exact() {
+        let cases = [
+            (1, HeliacalEvent::HeliacalRising, true),
+            (2, HeliacalEvent::HeliacalSetting, false),
+            (3, HeliacalEvent::EveningFirst, false),
+            (4, HeliacalEvent::MorningLast, true),
+            (5, HeliacalEvent::EveningRising, false),
+            (6, HeliacalEvent::MorningSetting, true),
+            (7, HeliacalEvent::AcronyachalRising, false),
+        ];
+        for (raw, expected, morning) in cases {
+            let actual = HeliacalEvent::from_i32(raw);
+            assert_eq!(actual, expected);
+            assert_eq!(actual.is_morning(), morning);
+        }
+        assert_eq!(
+            HeliacalEvent::from_i32(i32::MIN),
+            HeliacalEvent::HeliacalRising
+        );
+    }
+
+    #[test]
+    fn event_search_matches_regression_vectors() {
+        let dgeo = [12.5, 37.5, 0.0];
+        let datm = [1013.25, 15.0, 0.0, 0.0];
+        let dobs = [45.0; 6];
+        assert_eq!(
+            find_heliacal_event(
+                2_451_545.0,
+                dgeo,
+                datm,
+                dobs,
+                2,
+                HeliacalEvent::HeliacalRising,
+            ),
+            Some(HeliacalResult {
+                jd_event: 2_451_647.692_935_799_7,
+                obj_alt: 11.645_670_559_351_998,
+                sun_alt: -6.0,
+                obj_az: 0.273_584_129_561_749_43,
+            })
+        );
+        assert_eq!(
+            find_heliacal_event(
+                2_451_545.0,
+                dgeo,
+                datm,
+                dobs,
+                2,
+                HeliacalEvent::HeliacalSetting,
+            ),
+            Some(HeliacalResult {
+                jd_event: 2_451_287.241_349_556_5,
+                obj_alt: 13.690_063_776_747_905,
+                sun_alt: -6.0,
+                obj_az: 0.873_407_981_577_924_3,
+            })
+        );
+        assert_eq!(
+            find_heliacal_event(2_451_545.0, dgeo, datm, dobs, 5, HeliacalEvent::MorningLast,),
+            None
+        );
+    }
+
+    #[test]
+    fn close_elongation_uses_horizon_brightness() {
+        let dgeo = [0.0; 3];
+        let datm = [1013.25, 15.0, 0.0, 0.0];
+        let dobs = [45.0; 6];
+        assert_eq!(
+            heliacal_pheno(2_451_545.0, dgeo, datm, dobs, 2)[..10],
+            [
+                8.498_107_621_331_599,
+                0.0,
+                271.877_673_044_485_8,
+                -0.998_202_116_082_301_7,
+                -6.0,
+                8.5,
+                14.712_452_690_533_29,
+                1.415_330_241_580_816_7,
+                1013.25,
+                15.0,
+            ]
+        );
+        assert_eq!(
+            vis_limit_mag(2_451_545.0, dgeo, datm, dobs, 2, 0),
+            [
+                8.5,
+                -0.795_684_922_838_367_7,
+                14.712_452_690_533_29,
+                8.498_107_621_331_599,
+                0.0,
+                -6.0,
+                1013.25,
+                15.0,
+            ]
+        );
     }
 }
