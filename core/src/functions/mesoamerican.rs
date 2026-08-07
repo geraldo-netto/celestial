@@ -92,7 +92,7 @@ pub const XIUHPOHUALLI_MONTHS: &[(&str, &str)] = &[
 pub fn tonalpohualli(jd: JulianDay) -> (u8, usize, &'static str, &'static str) {
     let jd: f64 = jd.into();
     // Aztec day number from the base correlation. JD 584283 (Maya
-    // Long Count epoch) is the canonical "4 Ahau" / "4 Cipactli"
+    // Long Count epoch) is the canonical Maya "4 Ahau" / Aztec "4 Xochitl"
     // anchor: trecena 4, sign index 19. The +3 / +19 offsets shift
     // a raw 0-based day_num onto that anchor.
     let day_num = (jd as i64 - GMT_CORRELATION).rem_euclid(260) as usize;
@@ -166,11 +166,7 @@ pub fn haab(jd: JulianDay) -> (usize, u8, &'static str) {
     let day_num = (jd as i64 - GMT_CORRELATION + 348).rem_euclid(365) as usize;
     let month_idx = (day_num / 20).min(18);
     let day = (day_num % 20) as u8;
-    let name = if month_idx < 19 {
-        HAAB_MONTHS[month_idx]
-    } else {
-        "Wayeb"
-    };
+    let name = HAAB_MONTHS[month_idx];
     (month_idx, day, name)
 }
 
@@ -201,10 +197,7 @@ pub fn calendar_round(jd: JulianDay) -> (u8, &'static str, u8, &'static str) {
 #[must_use]
 pub fn maya_long_count(jd: JulianDay) -> (u32, u32, u32, u32, u32) {
     let jd: f64 = jd.into();
-    let mut days = jd.floor() as i64 - GMT_CORRELATION;
-    if days < 0 {
-        days = 0; // clamp for pre-epoch dates
-    }
+    let mut days = (jd.floor() as i64 - GMT_CORRELATION).max(0);
     let kin = (days % 20) as u32;
     days /= 20;
     let uinal = (days % 18) as u32;
@@ -228,6 +221,72 @@ pub fn maya_long_count_str(jd: JulianDay) -> String {
 #[cfg(test)]
 mod long_count_tests {
     use super::*;
+
+    const EPOCH: f64 = GMT_CORRELATION as f64;
+
+    fn epoch_day(offset: i64) -> JulianDay {
+        JulianDay::new(EPOCH + offset as f64)
+    }
+
+    #[test]
+    fn tonalpohualli_anchor_and_rollover() {
+        assert_eq!(tonalpohualli(epoch_day(0)), (4, 19, "Xochitl", "Flower"));
+        assert_eq!(tonalpohualli(epoch_day(1)), (5, 0, "Cipactli", "Crocodile"));
+    }
+
+    #[test]
+    fn xiuhpohualli_month_and_nemontemi_boundaries() {
+        assert_eq!(xiuhpohualli(epoch_day(0)), (0, 1, "Izcalli", "Sprouting"));
+        assert_eq!(
+            xiuhpohualli(epoch_day(20)),
+            (1, 1, "Atlcahualo", "Ceasing of Water")
+        );
+        assert_eq!(
+            xiuhpohualli(epoch_day(360)),
+            (18, 1, "Nemontemi", "Unlucky Days")
+        );
+    }
+
+    #[test]
+    fn tzolkin_anchor_and_rollover() {
+        assert_eq!(tzolkin(epoch_day(0)), (4, 19, "Ahau", "Sun"));
+        assert_eq!(tzolkin(epoch_day(1)), (5, 0, "Imix", "Water Lily"));
+    }
+
+    #[test]
+    fn haab_anchor_wayeb_and_cycle_boundaries() {
+        assert_eq!(haab(epoch_day(0)), (17, 8, "Kumku"));
+        assert_eq!(haab(epoch_day(12)), (18, 0, "Wayeb"));
+        assert_eq!(haab(epoch_day(17)), (0, 0, "Pop"));
+    }
+
+    #[test]
+    fn calendar_round_combines_exact_components() {
+        assert_eq!(calendar_round(epoch_day(0)), (4, "Ahau", 8, "Kumku"));
+    }
+
+    #[test]
+    fn long_count_place_boundaries() {
+        let cases = [
+            (19, (0, 0, 0, 0, 19)),
+            (20, (0, 0, 0, 1, 0)),
+            (359, (0, 0, 0, 17, 19)),
+            (360, (0, 0, 1, 0, 0)),
+            (7_199, (0, 0, 19, 17, 19)),
+            (7_200, (0, 1, 0, 0, 0)),
+            (143_999, (0, 19, 19, 17, 19)),
+            (144_000, (1, 0, 0, 0, 0)),
+        ];
+
+        for (offset, expected) in cases {
+            assert_eq!(maya_long_count(epoch_day(offset)), expected);
+        }
+    }
+
+    #[test]
+    fn long_count_clamps_before_epoch() {
+        assert_eq!(maya_long_count(epoch_day(-1)), (0, 0, 0, 0, 0));
+    }
 
     #[test]
     fn long_count_2012_bak13() {
