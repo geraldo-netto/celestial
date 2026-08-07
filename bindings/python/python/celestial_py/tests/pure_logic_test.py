@@ -631,23 +631,6 @@ class TestJewishCalendar(unittest.TestCase):
     def test_5785_not_leap(self):
         self.assertFalse(self._is_leap(5785))
 
-    def test_rosh_hashanah_month_day(self):
-        self.assertEqual(7, 7)  # Tishrei
-        self.assertEqual(1, 1)  # 1st day
-
-    def test_passover_month_day(self):
-        self.assertEqual(1, 1)  # Nisan
-        self.assertEqual(15, 15)  # 15th
-
-    def test_hanukkah_month_day(self):
-        self.assertEqual(9, 9)  # Kislev
-        self.assertEqual(25, 25)  # 25th
-
-    def test_shavuot_sivan_6(self):
-        self.assertEqual(3, 3)  # Sivan
-        self.assertEqual(6, 6)  # 6th
-
-
 class TestEasterComputus(unittest.TestCase):
     """Easter computus pure-logic tests."""
 
@@ -668,27 +651,11 @@ class TestEasterComputus(unittest.TestCase):
         day = (h + ll - 7 * m + 114) % 31 + 1
         return month, day
 
-    def test_easter_2025(self):
-        m, d = self._easter(2025)
-        self.assertEqual(m, 4)
-        self.assertEqual(d, 20)
-
-    def test_easter_2024(self):
-        m, d = self._easter(2024)
-        self.assertEqual(m, 3)
-        self.assertEqual(d, 31)
-
-    def test_easter_2019(self):
-        m, d = self._easter(2019)
-        self.assertEqual(m, 4)
-        self.assertEqual(d, 21)
-
-    def test_ash_wednesday_46_before(self):
-        # Easter 2025 Apr 20 → Ash Wed = 46 days before = Mar 5
-        self.assertEqual(46, 46)  # structural
-
-    def test_pentecost_49_after(self):
-        self.assertEqual(49, 49)  # structural
+    def test_easter_dates(self):
+        cases = [(2025, (4, 20)), (2024, (3, 31)), (2019, (4, 21))]
+        for year, expected in cases:
+            with self.subTest(year=year):
+                self.assertEqual(self._easter(year), expected)
 
     def test_good_friday_2_before(self):
         m, d = self._easter(2025)  # Apr 20
@@ -712,16 +679,6 @@ class TestIslamicCalendar(unittest.TestCase):
         self.assertTrue(self._is_hijri_leap(5))
         self.assertFalse(self._is_hijri_leap(1))
         self.assertFalse(self._is_hijri_leap(3))
-
-    def test_ramadan_month_9(self):
-        self.assertEqual(9, 9)
-
-    def test_eid_al_fitr_month_10(self):
-        self.assertEqual(10, 10)
-
-    def test_eid_al_adha_month_12_day_10(self):
-        self.assertEqual(12, 12)
-        self.assertEqual(10, 10)
 
     def test_2025_overlaps_1446_1447(self):
         jd_2025 = 2_460_676.5
@@ -789,9 +746,6 @@ class TestHinduPanchanga(unittest.TestCase):
 
 class TestBuddhistObservances(unittest.TestCase):
     """Buddhist observances pure-logic tests."""
-
-    def test_lunar_cycle_days(self):
-        self.assertAlmostEqual(29.53, 29.53, places=1)
 
     def test_four_uposatha_phases(self):
         phases = ["NewMoon", "FirstQuarter", "FullMoon", "LastQuarter"]
@@ -1208,20 +1162,6 @@ class TestSwephelpTimezoneTable(unittest.TestCase):
 
 class TestCalcManyPureLogic(unittest.TestCase):
     """Pure-logic tests for calc_many / calc_ut_many (no extension needed)."""
-
-    def test_parallel_result_count_matches_input(self):
-        """calc_many must return the same number of results as input bodies."""
-        # Property: len(result) == len(planets)
-        planet_lists = [
-            [0],  # single body
-            [0, 1],  # two bodies
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],  # ten bodies
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15],  # full chart (12)
-        ]
-        for planets in planet_lists:
-            self.assertEqual(
-                len(planets), len(planets), "sanity: list length is consistent"
-            )
 
     def test_planet_constants_for_calc_many(self):
         """All standard planet constants used with calc_many are defined."""

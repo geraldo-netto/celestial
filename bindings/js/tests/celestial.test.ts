@@ -147,8 +147,8 @@ describeModule("houses", () => {
   test("Placidus at equator — 12 cusps", () => {
     const r = celestial!.houses(JD, 0, 0, "P".charCodeAt(0));
     // Structure checks (exact)
-    expect(r.cusps.length).toBe(12);
-    expect(r.ascmc.length).toBe(8);
+    expect(r.cusps).toHaveLength(12);
+    expect(r.ascmc).toHaveLength(8);
     // ASC = cusps[0] in Placidus — our pure-Rust engine matches SE to ~0.001°
     expect(approxEqual(r.cusps[0], 191.0989364639854, 1e-4)).toBe(true);
     expect(approxEqual(r.ascmc[0], 191.0989364639854, 1e-4)).toBe(true); // ASC
@@ -184,7 +184,7 @@ describeEphe("solEclipseWhenGlob", () => {
   test("known result 2008", () => {
     const r = celestial!.solEclipseWhenGlob(2454466.5, Number(celestial!.FLG_BUILTIN));
     expect(r.retFlags).toBe(9);
-    expect(r.tret.length).toBe(10);
+    expect(r.tret).toHaveLength(10);
     expect(approxEqual(r.tret[0], 2454503.663211855)).toBe(true);
   });
 });
@@ -278,7 +278,7 @@ describeModule("refrac", () => {
     // TRUE_TO_APP subtracts refraction: result < inalt
     expect(r.result).toBeLessThanOrEqual(19.979725380019925);
     expect(typeof r.result).toBe("number");
-    expect(r.dret.length).toBe(4);
+    expect(r.dret).toHaveLength(4);
   });
 });
 
@@ -293,7 +293,7 @@ describeModule("info", () => {
   test("version format x.y.z", () => {
     const v = celestial!.version();
     const parts = v.split(".");
-    expect(parts.length).toBe(3);
+    expect(parts).toHaveLength(3);
     parts.forEach((p: string) => expect(Number.isInteger(Number(p))).toBe(true));
   });
 });

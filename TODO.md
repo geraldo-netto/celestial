@@ -67,7 +67,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | DUP-3 | DECIDED | — | Deterministic `core/tests/rel_clamps.rs` and randomized `fuzz/src/main.rs::test_rel_clamps` overlap on body-id edge coverage. | Intentional two-tier coverage split: `cargo test` regression plus opt-in fuzz/property run. |
 | DUP-4 | DECIDED | — | `revjul` / `revjul_hms` have three language-specific return shapes. | Published API idioms differ; normalizing would break bindings. |
 | DUP-5 | DECIDED | — | Per-tradition SVG wheel geometry uses similar-looking constants. | Distinct layout contracts; shared pieces are already factored. |
-| SONAR-DUP-1 | OPEN | S | SonarCloud `python:S5976` reports three copy-shaped Easter computus tests. | Consolidate cases with `subTest` while preserving individual case labels. |
 
 ## Composition
 
@@ -196,9 +195,7 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 |---|---|---|---|---|
 | REL-16 | OPEN | L | Public TT/ET and UT variants have contradictory time-scale behavior. `fixstar_ut`, `fixstar2_ut`, `nod_aps_ut`, `ayanamsa_ut`, and `ayanamsa_ex_ut` pass UT straight into TT math; `solcross` / `mooncross` are documented as ET but search with `calc_ut`; `helio_cross_ut` is an exact alias of the ET function. Tests often require equality for the same numeric JD, locking in the mismatch. | Define the scale of every input/output, apply ΔT conversion at one boundary, and replace alias-equality tests with equivalent-instant tests (UT input versus TT input shifted by ΔT) plus external reference values. |
 | REL-17 | OPEN | S | `mesoamerican_calendars.svg.tt` fails with `undefined value (in t:75)` for the valid instant `2000-01-01 00:00 UTC`, although the built-in Mesoamerican renderer and `--print-context` succeed with complete data. | Reproduce with the bundled template, isolate the zero-index calendar value that MiniJinja rejects, and add a second template integration case covering this instant. |
-| SONAR-REL-1 | OPEN | S | SonarCloud `python:S5863` reports 16 tautological Python assertions that compare literals or expressions with themselves. | Delete tests with no production behavior; replace any retained case with meaningful expected-output assertions. |
 | SONAR-REL-2 | OPEN | M | SonarCloud `rust:S2193` reports 14 floating-point-driven loops across astronomy search and rendering code. | Use integer-bounded iteration or closed-form normalization where applicable; preserve search bounds and add/retain boundary coverage. |
-| SONAR-REL-3 | OPEN | S | SonarCloud `typescript:S5906` reports five generic array-length assertions in native JS tests. | Use Jest's `toHaveLength` matcher for better diagnostics. |
 
 ## Robustness / Recovery
 
