@@ -1120,6 +1120,53 @@ mod cov_tests {
     use super::*;
 
     #[test]
+    fn applying_uses_all_three_signed_factors() {
+        let cases = [
+            (-4.0, -4.0, 6.0, true),
+            (-0.5, 0.5, 0.5, false),
+            (0.0, 0.5, 0.5, false),
+        ];
+        for (signed_sep, rel_speed, aspect, expected) in cases {
+            assert_eq!(
+                is_applying(signed_sep, rel_speed, aspect),
+                expected,
+                "separation={signed_sep}, speed={rel_speed}, aspect={aspect}"
+            );
+        }
+    }
+
+    #[test]
+    fn chart_aspects_wrap_distance_across_zero() {
+        let positions = [(Body::SUN, 10.0, 0.0), (Body::MOON, 0.0, 0.0)];
+        let aspects = calc_chart_aspects(&positions, &[350.0], 20.0);
+        assert_eq!(aspects.len(), 1);
+        assert_eq!(aspects[0].aspect, 350.0);
+        assert_eq!(aspects[0].orb, 20.0);
+    }
+
+    #[test]
+    fn chart_aspects_uses_relative_speed() {
+        let positions = [(Body::SUN, 30.0, 1.0), (Body::MOON, 0.0, -2.0)];
+        let aspects = calc_chart_aspects(&positions, &[60.0], 30.0);
+        assert_eq!(aspects.len(), 1);
+        assert!(aspects[0].applying);
+    }
+
+    #[test]
+    fn sign_ingress_matches_forward_and_backward_boundaries() {
+        let flags = CalcFlags::BUILTIN;
+        let (forward_jd, forward_sign) =
+            sign_ingress_ut(Body::SUN, JulianDay::new(2_451_545.0), flags, false).unwrap();
+        let (backward_jd, backward_sign) =
+            sign_ingress_ut(Body::SUN, JulianDay::new(2_451_545.0), flags, true).unwrap();
+
+        assert_eq!(forward_jd, 2_451_564.257_859_210_5);
+        assert_eq!(forward_sign, 10);
+        assert_eq!(backward_sign, 9);
+        assert!(backward_jd < 2_451_545.0);
+    }
+
+    #[test]
     fn bisect_zero_converges_on_linear_zero() {
         let root = bisect_zero(-1.0, 1.0, -1.0, 1e-9, |x| x);
         assert!(root.abs() < 1e-6, "root={root}");
