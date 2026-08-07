@@ -211,7 +211,7 @@ pub fn solar_cycle(jd: JulianDay) -> Option<SolarCycleInfo> {
         SolarCyclePhase::Minimum
     } else if (jd - max_jd).abs() < half_year {
         SolarCyclePhase::Maximum
-    } else if jd < max_jd {
+    } else if (..max_jd).contains(&jd) {
         SolarCyclePhase::Rising
     } else {
         SolarCyclePhase::Declining
@@ -267,10 +267,135 @@ pub fn grand_solar_epoch(jd: JulianDay) -> Option<GrandSolarEpoch> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::astronomy::test_support::f64_fingerprint;
 
     /// Helper: JD of (year, month, day) at 0h UT, Gregorian calendar.
     fn jd_of(y: i32, m: i32, d: i32) -> f64 {
         julday(y, m, d, 0.0, Calendar::Gregorian)
+    }
+
+    #[test]
+    fn labels_and_nicknames_are_exact() {
+        assert_eq!(SolarCyclePhase::Minimum.name(), "Minimum");
+        assert_eq!(SolarCyclePhase::Rising.name(), "Rising");
+        assert_eq!(SolarCyclePhase::Maximum.name(), "Maximum");
+        assert_eq!(SolarCyclePhase::Declining.name(), "Declining");
+        assert_eq!(GrandSolarEpoch::SporerMinimum.name(), "Spörer Minimum");
+        assert_eq!(GrandSolarEpoch::MaunderMinimum.name(), "Maunder Minimum");
+        assert_eq!(GrandSolarEpoch::DaltonMinimum.name(), "Dalton Minimum");
+        assert_eq!(GrandSolarEpoch::ModernMaximum.name(), "Modern Maximum");
+        assert_eq!(cycle_nickname(19), Some("the Great Cycle"));
+        assert_eq!(cycle_nickname(23), Some("the long minimum"));
+        assert_eq!(cycle_nickname(22), None);
+    }
+
+    #[test]
+    fn leap_year_and_decimal_year_conversions_are_exact() {
+        assert!(is_gregorian_leap(1996));
+        assert!(!is_gregorian_leap(1900));
+        assert!(is_gregorian_leap(2000));
+        assert!(!is_gregorian_leap(2100));
+        assert_eq!(decimal_year_to_jd(2000.0), 2_451_544.5);
+        assert_eq!(decimal_year_to_jd(2000.5), 2_451_727.5);
+        assert_eq!(decimal_year_to_jd(1900.5), 2_415_203.0);
+        assert_eq!(jd_to_year_approx(2_451_544.5), 2000.0);
+        assert_eq!(jd_to_year_approx(2_451_909.75), 2001.0);
+    }
+
+    #[test]
+    fn cycle_table_and_outputs_match_regression_fingerprint() {
+        let mut values = Vec::new();
+        for (index, &(cycle, min_year, max_year)) in CYCLE_DATA.iter().enumerate() {
+            let next_year = CYCLE_DATA
+                .get(index + 1)
+                .map_or(NEXT_CYCLE_MIN_YEAR, |&(_, min, _)| min);
+            let min_jd = decimal_year_to_jd(min_year);
+            let next_jd = decimal_year_to_jd(next_year);
+            let info = solar_cycle(JulianDay::new(min_jd + (next_jd - min_jd) * 0.5)).unwrap();
+            values.extend([
+                f64::from(cycle),
+                min_year,
+                max_year,
+                info.phase,
+                info.min_jd,
+                info.max_jd,
+                info.next_min_jd,
+                info.years_since_min,
+            ]);
+            assert_eq!(info.cycle_num, cycle);
+        }
+        assert_eq!(f64_fingerprint(values), 0xbe38_2c86_ab7d_9b42);
+    }
+
+    #[test]
+    fn cycle_and_phase_boundaries_are_exact() {
+        let first = decimal_year_to_jd(CYCLE_DATA[0].1);
+        let end = decimal_year_to_jd(NEXT_CYCLE_MIN_YEAR);
+        assert_eq!(solar_cycle(JulianDay::new(first)).unwrap().cycle_num, 1);
+        assert!(solar_cycle(JulianDay::new(first - f64::EPSILON * first)).is_none());
+        assert_eq!(
+            solar_cycle(JulianDay::new(end - f64::EPSILON * end))
+                .unwrap()
+                .cycle_num,
+            25
+        );
+        assert!(solar_cycle(JulianDay::new(end)).is_none());
+
+        let cycle = solar_cycle(JulianDay::new(decimal_year_to_jd(CYCLE_DATA[24].1))).unwrap();
+        assert_eq!(
+            solar_cycle(JulianDay::new(cycle.min_jd + DAYS_PER_YEAR))
+                .unwrap()
+                .phase_name,
+            SolarCyclePhase::Rising
+        );
+        assert_eq!(
+            solar_cycle(JulianDay::new(cycle.max_jd - DAYS_PER_YEAR / 2.0))
+                .unwrap()
+                .phase_name,
+            SolarCyclePhase::Rising
+        );
+        assert_eq!(
+            solar_cycle(JulianDay::new(cycle.max_jd))
+                .unwrap()
+                .phase_name,
+            SolarCyclePhase::Maximum
+        );
+        assert_eq!(
+            solar_cycle(JulianDay::new(cycle.max_jd + DAYS_PER_YEAR / 2.0))
+                .unwrap()
+                .phase_name,
+            SolarCyclePhase::Declining
+        );
+        assert_eq!(
+            solar_cycle(JulianDay::new(cycle.next_min_jd - DAYS_PER_YEAR))
+                .unwrap()
+                .phase_name,
+            SolarCyclePhase::Declining
+        );
+        assert_eq!(
+            solar_cycle(JulianDay::new(cycle.next_min_jd - DAYS_PER_YEAR / 2.0))
+                .unwrap()
+                .phase_name,
+            SolarCyclePhase::Minimum
+        );
+    }
+
+    #[test]
+    fn grand_epoch_boundaries_are_inclusive() {
+        for (year, expected) in [
+            (1450.0, Some(GrandSolarEpoch::SporerMinimum)),
+            (1550.0, Some(GrandSolarEpoch::SporerMinimum)),
+            (1645.0, Some(GrandSolarEpoch::MaunderMinimum)),
+            (1715.0, Some(GrandSolarEpoch::MaunderMinimum)),
+            (1790.0, Some(GrandSolarEpoch::DaltonMinimum)),
+            (1830.0, Some(GrandSolarEpoch::DaltonMinimum)),
+            (1950.0, Some(GrandSolarEpoch::ModernMaximum)),
+            (2000.0, Some(GrandSolarEpoch::ModernMaximum)),
+            (2001.0, None),
+        ] {
+            let jd = 2_451_544.5 + (year - 2000.0) * DAYS_PER_YEAR;
+            assert_eq!(grand_solar_epoch(JulianDay::new(jd)), expected);
+        }
     }
 
     #[test]
