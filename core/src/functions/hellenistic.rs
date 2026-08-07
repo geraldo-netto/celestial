@@ -34,9 +34,10 @@ pub fn is_day_chart(sun_lon: Longitude, cusps: &[f64; 13]) -> bool {
 /// Classical assignment:
 /// * Day sect: Sun, Jupiter, Saturn (day benefics/malefics)
 /// * Night sect: Moon, Venus, Mars
-/// * Mercury: diurnal if morning star (oriental), nocturnal if evening star (occidental)
+/// * Mercury and outer planets: treated as sect-neutral because this API does
+///   not receive the positional data needed to determine Mercury's orientation
 ///
-/// Returns `true` if the planet is of the *same* sect as the chart.
+/// Returns `true` if the planet is of the *same* sect or is sect-neutral.
 #[must_use]
 pub fn same_sect(body: Body, is_day: bool) -> bool {
     match body {
@@ -268,7 +269,7 @@ pub fn decan_ruler(lon: Longitude) -> Body {
 #[must_use]
 pub fn triplicity_rulers(lon: Longitude) -> (Body, Body, Body) {
     let lon: f64 = lon.into();
-    let sign = (lon / 30.0) as usize % 12;
+    let sign = (lon / 30.0) as usize;
     match sign % 4 {
         0 => (Body::SUN, Body::JUPITER, Body::SATURN), // fire
         1 => (Body::VENUS, Body::MOON, Body::MARS),    // earth
@@ -305,7 +306,8 @@ fn triplicity_score(body: Body, lon: f64, is_day: bool) -> Option<i8> {
 pub fn full_dignity(body: Body, lon: Longitude, is_day: bool) -> (Dignity, i8) {
     let lon: f64 = lon.into();
     let sign = (lon / 30.0) as u8 % 12;
-    let opp = (sign + 6) % 12;
+    const OPPOSITE_SIGNS: [u8; 12] = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
+    let opp = OPPOSITE_SIGNS[sign as usize];
     let ex = sign_exaltation(body);
 
     if rules_sign(body, sign) {
@@ -332,6 +334,27 @@ pub fn full_dignity(body: Body, lon: Longitude, is_day: bool) -> (Dignity, i8) {
     (Dignity::Peregrine, 0)
 }
 
+fn additive_dignity_score(body: Body, lon: f64, is_day: bool) -> i8 {
+    let sign = (lon / 30.0) as u8 % 12;
+    let mut score = 0;
+    if rules_sign(body, sign) {
+        score += 5;
+    }
+    if sign_exaltation(body) as u8 == sign {
+        score += 4;
+    }
+    if let Some(triplicity) = triplicity_score(body, lon, is_day) {
+        score += triplicity;
+    }
+    if egyptian_terms_ruler(Longitude::new(lon)) == body {
+        score += 2;
+    }
+    if decan_ruler(Longitude::new(lon)) == body {
+        score += 1;
+    }
+    score
+}
+
 // ─── Almuten ──────────────────────────────────────────────────────────────────
 
 /// Compute the Almuten (lord of the chart) for a given longitude.
@@ -355,7 +378,7 @@ pub fn almuten(lon: Longitude, is_day: bool) -> (Body, i8) {
     let mut best_body = Body::SUN;
     let mut best_score = i8::MIN;
     for &body in &planets {
-        let (_, score) = full_dignity(body, Longitude::new(lon), is_day);
+        let score = additive_dignity_score(body, lon, is_day);
         if score > best_score {
             best_score = score;
             best_body = body;
@@ -398,6 +421,9 @@ pub struct FirdariaPeriod {
 #[must_use]
 pub fn firdaria(jd_birth: JulianDay, is_day: bool, span: f64) -> Vec<FirdariaPeriod> {
     let jd_birth: f64 = jd_birth.into();
+    if span <= 0.0 {
+        return Vec::new();
+    }
     // Major period durations (years)
     const DAY_SEQ: &[(Body, f64)] = &[
         (Body::SUN, 10.0),
@@ -425,11 +451,11 @@ pub fn firdaria(jd_birth: JulianDay, is_day: bool, span: f64) -> Vec<FirdariaPer
     const DAYS_PER_YEAR: f64 = 365.25;
 
     // 7 minor periods per major lord; ~12 major lords covered in a 75-year span.
-    let mut periods = Vec::with_capacity(7 * (span as usize / 10 + 1).max(8));
+    let mut periods = Vec::new();
     let mut jd = jd_birth;
     let jd_end = jd_birth + span * DAYS_PER_YEAR;
 
-    'outer: for &(major_lord, major_years) in seq.iter().cycle() {
+    'outer: for &(major_lord, major_years) in seq.iter().cycle().take(span.ceil() as usize) {
         let major_end = jd + major_years * DAYS_PER_YEAR;
         let minor_dur = major_years / 7.0;
         // Sub-periods: same planet sequence, starting from major lord
@@ -466,13 +492,226 @@ fn planet_house_number(lon: f64, cusps: &[f64; 13]) -> usize {
         let lo = cusps[h];
         let hi = cusps[if h == 12 { 1 } else { h + 1 }];
         let contained = if lo <= hi {
-            lon >= lo && lon < hi
+            (lo..hi).contains(&lon)
         } else {
-            lon >= lo || lon < hi
+            (lo..).contains(&lon) || (..hi).contains(&lon)
         };
         if contained {
             return h;
         }
     }
     1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CUSPS: [f64; 13] = [
+        0.0, 0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0,
+    ];
+    const ROTATED_CUSPS: [f64; 13] = [
+        0.0, 10.0, 40.0, 70.0, 100.0, 130.0, 160.0, 190.0, 220.0, 250.0, 280.0, 310.0, 340.0,
+    ];
+
+    fn assert_close(actual: f64, expected: f64) {
+        assert!((actual - expected).abs() < 1e-9, "{actual} != {expected}");
+    }
+
+    #[test]
+    fn house_lookup_and_sect_cover_boundaries() {
+        let cases = [
+            (0.0, 1, false),
+            (29.999, 1, false),
+            (30.0, 2, false),
+            (179.999, 6, false),
+            (180.0, 7, true),
+            (329.999, 11, true),
+            (330.0, 12, true),
+            (359.999, 12, true),
+        ];
+        for (lon, house, is_day) in cases {
+            assert_eq!(planet_house_number(lon, &CUSPS), house);
+            assert_eq!(is_day_chart(Longitude::new(lon), &CUSPS), is_day);
+        }
+        assert_eq!(planet_house_number(5.0, &ROTATED_CUSPS), 12);
+        assert!(is_day_chart(Longitude::new(5.0), &ROTATED_CUSPS));
+    }
+
+    #[test]
+    fn same_sect_covers_day_night_and_neutral_bodies() {
+        let cases = [
+            (Body::SUN, true, true),
+            (Body::JUPITER, false, false),
+            (Body::MOON, false, true),
+            (Body::MARS, true, false),
+            (Body::MERCURY, true, true),
+            (Body::MERCURY, false, true),
+        ];
+        for (body, is_day, expected) in cases {
+            assert_eq!(same_sect(body, is_day), expected);
+        }
+    }
+
+    #[test]
+    fn dignity_display_names_every_variant() {
+        let cases = [
+            (Dignity::Domicile, "domicile"),
+            (Dignity::Exaltation, "exaltation"),
+            (Dignity::Triplicity, "triplicity"),
+            (Dignity::Term, "term"),
+            (Dignity::Decan, "decan"),
+            (Dignity::Peregrine, "peregrine"),
+            (Dignity::Detriment, "detriment"),
+            (Dignity::Fall, "fall"),
+        ];
+        for (dignity, expected) in cases {
+            assert_eq!(dignity.to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn egyptian_terms_cover_boundaries_and_wrapping() {
+        let cases = [
+            (0.0, Body::JUPITER),
+            (5.999, Body::JUPITER),
+            (6.0, Body::VENUS),
+            (12.0, Body::MERCURY),
+            (25.0, Body::SATURN),
+            (30.0, Body::VENUS),
+            (42.0, Body::MERCURY),
+            (59.999, Body::MARS),
+            (180.0, Body::SATURN),
+            (360.0, Body::JUPITER),
+        ];
+        for (lon, expected) in cases {
+            assert_eq!(egyptian_terms_ruler(Longitude::new(lon)), expected);
+        }
+    }
+
+    #[test]
+    fn decans_cover_boundaries_and_wrapping() {
+        let cases = [
+            (0.0, Body::MARS),
+            (9.999, Body::MARS),
+            (10.0, Body::SUN),
+            (20.0, Body::VENUS),
+            (30.0, Body::MERCURY),
+            (110.0, Body::MOON),
+            (350.0, Body::MARS),
+            (360.0, Body::MARS),
+        ];
+        for (lon, expected) in cases {
+            assert_eq!(decan_ruler(Longitude::new(lon)), expected);
+        }
+    }
+
+    #[test]
+    fn triplicities_cover_each_element_and_wrapping() {
+        let cases = [
+            (0.0, (Body::SUN, Body::JUPITER, Body::SATURN)),
+            (30.0, (Body::VENUS, Body::MOON, Body::MARS)),
+            (60.0, (Body::SATURN, Body::MERCURY, Body::JUPITER)),
+            (90.0, (Body::VENUS, Body::MARS, Body::MOON)),
+            (360.0, (Body::SUN, Body::JUPITER, Body::SATURN)),
+        ];
+        for (lon, expected) in cases {
+            assert_eq!(triplicity_rulers(Longitude::new(lon)), expected);
+        }
+    }
+
+    #[test]
+    fn rulership_and_triplicity_helpers_cover_each_path() {
+        assert!(rules_sign(Body::MARS, 0));
+        assert!(rules_sign(Body::PLUTO, 7));
+        assert!(!rules_sign(Body::SUN, 0));
+        assert_eq!(triplicity_score(Body::SUN, 0.0, true), Some(3));
+        assert_eq!(triplicity_score(Body::SUN, 0.0, false), Some(2));
+        assert_eq!(triplicity_score(Body::JUPITER, 0.0, true), Some(3));
+        assert_eq!(triplicity_score(Body::SATURN, 0.0, true), Some(3));
+        assert_eq!(triplicity_score(Body::VENUS, 0.0, true), None);
+    }
+
+    #[test]
+    fn full_dignity_covers_every_rank() {
+        let cases = [
+            (Body::SUN, 120.0, true, (Dignity::Domicile, 5)),
+            (Body::PLUTO, 210.0, true, (Dignity::Domicile, 5)),
+            (Body::SUN, 300.0, true, (Dignity::Detriment, -5)),
+            (Body::SUN, 360.0, true, (Dignity::Exaltation, 4)),
+            (Body::SUN, 180.0, true, (Dignity::Fall, -4)),
+            (Body::JUPITER, 125.0, true, (Dignity::Triplicity, 3)),
+            (Body::JUPITER, 125.0, false, (Dignity::Triplicity, 2)),
+            (Body::MERCURY, 12.0, true, (Dignity::Term, 2)),
+            (Body::MERCURY, 30.0, true, (Dignity::Decan, 1)),
+            (Body::URANUS, 0.0, true, (Dignity::Peregrine, 0)),
+        ];
+        for (body, lon, is_day, expected) in cases {
+            assert_eq!(full_dignity(body, Longitude::new(lon), is_day), expected);
+        }
+    }
+
+    #[test]
+    fn almuten_sums_stacked_dignities_and_keeps_first_tie() {
+        assert_eq!(additive_dignity_score(Body::SUN, 0.0, true), 7);
+        assert_eq!(additive_dignity_score(Body::MARS, 0.0, true), 6);
+        assert_eq!(additive_dignity_score(Body::JUPITER, 0.0, true), 5);
+        assert_eq!(almuten(Longitude::new(0.0), true), (Body::SUN, 7));
+        assert_eq!(almuten(Longitude::new(0.0), false), (Body::SUN, 6));
+        assert_eq!(almuten(Longitude::new(30.0), true), (Body::VENUS, 9));
+    }
+
+    #[test]
+    fn firdaria_rejects_non_positive_spans() {
+        assert!(firdaria(JulianDay::new(2_451_545.0), true, 0.0).is_empty());
+        assert!(firdaria(JulianDay::new(2_451_545.0), false, -1.0).is_empty());
+    }
+
+    #[test]
+    fn firdaria_day_subperiods_are_exact() {
+        let jd = 2_451_545.0;
+        let periods = firdaria(JulianDay::new(jd), true, 10.0);
+        let lords = [
+            Body::SUN,
+            Body::VENUS,
+            Body::MERCURY,
+            Body::MOON,
+            Body::SATURN,
+            Body::JUPITER,
+            Body::MARS,
+        ];
+        assert_eq!(periods.len(), 7);
+        for (index, period) in periods.iter().enumerate() {
+            let years = 10.0 / 7.0;
+            assert_eq!(period.major_lord, Body::SUN);
+            assert_eq!(period.minor_lord, lords[index]);
+            assert_close(period.start, jd + index as f64 * years * 365.25);
+            assert_close(period.end, jd + (index + 1) as f64 * years * 365.25);
+            assert_close(period.years, years);
+        }
+    }
+
+    #[test]
+    fn firdaria_night_and_next_major_sequences_are_used() {
+        let jd = 2_451_545.0;
+        let night = firdaria(JulianDay::new(jd), false, 10.0);
+        assert_eq!(
+            (night[0].major_lord, night[0].minor_lord),
+            (Body::MOON, Body::MOON)
+        );
+        assert_eq!(
+            (night[7].major_lord, night[7].minor_lord),
+            (Body::SATURN, Body::SATURN)
+        );
+        assert_close(night[7].start, jd + 9.0 * 365.25);
+
+        let day = firdaria(JulianDay::new(jd), true, 18.0);
+        assert_eq!(day.len(), 14);
+        assert_eq!(
+            (day[7].major_lord, day[7].minor_lord),
+            (Body::VENUS, Body::VENUS)
+        );
+        assert_close(day[7].start, jd + 10.0 * 365.25);
+        assert_close(day[13].end, jd + 18.0 * 365.25);
+    }
 }
