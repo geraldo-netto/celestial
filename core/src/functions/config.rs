@@ -223,4 +223,17 @@ mod tests {
         assert_eq!(user_delta_t(), None);
         assert_eq!(current_topo(), (12.5, -7.25, 100.0)); // still set
     }
+
+    #[test]
+    fn information_outputs_are_exact() {
+        assert_eq!(tid_acc(), 0.0);
+        assert_eq!(library_path(), "(pure-Rust engine, no library path)");
+
+        let jd = JulianDay::new(2_463_456.789);
+        let extended = ayanamsa_ex_ut(jd, CalcFlags::BUILTIN).unwrap();
+        assert_eq!(extended, ayanamsa_ut(jd));
+        assert_ne!(extended, 0.0);
+        assert_ne!(extended, 1.0);
+        assert_ne!(extended, -1.0);
+    }
 }
