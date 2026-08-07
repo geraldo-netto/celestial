@@ -301,13 +301,14 @@ assertEq(abs($dt_j2000 - 63.83) < 1.0 ? 1 : 0, 1,
     'delta-T polynomial at J2000 ≈ 64s');
 
 
-// ── calc_many pure-logic (property tests, no extension needed) ────────────────
+// ── calc_many batch contract ────────────────────────────────────────────────
 
 // Property: requesting N planets should return N results (length invariant)
 $planet_lists = [[0], [0,1], [0,1,2,3], [0,1,2,3,4,5,6,7,8,9,10,15]];
 foreach ($planet_lists as $planets) {
-    assertEq(count($planets), count($planets),
-        'calc_many result count == input count (pure length check)');
+    $results = calc_many($jd, $planets, FLG_BUILTIN);
+    assertEq(count($results), count($planets),
+        'calc_many result count == input count');
 }
 
 // ── IAU 2000B nutation pure-logic ────────────────────────────────────────────
