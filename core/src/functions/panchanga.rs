@@ -336,6 +336,7 @@ pub struct HinduFestival {
 /// A festival candidate matches `tithi` and `paksha` inside the
 /// `(month_start, month_end)` window. The candidate nearest the seasonal
 /// target date is selected so adjacent lunar months cannot win by scan order.
+/// Each rule chooses the civil-day observation time relevant to its rite.
 struct FestivalRule {
     name: &'static str,
     description: &'static str,
@@ -345,7 +346,16 @@ struct FestivalRule {
     month_end: i32,
     target_month: i32,
     target_day: i32,
+    observance: FestivalObservance,
 }
+
+#[derive(Clone, Copy)]
+enum FestivalObservance {
+    Daytime,
+    IstMidnight,
+}
+
+const IST_MIDNIGHT_OFFSET_FROM_06_UT_DAYS: f64 = 12.5 / 24.0;
 
 /// The fixed table of festivals checked by [`hindu_festivals`].
 const FESTIVAL_RULES: &[FestivalRule] = &[
@@ -358,6 +368,7 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         month_end: 12,
         target_month: 11,
         target_day: 1,
+        observance: FestivalObservance::Daytime,
     },
     FestivalRule {
         name: "Diwali (Lakshmi Puja)",
@@ -368,6 +379,7 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         month_end: 12,
         target_month: 11,
         target_day: 1,
+        observance: FestivalObservance::Daytime,
     },
     FestivalRule {
         name: "Holi (Holika Dahan)",
@@ -378,6 +390,7 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         month_end: 4,
         target_month: 3,
         target_day: 10,
+        observance: FestivalObservance::Daytime,
     },
     FestivalRule {
         name: "Maha Shivaratri",
@@ -388,6 +401,7 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         month_end: 4,
         target_month: 3,
         target_day: 1,
+        observance: FestivalObservance::IstMidnight,
     },
     FestivalRule {
         name: "Raksha Bandhan",
@@ -398,6 +412,7 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         month_end: 9,
         target_month: 8,
         target_day: 20,
+        observance: FestivalObservance::Daytime,
     },
     FestivalRule {
         name: "Janmashtami (Krishna Jayanti)",
@@ -408,6 +423,7 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         month_end: 10,
         target_month: 8,
         target_day: 25,
+        observance: FestivalObservance::Daytime,
     },
     FestivalRule {
         name: "Navratri (Sharada) begins",
@@ -418,6 +434,7 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         month_end: 11,
         target_month: 10,
         target_day: 1,
+        observance: FestivalObservance::Daytime,
     },
 ];
 
@@ -431,6 +448,17 @@ fn festival_rule_matches(
         && panchanga.paksha == rule.paksha
         && jd > month_jd[rule.month_start as usize]
         && jd < month_jd[rule.month_end as usize]
+}
+
+fn festival_panchanga<'a>(
+    rule: &FestivalRule,
+    daytime: &'a Panchanga,
+    ist_midnight: &'a Panchanga,
+) -> &'a Panchanga {
+    match rule.observance {
+        FestivalObservance::Daytime => daytime,
+        FestivalObservance::IstMidnight => ist_midnight,
+    }
 }
 
 fn update_festival_candidate(
@@ -485,9 +513,11 @@ pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
     let mut candidates = vec![None; FESTIVAL_RULES.len()];
     for day_offset in 0..366 {
         let jd = start_jd + f64::from(day_offset);
-        let p = panchanga(JulianDay::new(jd));
+        let daytime = panchanga(JulianDay::new(jd));
+        let ist_midnight = panchanga(JulianDay::new(jd + IST_MIDNIGHT_OFFSET_FROM_06_UT_DAYS));
         for (index, rule) in FESTIVAL_RULES.iter().enumerate() {
-            if festival_rule_matches(rule, &p, jd, &month_jd) {
+            let p = festival_panchanga(rule, &daytime, &ist_midnight);
+            if festival_rule_matches(rule, p, jd, &month_jd) {
                 update_festival_candidate(&mut candidates[index], rule, jd, targets[index]);
             }
         }
@@ -719,7 +749,7 @@ mod tests {
             (
                 2024,
                 vec![
-                    ("Maha Shivaratri", 3, 9),
+                    ("Maha Shivaratri", 3, 8),
                     ("Holi (Holika Dahan)", 3, 24),
                     ("Raksha Bandhan", 8, 19),
                     ("Janmashtami (Krishna Jayanti)", 8, 26),
@@ -729,9 +759,21 @@ mod tests {
                 ],
             ),
             (
+                2025,
+                vec![
+                    ("Maha Shivaratri", 2, 26),
+                    ("Holi (Holika Dahan)", 3, 13),
+                    ("Raksha Bandhan", 8, 9),
+                    ("Janmashtami (Krishna Jayanti)", 8, 16),
+                    ("Navratri (Sharada) begins", 9, 22),
+                    ("Naraka Chaturdashi (Choti Diwali)", 10, 20),
+                    ("Diwali (Lakshmi Puja)", 10, 21),
+                ],
+            ),
+            (
                 2026,
                 vec![
-                    ("Maha Shivaratri", 2, 16),
+                    ("Maha Shivaratri", 2, 15),
                     ("Holi (Holika Dahan)", 3, 3),
                     ("Raksha Bandhan", 8, 27),
                     ("Janmashtami (Krishna Jayanti)", 9, 4),
@@ -757,6 +799,7 @@ mod tests {
             month_end: 4,
             target_month: 3,
             target_day: 1,
+            observance: FestivalObservance::Daytime,
         };
         let matching = panchanga_from_positions(0.0, planet_at(0.0), planet_at(1.0));
         let mut month_jd = [0.0; 13];
