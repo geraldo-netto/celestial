@@ -231,7 +231,7 @@ pub fn ascendant(armc: Degrees, lat: Latitude, eps: Degrees) -> f64 {
     let (sin_eps, cos_eps) = eps_r.sin_cos();
     let y = -cos_armc;
     let x = lat_r.tan().mul_add(sin_eps, sin_armc * cos_eps);
-    norm_deg(to_deg(y.atan2(x)) + 180.0)
+    opposite(to_deg(y.atan2(x)))
 }
 
 /// Midheaven (MC) (degrees).
@@ -265,6 +265,10 @@ fn vertex_point(armc: f64, lat: f64, eps: f64) -> f64 {
 /// Equatorial Ascendant (East Point).
 fn equatorial_asc(armc: f64, _eps: f64) -> f64 {
     norm_deg(armc + 90.0)
+}
+
+fn opposite(lon: f64) -> f64 {
+    norm_deg(lon + 180.0)
 }
 
 // ─── Oblique ascension helper ────────────────────────────────────────────────
@@ -305,8 +309,8 @@ fn placidus(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     cusps[1] = asc;
     cusps[10] = mc;
-    cusps[4] = norm_deg(mc + 180.0);
-    cusps[7] = norm_deg(asc + 180.0);
+    cusps[4] = opposite(mc);
+    cusps[7] = opposite(asc);
 
     // House → (semi-arc fraction, hemisphere sign).
     //   sign = +1  → upper hemisphere (semi-diurnal arc, above horizon)
@@ -328,12 +332,12 @@ fn placidus(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
     for (cusp, f) in upper {
         let lon = placidus_cusp_iter(armc, lat_r, eps_r, f, true);
         cusps[cusp] = norm_deg(lon);
-        cusps[cusp - 6] = norm_deg(lon + 180.0); // h5 opp h11, h6 opp h12
+        cusps[cusp - 6] = opposite(lon); // h5 opp h11, h6 opp h12
     }
     for (cusp, f) in lower {
         let lon = placidus_cusp_iter(armc, lat_r, eps_r, f, false);
         cusps[cusp] = norm_deg(lon);
-        cusps[cusp + 6] = norm_deg(lon + 180.0); // h8 opp h2, h9 opp h3
+        cusps[cusp + 6] = opposite(lon); // h8 opp h2, h9 opp h3
     }
 
     cusps
@@ -344,17 +348,17 @@ fn placidus_single_cusp(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64, cusp: 
     let eps_r = to_rad(eps);
     match cusp {
         1 => asc,
-        4 => norm_deg(mc + 180.0),
-        7 => norm_deg(asc + 180.0),
+        4 => opposite(mc),
+        7 => opposite(asc),
         10 => mc,
         11 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 1.0 / 3.0, true)),
         12 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 2.0 / 3.0, true)),
-        5 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 1.0 / 3.0, true) + 180.0),
-        6 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 2.0 / 3.0, true) + 180.0),
+        5 => opposite(placidus_cusp_iter(armc, lat_r, eps_r, 1.0 / 3.0, true)),
+        6 => opposite(placidus_cusp_iter(armc, lat_r, eps_r, 2.0 / 3.0, true)),
         2 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 1.0 / 3.0, false)),
         3 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 2.0 / 3.0, false)),
-        8 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 1.0 / 3.0, false) + 180.0),
-        9 => norm_deg(placidus_cusp_iter(armc, lat_r, eps_r, 2.0 / 3.0, false) + 180.0),
+        8 => opposite(placidus_cusp_iter(armc, lat_r, eps_r, 1.0 / 3.0, false)),
+        9 => opposite(placidus_cusp_iter(armc, lat_r, eps_r, 2.0 / 3.0, false)),
         _ => 0.0,
     }
 }
@@ -418,7 +422,7 @@ fn placidus_cusp_iter(armc: f64, lat_r: f64, eps_r: f64, f: f64, upper: bool) ->
         let delta = (lon_new_r - lon_r).rem_euclid(2.0 * std::f64::consts::PI);
         let delta = delta.min(2.0 * std::f64::consts::PI - delta);
         lon_r = lon_new_r;
-        if delta < 1e-9 {
+        if (0.0..1e-9).contains(&delta) {
             break;
         }
     }
@@ -434,8 +438,8 @@ fn koch(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     cusps[1] = asc;
     cusps[10] = mc;
-    cusps[4] = norm_deg(mc + 180.0);
-    cusps[7] = norm_deg(asc + 180.0);
+    cusps[4] = opposite(mc);
+    cusps[7] = opposite(asc);
 
     // Koch: divide semi-arc into thirds and project back to ecliptic
     let dsa = diurnal_semi_arc(eps_r, lat_r);
@@ -446,23 +450,18 @@ fn koch(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
         let armc_r = to_rad(armc_h);
         // Declination that rises with this ARMC in latitude lat
         let sin_armc = armc_r.sin();
-        if sin_armc.abs() < 1e-8 {
+        if (0.0..1e-8).contains(&sin_armc.abs()) {
             // Degenerate case: fall back to previous cusp + 30°
             cusps[*h] = norm_deg((*h as f64 - 10.0).mul_add(30.0, cusps[10]));
-            cusps[*h - 9] = norm_deg(cusps[*h] + 180.0);
+            cusps[*h - 9] = opposite(cusps[*h]);
             continue;
         }
         let dec_arg = (lat_r.tan() * armc_r.cos() / sin_armc.abs()).atan();
         let dec_sin = dec_arg.sin().clamp(-1.0, 1.0);
         let dec = dec_sin.clamp(-1.0, 1.0).asin();
         let ra = (armc_r.sin() * eps_r.cos()).atan2(armc_r.cos());
-        let lon = ecl_lon_from_ra_dec(to_deg(ra), to_deg(dec), eps);
-        if lon.is_nan() || lon.is_infinite() {
-            cusps[*h] = norm_deg((*h as f64 - 10.0).mul_add(30.0, cusps[10]));
-        } else {
-            cusps[*h] = lon;
-        }
-        cusps[*h - 9] = norm_deg(cusps[*h] + 180.0);
+        cusps[*h] = ecl_lon_from_ra_dec(to_deg(ra), to_deg(dec), eps);
+        cusps[*h - 9] = opposite(cusps[*h]);
     }
 
     for (i, h) in [9usize, 8].iter().enumerate() {
@@ -474,23 +473,18 @@ fn koch(armc: f64, lat: f64, eps: f64, asc: f64, mc: f64) -> [f64; 13] {
             .sin())
         .clamp(-1.0, 1.0)
         .asin();
-        let lon = ecl_lon_from_ra_dec(
+        cusps[*h] = ecl_lon_from_ra_dec(
             to_deg((armc_r.sin() * eps_r.cos()).atan2(armc_r.cos())),
             to_deg(dec),
             eps,
         );
-        if lon.is_nan() || lon.is_infinite() {
-            cusps[*h] = norm_deg((*h as f64 - 10.0).mul_add(30.0, cusps[10]));
-        } else {
-            cusps[*h] = lon;
-        }
-        cusps[*h - 6] = norm_deg(cusps[*h] + 180.0);
+        cusps[*h - 6] = opposite(cusps[*h]);
     }
 
     // Houses 5 and 6 are the opposites of 11 and 12 respectively
     // (not set by either loop above)
-    cusps[5] = norm_deg(cusps[11] + 180.0);
-    cusps[6] = norm_deg(cusps[12] + 180.0);
+    cusps[5] = opposite(cusps[11]);
+    cusps[6] = opposite(cusps[12]);
 
     cusps
 }
@@ -516,28 +510,20 @@ fn porphyry(asc: f64, mc: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     cusps[1] = asc;
     cusps[10] = mc;
-    cusps[4] = norm_deg(mc + 180.0);
-    cusps[7] = norm_deg(asc + 180.0);
+    cusps[4] = opposite(mc);
+    cusps[7] = opposite(asc);
 
     // Trisect each quadrant
     let q1 = arc_between(mc, asc) / 3.0;
     cusps[11] = norm_deg(mc + q1);
     cusps[12] = norm_deg(2.0_f64.mul_add(q1, mc));
 
-    let q4 = arc_between(asc, norm_deg(mc + 180.0)) / 3.0;
+    let q4 = arc_between(asc, opposite(mc)) / 3.0;
     cusps[2] = norm_deg(asc + q4);
     cusps[3] = norm_deg(2.0_f64.mul_add(q4, asc));
 
-    // Opposite houses
-    for i in 1..=6 {
-        cusps[i + 6] = norm_deg(cusps[i] + 180.0);
-    }
-
-    // Enforce 180° opposite constraint for all 6 pairs
-    for &(h, opp) in &[(1usize, 7usize), (2, 8), (3, 9), (4, 10), (5, 11), (6, 12)] {
-        if cusps[h] != 0.0 && cusps[opp] == 0.0 {
-            cusps[opp] = norm_deg(cusps[h] + 180.0);
-        }
+    for &(h, opp) in &[(11usize, 5usize), (12, 6), (2, 8), (3, 9)] {
+        cusps[opp] = opposite(cusps[h]);
     }
 
     cusps
@@ -562,22 +548,15 @@ fn regiomontanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     cusps[1] = ascendant(Degrees::new(armc), Latitude::new(lat), Degrees::new(eps));
     cusps[10] = midheaven(Degrees::new(armc), Degrees::new(eps));
-    // Set IC and DSC up front so the later "fill opposites from cusps
-    // 1..=6" loop has correct seed values for h=4 and h=1.
-    cusps[4] = norm_deg(cusps[10] + 180.0);
-    cusps[7] = norm_deg(cusps[1] + 180.0);
+    cusps[4] = opposite(cusps[10]);
+    cusps[7] = opposite(cusps[1]);
 
-    for h in [11usize, 12, 2, 3, 8, 9] {
-        // Campanus uses constant 30°-spaced angles per house; the input set is
-        // closed so falling through to a default is dead code, but if a caller
-        // ever passes an unexpected `h` we fall back to 0° rather than panic.
+    for h in [11usize, 12, 2, 3] {
         let angle = match h {
             11 => 60.0,
             12 => 120.0,
             2 => 210.0,
-            3 => 240.0,
-            8 => 300.0,
-            _ => 330.0, // h == 9
+            _ => 240.0,
         };
         let campanus_r = to_rad(armc + angle);
         let (sin_c, cos_c) = campanus_r.sin_cos();
@@ -588,15 +567,8 @@ fn regiomontanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
         cusps[h] = norm_deg(to_deg(num.atan2(den)));
     }
 
-    for i in 1..=6 {
-        cusps[i + 6] = norm_deg(cusps[i] + 180.0);
-    }
-
-    // Enforce 180° opposite constraint for all 6 pairs
-    for &(h, opp) in &[(1usize, 7usize), (2, 8), (3, 9), (4, 10), (5, 11), (6, 12)] {
-        if cusps[h] != 0.0 && cusps[opp] == 0.0 {
-            cusps[opp] = norm_deg(cusps[h] + 180.0);
-        }
+    for &(h, opp) in &[(11usize, 5usize), (12, 6), (2, 8), (3, 9)] {
+        cusps[opp] = opposite(cusps[h]);
     }
 
     cusps
@@ -611,8 +583,8 @@ fn campanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     cusps[1] = ascendant(Degrees::new(armc), Latitude::new(lat), Degrees::new(eps));
     cusps[10] = midheaven(Degrees::new(armc), Degrees::new(eps));
-    cusps[7] = norm_deg(cusps[1] + 180.0); // DSC = ASC + 180°
-    cusps[4] = norm_deg(cusps[10] + 180.0); // IC  = MC  + 180°
+    cusps[7] = opposite(cusps[1]); // DSC = ASC + 180°
+    cusps[4] = opposite(cusps[10]); // IC  = MC  + 180°
 
     // Campanus: divide the prime vertical into 12 equal 30° arcs.
     // Compute upper-quadrant cusps (11, 12, 2, 3) from the prime-vertical
@@ -622,7 +594,7 @@ fn campanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     let cos_lat = lat_r.cos();
     let cos_lat_denom = cos_lat.abs().max(1e-10).copysign(cos_lat);
 
-    for &h in &[11usize, 12, 2, 3] {
+    for &(h, opp) in &[(11usize, 5usize), (12, 6), (2, 8), (3, 9)] {
         let angle = (h as f64 - 1.0) * 30.0;
         let pv_r = to_rad(armc + angle + 90.0);
         let num = pv_r
@@ -630,9 +602,7 @@ fn campanus(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
             .mul_add(eps_r.cos(), sin_eps * sin_lat / cos_lat_denom);
         let den = pv_r.cos();
         cusps[h] = norm_deg(to_deg(num.atan2(den)));
-        // Opposite house: h→ h+6 (wrapping within 1-12)
-        let opp = if h + 6 > 12 { h - 6 } else { h + 6 };
-        cusps[opp] = norm_deg(cusps[h] + 180.0);
+        cusps[opp] = opposite(cusps[h]);
     }
 
     cusps
@@ -674,16 +644,13 @@ fn whole_sign(asc: f64) -> [f64; 13] {
 fn meridian(armc: f64, eps: f64) -> [f64; 13] {
     let eps_r = to_rad(eps);
     let mut cusps = [0.0f64; 13];
-    for h in 1..=12 {
+    for h in 1..=6 {
         let angle = (h as f64 - 10.0).mul_add(30.0, armc);
         let angle_r = to_rad(angle);
         cusps[h] = norm_deg(to_deg((angle_r.sin() * eps_r.cos()).atan2(angle_r.cos())));
     }
-    // Enforce 180° opposite constraint for all 6 pairs
-    for &(h, opp) in &[(1usize, 7usize), (2, 8), (3, 9), (4, 10), (5, 11), (6, 12)] {
-        if cusps[h] != 0.0 && cusps[opp] == 0.0 {
-            cusps[opp] = norm_deg(cusps[h] + 180.0);
-        }
+    for h in 1..=6 {
+        cusps[h + 6] = opposite(cusps[h]);
     }
 
     cusps
@@ -694,16 +661,13 @@ fn meridian(armc: f64, eps: f64) -> [f64; 13] {
 fn morinus(armc: f64, eps: f64) -> [f64; 13] {
     let eps_r = to_rad(eps);
     let mut cusps = [0.0f64; 13];
-    for h in 1..=12 {
+    for h in 1..=6 {
         let ra = norm_deg((h as f64 - 1.0).mul_add(30.0, armc));
         let ra_r = to_rad(ra);
         cusps[h] = norm_deg(to_deg((ra_r.sin() * eps_r.cos()).atan2(ra_r.cos())));
     }
-    // Enforce 180° opposite constraint for all 6 pairs
-    for &(h, opp) in &[(1usize, 7usize), (2, 8), (3, 9), (4, 10), (5, 11), (6, 12)] {
-        if cusps[h] != 0.0 && cusps[opp] == 0.0 {
-            cusps[opp] = norm_deg(cusps[h] + 180.0);
-        }
+    for h in 1..=6 {
+        cusps[h + 6] = opposite(cusps[h]);
     }
 
     cusps
@@ -722,10 +686,8 @@ fn alcabitius(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
     let mut cusps = [0.0f64; 13];
     cusps[1] = asc;
     cusps[10] = midheaven(Degrees::new(armc), Degrees::new(eps));
-    // IC and DSC seeded explicitly so the later opposite-fill loop has
-    // valid values for h=4 and h=1 (same bug class as Regiomontanus).
-    cusps[4] = norm_deg(cusps[10] + 180.0);
-    cusps[7] = norm_deg(cusps[1] + 180.0);
+    cusps[4] = opposite(cusps[10]);
+    cusps[7] = opposite(cusps[1]);
 
     for h in [11usize, 12, 2, 3] {
         let frac = match h {
@@ -734,12 +696,12 @@ fn alcabitius(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
         };
         let sign = if h >= 11 { 1.0 } else { -1.0 };
         let oa = (sign * (90.0 + dsa)).mul_add(frac, oblique_ascension(asc, 0.0, eps, lat));
-        let lon = ecl_lon_from_ra_dec(oa + 0.0, 0.0, eps);
+        let lon = ecl_lon_from_ra_dec(oa, 0.0, eps);
         cusps[h] = norm_deg(lon);
     }
 
-    for i in 1..=6 {
-        cusps[i + 6] = norm_deg(cusps[i] + 180.0);
+    for &(h, opp) in &[(11usize, 5usize), (12, 6), (2, 8), (3, 9)] {
+        cusps[opp] = opposite(cusps[h]);
     }
 
     cusps
@@ -797,7 +759,7 @@ fn topocentric(armc: f64, lat: f64, eps: f64, asc: f64) -> [f64; 13] {
     // the 180° opposite constraint so both houses in each pair stay consistent.
     for &(h, opp) in &[(11usize, 5usize), (12, 6), (2, 8), (3, 9)] {
         cusps[h] = norm_deg(d.mul_add(0.2, cusps[h]));
-        cusps[opp] = norm_deg(cusps[h] + 180.0);
+        cusps[opp] = opposite(cusps[h]);
     }
     for &(h, opp) in &[(8usize, 2usize), (9, 3)] {
         // 8 and 9 were already set above via 2→8 and 3→9; skip double-apply
@@ -814,9 +776,6 @@ fn gauquelin(armc: f64, lat: f64, eps: f64) -> [f64; 13] {
     // Standard houses placeholder — full 36-sector variant is in gauquelin_sectors()
     let mut cusps = [0.0f64; 13];
     let asc = ascendant(Degrees::new(armc), Latitude::new(lat), Degrees::new(eps));
-    let mc = midheaven(Degrees::new(armc), Degrees::new(eps));
-    cusps[1] = asc;
-    cusps[10] = mc;
     for i in 1..=12 {
         cusps[i] = norm_deg((i as f64 - 1.0).mul_add(30.0, asc));
     }
@@ -1117,5 +1076,204 @@ mod tests {
                 result.cusps[h + 6],
             );
         }
+    }
+
+    fn house_fingerprint(result: &HouseResult) -> (f64, f64) {
+        let sum = result.cusps[1..].iter().sum();
+        let weighted = result.cusps[1..]
+            .iter()
+            .enumerate()
+            .map(|(index, value)| (index as f64 + 1.0) * value)
+            .sum();
+        (sum, weighted)
+    }
+
+    #[test]
+    fn every_house_system_matches_regression_fingerprints() {
+        const SYSTEMS: &[u8; 14] = b"PKORCEDWXMBHTG";
+        const CASES: &[(f64, f64, [(f64, f64); 14])] = &[
+            (
+                123.456,
+                37.5,
+                [
+                    (1976.896549098444, 10898.997547275329),
+                    (1824.181447022317, 10866.414566620508),
+                    (2330.822673743074, 12972.295430513022),
+                    (1860.897755713735, 12031.161493853884),
+                    (2280.981039436872, 12582.293808815013),
+                    (2306.926571376990, 12805.022713950431),
+                    (1994.718776109159, 10955.672044709529),
+                    (1980.0, 10680.0),
+                    (2021.472000482036, 11153.120272741329),
+                    (2021.472000482036, 11645.811503355526),
+                    (2006.636036507226, 13567.293156975289),
+                    (1747.185100461455, 13203.933355564232),
+                    (2004.054160660289, 11089.100828208244),
+                    (2306.926571376990, 12805.022713950431),
+                ],
+            ),
+            (
+                278.25,
+                -23.5,
+                [
+                    (2072.136892670314, 17773.149975194003),
+                    (2020.930712619910, 17351.964381196594),
+                    (2070.834810612188, 17750.473779196553),
+                    (2230.171008640630, 16838.497796937998),
+                    (2018.072833730365, 17405.351119418370),
+                    (2070.739790177535, 17749.808636153975),
+                    (2070.929831046842, 17751.043901804471),
+                    (1980.0, 17160.0),
+                    (2079.000000718911, 17831.950078217484),
+                    (2079.000000718911, 12914.394505436165),
+                    (2076.275775060469, 12313.348535341509),
+                    (1161.444765963800, 5409.213527783048),
+                    (2056.436558581203, 17663.247636570228),
+                    (2070.739790177535, 17749.808636153975),
+                ],
+            ),
+            (
+                0.125,
+                66.0,
+                [
+                    (2241.543953459337, 13997.244678788917),
+                    (2214.249256377891, 14189.310362960448),
+                    (2231.869985636032, 13812.037368246465),
+                    (2122.066021153656, 11576.837216647191),
+                    (2064.494047812414, 12857.852794950786),
+                    (2122.105062411519, 12323.682905674868),
+                    (1981.634908860545, 12310.626907593545),
+                    (1980.0, 11400.0),
+                    (1981.500000019053, 12283.874922392590),
+                    (1981.500000019053, 17195.252289850840),
+                    (2065.014346883100, 13419.998029749318),
+                    (2280.899495225645, 12849.896653896707),
+                    (2308.389243876957, 14465.161711712259),
+                    (2122.105062411519, 12323.682905674868),
+                ],
+            ),
+        ];
+
+        for &(armc, lat, expected) in CASES {
+            for (&system, expected_fingerprint) in SYSTEMS.iter().zip(expected) {
+                let result = houses_armc(
+                    Degrees::new(armc),
+                    Latitude::new(lat),
+                    Degrees::new(23.439_291_111),
+                    system,
+                );
+                let actual = house_fingerprint(&result);
+                assert!((actual.0 - expected_fingerprint.0).abs() < 1e-10);
+                assert!((actual.1 - expected_fingerprint.1).abs() < 1e-10);
+            }
+        }
+    }
+
+    #[test]
+    fn special_angles_match_regression_vectors() {
+        let cases = [
+            (123.456, 37.5, 269.135_544_087_290, 213.456),
+            (278.25, -23.5, 136.598_626_149_809, 8.25),
+            (0.125, 66.0, 180.114_198_636_553, 90.125),
+        ];
+        for (armc, lat, vertex, equatorial_ascendant) in cases {
+            let result = houses_armc(
+                Degrees::new(armc),
+                Latitude::new(lat),
+                Degrees::new(23.439_291_111),
+                b'P',
+            );
+            assert!((result.ascmc[3] - vertex).abs() < 1e-10);
+            assert!((result.ascmc[4] - equatorial_ascendant).abs() < 1e-10);
+        }
+    }
+
+    #[test]
+    fn sidereal_time_and_obliquity_match_regression_vectors() {
+        let cases = [
+            (
+                1_721_425.5,
+                [100.253_583_163_023, 100.258_022_347_098_02, 23.694_558_619_904_935],
+            ),
+            (
+                2_451_545.0,
+                [280.460_618_37, 280.457_067_607_478_6, 23.439_291_111],
+            ),
+            (
+                2_463_456.789,
+                [65.324_115_234_427_15, 65.326_881_846_626_3, 23.435_049_933_204_404],
+            ),
+            (
+                3_182_045.0,
+                [296.016_658_514_738_1, 296.019_341_211_558_64, 23.182_583_111],
+            ),
+        ];
+        for (jd, expected) in cases {
+            let actual = [
+                mean_sidereal_time_deg(JulianDay::new(jd)),
+                sidereal_time_deg(JulianDay::new(jd)),
+                obliquity_simple(JulianDay::new(jd)),
+            ];
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn single_cusp_dispatches_non_placidus_systems() {
+        let jd = JulianDay::new(2_451_545.0);
+        let lat = Latitude::new(37.5);
+        let lon = Longitude::new(12.5);
+        for system in *b"KORCEDWXMBHTG" {
+            let full = houses(jd, lat, lon, system);
+            for cusp in 1..=12 {
+                assert!((house_cusp(jd, lat, lon, system, cusp) - full.cusps[cusp]).abs() < 1e-10);
+            }
+        }
+    }
+
+    #[test]
+    fn oblique_ascension_accounts_for_ecliptic_latitude() {
+        let actual = oblique_ascension(123.0, 17.0, 23.439_291_111, 37.5);
+        assert!((actual - 96.221_626_970_524_65).abs() < 1e-12);
+    }
+
+    #[test]
+    fn equal_longitudes_span_a_full_arc() {
+        assert_eq!(arc_between(42.0, 42.0), 360.0);
+    }
+
+    #[test]
+    fn koch_degenerate_semi_arc_matches_regression_vector() {
+        let result = houses_armc(
+            Degrees::new(330.0),
+            Latitude::new(0.0),
+            Degrees::new(23.439_291_111),
+            b'K',
+        );
+        let expected = [
+            62.089_450_213_912_855,
+            90.0,
+            124.445_205_035_855_45,
+            147.818_740_831_565_9,
+            177.818_740_831_565_95,
+            205.919_662_039_052_44,
+            242.089_450_213_912_87,
+            270.0,
+            304.445_205_035_855_45,
+            327.818_740_831_565_9,
+            357.818_740_831_565_9,
+            25.919_662_039_052_447,
+        ];
+        for (actual, expected) in result.cusps[1..].iter().zip(expected) {
+            assert!((actual - expected).abs() < 1e-10);
+        }
+
+        let near_axis = houses_armc(
+            Degrees::new(330.000_000_1),
+            Latitude::new(0.0),
+            Degrees::new(23.439_291_111),
+            b'K',
+        );
+        assert!((near_axis.cusps[11] - norm_deg(near_axis.cusps[10] + 30.0)).abs() < 1e-12);
     }
 }
