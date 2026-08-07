@@ -121,7 +121,7 @@ pub struct OmerDay {
 pub struct OmerPeriod {
     /// Julian day of the first day of the Omer (16 Nisan, nightfall).
     pub start_jd: f64,
-    /// Julian day of the last day of the Omer (49th day, 5 Sivan, nightfall).
+    /// Exclusive end of the Omer period (6 Sivan, nightfall).
     pub end_jd: f64,
     /// Hebrew year.
     pub hebrew_year: i32,
@@ -196,9 +196,7 @@ pub fn days_in_hebrew_year(year: i32) -> i64 {
 pub fn hebrew_month_days(year: i32, month: i32) -> i64 {
     match month {
         1 | 3 | 5 | 7 | 11 => 30,
-        2 | 4 | 6 | 10 | 13 => 29,
         8 if days_in_hebrew_year(year) % 10 == 5 => 30,
-        8 => 29,
         9 => {
             if days_in_hebrew_year(year) % 10 == 3 {
                 29
@@ -207,7 +205,6 @@ pub fn hebrew_month_days(year: i32, month: i32) -> i64 {
             }
         }
         12 if is_hebrew_leap_year(year) => 30,
-        12 => 29,
         _ => 29,
     }
 }
@@ -258,6 +255,17 @@ pub fn omer_day_jd(hebrew_year: i32, day: u8) -> Option<f64> {
     Some(omer_start_jd(hebrew_year) + (day - 1) as f64)
 }
 
+fn omer_year_near(jd: f64) -> i32 {
+    let approximate_year = approx_hebrew_year(JulianDay::new(jd));
+    let year = approximate_year.max(1);
+    let previous_year_has_nearer_omer_start = year > 1 && omer_start_jd(year) > jd + 1.0;
+    if previous_year_has_nearer_omer_start {
+        year - 1
+    } else {
+        year
+    }
+}
+
 /// Return the [`OmerDay`] for a given Julian day, or `None` if the JD falls
 /// outside the Omer period.
 ///
@@ -266,30 +274,12 @@ pub fn omer_day_jd(hebrew_year: i32, day: u8) -> Option<f64> {
 /// (e.g. 20:00 = JD + 0.33) is treated as the beginning of the next Hebrew day.
 pub fn omer_from_jd(jd: JulianDay) -> Option<OmerDay> {
     let jd: f64 = jd.into();
-    // Find candidate Hebrew year
-    let mut year = approx_hebrew_year(JulianDay::new(jd));
-    // Refine (may be off by 1)
-    loop {
-        if omer_start_jd(year + 1) > jd {
-            break;
-        }
-        year += 1;
-    }
-    while year > 1 && omer_start_jd(year) > jd + 1.0 {
-        year -= 1;
-    }
-
+    let year = omer_year_near(jd);
     let start = omer_start_jd(year);
-    let elapsed = (jd - start + 0.5).floor() as i64; // +0.5 to handle nightfall
+    let elapsed = (jd - start).floor() as i64;
 
     if !(0..=48).contains(&elapsed) {
-        // Try the next year
-        let start_next = omer_start_jd(year + 1);
-        let elapsed_next = (jd - start_next + 0.5).floor() as i64;
-        if !(0..=48).contains(&elapsed_next) {
-            return None;
-        }
-        return omer_from_day(elapsed_next as u8 + 1, start_next + elapsed_next as f64);
+        return None;
     }
 
     omer_from_day(elapsed as u8 + 1, start + elapsed as f64)
@@ -326,18 +316,16 @@ fn omer_from_day(day: u8, jd: f64) -> Option<OmerDay> {
 #[must_use]
 pub fn omer_period(jd: JulianDay) -> OmerPeriod {
     let jd: f64 = jd.into();
-    let mut year = approx_hebrew_year(JulianDay::new(jd)).max(1);
-    // Find the year whose Omer period contains or follows jd
-    loop {
-        if omer_start_jd(year) + 48.0 >= jd {
-            break;
-        }
-        year += 1;
-    }
+    let candidate = omer_year_near(jd);
+    let year = if omer_start_jd(candidate) + 49.0 <= jd {
+        candidate + 1
+    } else {
+        candidate
+    };
     let start = omer_start_jd(year);
     OmerPeriod {
         start_jd: start,
-        end_jd: start + 48.0,
+        end_jd: start + 49.0,
         hebrew_year: year,
     }
 }
@@ -469,5 +457,202 @@ mod tests {
         let p = omer_period(JulianDay::new(jd));
         assert_eq!(p.hebrew_year, 5785);
         assert!(p.start_jd < jd && jd < p.end_jd);
+    }
+
+    #[test]
+    fn hebrew_leap_cycle_and_month_count_are_exact() {
+        let cases = [
+            (1, false, 12),
+            (2, false, 12),
+            (3, true, 13),
+            (19, true, 13),
+            (20, false, 12),
+            (5784, true, 13),
+            (5785, false, 12),
+        ];
+        for (year, leap, months) in cases {
+            assert_eq!(is_hebrew_leap_year(year), leap, "year {year}");
+            assert_eq!(months_in_hebrew_year(year), months, "year {year}");
+        }
+    }
+
+    #[test]
+    fn molad_postponement_rules_have_exact_boundaries() {
+        let cases = [
+            (5785, 0, 19_439, false),
+            (5785, 0, 19_440, true),
+            (5785, 2, 9_923, false),
+            (5785, 2, 9_924, true),
+            (5784, 2, 9_924, false),
+            (5785, 1, 16_788, false),
+            (5785, 1, 16_789, true),
+            (5784, 1, 16_789, false),
+        ];
+        for (year, day, parts, expected) in cases {
+            assert_eq!(molad_postponed(year, day, parts), expected);
+        }
+    }
+
+    #[test]
+    fn elapsed_days_and_year_lengths_are_exact() {
+        let cases = [
+            (1, 1, 355),
+            (2, 356, 355),
+            (3, 711, 383),
+            (8, 2_542, 383),
+            (19, 6_558, 383),
+            (20, 6_941, 354),
+            (647, 235_951, 354),
+            (5_784, 2_112_207, 383),
+            (5_785, 2_112_590, 355),
+            (5_786, 2_112_945, 354),
+        ];
+        for (year, elapsed, length) in cases {
+            assert_eq!(elapsed_days(year), elapsed, "year {year}");
+            assert_eq!(hebrew_new_year_jd(year), 347_996 + elapsed);
+            assert_eq!(days_in_hebrew_year(year), length, "year {year}");
+        }
+    }
+
+    #[test]
+    fn hebrew_month_lengths_cover_calendar_shapes() {
+        let cases = [
+            (5_783, 8, 30),
+            (5_783, 9, 30),
+            (5_784, 8, 29),
+            (5_784, 9, 29),
+            (5_784, 12, 30),
+            (5_785, 1, 30),
+            (5_785, 2, 29),
+            (5_785, 11, 30),
+            (5_785, 12, 29),
+            (5_785, 13, 29),
+            (5_786, 8, 29),
+            (5_786, 9, 30),
+        ];
+        for (year, month, days) in cases {
+            assert_eq!(hebrew_month_days(year, month), days);
+        }
+    }
+
+    #[test]
+    fn hebrew_month_starts_are_exact() {
+        let cases = [
+            (5_784, 7, 2_460_203),
+            (5_784, 13, 2_460_380),
+            (5_784, 1, 2_460_409),
+            (5_785, 7, 2_460_586),
+            (5_785, 8, 2_460_616),
+            (5_785, 1, 2_460_764),
+            (5_785, 6, 2_460_912),
+        ];
+        for (year, month, jd) in cases {
+            assert_eq!(hebrew_month_start_jd(year, month), jd);
+        }
+    }
+
+    #[test]
+    fn approximate_year_and_omer_start_are_exact() {
+        let cases = [
+            (347_997.0, 1),
+            (2_460_041.25, 5_783),
+            (2_460_424.25, 5_784),
+            (2_460_779.25, 5_785),
+            (2_461_133.25, 5_786),
+        ];
+        for (jd, year) in cases {
+            assert_eq!(approx_hebrew_year(JulianDay::new(jd)), year);
+        }
+        assert_eq!(omer_start_jd(5_784), 2_460_424.25);
+        assert_eq!(omer_start_jd(5_785), 2_460_779.25);
+    }
+
+    #[test]
+    fn omer_day_jd_accepts_only_exact_range() {
+        let start = 2_460_779.25;
+        let cases = [
+            (0, None),
+            (1, Some(start)),
+            (2, Some(start + 1.0)),
+            (49, Some(start + 48.0)),
+            (50, None),
+            (u8::MAX, None),
+        ];
+        for (day, expected) in cases {
+            assert_eq!(omer_day_jd(5_785, day), expected);
+        }
+    }
+
+    #[test]
+    fn omer_from_jd_obeys_nightfall_boundaries() {
+        let start = omer_start_jd(5_785);
+        assert!(omer_from_jd(JulianDay::new(start - 0.01)).is_none());
+        let first = omer_from_jd(JulianDay::new(start)).unwrap();
+        assert_eq!((first.day, first.jd), (1, start));
+        assert_eq!(omer_from_jd(JulianDay::new(start + 0.99)).unwrap().day, 1);
+        let second = omer_from_jd(JulianDay::new(start + 1.0)).unwrap();
+        assert_eq!((second.day, second.jd), (2, start + 1.0));
+        assert_eq!(omer_from_jd(JulianDay::new(start + 48.99)).unwrap().day, 49);
+        assert!(omer_from_jd(JulianDay::new(start + 49.0)).is_none());
+    }
+
+    #[test]
+    fn omer_year_correction_boundaries_are_exact() {
+        let start = omer_start_jd(3);
+        assert_eq!(omer_year_near(start - 1.01), 2);
+        assert_eq!(omer_year_near(start - 1.0), 3);
+        assert_eq!(omer_year_near(start), 3);
+        assert_eq!(omer_year_near(347_997.0), 1);
+    }
+
+    #[test]
+    fn omer_day_records_are_exact() {
+        let cases = [
+            (1, 1, 1, "Chesed", "Chesed", false),
+            (7, 1, 7, "Chesed", "Malkhut", false),
+            (8, 2, 1, "Gevurah", "Chesed", false),
+            (33, 5, 5, "Hod", "Hod", true),
+            (49, 7, 7, "Malkhut", "Malkhut", false),
+        ];
+        for (day, week, weekday, week_name, day_name, lag) in cases {
+            let value = omer_from_day(day, day as f64).unwrap();
+            assert_eq!(value.week, week);
+            assert_eq!(value.day_of_week, weekday);
+            assert_eq!(value.week_sefirah, week_name);
+            assert_eq!(value.day_sefirah, day_name);
+            assert_eq!(value.is_lag_baomer, lag);
+            assert_eq!(value.jd, day as f64);
+            assert_eq!(value.hebrew_text, OMER_DAY_NAMES[(day - 1) as usize]);
+        }
+        assert!(omer_from_day(0, 0.0).is_none());
+        assert!(omer_from_day(50, 0.0).is_none());
+    }
+
+    #[test]
+    fn omer_period_and_declarations_are_exact() {
+        let start = omer_start_jd(5_785);
+        let current = omer_period(JulianDay::new(start + 48.99));
+        assert_eq!(current.start_jd, start);
+        assert_eq!(current.end_jd, start + 49.0);
+        assert_eq!(current.hebrew_year, 5_785);
+
+        let next = omer_period(JulianDay::new(start + 49.0));
+        assert_eq!(next.hebrew_year, 5_786);
+        assert_eq!(next.start_jd, omer_start_jd(5_786));
+        assert_eq!(omer_declaration(0), "Invalid Omer day");
+        assert_eq!(omer_declaration(50), "Invalid Omer day");
+        assert_eq!(
+            omer_declaration(1),
+            "Yom echad la'Omer — Chesed sheb'Chesed'"
+        );
+    }
+
+    #[test]
+    fn generated_omer_days_have_exact_julian_days() {
+        let start = omer_start_jd(5_785);
+        let days = omer_days(5_785);
+        for (index, day) in days.iter().enumerate() {
+            assert_eq!(day.jd, start + index as f64);
+        }
     }
 }
