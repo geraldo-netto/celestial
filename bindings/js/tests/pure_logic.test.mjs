@@ -10,9 +10,9 @@
  * suite so that CI can confirm correctness without the native binary.
  */
 
-import { readFileSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -464,9 +464,9 @@ describe("expected values from celestial tests", () => {
 describe("fuzzing: boundary / adversarial inputs", () => {
   test("normDeg handles very large inputs", () => {
     for (const v of [1e15, -1e15, 1e308, Number.MAX_SAFE_INTEGER]) {
-      if (isFinite(v)) {
+      if (Number.isFinite(v)) {
         const n = normDeg(v);
-        if (!isFinite(n) || n < 0 || n >= 360) throw new Error(`normDeg(${v}) = ${n}`);
+        if (!Number.isFinite(n) || n < 0 || n >= 360) throw new Error(`normDeg(${v}) = ${n}`);
       }
     }
   });
@@ -658,21 +658,6 @@ describe("lonToSign", () => {
     return [Math.floor(l / 30), l % 30];
   }
 
-  const _signNames = [
-    "Aries",
-    "Taurus",
-    "Gemini",
-    "Cancer",
-    "Leo",
-    "Virgo",
-    "Libra",
-    "Scorpio",
-    "Sagittarius",
-    "Capricorn",
-    "Aquarius",
-    "Pisces",
-  ];
-
   test("0° = Aries 0°", () => {
     const [sign, deg] = lonToSign(0);
     expect(sign).toBe(0);
@@ -805,13 +790,17 @@ test("jewish: 5785 is not a leap year", () => {
   expect(isHebrewLeapYearJ(5785)).toBe(false);
 });
 
-test("jewish: Shavuot is 49 days after Passover (Sivan 6)", () => {
-  // 15 Nisan + 50 days = 5 Sivan + 1 = 6 Sivan
-  const _passoverDay = 15;
-  const shavuotDay = 6;
-  const shavuotMonth = 3; // Sivan
-  expect(shavuotDay).toBe(6);
-  expect(shavuotMonth).toBe(3);
+test("jewish: Shavuot is 50 days after Passover (Sivan 6)", () => {
+  const passover = { month: 1, day: 15 };
+  const monthLengths = [30, 29];
+  let month = passover.month;
+  let day = passover.day + 50;
+  for (const daysInMonth of monthLengths) {
+    if (day <= daysInMonth) break;
+    day -= daysInMonth;
+    month += 1;
+  }
+  expect({ month, day }).toEqual({ month: 3, day: 6 });
 });
 
 // ─── Easter ───────────────────────────────────────────────────────────────────
@@ -847,10 +836,10 @@ test("easter: 2024 = March 31", () => {
 });
 
 test("easter: Ash Wednesday is 46 days before Easter", () => {
-  const e = easterGregorianPure(2025); // Easter Apr 20
-  // Apr 20 - 46 days = Mar 5
-  const _easterJd = e.day + (e.month === 4 ? 31 + 28 + 31 : 0); // approx
-  expect(46).toBe(46); // structural
+  const easter = easterGregorianPure(2025);
+  const easterJd = julDay(easter.year, easter.month, easter.day);
+  const ashWednesday = revJul(easterJd - 46);
+  expect(ashWednesday).toMatchObject({ year: 2025, month: 3, day: 5 });
 });
 
 test("easter: Pentecost is 49 days after Easter", () => {
