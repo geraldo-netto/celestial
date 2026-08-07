@@ -376,30 +376,30 @@ assertApprox($fortune_night, 270.0, 1e-9, 'Lot of Fortune night = ASC+Sun-Moon')
 // Rasi: each longitude gives a sign in [0, 11]
 for ($lon = 0; $lon < 360; $lon += 15) {
     $rasi = intval($lon / 30) % 12;
-    assert($rasi >= 0 && $rasi < 12, "rasi $rasi out of [0,12) for lon=$lon");
+    assertEq($rasi >= 0 && $rasi < 12, true, "rasi $rasi out of [0,12) for lon=$lon");
 }
 
 // Nakshatra: 27 nakshatras of 13.333° each
 $nak_len = 360.0 / 27.0;
 for ($lon = 0; $lon < 360; $lon += 10) {
     $nak = intval($lon / $nak_len) % 27;
-    assert($nak >= 0 && $nak < 27, "nakshatra $nak out of [0,27) for lon=$lon");
+    assertEq($nak >= 0 && $nak < 27, true, "nakshatra $nak out of [0,27) for lon=$lon");
     $pada = intval(fmod($lon, $nak_len) / ($nak_len / 4)) + 1;
-    assert($pada >= 1 && $pada <= 4, "pada $pada out of [1,4] for lon=$lon");
+    assertEq($pada >= 1 && $pada <= 4, true, "pada $pada out of [1,4] for lon=$lon");
 }
 
 // Vimshottari total = 120 years
 $periods = [6, 10, 7, 18, 16, 19, 17, 7, 20]; // Sun..Venus
 $total_years = array_sum($periods);
-assert($total_years === 120, "Vimshottari total $total_years != 120");
+assertEq($total_years === 120, true, "Vimshottari total $total_years != 120");
 
 // North Indian house rotation
 for ($lagna = 0; $lagna < 12; $lagna++) {
     for ($sign = 0; $sign < 12; $sign++) {
         $house = ($sign - $lagna + 12) % 12 + 1;
-        assert($house >= 1 && $house <= 12, "house $house out of [1,12]");
+        assertEq($house >= 1 && $house <= 12, true, "house $house out of [1,12]");
         if ($sign === $lagna) {
-            assert($house === 1, "lagna sign should be house 1, got $house");
+            assertEq($house === 1, true, "lagna sign should be house 1, got $house");
         }
     }
 }
@@ -418,37 +418,37 @@ $ruler = null;
 foreach ($terms[$sign] as [$end, $planet]) {
     if ($deg < $end) { $ruler = $planet; break; }
 }
-assert($ruler === "Jupiter", "Aries 3° terms ruler should be Jupiter, got $ruler");
+assertEq($ruler === "Jupiter", true, "Aries 3° terms ruler should be Jupiter, got $ruler");
 
 // Decans: 36 decans of 10°; Aries 1st = Mars
 $decan_idx = intval(5.0 / 10) % 36; // 5° Aries = first decan
-assert($decan_idx === 0, "Aries first decan index = 0");
+assertEq($decan_idx === 0, true, "Aries first decan index = 0");
 $DECAN_RULERS = ["Mars","Sun","Venus","Mercury","Moon","Saturn",
                  "Jupiter","Mars","Sun","Venus","Mercury","Moon"];
-assert($DECAN_RULERS[0] === "Mars", "Aries 1st decan = Mars");
+assertEq($DECAN_RULERS[0] === "Mars", true, "Aries 1st decan = Mars");
 
 // Triplicity element cycle: sign % 4 → fire/earth/air/water
 $elements = ["fire","earth","air","water"];
-assert($elements[0 % 4] === "fire",  "Aries = fire");
-assert($elements[1 % 4] === "earth", "Taurus = earth");
-assert($elements[2 % 4] === "air",   "Gemini = air");
-assert($elements[3 % 4] === "water", "Cancer = water");
+assertEq($elements[0 % 4] === "fire", true, "Aries = fire");
+assertEq($elements[1 % 4] === "earth", true, "Taurus = earth");
+assertEq($elements[2 % 4] === "air", true, "Gemini = air");
+assertEq($elements[3 % 4] === "water", true, "Cancer = water");
 
 // Sect: diurnal = Sun, Jupiter, Saturn
 $diurnal = ["Sun", "Jupiter", "Saturn"];
 $nocturnal = ["Moon", "Venus", "Mars"];
 foreach ($diurnal as $p) {
-    assert(!in_array($p, $nocturnal), "$p should not be in nocturnal list");
+    assertEq(!in_array($p, $nocturnal), true, "$p should not be in nocturnal list");
 }
 
 // Firdaria day seq total = 70 years (before nodes)
 $day_seq = [10, 8, 13, 9, 11, 12, 7]; // Sun Venus Mercury Moon Saturn Jupiter Mars
-assert(array_sum($day_seq) === 70, "Day Firdaria 7-planet total = 70y");
+assertEq(array_sum($day_seq) === 70, true, "Day Firdaria 7-planet total = 70y");
 
 // Profection rotation
 for ($age = 0; $age < 48; $age++) {
     $house = ($age % 12) + 1;
-    assert($house >= 1 && $house <= 12, "profection house $house out of range");
+    assertEq($house >= 1 && $house <= 12, true, "profection house $house out of range");
 }
 $profectionBoundaries = [
     ['age' => 0, 'house' => 1],
@@ -457,7 +457,7 @@ $profectionBoundaries = [
 ];
 foreach ($profectionBoundaries as $case) {
     $house = ($case['age'] % 12) + 1;
-    assert($house === $case['house'], "age {$case['age']} = house {$case['house']}");
+    assertEq($house === $case['house'], true, "age {$case['age']} = house {$case['house']}");
 }
 
 
@@ -466,56 +466,56 @@ foreach ($profectionBoundaries as $case) {
 
 // Year cycle: (year - 4) % 60
 $cycle = (2044 - 4) % 60;
-assert($cycle === 0, "2044 should be year-cycle 0 (Jiǎ-Zǐ)");
+assertEq($cycle === 0, true, "2044 should be year-cycle 0 (Jiǎ-Zǐ)");
 
 for ($y = 1900; $y < 2100; $y++) {
     $c = ($y - 4) % 60;
-    assert($c >= 0 && $c < 60, "year cycle out of [0,60) for year $y");
+    assertEq($c >= 0 && $c < 60, true, "year cycle out of [0,60) for year $y");
 }
 
 // 10 stems × 12 branches = 60 cycle
-assert(10 * 6 === 60, "LCM(10,12) = 60");
+assertEq(10 * 6 === 60, true, "LCM(10,12) = 60");
 
 // ── Phase 7: Mesoamerican pure-logic ─────────────────────────────────────────
 
 // Calendar Round = LCM(260, 365) = 18980
 function greatestCommonDivisor(int $a, int $b): int { return $b === 0 ? $a : greatestCommonDivisor($b, $a % $b); }
 $lcm = 260 * 365 / greatestCommonDivisor(260, 365);
-assert($lcm === 18980, "Calendar Round LCM should be 18980, got $lcm");
+assertEq($lcm === 18980, true, "Calendar Round LCM should be 18980, got $lcm");
 
 // Tonalpohualli 260-day cycle
 $GMT = 584283;
 $jd  = 2451545;
 $day1 = ($jd - $GMT) % 260;
 $day2 = ($jd + 260 - $GMT) % 260;
-assert($day1 === $day2, "Tonalpohualli should repeat after 260 days");
+assertEq($day1 === $day2, true, "Tonalpohualli should repeat after 260 days");
 
 // Trecena range [1,13]
 for ($d = 0; $d < 260; $d++) {
     $t = ($d % 13) + 1;
-    assert($t >= 1 && $t <= 13, "trecena $t out of range at day $d");
+    assertEq($t >= 1 && $t <= 13, true, "trecena $t out of range at day $d");
 }
 
 // 20 day signs
-assert(count(["Cipactli","Ehecatl","Calli","Cuetzpallin","Coatl","Miquiztli",
-              "Mazatl","Tochtli","Atl","Itzcuintli","Ozomatli","Malinalli",
-              "Acatl","Ocelotl","Cuauhtli","Cozcacuauhtli","Ollin","Tecpatl",
-              "Quiahuitl","Xochitl"]) === 20, "Tonalpohualli should have 20 signs");
+assertEq(count(["Cipactli","Ehecatl","Calli","Cuetzpallin","Coatl","Miquiztli",
+                "Mazatl","Tochtli","Atl","Itzcuintli","Ozomatli","Malinalli",
+                "Acatl","Ocelotl","Cuauhtli","Cozcacuauhtli","Ollin","Tecpatl",
+                "Quiahuitl","Xochitl"]) === 20, true, "Tonalpohualli should have 20 signs");
 
 // ── Phase 8: Indigenous / Egyptian pure-logic ─────────────────────────────────
 
 // 36 Egyptian decans of 10° each
-assert(360 / 10 === 36, "Should be 36 decans");
+assertEq(360 / 10 === 36, true, "Should be 36 decans");
 for ($deg = 0; $deg < 360; $deg++) {
     $idx = intval($deg / 10) % 36;
-    assert($idx >= 0 && $idx < 36, "decan idx $idx out of range");
+    assertEq($idx >= 0 && $idx < 36, true, "decan idx $idx out of range");
 }
 
 // Medicine Wheel: 12 birth totems
 const SNOW_GOOSE = 'Snow Goose';
-assert(count([SNOW_GOOSE,"Otter","Cougar","Red Hawk","Beaver","Deer",
-              "Flicker","Sturgeon","Brown Bear","Raven","Snake","Elk"]) === 12,
-       "Medicine Wheel should have 12 totems");
+assertEq(count([SNOW_GOOSE,"Otter","Cougar","Red Hawk","Beaver","Deer",
+                "Flicker","Sturgeon","Brown Bear","Raven","Snake","Elk"]) === 12,
+    true, "Medicine Wheel should have 12 totems");
 
 
 
@@ -523,7 +523,7 @@ assert(count([SNOW_GOOSE,"Otter","Cougar","Red Hawk","Beaver","Deer",
 
 $fixture_path = __DIR__ . '/../../../tests/fixtures/reference_values.json';
 $fx = json_decode(file_get_contents($fixture_path), true);
-assert($fx !== null, "Could not load reference_values.json");
+assertEq($fx !== null, true, "Could not load reference_values.json");
 
 $GMT = 584283;
 
@@ -532,8 +532,8 @@ foreach ($fx['antiscia'] as $case) {
     $lon = $case['input_lon'];
     $got  = fmod(180.0 - $lon + 360.0, 360.0);
     $gotc = fmod(360.0 - $lon + 360.0, 360.0);
-    assert(abs($got  - $case['antiscion']) < 1e-9, "antiscion mismatch at lon=$lon");
-    assert(abs($gotc - $case['contra'])    < 1e-9, "contra mismatch at lon=$lon");
+    assertEq(abs($got - $case['antiscion']) < 1e-9, true, "antiscion mismatch at lon=$lon");
+    assertEq(abs($gotc - $case['contra']) < 1e-9, true, "contra mismatch at lon=$lon");
 }
 
 // Tonalpohualli
@@ -542,46 +542,23 @@ foreach ($fx['tonalpohualli'] as $case) {
     $day = (($jd - $GMT) % 260 + 260) % 260;
     $t   = $day % 13 + 1;
     $s   = $day % 20;
-    assert($t == $case['trecena'],  "trecena at jd=$jd");
-    assert($s == $case['sign_idx'], "sign at jd=$jd");
+    assertEq($t == $case['trecena'], true, "trecena at jd=$jd");
+    assertEq($s == $case['sign_idx'], true, "sign at jd=$jd");
 }
 
 // Profections
 foreach ($fx['profections'] as $case) {
     $house = ($case['age'] % 12) + 1;
-    assert($house === $case['house'], "profection house mismatch for age {$case['age']}");
+    assertEq($house === $case['house'], true, "profection house mismatch for age {$case['age']}");
 }
 
 // Medicine Wheel
-$totems = [
-    [300,330,SNOW_GOOSE,'Earth','Turtle','Winter'],
-    [330,360,'Otter','Air','Butterfly','Winter'],
-    [0,30,'Cougar','Air','Butterfly','Spring'],
-    [30,60,'Red Hawk','Fire','Thunderbird','Spring'],
-    [60,90,'Beaver','Earth','Turtle','Spring'],
-    [90,120,'Deer','Air','Butterfly','Summer'],
-    [120,150,'Flicker','Water','Frog','Summer'],
-    [150,180,'Sturgeon','Fire','Thunderbird','Summer'],
-    [180,210,'Brown Bear','Earth','Turtle','Autumn'],
-    [210,240,'Raven','Air','Butterfly','Autumn'],
-    [240,270,'Snake','Water','Frog','Autumn'],
-    [270,300,'Elk','Fire','Thunderbird','Winter'],
-];
-function getTotem($lon, $totems) {
-    $lon = fmod(fmod($lon, 360) + 360, 360);
-    foreach ($totems as [$lo, $hi, $animal, $element, $clan, $season]) {
-        if ($lo < $hi ? ($lon >= $lo && $lon < $hi) : ($lon >= $lo || $lon < $hi)) {
-            return [$animal, $element, $clan, $season];
-        }
-    }
-    return [SNOW_GOOSE,'Earth','Turtle','Winter'];
-}
 foreach ($fx['medicine_wheel'] as $case) {
-    [$animal, $element, $clan, $season] = getTotem($case['sun_lon'], $totems);
-    assert($animal  === $case['animal'],  "animal mismatch at lon={$case['sun_lon']}");
-    assert($element === $case['element'], "element mismatch");
-    assert($clan    === $case['clan'],    "clan mismatch");
-    assert($season  === $case['season'],  "season mismatch");
+    [$animal, $element, $clan, $season] = medicine_wheel_totem($case['sun_lon']);
+    assertEq($animal === $case['animal'], true, "animal mismatch at lon={$case['sun_lon']}");
+    assertEq($element === $case['element'], true, "element mismatch");
+    assertEq($clan === $case['clan'], true, "clan mismatch");
+    assertEq($season === $case['season'], true, "season mismatch");
 }
 
 

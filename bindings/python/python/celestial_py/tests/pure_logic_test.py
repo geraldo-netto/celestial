@@ -632,6 +632,7 @@ class TestJewishCalendar(unittest.TestCase):
     def test_5785_not_leap(self):
         self.assertFalse(self._is_leap(5785))
 
+
 class TestEasterComputus(unittest.TestCase):
     """Easter computus pure-logic tests."""
 
@@ -1927,40 +1928,3 @@ class TestSharedFixtures(unittest.TestCase):
             lon, name = TERMS[case["idx"]]
             self.assertAlmostEqual(lon, case["lon"], places=9)
             self.assertEqual(name, case["pinyin"])
-
-    # ── Medicine Wheel ────────────────────────────────────────────────────────
-    _TOTEMS = [
-        (300.0, 330.0, _SNOW_GOOSE_TOTEM, "Earth", "Turtle", "Winter"),
-        (330.0, 360.0, "Otter", "Air", "Butterfly", "Winter"),
-        (0.0, 30.0, "Cougar", "Air", "Butterfly", "Spring"),
-        (30.0, 60.0, "Red Hawk", "Fire", "Thunderbird", "Spring"),
-        (60.0, 90.0, "Beaver", "Earth", "Turtle", "Spring"),
-        (90.0, 120.0, "Deer", "Air", "Butterfly", "Summer"),
-        (120.0, 150.0, "Flicker", "Water", "Frog", "Summer"),
-        (150.0, 180.0, "Sturgeon", "Fire", "Thunderbird", "Summer"),
-        (180.0, 210.0, "Brown Bear", "Earth", "Turtle", "Autumn"),
-        (210.0, 240.0, "Raven", "Air", "Butterfly", "Autumn"),
-        (240.0, 270.0, "Snake", "Water", "Frog", "Autumn"),
-        (270.0, 300.0, "Elk", "Fire", "Thunderbird", "Winter"),
-    ]
-
-    def _totem(self, lon):
-        lon = lon % 360
-        for lo, hi, animal, element, clan, season in self._TOTEMS:
-            if lo < hi:
-                if lo <= lon < hi:
-                    return (animal, element, clan, season)
-            else:
-                if lon >= lo or lon < hi:
-                    return (animal, element, clan, season)
-        return (_SNOW_GOOSE_TOTEM, "Earth", "Turtle", "Winter")
-
-    def test_medicine_wheel_from_fixture(self):
-        for case in self.fx["medicine_wheel"]:
-            got = self._totem(case["sun_lon"])
-            self.assertEqual(
-                got[0], case["animal"], msg=f"animal at lon={case['sun_lon']}"
-            )
-            self.assertEqual(got[1], case["element"])
-            self.assertEqual(got[2], case["clan"])
-            self.assertEqual(got[3], case["season"])

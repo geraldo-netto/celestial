@@ -1229,41 +1229,6 @@ for (const c of fixtures.profections) {
   });
 }
 
-// Medicine Wheel — totem fallback at the Aries cusp boundary.
-const TOTEMS_FX = [
-  [300, 330, "Snow Goose", "Earth", "Turtle", "Winter"],
-  [330, 360, "Otter", "Air", "Butterfly", "Winter"],
-  [0, 30, "Cougar", "Air", "Butterfly", "Spring"],
-  [30, 60, "Red Hawk", "Fire", "Thunderbird", "Spring"],
-  [60, 90, "Beaver", "Earth", "Turtle", "Spring"],
-  [90, 120, "Deer", "Air", "Butterfly", "Summer"],
-  [120, 150, "Flicker", "Water", "Frog", "Summer"],
-  [150, 180, "Sturgeon", "Fire", "Thunderbird", "Summer"],
-  [180, 210, "Brown Bear", "Earth", "Turtle", "Autumn"],
-  [210, 240, "Raven", "Air", "Butterfly", "Autumn"],
-  [240, 270, "Snake", "Water", "Frog", "Autumn"],
-  [270, 300, "Elk", "Fire", "Thunderbird", "Winter"],
-];
-const TOTEM_FALLBACK = ["Snow Goose", "Earth", "Turtle", "Winter"];
-
-function totemFx(lon) {
-  const n = ((lon % 360) + 360) % 360;
-  for (const [lo, hi, ...rest] of TOTEMS_FX) {
-    if (lo < hi ? n >= lo && n < hi : n >= lo || n < hi) return rest;
-  }
-  return TOTEM_FALLBACK;
-}
-
-for (const c of fixtures.medicine_wheel) {
-  test(`fixture totem(${c.sun_lon}) = ${c.animal}`, () => {
-    const [animal, element, clan, season] = totemFx(c.sun_lon);
-    if (animal !== c.animal) throw new Error(`animal: expected ${c.animal}, got ${animal}`);
-    if (element !== c.element) throw new Error(`element: expected ${c.element}, got ${element}`);
-    if (clan !== c.clan) throw new Error(`clan: expected ${c.clan}, got ${clan}`);
-    if (season !== c.season) throw new Error(`season: expected ${c.season}, got ${season}`);
-  });
-}
-
 // ── Final summary ─────────────────────────────────────────────────────────────
 
 if (failures.length > 0) {

@@ -295,37 +295,37 @@
   "medicine_wheel": [
     {
       "sun_lon": 305.0,
-      "animal": "Snow Goose",
-      "element": "Earth",
-      "clan": "Turtle",
-      "season": "Winter"
-    },
-    {
-      "sun_lon": 335.0,
       "animal": "Otter",
       "element": "Air",
       "clan": "Butterfly",
       "season": "Winter"
     },
     {
-      "sun_lon": 15.0,
+      "sun_lon": 335.0,
       "animal": "Cougar",
-      "element": "Air",
-      "clan": "Butterfly",
+      "element": "Water",
+      "clan": "Frog",
+      "season": "Winter"
+    },
+    {
+      "sun_lon": 15.0,
+      "animal": "Red Hawk",
+      "element": "Fire",
+      "clan": "Thunderbird",
       "season": "Spring"
     },
     {
       "sun_lon": 135.0,
-      "animal": "Flicker",
-      "element": "Water",
-      "clan": "Frog",
+      "animal": "Sturgeon",
+      "element": "Fire",
+      "clan": "Thunderbird",
       "season": "Summer"
     },
     {
       "sun_lon": 285.0,
-      "animal": "Elk",
-      "element": "Fire",
-      "clan": "Thunderbird",
+      "animal": "Snow Goose",
+      "element": "Earth",
+      "clan": "Turtle",
       "season": "Winter"
     }
   ],

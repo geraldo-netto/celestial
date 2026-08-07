@@ -8,6 +8,14 @@ interface CalcCase {
   position: number[];
 }
 
+interface MedicineWheelCase {
+  sun_lon: number;
+  animal: string;
+  element: string;
+  clan: string;
+  season: string;
+}
+
 interface Golden {
   tolerance: number;
   calc_ut: {
@@ -41,6 +49,9 @@ const celestial = require("../index") as typeof CelestialModule;
 const golden = JSON.parse(
   readFileSync(resolve(__dirname, "../../../tests/fixtures/binding_golden.json"), "utf8"),
 ) as Golden;
+const reference = JSON.parse(
+  readFileSync(resolve(__dirname, "../../../tests/fixtures/reference_values.json"), "utf8"),
+) as { medicine_wheel: MedicineWheelCase[] };
 
 function expectVectorClose(actual: number[], expected: number[]): void {
   expect(actual).toHaveLength(expected.length);
@@ -86,5 +97,16 @@ describe("native binding golden parity", () => {
     );
     expect(result.retFlags).toBe(fixture.ret_flags);
     expect(Math.abs(result.tret - fixture.tret)).toBeLessThanOrEqual(golden.tolerance);
+  });
+
+  test("medicineWheelTotem", () => {
+    for (const fixture of reference.medicine_wheel) {
+      expect(celestial.medicineWheelTotem(fixture.sun_lon)).toEqual([
+        fixture.animal,
+        fixture.element,
+        fixture.clan,
+        fixture.season,
+      ]);
+    }
   });
 });

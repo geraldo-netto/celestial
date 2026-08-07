@@ -10,6 +10,10 @@ def _fixture_path() -> Path:
     return Path(__file__).parents[5] / "tests" / "fixtures" / "binding_golden.json"
 
 
+def _reference_fixture_path() -> Path:
+    return Path(__file__).parents[5] / "tests" / "fixtures" / "reference_values.json"
+
+
 def _assert_vector_close(
     actual: Iterable[float], expected: Iterable[float], tolerance: float
 ) -> None:
@@ -57,3 +61,16 @@ def test_native_binding_golden_parity() -> None:
     )
     assert ret_flags == rise_fixture["ret_flags"]
     assert math.isclose(tret, rise_fixture["tret"], rel_tol=0.0, abs_tol=tolerance)
+
+
+def test_medicine_wheel_uses_native_binding() -> None:
+    assert celestial._EXTENSION_LOADED, "compiled celestial_py extension is required"
+    fixture = json.loads(_reference_fixture_path().read_text(encoding="utf-8"))
+
+    for case in fixture["medicine_wheel"]:
+        assert celestial.medicine_wheel_totem(case["sun_lon"]) == (
+            case["animal"],
+            case["element"],
+            case["clan"],
+            case["season"],
+        )
