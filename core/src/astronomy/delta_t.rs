@@ -294,4 +294,12 @@ mod tests {
             (ut - jd).abs()
         );
     }
+
+    #[test]
+    fn user_override_round_trips_seconds() {
+        crate::functions::config::set_delta_t_userdef(0.5);
+        let dt = delta_t(JulianDay::new(2_451_545.0));
+        crate::functions::config::set_delta_t_userdef(f64::NAN);
+        assert!((dt - 0.5).abs() < f64::EPSILON);
+    }
 }

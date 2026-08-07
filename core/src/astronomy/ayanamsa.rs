@@ -254,6 +254,18 @@ mod tests {
     }
 
     #[test]
+    fn ayanamsa_includes_second_order_precession() {
+        let ten_centuries = 2_451_545.0 + 10.0 * 36_525.0;
+        let ay = ayanamsa(ten_centuries, SidMode::Lahiri);
+        assert!((ay - 37.844_682_78).abs() < 1e-10, "ayanamsa = {ay}");
+    }
+
+    #[test]
+    fn precession_correction_is_quadratic() {
+        assert!((precession_correction(10.0) - 0.0214).abs() < f64::EPSILON);
+    }
+
+    #[test]
     fn j2000_mode_is_zero() {
         let ay = ayanamsa(2_451_545.0, SidMode::J2000);
         assert!(ay.abs() < 0.001, "J2000 ayanamsa = {ay}");

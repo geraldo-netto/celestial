@@ -82,3 +82,13 @@ pub fn julian_centuries(jde: f64) -> f64 {
 pub fn julian_millennia(jde: f64) -> f64 {
     (jde - J2000) / DAYS_PER_MILLENNIUM
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn radians_per_arcsecond_matches_reference() {
+        assert!((RAD_PER_ARCSEC - 4.848_136_811_095_36e-6).abs() < 1e-18);
+    }
+}
