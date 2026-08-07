@@ -28,13 +28,10 @@ fn to_deg(r: f64) -> f64 {
 fn kepler(m: f64, ecc: f64) -> f64 {
     let m = m.rem_euclid(TWO_PI);
     let mut e = m;
-    for _ in 0..50 {
+    for _ in 0..8 {
         let (sin_e, cos_e) = e.sin_cos();
         let de = (m - e + ecc * sin_e) / (1.0 - ecc * cos_e);
         e += de;
-        if de.abs() < 1e-12 {
-            break;
-        }
     }
     e
 }
@@ -105,11 +102,7 @@ pub fn chiron_speed(jd: JulianDay) -> (f64, f64, f64) {
     let (l0, b0, r0) = chiron_geocentric(jd - h);
     let (l1, b1, r1) = chiron_geocentric(jd + h);
     let dl = ((l1 - l0 + 540.0) % 360.0) - 180.0; // handle 0/360 wrap
-    (
-        (dl / (2.0 * h)),
-        (b1 - b0) / (2.0 * h),
-        (r1 - r0) / (2.0 * h),
-    )
+    (dl, b1 - b0, r1 - r0)
 }
 
 /// Geocentric ecliptic position of Chiron at JDE.
@@ -167,17 +160,70 @@ mod cov_tests {
     }
 
     #[test]
-    fn chiron_geocentric_finite_j2000() {
-        let (lon, lat, dist) = chiron_geocentric(J2000);
-        assert!((0.0..360.0).contains(&lon), "lon={lon}");
-        assert!(lat.abs() < 20.0, "lat={lat}");
-        assert!(dist > 5.0 && dist < 25.0, "dist={dist} AU");
+    fn geocentric_position_and_speed_match_regression_vectors() {
+        let cases = [
+            (
+                1_721_425.5,
+                [
+                    353.856_071_833_356_17,
+                    3.695_837_339_007_048_7,
+                    18.878_173_353_844_677,
+                    0.025_022_906_417_916_6,
+                    -0.004_209_203_034_547_304,
+                    0.016_922_137_780_259_305,
+                ],
+            ),
+            (
+                J2000,
+                [
+                    250.777_080_645_625,
+                    3.984_617_154_410_26,
+                    10.577_608_742_139_182,
+                    0.114_693_592_874_800_74,
+                    0.006_279_641_217_276_755,
+                    -0.006_675_457_573_217_969,
+                ],
+            ),
+            (
+                2_463_456.789,
+                [
+                    55.082_625_987_681_816,
+                    -2.611_554_029_901_816,
+                    16.260_702_032_527_156,
+                    0.017_508_213_009_932_66,
+                    -0.004_105_368_138_216_381,
+                    -0.017_994_451_649_084_198,
+                ],
+            ),
+            (
+                3_182_045.0,
+                [
+                    52.972_101_009_587_94,
+                    -3.232_883_876_786_869,
+                    15.240_127_249_033_964,
+                    -0.016_546_972_626_088_063,
+                    0.001_724_831_371_064_272_6,
+                    0.013_862_870_649_566_261,
+                ],
+            ),
+        ];
+        for (jd, expected) in cases {
+            let (lon, lat, dist) = chiron_geocentric(jd);
+            let (speed_lon, speed_lat, speed_dist) = chiron_speed(JulianDay::new(jd));
+            assert_eq!([lon, lat, dist, speed_lon, speed_lat, speed_dist], expected);
+        }
     }
 
     #[test]
-    fn chiron_speed_returned_pair_consistent() {
-        let (l0, _, _) = chiron_pos(JulianDay::new(J2000));
-        let (l1, _, _) = chiron_pos(JulianDay::new(J2000 + 100.0));
-        assert!((l1 - l0).abs() > 0.0, "Chiron should move across 100 days");
+    fn kepler_solver_matches_regression_vectors() {
+        let cases = [
+            (0.0, 0.0),
+            (1.25, 1.632_227_637_717_615_3),
+            (-2.75, 3.425_805_408_883_046_5),
+            (7.0, 1.048_757_387_221_363_6),
+        ];
+        for (mean_anomaly, expected) in cases {
+            assert!((kepler(mean_anomaly, 0.382_95) - expected).abs() < 1e-14);
+        }
     }
 }
