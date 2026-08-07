@@ -59,6 +59,21 @@ fn override_if<T>(field: &mut T, candidate: Option<T>, should_override: bool) {
     }
 }
 
+fn apply_config_path(
+    field: &str,
+    target: &mut Option<PathBuf>,
+    candidate: Option<PathBuf>,
+) -> Result<(), CliError> {
+    if target.is_some() {
+        return Ok(());
+    }
+    if let Some(path) = &candidate {
+        reject_unsafe_config_path(field, path)?;
+    }
+    *target = candidate;
+    Ok(())
+}
+
 fn reject_unsafe_config_path(field: &str, path: &Path) -> Result<(), CliError> {
     if path.is_absolute() || path.components().any(|c| matches!(c, Component::ParentDir)) {
         return Err(CliError::Config(format!(
@@ -68,6 +83,23 @@ fn reject_unsafe_config_path(field: &str, path: &Path) -> Result<(), CliError> {
         )));
     }
     Ok(())
+}
+
+fn apply_render_config(args: &mut RenderArgs, render: RenderSection) -> Result<(), CliError> {
+    let date_at_default = args.date == "now";
+    let lat_at_default = args.lat == 0.0;
+    let lon_at_default = args.lon == 0.0;
+    let hsys_at_default = args.hsys == 'P';
+
+    override_if(&mut args.date, render.date, date_at_default);
+    if args.timezone.is_none() {
+        args.timezone = render.timezone;
+    }
+    override_if(&mut args.lat, render.lat, lat_at_default);
+    override_if(&mut args.lon, render.lon, lon_at_default);
+    override_if(&mut args.hsys, render.hsys, hsys_at_default);
+    apply_config_path("template", &mut args.template, render.template)?;
+    apply_config_path("out", &mut args.out, render.out)
 }
 
 /// Read a TOML config file and merge its defaults into `args` (only fields
@@ -82,42 +114,8 @@ pub(crate) fn load_config(args: &mut RenderArgs) -> Result<BTreeMap<String, Stri
         .map_err(|e| format!("cannot read config `{}`: {e}", cfg_path.display()))?;
     let cfg: ConfigFile = toml::from_str(&text).map_err(|e| format!("invalid config TOML: {e}"))?;
 
-    if let Some(r) = cfg.render {
-        // Snapshot field values before taking &mut borrows so the predicate
-        // doesn't conflict with the mutable borrow.
-        let date_at_default = args.date == "now";
-        let lat_at_default = args.lat == 0.0;
-        let lon_at_default = args.lon == 0.0;
-        let hsys_at_default = args.hsys == 'P';
-
-        // Each line: "use the config value for this field if the user didn't
-        // already specify one on the command line".
-        override_if(&mut args.date, r.date, date_at_default);
-        if args.timezone.is_none() {
-            args.timezone = r.timezone;
-        }
-        override_if(&mut args.lat, r.lat, lat_at_default);
-        override_if(&mut args.lon, r.lon, lon_at_default);
-        override_if(&mut args.hsys, r.hsys, hsys_at_default);
-        if args.template.is_none() {
-            if let Some(template) = &r.template {
-                reject_unsafe_config_path("template", template)?;
-            }
-            args.template = r.template;
-        }
-        if args.out.is_none() {
-            // SEC-5: a config file may be untrusted. An `out` taken
-            // from it must stay a relative path inside the working
-            // dir — reject absolute paths and any `..` component so a
-            // crafted `[render] out = "/etc/…"` / "../../…" can't make
-            // the tool write (and `create_dir_all`) outside cwd. An
-            // explicit CLI `--out` is the user's own intent and is
-            // left unrestricted (this branch only runs when it's None).
-            if let Some(o) = &r.out {
-                reject_unsafe_config_path("out", o)?;
-            }
-            args.out = r.out;
-        }
+    if let Some(render) = cfg.render {
+        apply_render_config(args, render)?;
     }
     if let Some(t) = cfg.vars {
         for (k, v) in t {

@@ -2138,6 +2138,72 @@ fn test_builder_api(n: u32) -> Suite {
     s
 }
 
+fn check_secondary_progressions(
+    s: &mut Suite,
+    jd_natal: f64,
+    age: f64,
+    geopos: (f64, f64),
+    bodies: &[Body],
+    flags: CalcFlags,
+) {
+    let result = secondary_progressions(
+        JulianDay::new(jd_natal),
+        age,
+        bodies,
+        Latitude::new(geopos.0),
+        Longitude::new(geopos.1),
+        HouseSystem::PLACIDUS,
+        flags,
+    );
+    let Ok((positions, houses)) = result else {
+        s.passed += 1;
+        return;
+    };
+    s.check(positions.len() == bodies.len(), || {
+        "secondary_progressions: position count mismatch".into()
+    });
+    for (_, pos) in &positions {
+        s.check(
+            pos.lon.is_finite() && pos.lon >= 0.0 && pos.lon < 360.0,
+            || format!("secondary_progressions: lon {:.4} out of range", pos.lon),
+        );
+    }
+    for cusp in &houses.cusps {
+        s.check(cusp.is_finite(), || {
+            format!("secondary_progressions: non-finite cusp {cusp:.4}")
+        });
+    }
+}
+
+fn check_midpoints(s: &mut Suite, jd_natal: f64, bodies: &[Body], flags: CalcFlags) {
+    let positions: Vec<(Body, f64)> = bodies
+        .iter()
+        .filter_map(|&body| {
+            calc_ut(JulianDay::new(jd_natal), body, flags)
+                .ok()
+                .map(|position| (body, position.lon))
+        })
+        .collect();
+    if positions.len() < 2 {
+        return;
+    }
+    let table = midpoint_table(&positions, 2.0);
+    for entry in &table {
+        s.check(
+            entry.2.is_finite() && entry.2 >= 0.0 && entry.2 < 360.0,
+            || format!("midpoint_table: lon {:.4} out of range", entry.2),
+        );
+    }
+    let max_pairs = positions.len() * (positions.len() - 1) / 2;
+    s.check(table.len() <= max_pairs, || {
+        format!(
+            "midpoint_table: {} entries > max {}",
+            table.len(),
+            max_pairs
+        )
+    });
+}
+
 fn test_secondary_progressions_midpoints(n: u32) -> Suite {
     let mut s = Suite::new("secondary_progressions_midpoints");
     let mut rng = Xorshift64::new(0xC2D3E4F506172839);
@@ -2153,65 +2219,9 @@ fn test_secondary_progressions_midpoints(n: u32) -> Suite {
     for _ in 0..n / 5 {
         let jd_natal = 2_415_021.0 + rng.range_f64(0.0, 50_000.0);
         let age = rng.range_f64(1.0, 90.0);
-        let lat = rng.range_f64(-89.9, 89.9);
-        let lon = rng.range_f64(-180.0, 180.0);
-
-        // secondary_progressions: all returned positions must be finite [0,360)
-        match secondary_progressions(
-            JulianDay::new(jd_natal),
-            age,
-            &bodies,
-            Latitude::new(lat),
-            Longitude::new(lon),
-            HouseSystem::PLACIDUS,
-            flags,
-        ) {
-            Ok((positions, houses)) => {
-                s.check(positions.len() == bodies.len(), || {
-                    "secondary_progressions: position count mismatch".into()
-                });
-                for (_, pos) in &positions {
-                    s.check(
-                        pos.lon.is_finite() && pos.lon >= 0.0 && pos.lon < 360.0,
-                        || format!("secondary_progressions: lon {:.4} out of range", pos.lon),
-                    );
-                }
-                for cusp in &houses.cusps {
-                    s.check(cusp.is_finite(), || {
-                        format!("secondary_progressions: non-finite cusp {cusp:.4}")
-                    });
-                }
-            }
-            Err(_) => s.passed += 1, // polar latitudes may legitimately fail
-        }
-
-        // midpoint_table: all midpoints must be finite, in [0,360)
-        let positions: Vec<(Body, f64)> = bodies
-            .iter()
-            .filter_map(|&b| {
-                calc_ut(JulianDay::new(jd_natal), b, flags)
-                    .ok()
-                    .map(|p| (b, p.lon))
-            })
-            .collect();
-        if positions.len() >= 2 {
-            let table = midpoint_table(&positions, 2.0);
-            for entry in &table {
-                s.check(
-                    entry.2.is_finite() && entry.2 >= 0.0 && entry.2 < 360.0,
-                    || format!("midpoint_table: lon {:.4} out of range", entry.2),
-                );
-            }
-            // Number of midpoints should be at most n*(n-1)/2
-            let max_pairs = positions.len() * (positions.len() - 1) / 2;
-            s.check(table.len() <= max_pairs, || {
-                format!(
-                    "midpoint_table: {} entries > max {}",
-                    table.len(),
-                    max_pairs
-                )
-            });
-        }
+        let geopos = (rng.range_f64(-89.9, 89.9), rng.range_f64(-180.0, 180.0));
+        check_secondary_progressions(&mut s, jd_natal, age, geopos, &bodies, flags);
+        check_midpoints(&mut s, jd_natal, &bodies, flags);
     }
     s
 }
