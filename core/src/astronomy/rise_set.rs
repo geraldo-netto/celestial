@@ -124,15 +124,7 @@ fn rise_set_inner(
     let (sin_dec1, cos_dec1) = to_rad(dec1).sin_cos();
     let cos_h0 = (-sin_lat).mul_add(sin_dec1, h0.sin()) / (cos_lat * cos_dec1);
 
-    if event != RiseSetEvent::Transit && cos_h0 < -1.0 {
-        // Circumpolar — never sets
-        return RiseSetResult {
-            jd_ut: jd0,
-            found: false,
-        };
-    }
-    if event != RiseSetEvent::Transit && cos_h0 > 1.0 {
-        // Never rises
+    if event != RiseSetEvent::Transit && !(-1.0..=1.0).contains(&cos_h0) {
         return RiseSetResult {
             jd_ut: jd0,
             found: false,
@@ -195,7 +187,7 @@ fn rise_set_inner(
         m += dm;
         m = m.rem_euclid(1.0);
 
-        if dm.abs() < 1e-6 {
+        if (0.0..1e-6).contains(&dm.abs()) {
             break;
         }
     }
@@ -250,7 +242,13 @@ fn unwrap_ra_triplet(ra0: f64, ra1: f64, ra2: f64) -> (f64, f64, f64) {
 }
 
 fn unwrap_angle_near(angle: f64, reference: f64) -> f64 {
-    reference + (angle - reference + 180.0).rem_euclid(360.0) - 180.0
+    let delta = (angle - reference).rem_euclid(360.0);
+    reference
+        + if (180.0..360.0).contains(&delta) {
+            delta - 360.0
+        } else {
+            delta
+        }
 }
 
 /// Normalise a day fraction to [0, 1).
@@ -261,6 +259,52 @@ fn norm_frac(f: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn body_kinds_and_events_match_regression_vectors() {
+        let jd = JulianDay::new(2_463_456.789);
+        let lat = Latitude::new(37.5);
+        let lon = Longitude::new(12.5);
+        let cases = [
+            (
+                RiseSetEvent::Rise,
+                2_463_456.683_211_299_6,
+                2_463_456.918_774_169_4,
+                2_463_456.529_164_489_4,
+            ),
+            (
+                RiseSetEvent::Transit,
+                2_463_456.968_753_850_6,
+                2_463_457.152_051_348_2,
+                2_463_456.831_956_585,
+            ),
+            (
+                RiseSetEvent::Set,
+                2_463_457.253_888_645_7,
+                2_463_457.381_877_229_5,
+                2_463_457.134_744_828_6,
+            ),
+        ];
+        for (event, expected_sun, expected_moon, expected_saturn) in cases {
+            let sun = sun_rise_set(jd, lat, lon, event);
+            let moon = moon_rise_set(jd, lat, lon, event);
+            let saturn = planet_rise_set(jd, lat, lon, event, Planet::Saturn);
+            assert!(sun.found && moon.found && saturn.found);
+            assert!((sun.jd_ut - expected_sun).abs() < 1e-9);
+            assert!((moon.jd_ut - expected_moon).abs() < 1e-9);
+            assert!((saturn.jd_ut - expected_saturn).abs() < 1e-9);
+        }
+        for event in [RiseSetEvent::Rise, RiseSetEvent::Set] {
+            let polar = sun_rise_set(
+                JulianDay::new(2_451_545.0),
+                Latitude::new(89.9),
+                Longitude::new(0.0),
+                event,
+            );
+            assert_eq!(polar.jd_ut, 2_451_545.5);
+            assert!(!polar.found);
+        }
+    }
 
     #[test]
     fn sun_rise_boston_approx() {
@@ -330,6 +374,17 @@ mod tests {
         let fixed_mid = interpolate(u0, u1, u2, 0.5).rem_euclid(360.0);
         assert!((20.0..340.0).contains(&raw_mid));
         assert!(!(20.0..=340.0).contains(&fixed_mid));
+    }
+
+    #[test]
+    fn numerical_helpers_match_regression_vectors() {
+        let gmst = approx_gmst(3_182_045.0);
+        assert!((gmst - 116.016_655_865_125_36).abs() < 1e-12);
+        assert_eq!(interpolate(1.0, 4.0, 10.0, 0.25), 5.21875);
+        assert_eq!(interpolate(-3.0, 8.0, 2.0, -0.5), 4.625);
+        assert_eq!(unwrap_angle_near(359.0, 1.0), -1.0);
+        assert_eq!(unwrap_angle_near(1.0, 359.0), 361.0);
+        assert_eq!(unwrap_angle_near(181.0, 1.0), -179.0);
     }
 
     fn moon_ra_crosses_zero(jd0: f64) -> bool {
