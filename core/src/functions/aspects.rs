@@ -185,7 +185,7 @@ pub mod nakshatras {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Result of an aspect match check.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AspectMatch {
     /// Difference between aspect and objects distance (pos1 + asp + diff = pos2).
     pub diff: f64,
@@ -220,11 +220,7 @@ fn match_core(
         };
     }
     let diff = diff0 - aspect;
-    let speed = if diff > 0.0 {
-        speed1 - speed0
-    } else {
-        speed0 - speed1
-    };
+    let speed = differential_speed(diff, speed0, speed1);
     let orb = select_orb(speed).abs();
     let factor = diff / orb;
     let matched = aspect - orb <= diff0 && diff0 <= aspect + orb;
@@ -233,6 +229,14 @@ fn match_core(
         speed,
         factor,
         matched,
+    }
+}
+
+fn differential_speed(diff: f64, speed0: f64, speed1: f64) -> f64 {
+    match diff.partial_cmp(&0.0) {
+        Some(std::cmp::Ordering::Greater) => speed1 - speed0,
+        Some(std::cmp::Ordering::Less) => speed0 - speed1,
+        _ => 0.0,
     }
 }
 
@@ -279,9 +283,6 @@ pub fn match_aspect2(
 ) -> AspectMatch {
     let asp = diff_deg_signed(0.0, aspect).abs(); // normalise to [0,180]
     let a0 = match_aspect(pos0, speed0, pos1, speed1, asp, orb);
-    if asp == 0.0 || asp == 180.0 {
-        return a0;
-    }
     let a1 = match_aspect(pos0, speed0, pos1, speed1, -asp, orb);
     pick_closer(a0, a1)
 }
@@ -327,9 +328,6 @@ pub fn match_aspect4(
 ) -> AspectMatch {
     let asp = diff_deg_signed(0.0, aspect).abs();
     let a0 = match_aspect3(pos0, speed0, pos1, speed1, asp, app_orb, sep_orb, def_orb);
-    if asp == 0.0 || asp == 180.0 {
-        return a0;
-    }
     let a1 = match_aspect3(pos0, speed0, pos1, speed1, -asp, app_orb, sep_orb, def_orb);
     pick_closer(a0, a1)
 }
@@ -447,5 +445,121 @@ impl AspectOrbs {
             self.sep_orb,
             self.def_orb,
         )
+    }
+}
+
+#[cfg(test)]
+mod mutation_tests {
+    use super::*;
+
+    fn aspect(diff: f64, speed: f64, factor: f64, matched: bool) -> AspectMatch {
+        AspectMatch {
+            diff,
+            speed,
+            factor,
+            matched,
+        }
+    }
+
+    #[test]
+    fn derived_aspect_angles_are_exact() {
+        use aspect_angles::*;
+        assert_eq!(UNDECILE, 32.727_272_727_272_73);
+        assert_eq!(SEPTILE, 51.428_571_428_571_43);
+        assert_eq!(BIUNDECILE, 65.454_545_454_545_45);
+        assert_eq!(TRIUNDECILE, 98.181_818_181_818_19);
+        assert_eq!(BISEPTILE, 102.857_142_857_142_86);
+        assert_eq!(QUADUNDECILE, 130.909_090_909_090_9);
+        assert_eq!(TRISEPTILE, 154.285_714_285_714_28);
+        assert_eq!(QUINUNDECILE, 163.636_363_636_363_63);
+    }
+
+    #[test]
+    fn aspect_match_paths_are_exact() {
+        assert_eq!(
+            match_aspect(10.0, 1.0, 70.0, 0.5, 60.0, 2.0),
+            aspect(0.0, 0.0, 0.0, true)
+        );
+        assert_eq!(
+            match_aspect(10.0, 1.0, 75.0, 0.5, 60.0, 2.0),
+            aspect(5.0, -0.5, 2.5, false)
+        );
+        assert_eq!(
+            match_aspect(10.0, 1.0, 68.0, 0.5, 60.0, 4.0),
+            aspect(-2.0, 0.5, -0.5, true)
+        );
+    }
+
+    #[test]
+    fn orb_boundaries_are_inclusive() {
+        assert!(match_aspect(10.0, 1.0, 68.0, 0.0, 60.0, 2.0).matched);
+        assert!(match_aspect(10.0, 1.0, 72.0, 0.0, 60.0, 2.0).matched);
+        assert!(!match_aspect(10.0, 1.0, 67.999, 0.0, 60.0, 2.0).matched);
+        assert!(!match_aspect(10.0, 1.0, 72.001, 0.0, 60.0, 2.0).matched);
+    }
+
+    #[test]
+    fn closer_candidate_order_is_exact() {
+        let base = aspect(2.0, 0.5, 1.0, true);
+        let closer = aspect(1.0, 2.0, 3.0, false);
+        assert_eq!(pick_closer(base, closer), closer);
+        assert_eq!(pick_closer(closer, base), closer);
+
+        let applying = aspect(-2.0, -0.5, 4.0, false);
+        assert_eq!(pick_closer(base, applying), applying);
+        let tied = aspect(-2.0, 0.5, 9.0, false);
+        assert_eq!(pick_closer(base, tied), base);
+    }
+
+    #[test]
+    fn signed_aspect_candidates_are_exact() {
+        assert_eq!(
+            match_aspect2(10.0, 1.0, 308.0, 0.5, 60.0, 3.0),
+            aspect(-2.0, 0.5, -0.666_666_666_666_666_6, true)
+        );
+        assert_eq!(
+            match_aspect2(10.0, 1.0, 190.0, 0.5, 180.0, 3.0),
+            aspect(0.0, 0.0, 0.0, true)
+        );
+        assert_eq!(
+            match_aspect4(10.0, 1.0, 308.0, 0.5, 60.0, 4.0, 3.0, 2.0),
+            aspect(-2.0, 0.5, -0.666_666_666_666_666_6, true)
+        );
+    }
+
+    #[test]
+    fn speed_selects_the_orb_exactly() {
+        assert_eq!(
+            match_aspect3(10.0, 1.0, 72.0, 0.5, 60.0, 4.0, 3.0, 2.0),
+            aspect(2.0, -0.5, 0.5, true)
+        );
+        assert_eq!(
+            match_aspect3(10.0, 0.5, 72.0, 1.0, 60.0, 4.0, 3.0, 2.0),
+            aspect(2.0, 0.5, 0.666_666_666_666_666_6, true)
+        );
+        assert_eq!(
+            match_aspect3(10.0, 1.0, 72.0, 1.0, 60.0, 4.0, 3.0, 2.0),
+            aspect(2.0, 0.0, 1.0, true)
+        );
+    }
+
+    #[test]
+    fn antiscion_signs_are_exact() {
+        let result = antiscion([123.0, -4.0, 2.0, 0.5, -0.25, 0.01], 90.0);
+        assert_eq!(result.antiscion, [57.0, -4.0, 2.0, -0.5, -0.25, 0.01]);
+        assert_eq!(result.contrantiscion, [237.0, 4.0, 2.0, -0.5, 0.25, 0.01]);
+    }
+
+    #[test]
+    fn aspect_orbs_builder_preserves_configuration() {
+        let orbs = AspectOrbs::new(4.0, 3.0).def_orb(2.0);
+        assert_eq!(
+            orbs.check(10.0, 1.0, 72.0, 1.0, 60.0),
+            aspect(2.0, 0.0, 1.0, true)
+        );
+        assert_eq!(
+            orbs.check_simple(10.0, 1.0, 72.0, 0.5, 60.0),
+            aspect(2.0, -0.5, 0.5, true)
+        );
     }
 }
