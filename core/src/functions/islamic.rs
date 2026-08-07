@@ -17,10 +17,11 @@
 //! assert_eq!(m, 9); // Ramadan
 //! ```
 
+use crate::body::Calendar;
 use crate::units::JulianDay;
 
-/// Islamic Hijri epoch: 1 Muharram 1 AH = July 16, 622 CE = JD 1948438.5
-pub const HIJRI_EPOCH: f64 = 1_948_438.5;
+/// Islamic Hijri epoch: 1 Muharram 1 AH = July 16, 622 CE = JD 1948439.5
+pub const HIJRI_EPOCH: f64 = 1_948_439.5;
 
 /// Month names in English.
 pub const HIJRI_MONTH_NAMES: [&str; 12] = [
@@ -55,7 +56,7 @@ pub const HIJRI_MONTH_NAMES_AR: [&str; 12] = [
 ];
 
 /// Is the given Hijri year a leap year? (Leap years have 355 days.)
-/// Uses the "Kūfan" or "astronomical" variant of the tabular calendar.
+/// Uses the common 30-year tabular leap cycle.
 #[must_use]
 pub fn is_hijri_leap_year(year: i32) -> bool {
     // i64 multiplication avoids overflow at year ≈ i32::MAX/11.
@@ -75,9 +76,8 @@ pub fn hijri_month_days(year: i32, month: u8) -> u8 {
 /// Julian day of 1 Muharram of the given Hijri year.
 #[must_use]
 pub fn hijri_new_year_jd(year: i32) -> f64 {
-    // Promote to f64 before arithmetic to avoid i32 overflow at extreme years.
     let y = f64::from(year);
-    HIJRI_EPOCH + (y - 1.0) * 354.0 + (11.0 * y + 3.0) / 30.0
+    HIJRI_EPOCH + (y - 1.0) * 354.0 + ((11.0 * y + 3.0) / 30.0).floor()
 }
 
 /// Julian day of the first day of a given Hijri month.
@@ -92,36 +92,32 @@ pub fn hijri_month_start_jd(year: i32, month: u8) -> f64 {
 
 /// Convert a Julian day to a Hijri date (year, month, day).
 ///
-/// Returns `(1, 1, 1)` for non-finite input.
+/// Returns `(1, 1, 1)` for non-finite input or dates before the Hijri epoch.
 #[must_use]
 pub fn hijri_from_jd(jd: JulianDay) -> (i32, u8, u8) {
     let jd: f64 = jd.into();
     if !jd.is_finite() {
         return (1, 1, 1);
     }
-    // Approximate year, clamped to a wide-but-safe range so the refinement
-    // loop below cannot wander into `i32::MAX + 1` overflow territory.
-    let approx = (jd - HIJRI_EPOCH) / 354.367 + 1.0;
-    let year = approx.clamp(1.0, 1_000_000.0) as i32;
-
-    // Refine year
-    let mut y = year;
-    while y < i32::MAX && hijri_new_year_jd(y + 1) <= jd {
-        y += 1;
+    let jd = jd.max(HIJRI_EPOCH);
+    let year = ((30.0 * (jd - HIJRI_EPOCH) + 10_646.0) / 10_631.0).floor();
+    if year > f64::from(i32::MAX) {
+        return (1, 1, 1);
     }
-    while y > 1 && hijri_new_year_jd(y) > jd {
-        y -= 1;
-    }
+    let year = year as i32;
 
-    // Find month
     let mut month = 1u8;
-    let mut remaining = (jd - hijri_new_year_jd(y)).floor() as i32;
-    while month < 12 && remaining >= hijri_month_days(y, month) as i32 {
-        remaining -= hijri_month_days(y, month) as i32;
+    let mut remaining = (jd - hijri_new_year_jd(year)).floor() as i32;
+    for candidate in 1u8..12 {
+        let month_days = hijri_month_days(year, candidate) as i32;
+        if remaining < month_days {
+            break;
+        }
+        remaining -= month_days;
         month += 1;
     }
     let day = (remaining + 1) as u8;
-    (y, month, day)
+    (year, month, day)
 }
 
 /// Convert a Hijri date to a Julian day.
@@ -257,15 +253,8 @@ pub fn islamic_observances_for_jd(jd: JulianDay) -> Vec<IslamicObservance> {
 /// Gregorian year → Hijri years that overlap it (usually 2).
 #[must_use]
 pub fn gregorian_to_hijri_years(gregorian_year: i32) -> (i32, i32) {
-    fn gregorian_to_jd(y: i32, m: i32, d: i32) -> f64 {
-        let a = (14 - m) / 12;
-        let y2 = y + 4800 - a;
-        let m2 = m + 12 * a - 3;
-        let jd = d + (153 * m2 + 2) / 5 + 365 * y2 + y2 / 4 - y2 / 100 + y2 / 400 - 32045;
-        jd as f64 - 0.5
-    }
-    let jan1 = gregorian_to_jd(gregorian_year, 1, 1);
-    let dec31 = gregorian_to_jd(gregorian_year, 12, 31);
+    let jan1 = crate::functions::time::julday(gregorian_year, 1, 1, 0.0, Calendar::Gregorian);
+    let dec31 = crate::functions::time::julday(gregorian_year, 12, 31, 0.0, Calendar::Gregorian);
     let (y1, _, _) = hijri_from_jd(JulianDay::new(jan1));
     let (y2, _, _) = hijri_from_jd(JulianDay::new(dec31));
     (y1, y2)
@@ -276,6 +265,8 @@ pub fn gregorian_to_hijri_years(gregorian_year: i32) -> (i32, i32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const LEAP_YEARS_IN_CYCLE: [i32; 11] = [2, 5, 7, 10, 13, 16, 18, 21, 24, 26, 29];
 
     #[test]
     fn hijri_from_jd_j2000() {
@@ -288,10 +279,69 @@ mod tests {
 
     #[test]
     fn hijri_to_jd_roundtrip() {
-        let (y, m, d) = (1446, 9, 1); // 1 Ramadan 1446
-        let jd = hijri_to_jd(y, m, d);
-        let (y2, m2, d2) = hijri_from_jd(JulianDay::new(jd));
-        assert_eq!((y, m, d), (y2, m2, d2));
+        let dates = [
+            (1, 1, 1),
+            (1, 12, 29),
+            (2, 12, 30),
+            (30, 6, 15),
+            (31, 1, 1),
+            (1446, 9, 1),
+        ];
+        for date in dates {
+            let jd = hijri_to_jd(date.0, date.1, date.2);
+            assert_eq!(hijri_from_jd(JulianDay::new(jd)), date);
+        }
+    }
+
+    #[test]
+    fn hijri_epoch_and_year_boundaries_are_exact() {
+        assert_eq!(hijri_new_year_jd(1), HIJRI_EPOCH);
+        assert_eq!(hijri_new_year_jd(31), HIJRI_EPOCH + 10_631.0);
+        for year in 1..=30 {
+            let expected = if LEAP_YEARS_IN_CYCLE.contains(&year) {
+                355.0
+            } else {
+                354.0
+            };
+            assert_eq!(
+                hijri_new_year_jd(year + 1) - hijri_new_year_jd(year),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn hijri_from_jd_handles_supported_limits() {
+        for jd in [f64::NAN, f64::INFINITY, HIJRI_EPOCH - 0.25] {
+            assert_eq!(hijri_from_jd(JulianDay::new(jd)), (1, 1, 1));
+        }
+        assert_eq!(hijri_from_jd(JulianDay::new(HIJRI_EPOCH)), (1, 1, 1));
+
+        let max_start = hijri_new_year_jd(i32::MAX);
+        assert_eq!(hijri_from_jd(JulianDay::new(max_start)), (i32::MAX, 1, 1));
+        assert_eq!(hijri_from_jd(JulianDay::new(max_start + 355.0)), (1, 1, 1));
+    }
+
+    #[test]
+    fn hijri_month_lengths_cover_common_and_leap_years() {
+        let common: Vec<_> = (1..=12).map(|month| hijri_month_days(1, month)).collect();
+        assert_eq!(common, [30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 29]);
+        assert_eq!(hijri_month_days(2, 12), 30);
+    }
+
+    #[test]
+    fn hijri_month_names_cover_valid_and_invalid_numbers() {
+        for (index, expected) in HIJRI_MONTH_NAMES.iter().enumerate() {
+            assert_eq!(hijri_month_name(index as u8 + 1), *expected);
+        }
+        assert_eq!(hijri_month_name(0), "Unknown");
+        assert_eq!(hijri_month_name(13), "Unknown");
+    }
+
+    #[test]
+    fn hijri_day_offsets_are_exact() {
+        assert_eq!(hijri_to_jd(1, 1, 2), HIJRI_EPOCH + 1.0);
+        assert_eq!(hijri_month_start_jd(1, 12), HIJRI_EPOCH + 325.0);
     }
 
     #[test]
@@ -313,6 +363,17 @@ mod tests {
     fn observances_count() {
         let obs = islamic_observances(1446);
         assert_eq!(obs.len(), 10);
+        let ramadan = &obs[5];
+        assert_eq!(ramadan.name, "Ramadan (start)");
+        assert_eq!(ramadan.arabic_name, "رمضان");
+        assert_eq!((ramadan.hijri_month, ramadan.hijri_day), (9, 1));
+        assert_eq!(ramadan.jd, hijri_to_jd(1446, 9, 1) + 0.25);
+        assert_eq!(ramadan.days, 29);
+
+        let from_jd = islamic_observances_for_jd(JulianDay::new(hijri_to_jd(1446, 6, 1)));
+        assert_eq!(from_jd.len(), 10);
+        assert_eq!(from_jd[0].hijri_month, 1);
+        assert_eq!(from_jd[0].jd, hijri_to_jd(1446, 1, 1) + 0.25);
     }
 
     #[test]
@@ -324,10 +385,11 @@ mod tests {
 
     #[test]
     fn leap_year_detection() {
-        // Hijri years 2, 5, 7, 10, 13, 15, 18, 21, 24, 26, 29 are leap in 30-year cycle
-        assert!(is_hijri_leap_year(2));
-        assert!(is_hijri_leap_year(5));
-        assert!(!is_hijri_leap_year(1));
-        assert!(!is_hijri_leap_year(3));
+        for year in 1..=30 {
+            assert_eq!(
+                is_hijri_leap_year(year),
+                LEAP_YEARS_IN_CYCLE.contains(&year)
+            );
+        }
     }
 }
