@@ -7,14 +7,10 @@
 use crate::units::JulianDay;
 use std::f64::consts::PI;
 
-#[allow(dead_code)]
-const J2000: f64 = 2451545.0;
-#[allow(dead_code)]
-const TAU: f64 = 2.0 * PI;
-
 fn to_rad(d: f64) -> f64 {
     d * PI / 180.0
 }
+
 fn norm360(d: f64) -> f64 {
     d.rem_euclid(360.0)
 }
@@ -127,7 +123,7 @@ pub fn k_from_jd(jd: JulianDay, forward: bool) -> i64 {
 
 pub(crate) fn nearest_new_moon_k(jd: f64) -> i64 {
     let k0 = k_from_jd(JulianDay::new(jd), true);
-    [k0 - 1, k0, k0 + 1]
+    [k0, k0 + 1]
         .into_iter()
         .min_by(|&a, &b| {
             let da = (new_moon_jd(a as f64) - jd).abs();
@@ -215,8 +211,12 @@ pub(crate) fn check_solar_eclipse(k_int: i64) -> (EclipseKind, f64, f64) {
         return (EclipseKind::None, 0.0, 0.0);
     }
 
+    (classify_solar(g), g.gamma, g.u)
+}
+
+fn classify_solar(g: EclipseGeometry) -> EclipseKind {
     let gamma_abs = g.gamma.abs();
-    let kind = if gamma_abs > 1.5433 + g.u {
+    if gamma_abs > 1.5433 + g.u {
         EclipseKind::None
     } else if gamma_abs > 0.9972 {
         EclipseKind::PartialSolar
@@ -228,9 +228,7 @@ pub(crate) fn check_solar_eclipse(k_int: i64) -> (EclipseKind, f64, f64) {
         } else {
             EclipseKind::HybridSolar
         }
-    };
-
-    (kind, g.gamma, g.u)
+    }
 }
 
 /// Check if a full Moon (k_int + 0.5) produces a lunar eclipse.
@@ -241,6 +239,10 @@ pub fn check_lunar_eclipse(k_int: i64) -> (EclipseKind, f64, f64) {
         return (EclipseKind::None, 0.0, 0.0);
     }
 
+    classify_lunar(g)
+}
+
+fn classify_lunar(g: EclipseGeometry) -> (EclipseKind, f64, f64) {
     let gamma_abs = g.gamma.abs();
     let pen_mag = (1.5573 + g.u - gamma_abs) / 0.5450;
     let umb_mag = (1.0128 - g.u - gamma_abs) / 0.5450;
@@ -335,7 +337,7 @@ pub fn solar_eclipse_when_glob(
     backwards: bool,
 ) -> Option<EclipseResult> {
     let jd_start: f64 = jd_start.into();
-    let mut k = k_from_jd(JulianDay::new(jd_start), !backwards);
+    let mut k = eclipse_search_start(jd_start, backwards);
     let dir: i64 = if backwards { -1 } else { 1 };
 
     for _ in 0..60 {
@@ -369,7 +371,7 @@ pub fn lun_eclipse_when(
     backwards: bool,
 ) -> Option<EclipseResult> {
     let jd_start: f64 = jd_start.into();
-    let mut k = k_from_jd(JulianDay::new(jd_start), !backwards);
+    let mut k = eclipse_search_start(jd_start, backwards);
     let dir: i64 = if backwards { -1 } else { 1 };
 
     for _ in 0..60 {
@@ -458,11 +460,7 @@ pub fn solar_eclipse_geopos(jde: f64, _gamma: f64) -> (f64, f64) {
     // lon_geo = moon_ra - GAST  (hour angle converted to east longitude)
     let lon_rad = moon_ra - gst_rad;
     let lon_deg = lon_rad.to_degrees().rem_euclid(360.0);
-    let lon_deg = if lon_deg > 180.0 {
-        lon_deg - 360.0
-    } else {
-        lon_deg
-    };
+    let lon_deg = signed_longitude(lon_deg);
 
     (lon_deg, lat_deg)
 }
@@ -493,7 +491,7 @@ pub fn solar_eclipse_attr(jd_ut: JulianDay, geopos: [f64; 3]) -> [f64; 20] {
     let (_kind, gamma, _u) = check_solar_eclipse(k);
     let (pen_mag, umb_mag) = solar_eclipse_magnitude(k);
 
-    let mag = if umb_mag > 0.0 { umb_mag } else { pen_mag };
+    let mag = visible_solar_magnitude(pen_mag, umb_mag);
     attr[0] = mag.max(0.0); // magnitude
     attr[1] = 0.5266; // mean solar angular diameter (degrees)
     attr[2] = 0.5181; // mean lunar angular diameter
@@ -522,6 +520,30 @@ pub fn lunar_eclipse_attr(k_int: i64) -> [f64; 20] {
     attr
 }
 
+fn signed_longitude(longitude: f64) -> f64 {
+    if longitude > 180.0 {
+        longitude - 360.0
+    } else {
+        longitude
+    }
+}
+
+fn eclipse_search_start(jd: f64, backwards: bool) -> i64 {
+    if backwards {
+        k_from_jd(JulianDay::new(jd), false)
+    } else {
+        k_from_jd(JulianDay::new(jd), true)
+    }
+}
+
+fn visible_solar_magnitude(penumbral: f64, umbral: f64) -> f64 {
+    if umbral > 0.0 {
+        umbral
+    } else {
+        penumbral
+    }
+}
+
 #[cfg(test)]
 mod cov_tests {
     use super::*;
@@ -543,6 +565,11 @@ mod cov_tests {
         assert!((norm360(361.0) - 1.0).abs() < 1e-9);
         assert!((norm360(-1.0) - 359.0).abs() < 1e-9);
         assert!((norm360(0.0)).abs() < 1e-9);
+        assert_eq!(signed_longitude(180.0), 180.0);
+        assert_eq!(signed_longitude(180.000_001), -179.999_999);
+        assert_eq!(signed_longitude(45.0), 45.0);
+        assert_eq!(visible_solar_magnitude(0.75, 0.0), 0.75);
+        assert_eq!(visible_solar_magnitude(0.75, 0.25), 0.25);
     }
 
     #[test]
@@ -566,6 +593,321 @@ mod cov_tests {
         assert_next_lunar_kind(2024, 3, 1, EclipseKind::PenumbralLunar);
         assert_next_lunar_kind(2023, 10, 1, EclipseKind::PartialLunar);
         assert_next_lunar_kind(2018, 7, 1, EclipseKind::TotalLunar);
+    }
+
+    #[test]
+    fn eclipse_geometry_matches_regression_vectors() {
+        assert_eq!(new_moon_jd(10_000.0), 2_746_856.395_159_804_3);
+        let cases = [
+            (
+                -1000,
+                [
+                    2_422_020.011_039_787_4,
+                    90.206_993_024_097_76,
+                    5.021_265_941_425_047,
+                    -0.002_588_354_982_938_865_5,
+                    0.999_993_474_171_051_2,
+                    -6.434_469_287_111_721,
+                    -7.439_254_355_587_466,
+                ],
+            ),
+            (
+                0,
+                [
+                    2_451_550.234_433_371_6,
+                    160.7108,
+                    1.795_571_976_650_182_5,
+                    0.028_169_818_588_700_397,
+                    0.330_336_484_554_436_4,
+                    -0.371_991_058_077_559_1,
+                    -1.325_231_487_740_049_7,
+                ],
+            ),
+            (
+                300,
+                [
+                    2_460_409.243_617_635_7,
+                    1.861_525_831_438_484_6,
+                    0.343_747_297_750_764_7,
+                    -0.010_205_483_624_913_062,
+                    0.032_484_039_226_039_41,
+                    2.262_453_930_990_685_7,
+                    1.243_040_393_729_840_9,
+                ],
+            ),
+            (
+                1000,
+                [
+                    2_481_080.147_607_005_7,
+                    231.212_470_624_712_3,
+                    -3.962_791_373_093_416,
+                    0.010_685_595_656_894_06,
+                    -0.779_474_328_958_823,
+                    -4.244_807_162_562_287,
+                    -5.225_976_963_213_919_5,
+                ],
+            ),
+        ];
+        for (k, expected) in cases {
+            let g = eclipse_geometry(k as f64);
+            let (pen_mag, umb_mag) = solar_eclipse_magnitude(k);
+            let actual = [
+                new_moon_jd(k as f64),
+                f_at_k(k as f64),
+                g.gamma,
+                g.u,
+                g.sin_f,
+                pen_mag,
+                umb_mag,
+            ];
+            for (actual, expected) in actual.into_iter().zip(expected) {
+                assert!((actual - expected).abs() < 1e-12);
+            }
+        }
+    }
+
+    #[test]
+    fn nearest_phase_and_attributes_match_regression_vectors() {
+        let nearest = [
+            (2_451_540.0, 0),
+            (2_451_550.0, 0),
+            (2_460_000.0, 286),
+            (2_500_000.0, 1641),
+        ];
+        for (jd, expected) in nearest {
+            assert_eq!(nearest_new_moon_k(jd), expected);
+        }
+
+        let solar =
+            solar_eclipse_attr(JulianDay::new(2_460_409.243_617_635_7), [12.5, 37.5, 100.0]);
+        let expected = [
+            1.243_040_393_729_840_9,
+            0.5266,
+            0.5181,
+            1.0,
+            1.0,
+            1.243_040_393_729_840_9,
+            2.262_453_930_990_685_7,
+            0.343_747_297_750_764_7,
+            0.0,
+            0.0,
+            12.5,
+            37.5,
+        ];
+        assert_eq!(solar[..12], expected);
+
+        assert_eq!(
+            lunar_eclipse_attr(282)[..3],
+            [2.415_610_964_862_208_4, 1.359_053_901_602_555_3, 1.0,]
+        );
+        assert_eq!(
+            lunar_eclipse_attr(299)[..3],
+            [0.948_845_460_659_718_5, 0.0, 1.0,]
+        );
+        assert_eq!(lunar_eclipse_attr(300)[..3], [0.0, 0.0, 1.0]);
+    }
+
+    #[test]
+    fn eclipse_searches_match_regression_vectors() {
+        let cases = [
+            (
+                solar_eclipse_when_glob(JulianDay::new(2_460_000.0), 0, false),
+                EclipseKind::HybridSolar,
+                33,
+                [
+                    2_460_054.657_774_584,
+                    2_460_054.616_107_917_4,
+                    2_460_054.636_941_250_4,
+                    2_460_054.678_607_917_4,
+                    2_460_054.699_441_250_4,
+                ],
+            ),
+            (
+                solar_eclipse_when_glob(JulianDay::new(2_460_500.0), 0, true),
+                EclipseKind::TotalSolar,
+                5,
+                [
+                    2_460_409.243_617_635_7,
+                    2_460_409.201_950_969,
+                    2_460_409.222_784_302,
+                    2_460_409.264_450_969,
+                    2_460_409.285_284_302,
+                ],
+            ),
+            (
+                solar_eclipse_when_glob(JulianDay::new(2_460_000.0), ECL_ANNULAR, false),
+                EclipseKind::AnnularSolar,
+                9,
+                [
+                    2_460_232.221_150_565_4,
+                    2_460_232.179_483_899,
+                    2_460_232.200_317_232,
+                    2_460_232.241_983_899,
+                    2_460_232.262_817_232,
+                ],
+            ),
+            (
+                lun_eclipse_when(JulianDay::new(2_460_000.0), 0, false),
+                EclipseKind::PenumbralLunar,
+                64,
+                [
+                    2_460_070.219_627_013,
+                    2_460_070.157_127_013,
+                    2_460_070.219_627_013,
+                    2_460_070.219_627_013,
+                    2_460_070.282_127_013,
+                ],
+            ),
+        ];
+        for (actual, kind, flags, contacts) in cases {
+            let actual = actual.unwrap();
+            assert_eq!(actual.kind, kind);
+            assert_eq!(actual.ret_flags, flags);
+            assert_eq!(actual.tret[..5], contacts);
+        }
+        assert!(lun_eclipse_when(JulianDay::new(2_460_000.0), ECL_ANNULAR, false).is_none());
+        assert_eq!(
+            solar_eclipse_geopos(2_460_409.243_617_635_7, 0.343_747_297_750_764_7),
+            (-112.397_420_263_862_07, 17.471_952_013_398_788)
+        );
+        let backwards = lun_eclipse_when(JulianDay::new(2_460_000.0), 0, true).unwrap();
+        assert_eq!(backwards.kind, EclipseKind::TotalLunar);
+        assert_eq!(backwards.ret_flags, ECL_TOTAL);
+        assert_eq!(
+            backwards.tret[..5],
+            [
+                2_459_891.969_101_176,
+                2_459_891.906_601_176,
+                2_459_891.935_767_843,
+                2_459_892.002_434_509_3,
+                2_459_892.031_601_176,
+            ]
+        );
+    }
+
+    #[test]
+    fn contact_and_acceptance_boundaries_are_exact() {
+        assert_eq!(
+            solar_contacts(0, 0.0, 0.0),
+            (-1.0 / 24.0, -0.5 / 24.0, 0.5 / 24.0, 1.0 / 24.0)
+        );
+        assert_eq!(
+            lunar_contacts(0, 0.0, 1.0),
+            (-1.5 / 24.0, -0.8 / 24.0, 0.8 / 24.0, 1.5 / 24.0)
+        );
+        assert_eq!(
+            lunar_contacts(0, 0.0, -1.0),
+            (-1.5 / 24.0, 0.0, 0.0, 1.5 / 24.0)
+        );
+        assert_eq!(
+            lunar_contacts(0, 0.0, 0.0),
+            (-1.5 / 24.0, 0.0, 0.0, 1.5 / 24.0)
+        );
+        assert_eq!(
+            accept_eclipse(EclipseKind::TotalSolar, 0, 10.0, 10.0, false),
+            Some(5)
+        );
+        assert_eq!(
+            accept_eclipse(EclipseKind::TotalSolar, 0, 10.0, 10.0, true),
+            Some(5)
+        );
+        assert_eq!(
+            accept_eclipse(EclipseKind::TotalSolar, ECL_PARTIAL, 10.0, 10.0, false),
+            None
+        );
+        assert_eq!(
+            accept_eclipse(EclipseKind::TotalSolar, 0, 9.0, 10.0, false),
+            None
+        );
+        assert_eq!(
+            accept_eclipse(EclipseKind::TotalSolar, 0, 11.0, 10.0, true),
+            None
+        );
+    }
+
+    #[test]
+    fn eclipse_flags_and_candidate_boundaries_are_exact() {
+        let flags = [
+            (EclipseKind::None, 0),
+            (EclipseKind::TotalSolar, ECL_TOTAL | ECL_CENTRAL),
+            (EclipseKind::AnnularSolar, ECL_ANNULAR | ECL_CENTRAL),
+            (EclipseKind::HybridSolar, ECL_HYBRID | ECL_CENTRAL),
+            (EclipseKind::PartialSolar, ECL_PARTIAL | ECL_NONCENTRAL),
+            (EclipseKind::TotalLunar, ECL_TOTAL),
+            (EclipseKind::PartialLunar, ECL_PARTIAL),
+            (EclipseKind::PenumbralLunar, ECL_PENUMBRAL),
+        ];
+        for (kind, expected) in flags {
+            assert_eq!(kind_to_flags(kind), expected);
+        }
+
+        let geometry = |sin_f| EclipseGeometry {
+            gamma: 0.0,
+            u: 0.0,
+            sin_f,
+        };
+        assert!(eclipse_candidate(geometry(-0.36)));
+        assert!(eclipse_candidate(geometry(0.36)));
+        assert!(!eclipse_candidate(geometry(0.360_000_000_1)));
+    }
+
+    #[test]
+    fn solar_classification_boundaries_are_exact() {
+        let classify = |gamma, u| {
+            classify_solar(EclipseGeometry {
+                gamma,
+                u,
+                sin_f: 0.0,
+            })
+        };
+        assert_eq!(classify(1.5433, 0.0), EclipseKind::PartialSolar);
+        assert_eq!(classify(1.543_300_001, 0.0), EclipseKind::None);
+        assert_eq!(classify(1.5, 0.1), EclipseKind::PartialSolar);
+        assert_eq!(classify(0.9972, -0.001), EclipseKind::TotalSolar);
+        assert_eq!(classify(0.9972, 0.0), EclipseKind::HybridSolar);
+        assert_eq!(classify(0.9972, 0.0047), EclipseKind::HybridSolar);
+        assert_eq!(classify(0.9972, 0.004_700_001), EclipseKind::AnnularSolar);
+        assert_eq!(classify(0.997_200_001, 0.0), EclipseKind::PartialSolar);
+    }
+
+    #[test]
+    fn lunar_classification_boundaries_are_exact() {
+        let classify = |gamma, u| {
+            classify_lunar(EclipseGeometry {
+                gamma,
+                u,
+                sin_f: 0.0,
+            })
+        };
+        assert_eq!(classify(1.5573, 0.0).0, EclipseKind::None);
+        assert_eq!(classify(1.557_299_999, 0.0).0, EclipseKind::PenumbralLunar);
+        assert_eq!(classify(1.0128, 0.0).0, EclipseKind::PenumbralLunar);
+        assert_eq!(classify(1.012_799_999, 0.0).0, EclipseKind::PartialLunar);
+        assert_eq!(classify(0.4678, 0.0).0, EclipseKind::TotalLunar);
+        assert_eq!(classify(0.467_800_001, 0.0).0, EclipseKind::PartialLunar);
+        assert_eq!(classify(0.45, 0.1).0, EclipseKind::PartialLunar);
+    }
+
+    #[test]
+    fn lunation_index_rounding_is_directional() {
+        let jd = JulianDay::new(2_451_540.0);
+        assert_eq!(k_from_jd(jd, true), -1);
+        assert_eq!(k_from_jd(jd, false), 0);
+        assert_eq!(eclipse_search_start(jd.get(), false), -1);
+        assert_eq!(eclipse_search_start(jd.get(), true), 0);
+        let jd = JulianDay::new(2_451_560.0);
+        assert_eq!(k_from_jd(jd, true), 0);
+        assert_eq!(k_from_jd(jd, false), 1);
+    }
+
+    #[test]
+    fn total_lunar_search_preserves_umbral_contacts() {
+        let greatest = full_moon_jd(282);
+        let result = lun_eclipse_when(JulianDay::new(greatest - 1.0), 0, false).unwrap();
+        assert_eq!(result.kind, EclipseKind::TotalLunar);
+        assert_eq!(result.tret[0], greatest);
+        assert_eq!(result.tret[2], greatest - 0.8 / 24.0);
+        assert_eq!(result.tret[3], greatest + 0.8 / 24.0);
     }
 
     fn assert_next_solar_kind(year: i32, month: i32, day: i32, expected: EclipseKind) {
