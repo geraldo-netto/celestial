@@ -181,16 +181,16 @@ class TestHouses:
         # 39873ab). Old equator-approx values were replaced after that fix;
         # MC values now also use the corrected atan2 args (commit 207ce15).
         expected_cusps = [
-            191.098931650278360,  # H1 = ASC
+            191.098931650278360,  # First house ascendant.
             222.650394279552130,
             251.723817487253260,
-            279.376843038247600,  # H4 = IC = MC+180
+            279.376843038247600,  # Fourth house imum coeli, opposite midheaven.
             307.790745457391150,
             338.578253236862340,
-            11.098931650278360,  # H7 = DSC = ASC+180
+            11.098931650278360,  # Seventh house descendant, opposite ascendant.
             42.650394279552130,
             71.723817487253270,
-            99.376843038247600,  # H10 = MC
+            99.376843038247600,  # Tenth house midheaven.
             127.790745457391150,
             158.578253236862300,
         ]

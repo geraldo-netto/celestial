@@ -362,6 +362,7 @@ class TestCotrans(unittest.TestCase):
         lon, lat, dist = cotrans(45.0, 30.0, 1.0, 0.0)
         self.assertAlmostEqual(lon, 45.0, places=10)
         self.assertAlmostEqual(lat, 30.0, places=10)
+        self.assertEqual(dist, 1.0)
 
 
 class TestExpectedValuesFromCelestial(unittest.TestCase):
@@ -532,7 +533,7 @@ class TestLonToSign(unittest.TestCase):
 class TestSignRuler(unittest.TestCase):
     """Traditional planetary rulers of the zodiac signs."""
 
-    # 0=Sun, 1=Moon, 2=Mercury, 3=Venus, 4=Mars, 5=Jupiter, 6=Saturn
+    # Entries use body indices ordered from Sun through Saturn.
     TRADITIONAL = [4, 3, 2, 1, 0, 2, 3, 4, 5, 6, 6, 5]
 
     def test_sun_rules_leo(self):
@@ -1008,10 +1009,19 @@ class TestSwephelpVedicFormulas(unittest.TestCase):
 
     def test_ochchabala_exalt_zero(self):
         """Planet at its exaltation point = 0 ochchabala."""
-        exalt = {0: 190, 1: 213, 2: 345, 3: 177, 4: 118, 5: 275, 6: 20}
-        for body, deg in exalt.items():
-            diff = abs(((deg - deg + 180) % 360) - 180)
-            self.assertAlmostEqual(diff / 3.0, 0.0)
+        cases = [
+            (0, 190, 190),
+            (1, 213, 213),
+            (2, 345, 345),
+            (3, 177, 177),
+            (4, 118, 118),
+            (5, 275, 275),
+            (6, 20, 20),
+        ]
+        for body, position, exaltation in cases:
+            with self.subTest(body=body):
+                diff = abs(((position - exaltation + 180) % 360) - 180)
+                self.assertAlmostEqual(diff / 3.0, 0.0)
 
     def test_tatkalika_adjacent_is_mitra(self):
         def rasi_diff2(r1, r2):
@@ -1630,8 +1640,8 @@ class TestPhase5HellenisticPureLogic(unittest.TestCase):
             house = (age % 12) + 1
             self.assertGreaterEqual(house, 1)
             self.assertLessEqual(house, 12)
-        self.assertEqual((0 % 12) + 1, 1)
-        self.assertEqual((12 % 12) + 1, 1)
+        boundary_houses = [(age % 12) + 1 for age in (0, 11, 12)]
+        self.assertEqual(boundary_houses, [1, 12, 1])
 
 
 class TestPhase6ChinesePureLogic(unittest.TestCase):
@@ -1719,7 +1729,7 @@ class TestPhase7MesoamericanPureLogic(unittest.TestCase):
         self.assertEqual(d1, d2)
 
     def test_calendar_round_18980_days(self):
-        # LCM(260, 365) = 18980
+        # Calendar Round repeats at the least common multiple of both cycles.
         import math
 
         self.assertEqual(math.lcm(260, 365), 18_980)
@@ -1748,6 +1758,9 @@ class TestPhase7MesoamericanPureLogic(unittest.TestCase):
             "Xochitl",
         ]
         self.assertEqual(len(signs), 20)
+
+
+_SNOW_GOOSE_TOTEM = "Snow Goose"
 
 
 class TestPhase8IndigenousPureLogic(unittest.TestCase):
@@ -1917,7 +1930,7 @@ class TestSharedFixtures(unittest.TestCase):
 
     # ── Medicine Wheel ────────────────────────────────────────────────────────
     _TOTEMS = [
-        (300.0, 330.0, "Snow Goose", "Earth", "Turtle", "Winter"),
+        (300.0, 330.0, _SNOW_GOOSE_TOTEM, "Earth", "Turtle", "Winter"),
         (330.0, 360.0, "Otter", "Air", "Butterfly", "Winter"),
         (0.0, 30.0, "Cougar", "Air", "Butterfly", "Spring"),
         (30.0, 60.0, "Red Hawk", "Fire", "Thunderbird", "Spring"),
@@ -1940,7 +1953,7 @@ class TestSharedFixtures(unittest.TestCase):
             else:
                 if lon >= lo or lon < hi:
                     return (animal, element, clan, season)
-        return ("Snow Goose", "Earth", "Turtle", "Winter")
+        return (_SNOW_GOOSE_TOTEM, "Earth", "Turtle", "Winter")
 
     def test_medicine_wheel_from_fixture(self):
         for case in self.fx["medicine_wheel"]:
