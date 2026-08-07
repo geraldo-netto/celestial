@@ -124,7 +124,7 @@ pub const YOGA_NAMES: [&str; 27] = [
 
 /// The 11 Karanas (half-tithis), cycling through 60 karanas total.
 /// The first Karana is fixed (Kimstughna), karanas 2–57 cycle through 7 moveable ones,
-/// and the last 4 are fixed (Shakuni, Chatushpada, Naga, Kishtughna).
+/// and the last 3 are fixed (Shakuni, Chatushpada, Naga).
 pub const KARANA_NAMES: [&str; 11] = [
     "Bava",
     "Balava",
@@ -136,7 +136,7 @@ pub const KARANA_NAMES: [&str; 11] = [
     "Shakuni",
     "Chatushpada",
     "Naga",
-    "Kimstughna", // 4 fixed
+    "Kimstughna", // Initial fixed Karana
 ];
 
 /// The 7 Varas (weekdays) starting from Sunday.
@@ -203,12 +203,12 @@ use crate::norm_deg;
 #[must_use]
 pub fn karana_name(karana: u8) -> &'static str {
     match karana {
-        1 => "Kimstughna",
-        60 => "Abhijit",
-        2..=59 => {
+        1 => KARANA_NAMES[10],
+        2..=57 => {
             let idx = ((karana - 2) % 7) as usize;
             KARANA_NAMES[idx]
         }
+        58..=60 => KARANA_NAMES[(karana - 51) as usize],
         _ => "",
     }
 }
@@ -293,7 +293,7 @@ fn panchanga_from_positions(jd: f64, sun: PlanetPos, moon: PlanetPos) -> Panchan
 
     // ── Vara ──────────────────────────────────────────────────────────────
     // JD 0.0 = Monday, so day_of_week = (jd + 1.5) % 7, 0=Sunday
-    let vara = ((jd + 1.5) as i64).rem_euclid(7) as u8;
+    let vara = ((jd + 1.5).floor() as i64).rem_euclid(7) as u8;
 
     Panchanga {
         tithi,
@@ -316,7 +316,7 @@ fn panchanga_from_positions(jd: f64, sun: PlanetPos, moon: PlanetPos) -> Panchan
 
 /// Major Hindu festivals for a Gregorian year (approximate dates via Tithi/Nakshatra).
 ///
-/// Returns a list of (name, gregorian_month, gregorian_day, description).
+/// Returns festival names, descriptions, and Julian days.
 /// Note: Hindu festival dates shift year to year; these are algorithmic approximations
 /// based on the Tithi at solar noon for each day. Exact observance may vary by tradition.
 #[derive(Debug, Clone)]
@@ -333,10 +333,9 @@ pub struct HinduFestival {
 ///
 /// One row of the Hindu-festival lookup table used by [`hindu_festivals`].
 ///
-/// A festival occurs on the first day of `gregorian_year` whose `panchanga`
-/// matches `tithi` and `paksha` and which falls inside the `(month_start, month_end)`
-/// window (exclusive). Windows use Gregorian months as an approximation for
-/// the lunar-month positions.
+/// A festival candidate matches `tithi` and `paksha` inside the
+/// `(month_start, month_end)` window. The candidate nearest the seasonal
+/// target date is selected so adjacent lunar months cannot win by scan order.
 struct FestivalRule {
     name: &'static str,
     description: &'static str,
@@ -344,6 +343,8 @@ struct FestivalRule {
     paksha: Paksha,
     month_start: i32,
     month_end: i32,
+    target_month: i32,
+    target_day: i32,
 }
 
 /// The fixed table of festivals checked by [`hindu_festivals`].
@@ -355,6 +356,8 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         paksha: Paksha::Krishna,
         month_start: 10,
         month_end: 12,
+        target_month: 11,
+        target_day: 1,
     },
     FestivalRule {
         name: "Diwali (Lakshmi Puja)",
@@ -363,6 +366,8 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         paksha: Paksha::Krishna,
         month_start: 10,
         month_end: 12,
+        target_month: 11,
+        target_day: 1,
     },
     FestivalRule {
         name: "Holi (Holika Dahan)",
@@ -371,6 +376,8 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         paksha: Paksha::Shukla,
         month_start: 2,
         month_end: 4,
+        target_month: 3,
+        target_day: 10,
     },
     FestivalRule {
         name: "Maha Shivaratri",
@@ -379,6 +386,8 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         paksha: Paksha::Krishna,
         month_start: 2,
         month_end: 4,
+        target_month: 3,
+        target_day: 1,
     },
     FestivalRule {
         name: "Raksha Bandhan",
@@ -386,7 +395,9 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         tithi: 15,
         paksha: Paksha::Shukla,
         month_start: 7,
-        month_end: 9, // Jul 15 — Sep 15
+        month_end: 9,
+        target_month: 8,
+        target_day: 20,
     },
     FestivalRule {
         name: "Janmashtami (Krishna Jayanti)",
@@ -395,6 +406,8 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         paksha: Paksha::Krishna,
         month_start: 8,
         month_end: 10,
+        target_month: 8,
+        target_day: 25,
     },
     FestivalRule {
         name: "Navratri (Sharada) begins",
@@ -403,8 +416,44 @@ const FESTIVAL_RULES: &[FestivalRule] = &[
         paksha: Paksha::Shukla,
         month_start: 9,
         month_end: 11,
+        target_month: 10,
+        target_day: 1,
     },
 ];
+
+fn festival_rule_matches(
+    rule: &FestivalRule,
+    panchanga: &Panchanga,
+    jd: f64,
+    month_jd: &[f64; 13],
+) -> bool {
+    panchanga.tithi == rule.tithi
+        && panchanga.paksha == rule.paksha
+        && jd > month_jd[rule.month_start as usize]
+        && jd < month_jd[rule.month_end as usize]
+}
+
+fn update_festival_candidate(
+    candidate: &mut Option<(f64, HinduFestival)>,
+    rule: &FestivalRule,
+    jd: f64,
+    target_jd: f64,
+) {
+    let distance = (jd - target_jd).abs();
+    if candidate
+        .as_ref()
+        .is_none_or(|(best_distance, _)| distance < *best_distance)
+    {
+        *candidate = Some((
+            distance,
+            HinduFestival {
+                name: rule.name,
+                description: rule.description,
+                jd,
+            },
+        ));
+    }
+}
 
 /// Key Hindu festival dates for the given Gregorian year.
 ///
@@ -415,47 +464,41 @@ pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
     use crate::julday;
 
     let start_jd = julday(gregorian_year, 1, 1, 6.0, Calendar::Gregorian);
-    let end_jd = julday(gregorian_year, 12, 31, 6.0, Calendar::Gregorian);
 
-    // Precompute month-boundary JDs once per month to avoid recomputing
-    // inside the day loop. Index 0 is unused; 1..=13 hold month starts,
-    // where index 13 = Jan 1 of the following year.
-    let mut month_jd = [0.0_f64; 14];
+    let mut month_jd = [0.0_f64; 13];
     for m in 1..=12 {
         month_jd[m as usize] = julday(gregorian_year, m, 1, 0.0, Calendar::Gregorian);
     }
-    month_jd[13] = julday(gregorian_year + 1, 1, 1, 0.0, Calendar::Gregorian);
 
-    // Typical Hindu calendar produces ~30-50 major festivals per year.
-    let mut festivals = Vec::with_capacity(64);
-    let day_count = (end_jd - start_jd).round() as i32;
-    for day_offset in 0..=day_count {
+    let targets: Vec<f64> = FESTIVAL_RULES
+        .iter()
+        .map(|rule| {
+            julday(
+                gregorian_year,
+                rule.target_month,
+                rule.target_day,
+                6.0,
+                Calendar::Gregorian,
+            )
+        })
+        .collect();
+    let mut candidates = vec![None; FESTIVAL_RULES.len()];
+    for day_offset in 0..366 {
         let jd = start_jd + f64::from(day_offset);
         let p = panchanga(JulianDay::new(jd));
-        for rule in FESTIVAL_RULES {
-            if p.tithi == rule.tithi
-                && p.paksha == rule.paksha
-                && jd > month_jd[rule.month_start as usize]
-                && jd < month_jd[rule.month_end as usize]
-            {
-                festivals.push(HinduFestival {
-                    name: rule.name,
-                    description: rule.description,
-                    jd,
-                });
+        for (index, rule) in FESTIVAL_RULES.iter().enumerate() {
+            if festival_rule_matches(rule, &p, jd, &month_jd) {
+                update_festival_candidate(&mut candidates[index], rule, jd, targets[index]);
             }
         }
     }
 
-    // Keep only the first occurrence of each festival name. A naive
-    // `dedup_by(|a, b| a.name == b.name)` only removes ADJACENT duplicates,
-    // which doesn't catch cases like
-    //   [Maha Shivaratri (Feb), Holi (Feb), Maha Shivaratri (Mar)]
-    // where the same festival's lunar tithi happens to fall twice inside the
-    // Gregorian-month window. The earlier date is the astronomically
-    // canonical observance.
-    let mut seen = std::collections::HashSet::new();
-    festivals.retain(|f| seen.insert(f.name));
+    let mut festivals: Vec<_> = candidates
+        .into_iter()
+        .flatten()
+        .map(|(_, festival)| festival)
+        .collect();
+    festivals.sort_by(|left, right| left.jd.total_cmp(&right.jd));
     festivals
 }
 
@@ -465,6 +508,53 @@ pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
 mod tests {
     use super::*;
     use crate::julday;
+
+    struct PositionCase {
+        jd: f64,
+        sun: f64,
+        moon: f64,
+        values: (u8, Paksha, u8, u8, u8, u8, u8),
+        names: (&'static str, &'static str, &'static str, &'static str),
+    }
+
+    fn planet_at(lon: f64) -> PlanetPos {
+        PlanetPos {
+            lon,
+            ..PlanetPos::default()
+        }
+    }
+
+    fn assert_position_case(case: PositionCase) {
+        let p = panchanga_from_positions(case.jd, planet_at(case.sun), planet_at(case.moon));
+        assert_eq!(
+            (
+                p.tithi,
+                p.paksha,
+                p.vara,
+                p.nakshatra,
+                p.nakshatra_pada,
+                p.yoga,
+                p.karana,
+            ),
+            case.values
+        );
+        assert_eq!(
+            (p.tithi_name, p.vara_name, p.yoga_name, p.karana_name),
+            case.names
+        );
+        assert_eq!((p.sun_lon, p.moon_lon), (case.sun, case.moon));
+        assert_eq!(p.elongation, norm_deg(case.moon - case.sun));
+    }
+
+    fn festival_dates(year: i32) -> Vec<(&'static str, i32, i32)> {
+        hindu_festivals(year)
+            .into_iter()
+            .map(|festival| {
+                let date = crate::revjul(JulianDay::new(festival.jd), Calendar::Gregorian);
+                (festival.name, date.month, date.day)
+            })
+            .collect()
+    }
 
     #[test]
     fn panchanga_ranges() {
@@ -488,6 +578,70 @@ mod tests {
         .unwrap_err();
 
         assert!(err.to_string().contains("Sun calculation failed"));
+    }
+
+    #[test]
+    fn positions_map_to_exact_panchanga_elements() {
+        let cases = [
+            PositionCase {
+                jd: 2_451_545.0,
+                sun: 10.0,
+                moon: 21.0,
+                values: (1, Paksha::Shukla, 6, 1, 3, 2, 2),
+                names: ("Pratipada", "Shanivara (Saturday)", "Ayushman", "Bava"),
+            },
+            PositionCase {
+                jd: -1.75,
+                sun: 350.0,
+                moon: 10.0,
+                values: (2, Paksha::Shukla, 6, 0, 4, 0, 4),
+                names: ("Dwitiya", "Shanivara (Saturday)", "Vishkambha", "Kaulava"),
+            },
+            PositionCase {
+                jd: 0.0,
+                sun: 15.0,
+                moon: 355.0,
+                values: (29, Paksha::Krishna, 1, 26, 3, 0, 57),
+                names: (
+                    "Chaturdashi",
+                    "Somavara (Monday)",
+                    "Vishkambha",
+                    "Vishti (Bhadra)",
+                ),
+            },
+            PositionCase {
+                jd: 1.0,
+                sun: 0.0,
+                moon: 359.0,
+                values: (30, Paksha::Krishna, 2, 26, 4, 26, 60),
+                names: ("Amavasya", "Mangalavara (Tuesday)", "Vaidhriti", "Naga"),
+            },
+        ];
+        for case in cases {
+            assert_position_case(case);
+        }
+    }
+
+    #[test]
+    fn panchanga_uses_lahiri_sidereal_positions() {
+        use crate::body::SiderealMode;
+
+        let jd = JulianDay::new(2_451_545.0);
+        crate::set_sid_mode(SiderealMode::LAHIRI, 0.0, 0.0);
+        let flags = CalcFlags::BUILTIN | CalcFlags::SIDEREAL | CalcFlags::SPEED;
+        let expected = panchanga_from_calc_results(
+            jd.into(),
+            calc_ut(jd, Body::SUN, flags),
+            calc_ut(jd, Body::MOON, flags),
+        )
+        .unwrap();
+
+        crate::set_sid_mode(SiderealMode::RAMAN, 0.0, 0.0);
+        let actual = try_panchanga(jd).unwrap();
+        crate::set_sid_mode(SiderealMode::FAGAN_BRADLEY, 0.0, 0.0);
+
+        assert_eq!(actual.sun_lon, expected.sun_lon);
+        assert_eq!(actual.moon_lon, expected.moon_lon);
     }
 
     #[test]
@@ -525,7 +679,7 @@ mod tests {
 
     #[test]
     fn karana_name_in_range() {
-        // First 7 karanas are mobile (chara), last 4 are fixed (sthira)
+        // Four fixed half-tithis occupy positions 1 and 58–60.
         for k in 1..=60u8 {
             let nm = karana_name(k);
             assert!(!nm.is_empty(), "karana {k} has empty name");
@@ -557,6 +711,82 @@ mod tests {
             assert!(f.jd > 2_400_000.0 && f.jd < 2_600_000.0, "jd={}", f.jd);
             assert!(!f.name.is_empty());
         }
+    }
+
+    #[test]
+    fn hindu_festivals_choose_the_seasonal_lunation() {
+        let cases = [
+            (
+                2024,
+                vec![
+                    ("Maha Shivaratri", 3, 9),
+                    ("Holi (Holika Dahan)", 3, 24),
+                    ("Raksha Bandhan", 8, 19),
+                    ("Janmashtami (Krishna Jayanti)", 8, 26),
+                    ("Navratri (Sharada) begins", 10, 3),
+                    ("Naraka Chaturdashi (Choti Diwali)", 10, 31),
+                    ("Diwali (Lakshmi Puja)", 11, 1),
+                ],
+            ),
+            (
+                2026,
+                vec![
+                    ("Maha Shivaratri", 2, 16),
+                    ("Holi (Holika Dahan)", 3, 3),
+                    ("Raksha Bandhan", 8, 27),
+                    ("Janmashtami (Krishna Jayanti)", 9, 4),
+                    ("Navratri (Sharada) begins", 10, 11),
+                    ("Naraka Chaturdashi (Choti Diwali)", 11, 7),
+                    ("Diwali (Lakshmi Puja)", 11, 8),
+                ],
+            ),
+        ];
+        for (year, expected) in cases {
+            assert_eq!(festival_dates(year), expected, "year={year}");
+        }
+    }
+
+    #[test]
+    fn festival_match_window_is_exclusive() {
+        let rule = FestivalRule {
+            name: "Test",
+            description: "Test",
+            tithi: 1,
+            paksha: Paksha::Shukla,
+            month_start: 2,
+            month_end: 4,
+            target_month: 3,
+            target_day: 1,
+        };
+        let matching = panchanga_from_positions(0.0, planet_at(0.0), planet_at(1.0));
+        let mut month_jd = [0.0; 13];
+        month_jd[2] = 10.0;
+        month_jd[4] = 20.0;
+        let cases = [(10.0, false), (10.5, true), (20.0, false), (20.5, false)];
+        for (jd, expected) in cases {
+            assert_eq!(
+                festival_rule_matches(&rule, &matching, jd, &month_jd),
+                expected,
+                "jd={jd}"
+            );
+        }
+
+        let wrong = panchanga_from_positions(0.0, planet_at(0.0), planet_at(181.0));
+        assert!(!festival_rule_matches(&rule, &wrong, 10.5, &month_jd));
+    }
+
+    #[test]
+    fn closest_festival_candidate_wins_with_earlier_tie_break() {
+        let rule = &FESTIVAL_RULES[0];
+        let target = 100.0;
+        let mut candidate = None;
+        for jd in [98.0, 99.0, 101.0] {
+            update_festival_candidate(&mut candidate, rule, jd, target);
+        }
+        let (_, festival) = candidate.unwrap();
+        assert_eq!(festival.jd, 99.0);
+        assert_eq!(festival.name, rule.name);
+        assert_eq!(festival.description, rule.description);
     }
 
     #[test]

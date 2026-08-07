@@ -16,15 +16,16 @@ use celestial_test_util::{EDGE_F64, EDGE_I32, EDGE_I64};
 
 #[test]
 fn karana_name_full_domain() {
-    // Documented domain: 0 → "", 1 → Kimstughna, 60 → Abhijit, 2..=59 → cycle,
-    // 61..=u8::MAX → "" (no panic).
+    // Documented domain: 1 and 58–60 are fixed; 2–57 cycle; all others are empty.
     assert_eq!(karana_name(0), "");
     assert_eq!(karana_name(1), "Kimstughna");
-    assert_eq!(karana_name(60), "Abhijit");
-    for k in 2u8..=59 {
+    for k in 2u8..=57 {
         let want = KARANA_NAMES[((k - 2) % 7) as usize];
         assert_eq!(karana_name(k), want, "karana={k}");
     }
+    assert_eq!(karana_name(58), "Shakuni");
+    assert_eq!(karana_name(59), "Chatushpada");
+    assert_eq!(karana_name(60), "Naga");
     for k in 61u8..=u8::MAX {
         assert_eq!(karana_name(k), "", "karana={k}");
     }
