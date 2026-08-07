@@ -878,6 +878,24 @@ mod tests {
     }
 
     #[test]
+    fn opposite_preserves_canonical_wrap_neighbors() {
+        let below_half_turn = 180.0_f64.next_down();
+        let above_half_turn = 180.0_f64.next_up();
+        assert_eq!(opposite(below_half_turn), 0.0);
+        assert_eq!(opposite(180.0), 0.0);
+        assert_eq!(opposite(above_half_turn), 0.0);
+
+        let result = houses_armc(
+            Degrees::new(180.0),
+            Latitude::new(0.0),
+            Degrees::new(0.0),
+            b'O',
+        );
+        assert_eq!(result.cusps[4], 0.0);
+        assert_eq!(result.cusps[10], 180.0);
+    }
+
+    #[test]
     fn all_cusps_in_range() {
         for sys in [b'P', b'K', b'E', b'W', b'C', b'R', b'O', b'M', b'X', b'B'] {
             let result = houses(

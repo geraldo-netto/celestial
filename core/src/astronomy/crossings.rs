@@ -229,7 +229,7 @@ pub fn find_crossing(
         Some(pos.lon)
     };
 
-    // Signed angular distance from `lon` to `x2cross`, in (-180, 180].
+    // Signed angular distance from `lon` to `x2cross`, in [-180, 180).
     // Positive = lon is "behind" the target (hasn't crossed it going forward yet).
     // Has EXACTLY ONE zero per revolution (at x2cross); the antipodal "crossing"
     // produces a ±180° discontinuity, which is rejected by the |d1-d0|>180 filter.
@@ -421,6 +421,17 @@ mod cov_tests {
         assert!(!is_south(0.0));
         assert!(!is_south(1.0));
         assert_eq!(node_scan_jd(100.0, 3, 0.5), 101.5);
+    }
+
+    #[test]
+    fn signed_distance_preserves_wrap_neighbors() {
+        let below_wrap = 360.0_f64.next_down();
+        let above_wrap = 360.0_f64.next_up();
+        let wrap_ulp = 360.0 - below_wrap;
+        assert_eq!(signed_angular_distance(0.0, below_wrap), wrap_ulp);
+        assert_eq!(signed_angular_distance(0.0, above_wrap), 360.0 - above_wrap);
+        assert_eq!(signed_angular_distance(360.0, 0.0), 0.0);
+        assert_eq!(signed_angular_distance(0.0, 360.0), 0.0);
     }
 
     #[test]
