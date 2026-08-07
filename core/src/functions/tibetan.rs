@@ -1,13 +1,14 @@
-//! Tibetan calendar (Phugpa system).
+//! Tibetan calendar helpers.
 //!
 //! Provides:
-//! - **Losar** (New Year): the second new moon after the preceding winter
-//!   solstice, evaluated in Lhasa local time (UTC+6).
+//! - **Losar approximation** (New Year): the second new moon after the
+//!   preceding winter solstice, evaluated in Lhasa local time (UTC+6).
 //! - **Rabjung cycle year name**: animal × element × yin/yang from the
 //!   Rabjung 60-year cycle (first Rabjung began AD 1027).
 //!
-//! Full tithi- / month-number resolution (Kalachakra correction tables) is
-//! **not** provided; consult published Tibetan almanacs for liturgical use.
+//! This approximation does not apply the Phugpa intercalation and true-date
+//! rules, so it can differ from the published Losar date by a day or month.
+//! Consult published Tibetan almanacs for liturgical use.
 
 use crate::body::CalcFlags;
 use crate::functions::moon_phases::next_new_moon;
@@ -18,20 +19,15 @@ use crate::units::{JulianDay, Longitude};
 /// Lhasa / Tibetan civil timezone offset from UTC (hours).
 pub const LHASA_TZ_OFFSET_HOURS: f64 = 6.0;
 
-/// Julian Day of Tibetan Losar (New Year) for a given Gregorian year.
+/// Approximate Julian Day of Tibetan Losar (New Year) for a Gregorian year.
 ///
-/// Losar is defined as the civil day (Lhasa UTC+6) of the second new moon
-/// after the preceding winter solstice. Returns `None` if the underlying
-/// astronomical searches fail.
+/// Uses the civil day (Lhasa UTC+6) of the second new moon after the preceding
+/// winter solstice. This does not implement the Phugpa intercalation and
+/// true-date rules. Returns `None` if the astronomical searches fail.
 pub fn losar_jd(gregorian_year: i32) -> Option<f64> {
     // Winter solstice of the *previous* year (Sun at 270° ecliptic lon)
-    let jd_dec = julday(
-        gregorian_year - 1,
-        12,
-        21,
-        0.0,
-        crate::body::Calendar::Gregorian,
-    );
+    let previous_year = gregorian_year.checked_sub(1)?;
+    let jd_dec = julday(previous_year, 12, 21, 0.0, crate::body::Calendar::Gregorian);
     let sols = solcross_ut(
         Longitude::new(270.0),
         JulianDay::new(jd_dec - 5.0),
@@ -45,8 +41,12 @@ pub fn losar_jd(gregorian_year: i32) -> Option<f64> {
     let nm2 = next_new_moon(JulianDay::new(nm1 + 2.0)).ok()?;
 
     // Civil day in Lhasa timezone
-    let local = nm2 + LHASA_TZ_OFFSET_HOURS / 24.0;
-    Some(local.floor() + 0.5 - LHASA_TZ_OFFSET_HOURS / 24.0)
+    Some(lhasa_civil_midnight(nm2))
+}
+
+fn lhasa_civil_midnight(jd_ut: f64) -> f64 {
+    let offset = LHASA_TZ_OFFSET_HOURS / 24.0;
+    (jd_ut + offset + 0.5).floor() - 0.5 - offset
 }
 
 /// Tibetan year attributes: `(rabjung_cycle, year_in_cycle, element, gender, animal)`.
@@ -70,7 +70,7 @@ pub fn tibetan_year_name(
     // uses the Chinese-aligned 1984 anchor (Wood Mouse = year 1 of 60-cycle).
     // Compute in i64 to safely handle years before the epoch (negative offset).
     let offset_cycle = (gregorian_year as i64) - (RABJUNG_EPOCH as i64);
-    let offset_anim = (gregorian_year - 1984).rem_euclid(60) as usize;
+    let offset_anim = ((gregorian_year as i64) - 1984).rem_euclid(60) as usize;
 
     // Clamp to non-negative for the display cycle number. Years before 1027
     // yield cycle = 0 ("pre-Rabjung"); callers should interpret that accordingly.
@@ -120,12 +120,24 @@ mod tests {
     }
 
     #[test]
+    fn lhasa_day_uses_julian_noon_boundary() {
+        for (jd_ut, expected) in [(100.1, 99.25), (100.3, 100.25)] {
+            assert_eq!(lhasa_civil_midnight(jd_ut), expected);
+        }
+    }
+
+    #[test]
     fn losar_2025_in_q1() {
         // Tibetan Losar is a Q1 event (Jan–Mar depending on lunar/solar config).
         let jd = losar_jd(2025).expect("losar_jd should compute");
         let d = crate::revjul(JulianDay::new(jd), crate::body::Calendar::Gregorian);
         assert_eq!(d.year, 2025);
         assert!((1..=3).contains(&d.month), "month={}", d.month);
+    }
+
+    #[test]
+    fn losar_rejects_year_without_predecessor() {
+        assert_eq!(losar_jd(i32::MIN), None);
     }
 
     #[test]
@@ -181,5 +193,16 @@ mod tests {
         let (_, _, _, g_a, _) = tibetan_year_name(2024);
         let (_, _, _, g_b, _) = tibetan_year_name(2025);
         assert_ne!(g_a, g_b);
+    }
+
+    #[test]
+    fn rabjung_handles_extreme_gregorian_years() {
+        let cases = [
+            (i32::MIN, (0, 46, "Water", "Male", "Mouse")),
+            (i32::MAX, (35_791_378, 1, "Fire", "Female", "Rabbit")),
+        ];
+        for (year, expected) in cases {
+            assert_eq!(tibetan_year_name(year), expected);
+        }
     }
 }
