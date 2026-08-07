@@ -126,10 +126,7 @@ impl Body {
         if n >= Self::FICTITIOUS_OFFSET && n < Self::FICTITIOUS_OFFSET + 100 {
             return true;
         }
-        if n >= Self::MOON_OFFSET && n < Self::MOON_OFFSET + 1_000 {
-            return true;
-        }
-        if n >= Self::ASTEROID_OFFSET && n < Self::ASTEROID_OFFSET + 1_000_000 {
+        if n >= Self::MOON_OFFSET && n < Self::ASTEROID_OFFSET + 1_000_000 {
             return true;
         }
         false
@@ -632,6 +629,7 @@ mod tests {
     #[test]
     fn sidereal_mode_display() {
         assert_eq!(SiderealMode::LAHIRI.as_raw(), 1);
+        assert_eq!(SiderealMode::USER_DEFINED.as_raw(), 255);
     }
 
     #[test]
@@ -657,6 +655,28 @@ mod tests {
     fn combined_calc_flags_keep_every_bit() {
         assert_eq!(CalcFlags::ASTROMETRIC.as_raw(), 1_536);
         assert_eq!(CalcFlags::DEFAULT.as_raw(), 258);
+    }
+
+    #[test]
+    fn known_body_id_boundaries_are_exact() {
+        let known = [-10, -1, 0, 20, 40, 139, 9_000, 10_000, 1_009_999];
+        let unknown = [-11, -9, 21, 39, 140, 8_999, 1_010_000];
+        for id in known {
+            assert!(Body::is_known_id(id), "expected known id {id}");
+        }
+        for id in unknown {
+            assert!(!Body::is_known_id(id), "expected unknown id {id}");
+        }
+        assert_eq!(
+            Body::try_from_raw(21).unwrap_err().to_string(),
+            "body id 21 is outside every documented range (-10, -1, 0..=20, 40..140, 9000..10000, 10000..1010000)"
+        );
+    }
+
+    #[test]
+    fn calc_flags_bitor_preserves_overlapping_bits() {
+        assert_eq!(CalcFlags::BUILTIN | CalcFlags::BUILTIN, CalcFlags::BUILTIN);
+        assert_eq!(CalcFlags::SPEED | CalcFlags::SPEED, CalcFlags::SPEED);
     }
 
     #[test]
@@ -901,6 +921,8 @@ mod tests {
     #[test]
     fn house_system_from_u8_and_char() {
         let p: HouseSystem = b'P'.into();
+        assert_eq!(HouseSystem::PLACIDUS.as_raw(), b'P');
+        assert_eq!(HouseSystem::WHOLE_SIGN_MERIDIAN.as_raw(), b'Y');
         assert_eq!(p.name(), "Placidus");
         let k: HouseSystem = 'K'.into();
         assert_eq!(k.name(), "Koch");
