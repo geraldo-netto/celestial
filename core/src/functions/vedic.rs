@@ -363,6 +363,23 @@ mod tests {
     }
 
     #[test]
+    fn opposite_preserves_canonical_wrap_neighbors() {
+        let below_half_turn = 180.0_f64.next_down();
+        let above_half_turn = 180.0_f64.next_up();
+        assert_eq!(opposite(below_half_turn), 0.0);
+        assert_eq!(opposite(180.0), 0.0);
+        assert_eq!(opposite(above_half_turn), 0.0);
+    }
+
+    #[test]
+    fn raman_houses_preserves_opposite_wrap_neighbors() {
+        for asc in [180.0_f64.next_down(), 180.0, 180.0_f64.next_up()] {
+            let houses = raman_houses(Degrees::new(asc), Degrees::new(0.0), false);
+            assert_eq!(houses[6], 0.0);
+        }
+    }
+
+    #[test]
     fn sign_and_lunar_divisions_cover_boundaries() {
         let lords = [4, 3, 2, 1, 0, 2, 3, 4, 5, 6, 6, 5];
         for (sign, lord) in lords.into_iter().enumerate() {

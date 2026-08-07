@@ -125,6 +125,14 @@ pub fn calc_chart_aspects(
     result
 }
 
+fn ingress_boundary(current_sign: i32, backward: bool) -> f64 {
+    if backward {
+        current_sign.rem_euclid(12) as f64 * 30.0
+    } else {
+        ((current_sign + 1) % 12) as f64 * 30.0
+    }
+}
+
 // ─── Sign ingress ─────────────────────────────────────────────────────────────
 
 /// Find the next time a planet enters a new zodiac sign.
@@ -157,11 +165,7 @@ pub fn sign_ingress_ut(
     // Next sign boundary
     // Forward: next cusp = (current_sign + 1) * 30°
     // Backward: previous cusp = current_sign * 30° (the one we already crossed)
-    let target_sign = if backward {
-        (current_sign.rem_euclid(12)) as f64 * 30.0
-    } else {
-        ((current_sign + 1) % 12) as f64 * 30.0
-    };
+    let target_sign = ingress_boundary(current_sign, backward);
 
     let window = body.ingress_search_window();
     let jd = crate::astronomy::crossings::find_crossing_window(
@@ -1164,6 +1168,28 @@ mod cov_tests {
         assert_eq!(forward_sign, 10);
         assert_eq!(backward_sign, 9);
         assert!(backward_jd < 2_451_545.0);
+    }
+
+    #[test]
+    fn ingress_boundary_wraps_after_pisces() {
+        assert_eq!(ingress_boundary(10, false), 330.0);
+        assert_eq!(ingress_boundary(11, false), 0.0);
+        assert_eq!(ingress_boundary(0, true), 0.0);
+    }
+
+    #[test]
+    fn sign_ingress_public_path_wraps_to_aries() {
+        let (jd, sign) = sign_ingress_ut(
+            Body::SUN,
+            JulianDay::new(2_451_600.0),
+            CalcFlags::BUILTIN,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(sign, 0);
+        assert!(jd > 2_451_600.0);
+        assert!(jd < 2_451_635.0);
     }
 
     #[test]
