@@ -88,20 +88,20 @@ pub fn azalt(
     // (S=0°, W=90°, N=180°, E=270°).  South-based = (North-based + 180°) % 360°
     let azimuth = (az_north + 180.0).rem_euclid(360.0);
 
-    // ── Step 4: Bennett atmospheric refraction ─────────────────────────────
-    let apparent_alt = if true_alt > -5.0 {
-        let denom = true_alt + 7.31 / (true_alt + 4.4);
-        let r_arcmin = 1.02 / denom.to_radians().tan();
-        let r_deg = r_arcmin * (pressure_mb / 1010.0) * (283.0 / (273.0 + temp_c)) / 60.0;
-        true_alt + r_deg
-    } else {
-        true_alt
-    };
+    let apparent_alt = apparent_altitude(true_alt, pressure_mb, temp_c);
 
     AzAlt {
         azimuth,
         true_alt,
         apparent_alt,
+    }
+}
+
+fn apparent_altitude(true_alt: f64, pressure_mb: f64, temp_c: f64) -> f64 {
+    if true_alt > -5.0 {
+        refrac(true_alt, pressure_mb, temp_c, 0)
+    } else {
+        true_alt
     }
 }
 
@@ -120,7 +120,7 @@ pub fn azalt_rev(jd_ut: JulianDay, direction: i32, geopos: [f64; 3], xin: [f64; 
     let geolat = geopos[1];
 
     // Convert SE South-based azimuth → North-based (N=0°, E=90°)
-    let az_north = (xin[0] - 180.0).rem_euclid(360.0);
+    let az_north = south_to_north_azimuth(xin[0]);
     let alt = xin[1];
 
     let az_r = az_north.to_radians();
@@ -140,11 +140,7 @@ pub fn azalt_rev(jd_ut: JulianDay, direction: i32, geopos: [f64; 3], xin: [f64; 
     //   az_north in (180°,360°) — sin < 0 — means ha was in (0°,180°)   → ha = ha_base
     //   az_north in (0°,180°)  — sin > 0 — means ha was in (180°,360°) → ha = 360°-ha_base
     let ha_base = cos_ha.clamp(-1.0, 1.0).acos().to_degrees();
-    let ha_deg = if sin_az < 0.0 {
-        ha_base
-    } else {
-        360.0 - ha_base
-    };
+    let ha_deg = hour_angle_from_azimuth(sin_az, ha_base);
 
     // Hour angle → right ascension via Local Sidereal Time
     let gmst_deg = crate::astronomy::houses::sidereal_time_deg(JulianDay::new(jd_ut));
@@ -171,6 +167,18 @@ pub fn azalt_rev(jd_ut: JulianDay, direction: i32, geopos: [f64; 3], xin: [f64; 
     let lon_ecl = y.atan2(cos_ra).to_degrees().rem_euclid(360.0);
 
     [lon_ecl, lat_ecl, 1.0]
+}
+
+fn south_to_north_azimuth(azimuth: f64) -> f64 {
+    (azimuth - 180.0).rem_euclid(360.0)
+}
+
+fn hour_angle_from_azimuth(sin_azimuth: f64, base: f64) -> f64 {
+    if sin_azimuth < 0.0 {
+        base
+    } else {
+        360.0 - base
+    }
 }
 
 // ─── Refraction ───────────────────────────────────────────────────────────────
@@ -471,5 +479,169 @@ mod tests {
             let expect = wrap_signed_180(p1 - p2);
             assert!((direct - expect).abs() < 1e-9, "p1={p1} p2={p2}");
         }
+    }
+
+    #[test]
+    fn azalt_regressions_are_exact() {
+        let jd = JulianDay::new(2_451_545.0);
+        let lst = crate::astronomy::houses::sidereal_time_deg(jd);
+        let ecliptic = azalt(jd, 0, [12.1, 49.0, 330.0], 1010.0, 15.0, [120.0, 5.0, 1.0]);
+        assert_eq!(
+            ecliptic,
+            AzAlt {
+                azimuth: 169.86785954068296,
+                true_alt: -15.342945848546734,
+                apparent_alt: -15.342945848546734,
+            }
+        );
+
+        let equatorial = azalt(
+            jd,
+            1,
+            [0.0, 30.0, 0.0],
+            850.0,
+            -5.0,
+            [(lst - 30.0).rem_euclid(360.0), 20.0, 1.0],
+        );
+        assert_eq!(
+            equatorial,
+            AzAlt {
+                azimuth: 76.74230673519315,
+                true_alt: 61.137368271806594,
+                apparent_alt: 61.145657010028806,
+            }
+        );
+    }
+
+    #[test]
+    fn azalt_branch_boundaries_are_exact() {
+        let jd = JulianDay::new(2_451_545.0);
+        let lst = crate::astronomy::houses::sidereal_time_deg(jd);
+        assert_eq!(
+            azalt(jd, 1, [0.0, 0.0, 0.0], 1010.0, 15.0, [lst, 0.0, 1.0]),
+            AzAlt {
+                azimuth: 270.0,
+                true_alt: 90.0,
+                apparent_alt: 89.99997742301815,
+            }
+        );
+        assert_eq!(apparent_altitude(-5.0, 1010.0, 15.0), -5.0);
+        assert_ne!(apparent_altitude(-4.999, 1010.0, 15.0), -4.999);
+    }
+
+    #[test]
+    fn azalt_reverse_regressions_are_exact() {
+        let jd = JulianDay::new(2_451_545.0);
+        assert_eq!(south_to_north_azimuth(0.0), 180.0);
+        assert_eq!(south_to_north_azimuth(180.0), 0.0);
+        assert_eq!(hour_angle_from_azimuth(-1.0, 30.0), 30.0);
+        assert_eq!(hour_angle_from_azimuth(0.0, 30.0), 330.0);
+        assert_eq!(hour_angle_from_azimuth(1.0, 30.0), 330.0);
+        assert_eq!(
+            azalt_rev(jd, 1, [12.1, 49.0, 330.0], [30.0, 20.0]),
+            [263.2952821649003, -16.008111300982545, 1.0]
+        );
+        assert_eq!(
+            azalt_rev(jd, 1, [12.1, 49.0, 330.0], [300.0, -10.0]),
+            [5.744614658115211, -27.00703852286642, 1.0]
+        );
+        assert_eq!(
+            azalt_rev(jd, 0, [12.1, 49.0, 330.0], [30.0, 20.0]),
+            [263.50382882092117, 7.27850978034093, 1.0]
+        );
+    }
+
+    #[test]
+    fn refraction_contracts_are_exact() {
+        assert_eq!(refrac(1.0, 1013.25, 15.0, 0), 1.407722383503609);
+        assert_eq!(refrac(1.0, 800.0, -10.0, 1), 0.647487380950574);
+        assert_eq!(
+            refrac_extended(1.0, 50.0, 1013.25, 15.0, 0.0065, 0),
+            (1.407722383503609, [1.407722383503609, 1.0, 0.0, 0.0])
+        );
+    }
+
+    #[test]
+    fn coordinate_transforms_are_exact() {
+        assert_eq!(
+            coord_transform([121.34, 43.57, 2.5], Degrees::new(23.4393)),
+            [114.113_119_067_227_97, 22.719_051_586_665_874, 2.5]
+        );
+        assert_eq!(
+            coord_transform([210.25, -12.75, 0.75], Degrees::new(-23.4393)),
+            [203.309_477_198_617_6, -23.449_125_374_957_653, 0.75]
+        );
+        assert_eq!(
+            coord_transform_with_speed(
+                [121.34, 43.57, 2.5, -0.2, 0.03, 0.004],
+                Degrees::new(23.4393)
+            ),
+            [
+                114.113_119_067_227_97,
+                22.719_051_586_665_874,
+                2.5,
+                -0.2,
+                0.03,
+                0.004,
+            ]
+        );
+    }
+
+    #[test]
+    fn signed_angle_boundaries_are_exact() {
+        let pi = std::f64::consts::PI;
+        assert_eq!(norm_deg(-1.0), 359.0);
+        assert_eq!(norm_rad(-0.25), std::f64::consts::TAU - 0.25);
+        assert_eq!(midpoint_deg(100.0, 20.0), 60.0);
+        assert_eq!(midpoint_deg(10.0, 350.0), 0.0);
+        assert_eq!(midpoint_rad(1.0, 0.2), 0.600_000_000_000_000_1);
+        assert_eq!(wrap_signed_180(0.0), 0.0);
+        assert_eq!(wrap_signed_180(180.0), 180.0);
+        assert_eq!(wrap_signed_180(-180.0), 180.0);
+        assert_eq!(wrap_signed_180(200.0), -160.0);
+        assert_eq!(diff_deg(10.0, 350.0), 20.0);
+        assert_eq!(diff_deg(350.0, 10.0), 340.0);
+        assert_eq!(diff_rad_signed(0.0, pi), pi);
+        assert_eq!(diff_rad_signed(pi, 0.0), pi);
+        assert_eq!(diff_rad_signed(0.25, 6.0), 0.5331853071795862);
+        assert_eq!(diff_rad_signed(6.0, 0.25), -0.5331853071795862);
+    }
+
+    #[test]
+    fn centisecond_boundaries_are_exact() {
+        let half = 180 * 360_000;
+        assert_eq!(diff_cs_signed(0, half), half as i64);
+        assert_eq!(diff_cs_signed(half, 0), half as i64);
+        assert_eq!(diff_cs_signed(100, 200), -100);
+        assert_eq!(diff_cs_signed(200, 100), 100);
+        assert_eq!(diff_cs_signed(-1, 0), -1);
+        assert_eq!(diff_cs(100, 200), 129_599_900);
+        assert_eq!(diff_cs(200, 100), 100);
+        assert_eq!(norm_cs(-1), 129_599_999);
+        assert_eq!(norm_cs(129_600_000), 0);
+        assert_eq!(cs_round_sec(149), 100);
+        assert_eq!(cs_round_sec(150), 200);
+        assert_eq!(cs_round_sec(-149), -100);
+        assert_eq!(cs_round_sec(-150), -100);
+        assert_eq!(deg_to_cs(12.75), 12);
+        assert_eq!(deg_to_cs(-12.25), -13);
+    }
+
+    #[test]
+    fn split_degree_contracts_are_exact() {
+        assert_eq!(split_deg(0.0, 0), (0, 0, 0, 0.0, 1));
+        assert_eq!(
+            split_deg(123.123, 0),
+            (123, 7, 22, 0.799_999_999_988_358_5, 1)
+        );
+        assert_eq!(split_deg(-10.5, 0), (10, 30, 0, 0.0, -1));
+        assert_eq!(
+            split_deg(123.123, crate::constants::SPLIT_DEG_ROUND_SEC),
+            (123, 7, 23, 0.0, 1)
+        );
+        assert_eq!(
+            split_deg(123.123, crate::constants::SPLIT_DEG_ZODIACAL),
+            (3, 7, 22, 0.799_999_999_988_358_5, 4)
+        );
     }
 }
