@@ -44,7 +44,7 @@ pub fn easter_gregorian(year: i32) -> (i32, u8, u8) {
 #[must_use]
 pub fn easter_julian(year: i32) -> (i32, u8, u8) {
     let a = year % 4;
-    let b = year % 7;
+    let b = year.rem_euclid(7);
     let c = year % 19;
     let d = (19 * c + 15) % 30;
     let e = (2 * a + 4 * b - d + 34) % 7;
@@ -66,25 +66,9 @@ pub fn easter_orthodox(year: i32) -> (i32, u8, u8) {
     let mut day = d as i32 + correction;
 
     let month_days = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    let feb_days = if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) {
-        29
-    } else {
-        28
-    };
-    let days_in = |m: i32| {
-        if m == 2 {
-            feb_days
-        } else {
-            month_days[m as usize]
-        }
-    };
-
-    while day > days_in(month) {
-        day -= days_in(month);
+    while day > month_days[month as usize] {
+        day -= month_days[month as usize];
         month += 1;
-        if month > 12 {
-            month = 1;
-        }
     }
     (y, month as u8, day as u8)
 }
@@ -282,5 +266,69 @@ mod tests {
             .find(|f| f.name.contains("Pentecost"))
             .unwrap();
         assert_eq!((pent.month, pent.day), (6, 8));
+    }
+
+    fn mix(hash: u64, value: u64) -> u64 {
+        hash.wrapping_mul(1_099_511_628_211) ^ value
+    }
+
+    fn mix_date(hash: u64, date: (i32, u8, u8)) -> u64 {
+        let hash = mix(hash, date.0 as u64);
+        let hash = mix(hash, date.1 as u64);
+        mix(hash, date.2 as u64)
+    }
+
+    fn mix_name(mut hash: u64, name: &str) -> u64 {
+        for byte in name.bytes() {
+            hash = mix(hash, byte as u64);
+        }
+        hash
+    }
+
+    fn mix_feast(hash: u64, feast: &ChristianFeast) -> u64 {
+        let hash = mix_name(hash, feast.name);
+        let hash = mix(hash, feast.easter_offset as u64);
+        let hash = mix(hash, feast.jd.to_bits());
+        mix_date(hash, (feast.year, feast.month, feast.day))
+    }
+
+    #[test]
+    fn computus_algorithms_match_full_range_fingerprint() {
+        let mut hash = 14_695_981_039_346_656_037;
+        for year in 1583..=4099 {
+            hash = mix_date(hash, easter_gregorian(year));
+            hash = mix_date(hash, easter_julian(year));
+            hash = mix_date(hash, easter_orthodox(year));
+            hash = mix(hash, easter_jd(year).to_bits());
+            hash = mix(hash, easter_orthodox_jd(year).to_bits());
+            hash = mix(hash, julian_to_gregorian_offset(year) as u64);
+        }
+        assert_eq!(hash, 29_964_202_374_967_097);
+    }
+
+    #[test]
+    fn christian_feasts_match_full_range_fingerprint() {
+        let mut hash = 14_695_981_039_346_656_037;
+        for year in 1583..=4099 {
+            for feast in christian_feasts(year) {
+                hash = mix_feast(hash, &feast);
+            }
+            for feast in christian_fixed_feasts(year) {
+                hash = mix_feast(hash, &feast);
+            }
+        }
+        assert_eq!(hash, 90_213_548_656_065_479);
+    }
+
+    #[test]
+    fn gregorian_jd_matches_calendar_fingerprint() {
+        let mut hash = 14_695_981_039_346_656_037;
+        for year in 1583..=4099 {
+            for month in 1..=12 {
+                hash = mix(hash, gregorian_to_jd(year, month, 1).to_bits());
+                hash = mix(hash, gregorian_to_jd(year, month, 28).to_bits());
+            }
+        }
+        assert_eq!(hash, 5_480_982_162_503_307_397);
     }
 }
