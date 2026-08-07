@@ -1450,3 +1450,34 @@ pub fn tz_abbr_find(abbr: &str) -> Vec<&'static TzAbbr> {
         .filter(|tz| tz.name == lower.as_str())
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn offset_label(tz: &TzAbbr) -> String {
+        let sign = if tz.hours < 0 { '-' } else { '+' };
+        let hours = tz.hours.abs();
+        if tz.minutes == 0 {
+            format!("UTC{sign}{hours:02}")
+        } else {
+            format!("UTC{sign}{hours:02}:{:02}", tz.minutes)
+        }
+    }
+
+    #[test]
+    fn table_numeric_offsets_match_labels() {
+        assert_eq!(TZ_TABLE.len(), 203);
+        for tz in TZ_TABLE {
+            assert_eq!(tz.offset, offset_label(tz), "{}", tz.name);
+        }
+    }
+
+    #[test]
+    fn abbreviation_lookup_is_exact_and_case_insensitive() {
+        let utc = tz_abbr_find("utc");
+        assert_eq!(utc.len(), 1);
+        assert_eq!(utc[0].name, "UTC");
+        assert!(tz_abbr_find("not-a-zone").is_empty());
+    }
+}
