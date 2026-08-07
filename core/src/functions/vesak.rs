@@ -26,85 +26,13 @@ use crate::{calc_ut, julday};
 /// Uses bisection to find when Moon–Sun elongation = 180°.
 #[must_use]
 pub fn next_full_moon_after(jd_start: JulianDay) -> f64 {
-    let jd_start: f64 = jd_start.into();
-    // Step forward in ~1-day steps to find the lunation
-    let mut jd = jd_start;
-    let elongation = |jd: f64| -> f64 {
-        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
-        let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
-        norm_deg(moon.lon - sun.lon)
-    };
-
-    // Find crossing of 180° (full moon)
-    let mut prev_elong = elongation(jd);
-    loop {
-        jd += 0.5;
-        let cur_elong = elongation(jd);
-        // Detect crossing of 180°
-        if (prev_elong < 180.0 && cur_elong >= 180.0)
-            || (prev_elong > 200.0 && cur_elong < 160.0 && cur_elong > 100.0)
-        {
-            break;
-        }
-        // Also detect wrapped crossing (prev ~359, cur ~1 after being near 180)
-        prev_elong = cur_elong;
-        if jd > jd_start + 35.0 {
-            break;
-        } // safety
-    }
-
-    // Bisect to sub-hour precision
-    let mut lo = jd - 1.0;
-    let mut hi = jd;
-    for _ in 0..40 {
-        let mid = (lo + hi) / 2.0;
-        let e = elongation(mid);
-        if e < 180.0 {
-            lo = mid;
-        } else {
-            hi = mid;
-        }
-    }
-    (lo + hi) / 2.0
+    find_phase(jd_start.into(), 180.0)
 }
 
 /// Find the next new moon (elongation = 0°) at or after `jd_start`.
 #[must_use]
 pub fn next_new_moon_after(jd_start: JulianDay) -> f64 {
-    let jd_start: f64 = jd_start.into();
-    let elongation = |jd: f64| -> f64 {
-        let sun = calc_ut(JulianDay::new(jd), Body::SUN, CalcFlags::BUILTIN).unwrap_or_default();
-        let moon = calc_ut(JulianDay::new(jd), Body::MOON, CalcFlags::BUILTIN).unwrap_or_default();
-        norm_deg(moon.lon - sun.lon)
-    };
-
-    let mut jd = jd_start + 1.0;
-    let mut prev = elongation(jd);
-    loop {
-        jd += 0.5;
-        let cur = elongation(jd);
-        // New moon: elongation crosses 0° from below (wrapping 359→0)
-        if prev > 300.0 && cur < 60.0 {
-            break;
-        }
-        prev = cur;
-        if jd > jd_start + 35.0 {
-            break;
-        }
-    }
-
-    let mut lo = jd - 1.0;
-    let mut hi = jd;
-    for _ in 0..40 {
-        let mid = (lo + hi) / 2.0;
-        let e = elongation(mid);
-        if e > 10.0 && e < 350.0 {
-            lo = mid;
-        } else {
-            hi = mid;
-        }
-    }
-    (lo + hi) / 2.0
+    find_phase(jd_start.into(), 0.0)
 }
 
 /// Julian day of Vesak for the given Gregorian year.
@@ -116,31 +44,14 @@ pub fn next_new_moon_after(jd_start: JulianDay) -> f64 {
 /// (vernal equinox), targeting April–May.
 #[must_use]
 pub fn vesak_jd(year: i32) -> f64 {
-    // Start search from March 15 of the given year
     let start = julday(year, 3, 15, 0.0, Calendar::Gregorian);
-    // Find first full moon after the equinox
-    let fm1 = next_full_moon_after(JulianDay::new(start));
-    // Vesak is typically the second full moon after the equinox (in Vaisakha)
-    // If the first full moon is in April, the second is Vesak; if in May, it might be the first
-    let fm2 = next_full_moon_after(JulianDay::new(fm1 + 1.0));
-
-    // Vesak per Theravada / Sri Lanka / Thailand / India Buddha Purnima
-    // is the May full moon (full moon when Sun is in sidereal Taurus,
-    // = tropical longitude ≳ Taurus mid-sign in modern era). The Apr 20
-    // cut-off previously used here picked the April full moon for
-    // years like 2021/2024 where the canonical date is the May one.
-    //
-    // Empirical fix: skip any full moon before May 1. The first
-    // full moon ≥ May 1 and ≤ Jun 20 is Vesak.
+    let first = next_full_moon_after(JulianDay::new(start));
+    let candidate = next_full_moon_after(JulianDay::new(first + 1.0));
     let may1 = julday(year, 5, 1, 0.0, Calendar::Gregorian);
-    let jun20 = julday(year, 6, 20, 0.0, Calendar::Gregorian);
-    if fm1 >= may1 && fm1 < jun20 {
-        fm1
-    } else if fm2 >= may1 && fm2 < jun20 {
-        fm2
+    if candidate >= may1 {
+        candidate
     } else {
-        // Find one more FM
-        next_full_moon_after(JulianDay::new(fm2 + 1.0))
+        next_full_moon_after(JulianDay::new(candidate + 1.0))
     }
 }
 
@@ -170,7 +81,7 @@ pub enum UposathaPhase {
 
 /// Has the moon's elongation crossed `target` between successive samples?
 fn phase_crossed(prev: f64, cur: f64, target: f64) -> bool {
-    if !(30.0..=330.0).contains(&target) {
+    if target == 0.0 {
         prev > 300.0 && cur < 60.0
     } else {
         prev < target && cur >= target
@@ -179,12 +90,27 @@ fn phase_crossed(prev: f64, cur: f64, target: f64) -> bool {
 
 /// Signed distance of `e` from `target`, handling wrap near 0°.
 fn elongation_distance(e: f64, target: f64) -> f64 {
-    if target < 30.0 {
-        let e2 = if e > 300.0 { e - 360.0 } else { e };
-        e2 - target
+    if target == 0.0 {
+        if e > 300.0 {
+            e - 360.0
+        } else {
+            e
+        }
     } else {
         e - target
     }
+}
+
+fn is_before_phase(distance: f64) -> bool {
+    distance < 0.0
+}
+
+fn is_in_year(jd: f64, start: f64, end: f64) -> bool {
+    jd >= start && jd < end
+}
+
+fn same_observance(first: f64, second: f64) -> bool {
+    (first - second).abs() < 3.0
 }
 
 fn find_phase(jd_start: f64, target: f64) -> f64 {
@@ -194,23 +120,23 @@ fn find_phase(jd_start: f64, target: f64) -> f64 {
         norm_deg(moon.lon - sun.lon)
     };
 
-    let mut jd = jd_start + 0.5;
+    let mut jd = jd_start;
     let mut prev = elongation(jd);
 
-    loop {
+    for _ in 0..70 {
         jd += 0.5;
         let cur = elongation(jd);
-        if phase_crossed(prev, cur, target) || jd > jd_start + 35.0 {
+        if phase_crossed(prev, cur, target) {
             break;
         }
         prev = cur;
     }
 
-    let mut lo = jd - 1.0;
+    let mut lo = jd - 0.5;
     let mut hi = jd;
     for _ in 0..40 {
         let mid = (lo + hi) / 2.0;
-        if elongation_distance(elongation(mid), target) < 0.0 {
+        if is_before_phase(elongation_distance(elongation(mid), target)) {
             lo = mid;
         } else {
             hi = mid;
@@ -240,13 +166,11 @@ pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
 
     // 4 phases × ≈12-13 lunar months × pre-reserved capacity avoids re-growth.
     let mut days = Vec::with_capacity(55);
-    let cycle_count = ((end - year_start) / 25.0).ceil() as usize;
-
-    for cycle_index in 0..cycle_count {
+    for cycle_index in 0..15 {
         let jd = year_start + cycle_index as f64 * 25.0;
         for (target, phase) in &phases {
             let phase_jd = find_phase(jd, *target);
-            if phase_jd >= year_start && phase_jd < end && phase_jd > jd - 0.5 {
+            if is_in_year(phase_jd, year_start, end) {
                 let elong = elongation_at(phase_jd);
                 days.push(Uposatha {
                     phase: phase.clone(),
@@ -258,7 +182,7 @@ pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
     }
 
     days.sort_by(|a, b| a.jd.total_cmp(&b.jd));
-    days.dedup_by(|a, b| (a.jd - b.jd).abs() < 3.0);
+    days.dedup_by(|a, b| same_observance(a.jd, b.jd));
     days
 }
 
@@ -268,6 +192,117 @@ pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
 mod tests {
     use super::*;
     use crate::julday;
+
+    fn assert_close(actual: f64, expected: f64) {
+        assert!((actual - expected).abs() < 1e-9, "{actual} != {expected}");
+    }
+
+    #[test]
+    fn phase_search_regressions() {
+        let start = julday(2025, 1, 1, 0.0, Calendar::Gregorian);
+        let cases = [
+            (0.0, 2460705.0256086336),
+            (90.0, 2460682.4979206445),
+            (180.0, 2460689.43604228),
+            (270.0, 2460697.3555077435),
+        ];
+        for (target, expected) in cases {
+            assert_close(find_phase(start, target), expected);
+        }
+        assert_close(next_new_moon_after(JulianDay::new(start)), cases[0].1);
+        assert_close(next_full_moon_after(JulianDay::new(start)), cases[2].1);
+    }
+
+    #[test]
+    fn phase_crossing_boundaries() {
+        let cases = [
+            (301.0, 59.0, 0.0, true),
+            (300.0, 59.0, 0.0, false),
+            (301.0, 60.0, 0.0, false),
+            (179.0, 180.0, 180.0, true),
+            (180.0, 181.0, 180.0, false),
+            (179.0, 179.0, 180.0, false),
+        ];
+        for (prev, cur, target, expected) in cases {
+            assert_eq!(phase_crossed(prev, cur, target), expected);
+        }
+    }
+
+    #[test]
+    fn elongation_distance_boundaries() {
+        let cases = [
+            (350.0, 0.0, -10.0),
+            (300.0, 0.0, 300.0),
+            (301.0, 0.0, -59.0),
+            (100.0, 90.0, 10.0),
+        ];
+        for (elongation, target, expected) in cases {
+            assert_eq!(elongation_distance(elongation, target), expected);
+        }
+    }
+
+    #[test]
+    fn phase_distance_sign_boundaries() {
+        assert!(is_before_phase(-1.0));
+        assert!(!is_before_phase(-0.0));
+        assert!(!is_before_phase(0.0));
+        assert!(!is_before_phase(1.0));
+    }
+
+    #[test]
+    fn year_membership_boundaries() {
+        assert!(is_in_year(1.0, 1.0, 2.0));
+        assert!(is_in_year(1.5, 1.0, 2.0));
+        assert!(!is_in_year(2.0, 1.0, 2.0));
+        assert!(!is_in_year(0.9, 1.0, 2.0));
+    }
+
+    #[test]
+    fn observance_deduplication_boundaries() {
+        assert!(same_observance(4.0, 1.1));
+        assert!(!same_observance(4.0, 1.0));
+        assert!(!same_observance(4.0, 0.9));
+    }
+
+    #[test]
+    fn vesak_regressions() {
+        for (year, expected) in [
+            (2021, 2459360.968251149),
+            (2024, 2460454.0787673993),
+            (2025, 2460808.2057218654),
+        ] {
+            assert_close(vesak_jd(year), expected);
+        }
+    }
+
+    #[test]
+    fn uposatha_regressions() {
+        let cases = [
+            (2021, 49, 2459220.901330012, 2459575.6003538957),
+            (2024, 50, 2460313.646782997, 2460675.435761745),
+            (2025, 49, 2460682.4979206445, 2461037.2989227148),
+        ];
+        for (year, count, first, last) in cases {
+            let days = uposatha_days(year);
+            assert_eq!(days.len(), count);
+            assert_close(days[0].jd, first);
+            assert_close(days[count - 1].jd, last);
+        }
+    }
+
+    #[test]
+    fn uposatha_elongations_match_phases() {
+        for day in uposatha_days(2025) {
+            let target = match day.phase {
+                UposathaPhase::NewMoon => 0.0,
+                UposathaPhase::FirstQuarter => 90.0,
+                UposathaPhase::FullMoon => 180.0,
+                UposathaPhase::LastQuarter => 270.0,
+            };
+            let error = norm_deg(day.elongation - target + 180.0) - 180.0;
+            assert!(error.abs() < 1e-8, "{}: {}", day.jd, day.elongation);
+        }
+    }
 
     #[test]
     fn vesak_2025_in_may() {
