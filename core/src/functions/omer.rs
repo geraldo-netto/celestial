@@ -269,7 +269,10 @@ pub fn omer_from_jd(jd: JulianDay) -> Option<OmerDay> {
     // Find candidate Hebrew year
     let mut year = approx_hebrew_year(JulianDay::new(jd));
     // Refine (may be off by 1)
-    while (omer_start_jd(year + 1)) <= jd {
+    loop {
+        if omer_start_jd(year + 1) > jd {
+            break;
+        }
         year += 1;
     }
     while year > 1 && omer_start_jd(year) > jd + 1.0 {
@@ -325,7 +328,10 @@ pub fn omer_period(jd: JulianDay) -> OmerPeriod {
     let jd: f64 = jd.into();
     let mut year = approx_hebrew_year(JulianDay::new(jd)).max(1);
     // Find the year whose Omer period contains or follows jd
-    while omer_start_jd(year) + 48.0 < jd {
+    loop {
+        if omer_start_jd(year) + 48.0 >= jd {
+            break;
+        }
         year += 1;
     }
     let start = omer_start_jd(year);

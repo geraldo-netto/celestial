@@ -146,7 +146,10 @@ pub fn esbats_for_year(year: i32) -> Result<Vec<Esbat>> {
     // A calendar year has 12 or 13 full moons (Blue-Moon years).
     let mut full_moons: Vec<f64> = Vec::with_capacity(13);
     let mut jd = find_full_moon_after(year_start)?;
-    while jd < year_end {
+    for _ in 0..14 {
+        if jd >= year_end {
+            break;
+        }
         full_moons.push(jd);
         jd = find_full_moon_after(jd + 28.0)?; // advance safely past this moon
     }

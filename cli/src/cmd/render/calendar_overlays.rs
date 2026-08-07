@@ -457,8 +457,10 @@ pub fn hebrew_overlay(jd_start: f64, jd_end: f64) -> Value {
 
     // Day-by-day mapping: Gregorian JD floor → (hebrew_year, hebrew_month, hebrew_day)
     let mut day_lookup = Vec::new();
-    let mut jd_cur = jd_start.floor();
-    while jd_cur <= jd_end {
+    let start_day = jd_start.floor() as i64;
+    let end_day = jd_end.floor() as i64;
+    for day in start_day..=end_day {
+        let jd_cur = day as f64;
         let h_year = approx_hebrew_year(JulianDay::new(jd_cur));
         let n_months = months_in_hebrew_year(h_year);
         let found = (1..=n_months).find_map(|m| {
@@ -483,7 +485,6 @@ pub fn hebrew_overlay(jd_start: f64, jd_end: f64) -> Value {
                 "hebrew_day":        d,
             }));
         }
-        jd_cur += 1.0;
     }
 
     json!({

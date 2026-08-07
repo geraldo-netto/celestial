@@ -337,7 +337,10 @@ pub fn hebrew_year_from_jd(jd: JulianDay) -> i32 {
     while year > 1 && (hebrew_new_year_jd(year) as f64) > jd {
         year -= 1;
     }
-    while (hebrew_new_year_jd(year + 1) as f64) <= jd {
+    loop {
+        if (hebrew_new_year_jd(year + 1) as f64) > jd {
+            break;
+        }
         year += 1;
     }
     year.max(1)

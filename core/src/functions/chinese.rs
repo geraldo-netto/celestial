@@ -263,7 +263,7 @@ pub fn vietnamese_month_start_jd(jd_ut: JulianDay) -> Option<f64> {
     // Search backwards: find the new moon preceding jd_ut.
     let mut search = jd_ut - 30.0;
     let mut last_nm: Option<f64> = None;
-    while search < jd_ut {
+    for _ in 0..2 {
         match crate::functions::moon_phases::next_new_moon(JulianDay::new(search)) {
             Ok(nm) if nm <= jd_ut => {
                 last_nm = Some(nm);

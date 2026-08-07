@@ -341,14 +341,19 @@ pub(super) fn build_graphic_ephemeris_context(
     let step = if days <= 31 { 1 } else { (days / 90).max(1) };
 
     // Sample planetary positions over the date range
-    let n_samples = days / step.max(1) + 2;
+    let sample_span = jd_end + 0.5 - jd_start;
+    let n_samples = if sample_span < 0.0 {
+        0
+    } else {
+        (sample_span / step as f64).floor() as usize + 1
+    };
     let mut series: Vec<Vec<f64>> = (0..BODIES.len())
         .map(|_| Vec::with_capacity(n_samples))
         .collect();
     let mut jd_points: Vec<f64> = Vec::with_capacity(n_samples);
 
-    let mut jd = jd_start;
-    while jd <= jd_end + 0.5 {
+    for sample_index in 0..n_samples {
+        let jd = jd_start + sample_index as f64 * step as f64;
         jd_points.push((jd * 100.0).round() / 100.0);
         for (i, &(body, ..)) in BODIES.iter().enumerate() {
             if let Ok(pos) = calc_ut(JulianDay::new(jd), body, flags) {
@@ -357,7 +362,6 @@ pub(super) fn build_graphic_ephemeris_context(
                 series[i].push(f64::NAN);
             }
         }
-        jd += step as f64;
     }
 
     let planet_series: Vec<Value> = BODIES
@@ -572,8 +576,9 @@ fn write_ge_x_axis_labels(
     x_scale: f64,
 ) {
     let label_interval = (jd_span / 6.0).max(7.0);
-    let mut jd_lbl = jd_start;
-    while jd_lbl <= jd_end + 1.0 {
+    let label_count = ((jd_end + 1.0 - jd_start) / label_interval).floor() as usize + 1;
+    for label_index in 0..label_count {
+        let jd_lbl = jd_start + label_index as f64 * label_interval;
         let x = GE_LM + (jd_lbl - jd_start) * x_scale;
         let d = celestial_core::revjul(
             JulianDay::new(jd_lbl),
@@ -588,7 +593,6 @@ fn write_ge_x_axis_labels(
             GE_TM + GE_H,
             GE_TM + GE_H + 14.0
         );
-        jd_lbl += label_interval;
     }
 }
 

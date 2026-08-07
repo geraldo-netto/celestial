@@ -249,15 +249,12 @@ pub fn mooncross_node(jd_et: JulianDay, _flags: i32) -> Option<NodeCrossing> {
     let jd_et: f64 = jd_et.into();
     let pos_at = |jd: f64| crate::astronomy::calc_ut(JulianDay::new(jd), 1, 0).ok();
 
-    let mut jd = jd_et;
     let step = 0.5;
-    let max_jd = jd + 30.0;
+    let mut lat0 = pos_at(jd_et).map_or(0.0, |p| p.lat);
 
-    let mut lat0 = pos_at(jd).map_or(0.0, |p| p.lat);
-
-    while jd < max_jd {
+    for step_index in 0..60 {
+        let jd = jd_et + f64::from(step_index) * step;
         let Some(p1) = pos_at(jd + step) else {
-            jd += step;
             continue;
         };
         let lat1 = p1.lat;
@@ -265,7 +262,6 @@ pub fn mooncross_node(jd_et: JulianDay, _flags: i32) -> Option<NodeCrossing> {
             return Some(bisect_node_crossing(jd, jd + step, p1, &pos_at));
         }
         lat0 = lat1;
-        jd += step;
     }
     None
 }

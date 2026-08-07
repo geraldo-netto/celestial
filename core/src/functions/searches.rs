@@ -880,12 +880,12 @@ pub fn lower_meridian_transit_ut(
         1013.25,
         15.0,
     )?;
-    let mut jd = upper.tret + 0.1 / 24.0;
-    let limit = upper.tret + 1.0;
-    let mut d0 = diff(jd);
+    let scan_start = upper.tret + 0.1 / 24.0;
+    let scan_steps = ((upper.tret + 1.0 - scan_start) / step).round() as u16;
+    let mut d0 = diff(scan_start);
 
-    while jd < limit {
-        jd += step;
+    for step_index in 1..=scan_steps {
+        let jd = scan_start + f64::from(step_index) * step;
         let d1 = diff(jd);
         if d0 * d1 < 0.0 && (d1 - d0).abs() < 180.0 {
             let tret = bisect_diff_zero(jd - step, jd, d0, &diff);

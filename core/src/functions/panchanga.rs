@@ -428,8 +428,9 @@ pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
 
     // Typical Hindu calendar produces ~30-50 major festivals per year.
     let mut festivals = Vec::with_capacity(64);
-    let mut jd = start_jd;
-    while jd <= end_jd {
+    let day_count = (end_jd - start_jd).round() as i32;
+    for day_offset in 0..=day_count {
+        let jd = start_jd + f64::from(day_offset);
         let p = panchanga(JulianDay::new(jd));
         for rule in FESTIVAL_RULES {
             if p.tithi == rule.tithi
@@ -444,7 +445,6 @@ pub fn hindu_festivals(gregorian_year: i32) -> Vec<HinduFestival> {
                 });
             }
         }
-        jd += 1.0;
     }
 
     // Keep only the first occurrence of each festival name. A naive

@@ -240,9 +240,10 @@ pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
 
     // 4 phases × ≈12-13 lunar months × pre-reserved capacity avoids re-growth.
     let mut days = Vec::with_capacity(55);
-    let mut jd = year_start;
+    let cycle_count = ((end - year_start) / 25.0).ceil() as usize;
 
-    while jd < end {
+    for cycle_index in 0..cycle_count {
+        let jd = year_start + cycle_index as f64 * 25.0;
         for (target, phase) in &phases {
             let phase_jd = find_phase(jd, *target);
             if phase_jd >= year_start && phase_jd < end && phase_jd > jd - 0.5 {
@@ -254,7 +255,6 @@ pub fn uposatha_days(year: i32) -> Vec<Uposatha> {
                 });
             }
         }
-        jd += 25.0; // advance ~one lunar cycle
     }
 
     days.sort_by(|a, b| a.jd.total_cmp(&b.jd));

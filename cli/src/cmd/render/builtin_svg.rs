@@ -483,14 +483,16 @@ fn write_planets(s: &mut String, pal: &Palette, planets: &[Value], asc: f64) {
     }
 }
 
-fn normalize_drift(mut drift: f64) -> f64 {
-    while drift > 180.0 {
-        drift -= 360.0;
+fn normalize_drift(drift: f64) -> f64 {
+    if (-180.0..=180.0).contains(&drift) {
+        return drift;
     }
-    while drift < -180.0 {
-        drift += 360.0;
+    let normalized = drift.rem_euclid(360.0);
+    if normalized > 180.0 || (normalized == 180.0 && drift.is_sign_negative()) {
+        normalized - 360.0
+    } else {
+        normalized
     }
-    drift
 }
 
 /// Pick the foreground colour for a planet glyph. Defaults to the
@@ -1085,7 +1087,7 @@ fn write_footer(s: &mut String, pal: &Palette, footer_y: f64) {
 
 #[cfg(test)]
 mod tests {
-    use super::Palette;
+    use super::{normalize_drift, Palette};
     use serde_json::json;
 
     /// SEC-12: hostile `--var` values must be escaped at the Palette
@@ -1121,5 +1123,13 @@ mod tests {
         assert_eq!(pal.bg, "#ffffff");
         assert_eq!(pal.ring, "#1a1a2e");
         assert_eq!(pal.title, "Natal — 1986-05-30");
+    }
+
+    #[test]
+    fn normalize_drift_preserves_signed_boundaries() {
+        assert_eq!(normalize_drift(180.0), 180.0);
+        assert_eq!(normalize_drift(-180.0), -180.0);
+        assert_eq!(normalize_drift(540.0), 180.0);
+        assert_eq!(normalize_drift(-540.0), -180.0);
     }
 }
