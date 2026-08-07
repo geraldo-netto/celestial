@@ -636,6 +636,10 @@ mod cov_tests {
         }
     }
 
+    fn assert_exact_f64(actual: f64, expected: f64) {
+        assert_eq!(actual.to_bits(), expected.to_bits());
+    }
+
     #[test]
     fn planetocentric_positions_and_speed_flags_are_exact() {
         let jd = JulianDay::new(2_451_545.0);
@@ -777,6 +781,11 @@ mod cov_tests {
     }
 
     #[test]
+    fn angle_delta_preserves_wrap_neighbor_bits() {
+        assert_exact_f64(angle_delta(360.0_f64.next_down(), 0.0), 0.0);
+    }
+
+    #[test]
     fn lunar_nodes_wrapper_preserves_opposite_points() {
         let flags = CalcFlags::BUILTIN | CalcFlags::SPEED;
         let result = nod_aps(JulianDay::new(2_451_545.0), Body::MOON, flags, 0).unwrap();
@@ -785,6 +794,28 @@ mod cov_tests {
         assert_eq!(result.peri[0], 83.353_243);
         assert_eq!(result.aphe[0], 263.353_243);
         assert_eq!(result.ret_flags, flags.as_raw());
+    }
+
+    #[test]
+    fn node_wrappers_preserve_opposite_point_bits() {
+        let lunar = nod_aps(
+            JulianDay::new(2_447_314.0),
+            Body::MOON,
+            CalcFlags::BUILTIN,
+            0,
+        )
+        .unwrap();
+        assert_exact_f64(lunar.ndsc[0], 169.091_962_525_661_76);
+        assert_exact_f64(lunar.aphe[0], 152.004_811_813_517_56);
+
+        let solar = nod_aps(
+            JulianDay::new(2_415_020.0),
+            Body::SUN,
+            CalcFlags::BUILTIN,
+            0,
+        )
+        .unwrap();
+        assert_exact_f64(solar.ndsc[0], 179.981_549_999_999_97);
     }
 
     #[test]
