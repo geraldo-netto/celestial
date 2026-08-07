@@ -733,13 +733,18 @@ Reformed 1906; New Year locked to astronomical vernal equinox.
 | `fasli_nowruz_jd(year)` | `Option<f64>` — JD of Nowruz |
 | `jd_to_fasli(jd)` | `Option<(year, month_index, day)>` |
 
-Month index 13 = the 5 Gatha (epagomenal) days.
+Month index 13 = five Gatha days, plus a sixth intercalary day when successive
+equinox dates span 366 days.
 
-### Tibetan calendar (Phugpa system) *(feature: `calendar-traditions`)*
+### Tibetan calendar helpers *(feature: `calendar-traditions`)*
+
+`losar_jd` is an astronomical approximation, not a complete Phugpa calendar.
+It omits intercalation and true-date rules and can differ from published Losar
+dates by a day or month.
 
 | Function | Returns |
 |---|---|
-| `losar_jd(year)` | `Option<f64>` — 2nd new moon after winter solstice |
+| `losar_jd(year)` | `Option<f64>` — approximate 2nd new moon after winter solstice |
 | `tibetan_year_name(year)` | `(rabjung_cycle, year_in_cycle, element, gender, animal)` |
 
 ### Vietnamese Âm Lịch

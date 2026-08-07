@@ -461,7 +461,10 @@ $jd_nowruz = fasli_nowruz_jd(2024);   // float|null
 $date      = jd_to_fasli(2460400.0);  // [int, int, int]|null
 ```
 
-### Tibetan Phugpa (feature: `calendar-traditions`)
+### Tibetan calendar helpers (feature: `calendar-traditions`)
+
+`losar_jd` approximates Losar as the second new moon after the winter solstice.
+It is not a complete Phugpa calculation and can differ from published dates.
 
 ```php
 $jd_losar                             = losar_jd(2024);

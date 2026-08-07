@@ -564,15 +564,18 @@ from celestial_py import fasli_nowruz_jd, jd_to_fasli
 
 jd_nowruz  = fasli_nowruz_jd(2024)   # JD of astronomical vernal equinox 2024
 date       = jd_to_fasli(2460400.0)  # → (fasli_year, month_index, day) or None
-# month_index 13 = the 5 Gatha (epagomenal) days
+# month_index 13 = 5 Gatha days, or 6 in an intercalary year
 ```
 
-### Tibetan Phugpa (feature: `calendar-traditions`)
+### Tibetan calendar helpers (feature: `calendar-traditions`)
+
+`losar_jd` approximates Losar as the second new moon after the winter solstice.
+It is not a complete Phugpa calculation and can differ from published dates.
 
 ```python
 from celestial_py import losar_jd, tibetan_year_name
 
-jd_losar             = losar_jd(2024)                # 2nd new moon after winter solstice
+jd_losar             = losar_jd(2024)                # astronomical approximation
 cycle, yic, el, g, a = tibetan_year_name(2024)
 # → (17, 38, "Wood", "Male", "Dragon") — 17th Rabjung cycle, year 38
 ```

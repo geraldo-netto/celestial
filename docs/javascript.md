@@ -418,7 +418,10 @@ const jdNowruz = fasliNowruzJd(2024);   // number | null
 const date     = jdToFasli(2460400.0);  // [fasliYear, monthIndex, day] | null
 ```
 
-### Tibetan Phugpa (feature: `calendar-traditions`)
+### Tibetan calendar helpers (feature: `calendar-traditions`)
+
+`losarJd` approximates Losar as the second new moon after the winter solstice.
+It is not a complete Phugpa calculation and can differ from published dates.
 
 ```javascript
 import { losarJd, tibetanYearName } from "celestial-js";

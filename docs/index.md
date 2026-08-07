@@ -31,7 +31,7 @@ The engine now covers **19 additional functions** across 7 features — see
 | Yallop crescent visibility | `yallop_q` — q-value + class A–F for Islamic lunar sighting |
 | Coptic / Ethiopic calendar | JD ↔ date, leap rule, 13-month epagomenal structure |
 | Zoroastrian Fasli | New Year locked to astronomical vernal equinox (Nowruz) |
-| Tibetan Phugpa | Losar (New Year) + Rabjung cycle year names |
+| Tibetan helpers | Approximate Losar + Rabjung cycle year names; not full Phugpa calendar arithmetic |
 | Vietnamese Âm Lịch | UTC+7 month boundaries — diverges from Chinese ~4% of days |
 
 All 194 functions are exported from **Python**, **JavaScript**, and **PHP** (verify with `cargo xtask parity`).
@@ -47,7 +47,7 @@ celestial-core = { path = "...", default-features = false }
 Two opt-out features, both on by default:
 - `timezone` — IANA abbreviation table (`TZ_TABLE`, `tz_abbr_find`)
 - `calendar-traditions` — Jewish, Omer, Easter, Islamic, Nowruz/Bahá'í, Vesak,
-  Sabbats/Esbats, Coptic/Ethiopic, Zoroastrian Fasli, Tibetan Phugpa
+  Sabbats/Esbats, Coptic/Ethiopic, Zoroastrian Fasli, Tibetan calendar helpers
 
 ## Quick start
 

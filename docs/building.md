@@ -321,7 +321,7 @@ of large optional modules.
 | Feature | Default | What it adds | Size impact |
 |---|---|---|---|
 | `timezone` | ✓ | IANA timezone abbreviation table (203 entries, `TZ_TABLE`, `tz_abbr_find`) | ~1 400 lines |
-| `calendar-traditions` | ✓ | Jewish, Omer, Easter, Islamic, Nowruz/Bahá'í, Vesak, Sabbats & Esbats, Coptic/Ethiopic, Zoroastrian Fasli, Tibetan Phugpa | ~2 900 lines |
+| `calendar-traditions` | ✓ | Jewish, Omer, Easter, Islamic, Nowruz/Bahá'í, Vesak, Sabbats & Esbats, Coptic/Ethiopic, Zoroastrian Fasli, Tibetan calendar helpers | ~2 900 lines |
 
 ### Usage
 
