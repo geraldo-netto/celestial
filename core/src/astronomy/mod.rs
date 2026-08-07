@@ -397,6 +397,33 @@ mod tests {
         let dt = deltat(JulianDay::new(2_451_545.0));
         assert!((dt - 63.8).abs() < 3.0, "ΔT = {dt}");
     }
+
+    #[test]
+    fn rise_set_wrappers_dispatch_every_event() {
+        let jd = JulianDay::new(2_451_545.0);
+        let lat = Latitude::new(0.0);
+        let lon = Longitude::new(0.0);
+
+        for event in 0..=2 {
+            assert!(sun_rise_transit_set(jd, lat, lon, event).is_some());
+            assert!(moon_rise_transit_set(jd, lat, lon, event).is_some());
+            assert!(planet_rise_transit_set(jd, lat, lon, body::MARS, event).is_some());
+        }
+    }
+
+    #[test]
+    fn outer_planets_map_to_vsop87() {
+        assert!(matches!(body_to_vsop87(body::URANUS), Some(Planet::Uranus)));
+        assert!(matches!(
+            body_to_vsop87(body::NEPTUNE),
+            Some(Planet::Neptune)
+        ));
+    }
+
+    #[test]
+    fn planet_name_includes_pluto() {
+        assert_eq!(planet_name(body::PLUTO), "Pluto");
+    }
 }
 
 // ─── New sub-modules ──────────────────────────────────────────────────────────
