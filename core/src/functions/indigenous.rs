@@ -20,34 +20,25 @@ pub fn medicine_wheel_totem(
     sun_lon: Longitude,
 ) -> (&'static str, &'static str, &'static str, &'static str) {
     let sun_lon: f64 = sun_lon.into();
-    // (min_lon, max_lon, animal, element, clan, season)
-    // Aligned to approximate Sun longitude ranges (tropical)
-    const TOTEMS: &[(f64, f64, &str, &str, &str, &str)] = &[
-        (300.0, 330.0, "Snow Goose", "Earth", "Turtle", "Winter"),
-        (330.0, 360.0, "Otter", "Air", "Butterfly", "Winter"),
-        (0.0, 30.0, "Cougar", "Air", "Butterfly", "Spring"),
-        (30.0, 60.0, "Red Hawk", "Fire", "Thunderbird", "Spring"),
-        (60.0, 90.0, "Beaver", "Earth", "Turtle", "Spring"),
-        (90.0, 120.0, "Deer", "Air", "Butterfly", "Summer"),
-        (120.0, 150.0, "Flicker", "Water", "Frog", "Summer"),
-        (150.0, 180.0, "Sturgeon", "Fire", "Thunderbird", "Summer"),
-        (180.0, 210.0, "Brown Bear", "Earth", "Turtle", "Autumn"),
-        (210.0, 240.0, "Raven", "Air", "Butterfly", "Autumn"),
-        (240.0, 270.0, "Snake", "Water", "Frog", "Autumn"),
-        (270.0, 300.0, "Elk", "Fire", "Thunderbird", "Winter"),
-    ];
-    let lon = sun_lon.rem_euclid(360.0);
-    for &(lo, hi, animal, element, clan, season) in TOTEMS {
-        let in_range = if lo < hi {
-            lon >= lo && lon < hi
-        } else {
-            lon >= lo || lon < hi
-        };
-        if in_range {
-            return (animal, element, clan, season);
-        }
+    if !sun_lon.is_finite() {
+        return ("Snow Goose", "Earth", "Turtle", "Winter");
     }
-    ("Snow Goose", "Earth", "Turtle", "Winter") // fallback
+    const TOTEMS: &[(&str, &str, &str, &str)] = &[
+        ("Red Hawk", "Fire", "Thunderbird", "Spring"),
+        ("Beaver", "Earth", "Turtle", "Spring"),
+        ("Deer", "Air", "Butterfly", "Spring"),
+        ("Flicker", "Water", "Frog", "Summer"),
+        ("Sturgeon", "Fire", "Thunderbird", "Summer"),
+        ("Brown Bear", "Earth", "Turtle", "Summer"),
+        ("Raven", "Air", "Butterfly", "Autumn"),
+        ("Snake", "Water", "Frog", "Autumn"),
+        ("Elk", "Fire", "Thunderbird", "Autumn"),
+        ("Snow Goose", "Earth", "Turtle", "Winter"),
+        ("Otter", "Air", "Butterfly", "Winter"),
+        ("Cougar", "Water", "Frog", "Winter"),
+    ];
+    let index = (sun_lon.rem_euclid(360.0) / 30.0) as usize;
+    TOTEMS[index]
 }
 
 /// Egyptian decans: the 36 ten-degree sectors of the zodiac, each with a
@@ -95,6 +86,53 @@ pub fn egyptian_decan(lon: Longitude) -> (usize, &'static str, &'static str) {
         ("Rmn Ḥry II", "Arcturus"),
         ("Wȝḫ", "Fomalhaut"),
     ];
-    let idx = (lon / 10.0) as usize % 36;
+    let idx = (lon.rem_euclid(360.0) / 10.0) as usize;
     (idx, DECANS[idx].0, DECANS[idx].1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{egyptian_decan, medicine_wheel_totem};
+    use crate::units::Longitude;
+
+    #[test]
+    fn medicine_wheel_matches_birth_sectors() {
+        let expected = [
+            ("Red Hawk", "Fire", "Thunderbird", "Spring"),
+            ("Beaver", "Earth", "Turtle", "Spring"),
+            ("Deer", "Air", "Butterfly", "Spring"),
+            ("Flicker", "Water", "Frog", "Summer"),
+            ("Sturgeon", "Fire", "Thunderbird", "Summer"),
+            ("Brown Bear", "Earth", "Turtle", "Summer"),
+            ("Raven", "Air", "Butterfly", "Autumn"),
+            ("Snake", "Water", "Frog", "Autumn"),
+            ("Elk", "Fire", "Thunderbird", "Autumn"),
+            ("Snow Goose", "Earth", "Turtle", "Winter"),
+            ("Otter", "Air", "Butterfly", "Winter"),
+            ("Cougar", "Water", "Frog", "Winter"),
+        ];
+
+        for (sector, totem) in expected.into_iter().enumerate() {
+            let longitude = sector as f64 * 30.0;
+            assert_eq!(medicine_wheel_totem(Longitude::new(longitude)), totem);
+        }
+    }
+
+    #[test]
+    fn medicine_wheel_wraps_both_directions() {
+        let red_hawk = ("Red Hawk", "Fire", "Thunderbird", "Spring");
+        let cougar = ("Cougar", "Water", "Frog", "Winter");
+        let snow_goose = ("Snow Goose", "Earth", "Turtle", "Winter");
+
+        assert_eq!(medicine_wheel_totem(Longitude::new(360.0)), red_hawk);
+        assert_eq!(medicine_wheel_totem(Longitude::new(-0.1)), cougar);
+        assert_eq!(medicine_wheel_totem(Longitude::new(f64::NAN)), snow_goose);
+    }
+
+    #[test]
+    fn egyptian_decan_wraps_both_directions() {
+        assert_eq!(egyptian_decan(Longitude::new(-10.0)).0, 35);
+        assert_eq!(egyptian_decan(Longitude::new(360.0)).0, 0);
+        assert_eq!(egyptian_decan(Longitude::new(370.0)).0, 1);
+    }
 }

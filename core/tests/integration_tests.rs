@@ -1697,17 +1697,15 @@ fn calendar_round_repeats_after_18980_days() {
 #[test]
 fn medicine_wheel_totem_j2000_sun() {
     let sun = calc_ut(JulianDay::new(JD_J2000), Body::SUN, CalcFlags::BUILTIN).unwrap();
-    // Sun at J2000 ≈ 280° (Capricorn) → Medicine Wheel: Snow Goose (300°-330°)
-    // or Elk (270°-300°) — sun at ~280° is in Elk territory
+    // Sun at J2000 ≈ 280° falls in the Snow Goose sector.
     let (animal, element, clan, season) = medicine_wheel_totem(Longitude::new(sun.lon));
     assert!(!animal.is_empty(), "animal should not be empty");
     assert!(!element.is_empty(), "element should not be empty");
     assert!(!clan.is_empty(), "clan should not be empty");
     assert!(!season.is_empty(), "season should not be empty");
-    // Sun ~280° is in the Elk range (270-300°)
     assert_eq!(
-        animal, "Elk",
-        "Sun at {:.1}° should be Elk totem, got {animal}",
+        animal, "Snow Goose",
+        "Sun at {:.1}° should be Snow Goose totem, got {animal}",
         sun.lon
     );
 }
