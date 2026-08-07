@@ -4,6 +4,8 @@
 //! Formulae from Meeus "Astronomical Algorithms", Mallama & Hilton (2018)
 //! and the Explanatory Supplement to the Astronomical Almanac.
 
+use crate::astronomy::constants::angular_separation;
+
 /// All quantities returned by `pheno`.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Phenomena {
@@ -40,17 +42,15 @@ pub fn compute_phenomena(
     // Simple formula: elong = |lon_body - lon_sun| normalised to 0–180.
     // Latitude is small enough that the great-circle correction is negligible
     // for the visual-magnitude use case below.
-    let dl = (lon_body - lon_sun + 360.0).rem_euclid(360.0);
-    let elongation = if dl > 180.0 { 360.0 - dl } else { dl };
+    let elongation = angular_separation(lon_body, lon_sun);
     let _ = lat_body;
 
     // ── phase angle ───────────────────────────────────────────────────────────
     // Cosine rule in the Sun–body–Earth triangle:
     //   r² = R² + d² - 2·R·d·cos(elong)
     // where R = dist_sun (helio), d = dist_body (geo), r = helio dist of Earth ≈ 1 AU
-    let r_earth = 1.0_f64; // approximate
-    let cos_alpha = (dist_sun * dist_sun + dist_body * dist_body - r_earth * r_earth)
-        / (2.0 * dist_sun * dist_body);
+    let cos_alpha =
+        (dist_sun * dist_sun + dist_body * dist_body - 1.0) / (2.0 * dist_sun * dist_body);
     let cos_alpha = cos_alpha.clamp(-1.0, 1.0);
     let phase_angle = cos_alpha.acos().to_degrees();
 
@@ -73,7 +73,7 @@ pub fn compute_phenomena(
         _ => 0.0,
     };
     const AU_KM: f64 = 149_597_870.7;
-    let ang_diameter = if radius_km > 0.0 && dist_body > 0.0 {
+    let ang_diameter = if dist_body > 0.0 {
         2.0 * (radius_km / (dist_body * AU_KM)).atan().to_degrees() * 3600.0
     } else {
         0.0
@@ -145,6 +145,52 @@ fn visual_magnitude(body: i32, r: f64, delta: f64, i: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::astronomy::test_support::f64_fingerprint;
+
+    fn phenomena_fingerprint(cases: &[(i32, f64, f64, f64, f64, f64)]) -> u64 {
+        f64_fingerprint(cases.iter().flat_map(
+            |&(body, lon, lat, distance, sun_distance, sun_lon)| {
+                let value = compute_phenomena(body, lon, lat, distance, sun_distance, sun_lon);
+                [
+                    value.phase_angle,
+                    value.phase_frac,
+                    value.elongation,
+                    value.ang_diameter,
+                    value.magnitude,
+                ]
+            },
+        ))
+    }
+
+    #[test]
+    fn all_body_models_match_regression_fingerprint() {
+        let cases = [
+            (0, 5.0, -1.0, 1.0, 1.1, 355.0),
+            (1, 30.0, 3.0, 0.00257, 1.0, 250.0),
+            (2, 10.0, -2.0, 0.8, 0.4, 350.0),
+            (3, 320.0, 1.0, 0.5, 0.72, 30.0),
+            (4, 90.0, -1.5, 0.8, 1.52, 10.0),
+            (5, 150.0, 0.5, 4.5, 5.2, 340.0),
+            (6, 210.0, -0.25, 8.8, 9.55, 15.0),
+            (7, 270.0, 0.1, 19.5, 19.2, 25.0),
+            (8, 45.0, -0.1, 29.5, 30.1, 300.0),
+            (9, 350.0, 2.0, 34.0, 39.5, 170.0),
+            (42, 180.0, 4.0, 2.0, 2.5, 15.0),
+        ];
+        assert_eq!(phenomena_fingerprint(&cases), 0xa663_06f9_1131_60da);
+    }
+
+    #[test]
+    fn diameter_and_elongation_boundaries_are_exact() {
+        let zero_distance = compute_phenomena(5, 180.0, 0.0, 0.0, 5.2, 0.0);
+        assert_eq!(zero_distance.ang_diameter, 0.0);
+        assert_eq!(zero_distance.phase_angle, 0.0);
+        assert_eq!(zero_distance.phase_frac, 1.0);
+
+        let unknown = compute_phenomena(42, 180.0, 0.0, 1.0, 1.0, 0.0);
+        assert_eq!(unknown.ang_diameter, 0.0);
+        assert_eq!(unknown.elongation, 180.0);
+    }
 
     /// Sun phenomena: at opposition geometry the apparent magnitude is fixed at
     /// the canonical −26.74; phase fraction is 1.0 (fully illuminated by itself).
