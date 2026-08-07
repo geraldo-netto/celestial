@@ -551,6 +551,14 @@ mod mutation_tests {
     }
 
     #[test]
+    fn contrantiscion_preserves_axis_neighbor() {
+        let below_cancer = f64::from_bits(90.0_f64.to_bits() - 1);
+        let result = antiscion([0.0; 6], below_cancer);
+        assert_eq!(result.antiscion[0], f64::from_bits(180.0_f64.to_bits() - 1));
+        assert_eq!(result.contrantiscion[0], 0.0);
+    }
+
+    #[test]
     fn aspect_orbs_builder_preserves_configuration() {
         let orbs = AspectOrbs::new(4.0, 3.0).def_orb(2.0);
         assert_eq!(

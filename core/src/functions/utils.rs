@@ -552,6 +552,16 @@ mod tests {
     }
 
     #[test]
+    fn azalt_reverse_preserves_azimuth_neighbor() {
+        let jd = JulianDay::new(2_451_545.0);
+        let below_south = f64::from_bits(180.0_f64.to_bits() - 1);
+        assert_eq!(
+            azalt_rev(jd, 1, [12.1, 49.0, 330.0], [below_south, 20.0]),
+            [112.55706881489692, 61.0, 1.0]
+        );
+    }
+
+    #[test]
     fn refraction_contracts_are_exact() {
         assert_eq!(refrac(1.0, 1013.25, 15.0, 0), 1.407722383503609);
         assert_eq!(refrac(1.0, 800.0, -10.0, 1), 0.647487380950574);
