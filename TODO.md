@@ -105,7 +105,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 
 | id | status | effort | description | notes |
 |---|---|---|---|---|
-| SONAR-DEP-1 | OPEN | S | SonarCloud `text:S8565` reports that Python build/dev dependencies lack a recognized lock file. | Generate and validate `bindings/python/uv.lock`; use it in Python CI so lock is operational, not decorative. |
 
 ## Design Thinking
 

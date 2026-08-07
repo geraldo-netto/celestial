@@ -87,6 +87,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Verify dependency lock
+        run: |
+          pip install uv==0.11.28
+          uv lock --check --project bindings/python
+
       - name: Install Python linters
         run: pip install ruff mypy
 
