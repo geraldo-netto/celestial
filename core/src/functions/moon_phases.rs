@@ -178,7 +178,7 @@ fn bisect_phase(jd_lo: f64, jd_hi: f64, target: f64) -> Result<f64> {
 
     for _ in 0..15 {
         let f = signed_dist(jd, target)?;
-        if f.abs() < 1.0 / 3_600.0 {
+        if f.abs().total_cmp(&(1.0 / 3_600.0)).is_lt() {
             break; // sub-arcsecond
         }
         // Analytic derivative: elongation rises ≈12.19°/day. Avoids the
@@ -192,7 +192,7 @@ fn bisect_phase(jd_lo: f64, jd_hi: f64, target: f64) -> Result<f64> {
     // reported value and the residual check.
     let e = moon_elongation(JulianDay::new(jd))?;
     let residual = wrap_signed(e - target).abs();
-    if residual > 0.5 {
+    if residual.total_cmp(&0.5).is_gt() {
         return Err(Error::Calc(format!(
             "phase bisection did not converge: target={target:.1}° got e={e:.3}°"
         )));
@@ -209,7 +209,11 @@ fn bisect_phase(jd_lo: f64, jd_hi: f64, target: f64) -> Result<f64> {
 pub fn moon_phase(jd: JulianDay) -> Result<MoonPhase> {
     let jd: f64 = jd.into();
     let e = moon_elongation(JulianDay::new(jd))?;
-    Ok(match e {
+    Ok(phase_from_elongation(e))
+}
+
+fn phase_from_elongation(e: f64) -> MoonPhase {
+    match e {
         e if !(22.5..337.5).contains(&e) => MoonPhase::NewMoon,
         e if e < 67.5 => MoonPhase::WaxingCrescent,
         e if e < 112.5 => MoonPhase::FirstQuarter,
@@ -218,7 +222,7 @@ pub fn moon_phase(jd: JulianDay) -> Result<MoonPhase> {
         e if e < 247.5 => MoonPhase::WaningGibbous,
         e if e < 292.5 => MoonPhase::LastQuarter,
         _ => MoonPhase::WaningCrescent,
-    })
+    }
 }
 
 /// Fraction of the Moon's disk that is illuminated at the given Julian day.
@@ -278,11 +282,8 @@ pub fn next_principal_phase(jd_from: JulianDay, phase: PrincipalPhase) -> Result
     let epoch = EPOCH_NEW_MOON + offset;
     let n = ((jd_from - epoch) / SYNODIC_MONTH).floor() as i64;
 
-    for k in n..=(n + 3) {
+    for k in (n..).take(4) {
         let jd_approx = epoch + k as f64 * SYNODIC_MONTH;
-        if jd_approx + 2.0 < jd_from {
-            continue;
-        }
         if let Ok(jd) = bisect_phase(jd_approx - 2.0, jd_approx + 2.0, target) {
             if jd >= jd_from {
                 let elong = moon_elongation(JulianDay::new(jd))?;
@@ -322,14 +323,15 @@ pub fn moon_phases_for_month(year: i32, month: u8) -> Result<Vec<PhaseEvent>> {
 
     for &phase in &phases {
         let mut jd = month_start;
-        loop {
-            match next_principal_phase(JulianDay::new(jd), phase) {
-                Ok(event) if event.jd < month_end => {
-                    events.push(event);
-                    jd = events.last().expect("just pushed").jd + SYNODIC_MONTH * 0.9;
-                }
-                _ => break,
+        for _ in 0..2 {
+            let Ok(event) = next_principal_phase(JulianDay::new(jd), phase) else {
+                break;
+            };
+            if event.jd >= month_end {
+                break;
             }
+            jd = event.jd + SYNODIC_MONTH * 0.9;
+            events.push(event);
         }
     }
 
@@ -393,7 +395,7 @@ pub fn moon_phase_info(jd: JulianDay) -> Result<MoonPhaseInfo> {
     ]
     .iter()
     .filter_map(|&p| {
-        next_principal_phase(JulianDay::new(jd - SYNODIC_MONTH - 2.0), p)
+        next_principal_phase(JulianDay::new(jd - SYNODIC_MONTH), p)
             .ok()
             .filter(|e| e.jd <= jd)
     })
@@ -599,5 +601,170 @@ mod tests {
             (diff - SYNODIC_MONTH).abs() < 0.5,
             "synodic month diff={diff:.4}"
         );
+    }
+
+    #[test]
+    fn principal_phase_names_are_exact() {
+        let cases = [
+            (PrincipalPhase::NewMoon, "New Moon"),
+            (PrincipalPhase::FirstQuarter, "First Quarter"),
+            (PrincipalPhase::FullMoon, "Full Moon"),
+            (PrincipalPhase::LastQuarter, "Last Quarter"),
+        ];
+        for (phase, expected) in cases {
+            assert_eq!(phase.name(), expected);
+        }
+    }
+
+    #[test]
+    fn signed_wrap_preserves_boundary_convention() {
+        let cases = [
+            (180.0, 180.0),
+            (180.5, -179.5),
+            (-180.0, 180.0),
+            (-180.5, 179.5),
+            (12.5, 12.5),
+        ];
+        for (input, expected) in cases {
+            assert_eq!(wrap_signed(input), expected);
+        }
+    }
+
+    #[test]
+    fn elongation_octants_include_correct_edges() {
+        let cases = [
+            (0.0, MoonPhase::NewMoon),
+            (22.5, MoonPhase::WaxingCrescent),
+            (67.5, MoonPhase::FirstQuarter),
+            (112.5, MoonPhase::WaxingGibbous),
+            (157.5, MoonPhase::FullMoon),
+            (202.5, MoonPhase::WaningGibbous),
+            (247.5, MoonPhase::LastQuarter),
+            (292.5, MoonPhase::WaningCrescent),
+            (337.5, MoonPhase::NewMoon),
+        ];
+        for (elongation, expected) in cases {
+            assert_eq!(phase_from_elongation(elongation), expected);
+        }
+    }
+
+    #[test]
+    fn phase_solver_regression() {
+        let solved = bisect_phase(2_460_790.0, 2_460_796.0, 0.0).unwrap();
+        assert!((solved - 2_460_793.313_517_306_5).abs() < 1e-9);
+        let narrow = bisect_phase(2_460_793.0, 2_460_793.0, 0.0).unwrap();
+        assert!((narrow - 2_460_793.313_517_306_5).abs() < 1e-9);
+        let error = bisect_phase(2_460_790.0, 2_460_790.0, 180.0).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "calculation error: phase bisection did not converge: target=180.0° got e=306.976°"
+        );
+    }
+
+    fn assert_event(event: &PhaseEvent, phase: PrincipalPhase, jd: f64, elongation: f64) {
+        assert_eq!(event.phase, phase);
+        assert!((event.jd - jd).abs() < 1e-9);
+        assert!((event.elongation - elongation).abs() < 1e-9);
+    }
+
+    #[test]
+    fn principal_phase_events_are_exact() {
+        let start = JulianDay::new(jd(2025, 4, 1, 0.0));
+        let cases = [
+            (
+                PrincipalPhase::NewMoon,
+                2_460_793.313_521_910_5,
+                359.999_947_300_466_66,
+            ),
+            (
+                PrincipalPhase::FirstQuarter,
+                2_460_770.593_818_578,
+                89.999_984_408_317_16,
+            ),
+            (
+                PrincipalPhase::FullMoon,
+                2_460_778.515_784_968,
+                179.999_830_198_876_34,
+            ),
+            (
+                PrincipalPhase::LastQuarter,
+                2_460_786.566_477_191_6,
+                269.999_951_107_115_46,
+            ),
+        ];
+        for (phase, expected_jd, expected_elongation) in cases {
+            let event = next_principal_phase(start, phase).unwrap();
+            assert_event(&event, phase, expected_jd, expected_elongation);
+        }
+        let epoch_event = next_principal_phase(
+            JulianDay::new(EPOCH_NEW_MOON + 1.0),
+            PrincipalPhase::NewMoon,
+        )
+        .unwrap();
+        assert_event(
+            &epoch_event,
+            PrincipalPhase::NewMoon,
+            2_451_580.044_697_114,
+            359.999_862_741_248_2,
+        );
+    }
+
+    #[test]
+    fn phase_angle_matches_elongation_exactly() {
+        let moment = JulianDay::new(jd(2025, 4, 15, 12.0));
+        assert_eq!(moon_phase_angle(moment).unwrap(), 206.978_274_435_081_32);
+        assert_eq!(moon_phase_angle(moment), moon_elongation(moment));
+    }
+
+    fn assert_month_events(events: &[PhaseEvent], expected: &[(PrincipalPhase, f64)]) {
+        assert_eq!(events.len(), expected.len());
+        for (event, &(phase, expected_jd)) in events.iter().zip(expected) {
+            assert_eq!(event.phase, phase);
+            assert!((event.jd - expected_jd).abs() < 1e-9);
+        }
+    }
+
+    #[test]
+    fn month_events_lock_order_and_year_rollover() {
+        let april = moon_phases_for_month(2025, 4).unwrap();
+        let april_expected = [
+            (PrincipalPhase::FirstQuarter, 2_460_770.593_818_578),
+            (PrincipalPhase::FullMoon, 2_460_778.515_784_968),
+            (PrincipalPhase::LastQuarter, 2_460_786.566_477_191_6),
+            (PrincipalPhase::NewMoon, 2_460_793.313_521_910_5),
+        ];
+        let december = moon_phases_for_month(2025, 12).unwrap();
+        let december_expected = [
+            (PrincipalPhase::FullMoon, 2_461_014.468_415_585),
+            (PrincipalPhase::LastQuarter, 2_461_021.369_594_891_6),
+            (PrincipalPhase::NewMoon, 2_461_029.572_088_549_4),
+            (PrincipalPhase::FirstQuarter, 2_461_037.298_939_582_4),
+        ];
+        assert_month_events(&april, &april_expected);
+        assert_month_events(&december, &december_expected);
+        let august = moon_phases_for_month(2023, 8).unwrap();
+        let august_expected = [
+            (PrincipalPhase::FullMoon, 2_460_158.272_602_341),
+            (PrincipalPhase::LastQuarter, 2_460_164.936_996_956_4),
+            (PrincipalPhase::NewMoon, 2_460_172.902_105_182_4),
+            (PrincipalPhase::FirstQuarter, 2_460_180.915_380_57),
+            (PrincipalPhase::FullMoon, 2_460_187.566_976_736_8),
+        ];
+        assert_month_events(&august, &august_expected);
+    }
+
+    #[test]
+    fn phase_info_regression() {
+        let moment = JulianDay::new(jd(2025, 4, 15, 12.0));
+        let info = moon_phase_info(moment).unwrap();
+        assert_eq!(info.phase, MoonPhase::WaningGibbous);
+        assert_eq!(info.phase_name, "Waning Gibbous");
+        assert_eq!(info.elongation, 206.978_274_435_081_32);
+        assert_eq!(info.illumination, 0.945_589_302_723_051_3);
+        assert_eq!(info.prev_phase_jd, 2_460_778.515_784_968);
+        assert_eq!(info.prev_phase_name, "Full Moon");
+        assert_eq!(info.next_phase_jd, 2_460_786.566_477_191_6);
+        assert_eq!(info.next_phase_name, "Last Quarter");
+        assert_eq!(info.age_days, 2.484_215_031_843_632_5);
     }
 }
