@@ -334,6 +334,62 @@ mod tests {
     use super::*;
 
     #[test]
+    fn nutation_models_match_regression_vectors() {
+        let cases = [
+            (
+                2_400_000.5,
+                23.457_637_941_621_556,
+                5.738_308_412_755_439,
+                8.193_180_801_407_392,
+                5.740_906_992_573_486,
+                8.188_226_941_540_814,
+            ),
+            (
+                2_448_724.5,
+                23.440_284_106_649_855,
+                16.606_497_641_406_627,
+                1.223_574_255_520_888,
+                16.596_414_896_423_113,
+                1.223_752_818_980_629,
+            ),
+            (
+                2_451_545.0,
+                23.439_279_444_444_445,
+                -13.932_249_377_231_429,
+                -5.771_383_055_308_970,
+                -13.925_304_663_376_785,
+                -5.774_064_762_668_726,
+            ),
+            (
+                2_463_456.789,
+                23.435_036_476_285_976,
+                10.855_063_779_176_636,
+                -7.501_866_030_937_591,
+                10.856_418_032_463_596,
+                -7.499_265_045_449_243,
+            ),
+            (
+                2_500_000.5,
+                23.422_020_793_204_108,
+                -16.390_665_222_406_014,
+                2.258_026_371_924_409,
+                -16.377_753_902_189_241,
+                2.259_204_124_778_440,
+            ),
+        ];
+        for (jde, obliquity, modern_dpsi, modern_deps, legacy_dpsi, legacy_deps) in cases {
+            let modern = nutation(jde);
+            let legacy = nutation_1980(jde);
+            assert!((mean_obliquity(jde) - obliquity).abs() < 1.0e-12);
+            assert!((true_obliquity(jde) - (obliquity + modern_deps / 3600.0)).abs() < 1.0e-12);
+            assert!((modern.dpsi - modern_dpsi).abs() < 1.0e-11);
+            assert!((modern.deps - modern_deps).abs() < 1.0e-11);
+            assert!((legacy.dpsi - legacy_dpsi).abs() < 1.0e-11);
+            assert!((legacy.deps - legacy_deps).abs() < 1.0e-11);
+        }
+    }
+
+    #[test]
     fn nutation_j2000_iau2000b() {
         // Meeus example: JDE 2446895.5 (1987 Apr 10)
         // Reference: Δψ ≈ −3.788″, Δε ≈ +9.443″
