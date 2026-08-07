@@ -57,7 +57,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | CC-7 | DECIDED | S | `core/src/body/mod.rs:119 Body::is_known_id` is a flat range ladder. | Still compliant; flat documented id windows are clearer than hiding the ranges in a table. |
 | LINT-1 | OPEN | S | Warning-clean clippy is not maintained across all tracked Rust: `core/src/astronomy/houses.rs:923` triggers `byte_char_slices`, and standalone PHP `match_aspect3` / `match_aspect4` trigger `too_many_arguments`. | Apply the byte-slice suggestion; for the published flat FFI signatures, add the same targeted lint rationale already used by core/Python or refactor all bindings together. |
 | SONAR-CC-1 | OPEN | S | SonarCloud `rust:S3776` reports cognitive complexity 16 in `render/config.rs::load_config` and `fuzz/src/main.rs::test_secondary_progressions_midpoints`. | Extract cohesive helpers; keep every resulting function at complexity 10 or below. |
-| SONAR-CC-2 | OPEN | — | SonarCloud `php:S107` reports 20 high-arity declarations in generated `phpstan-stubs.php`. | Generated published API contract; cover with the generated-file analysis decision in SONAR-CONF-1. |
 
 ## Code Duplication
 
@@ -89,7 +88,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 |---|---|---|---|---|
 | CONF-1 | OPEN | S | `render::compute` validates arguments before `load_config`, so config-provided values bypass validation. A config with `lat = 999` renders successfully and exposes 999 in the context. | Merge config first, then validate the effective arguments; add config-path tests for non-finite and out-of-range values. |
 | CONF-2 | OPEN | M | Config precedence infers whether the CLI supplied a value by comparing it with sentinel defaults (`now`, `0.0`, `P`). Explicit `--lat 0 --lon 0`, `--date now`, or `--hsys P` can therefore be overwritten by config despite the documented “CLI flags take precedence” rule. | Preserve Clap value-source information or model defaultable fields as `Option<T>` until after config merging. |
-| SONAR-CONF-1 | OPEN | S | SonarCloud analyzes generated `bindings/php/phpstan-stubs.php`, producing 1,824 non-actionable `php:S1172`, `php:S100`, and `php:S107` findings from empty stub bodies, snake_case public API names, and parity-mandated arities. | Exclude only this auto-generated contract from source analysis; retain syntax and binding parity gates. |
 
 ## Data Structure
 
@@ -253,4 +251,3 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | id | status | effort | description | notes |
 |---|---|---|---|---|
 | UNUSED-1 | DECIDED | — | No new unused public-shaped production callables found in this rescan. | `cargo xtask parity`, binding stub checks, workspace tests, and prior public API review all remain green; existing library-only APIs are accounted for under WIRE-1. |
-| SONAR-UNUSED-1 | OPEN | — | SonarCloud `php:S1172` reports 1,290 unused parameters in generated PHP stub declarations. | Empty bodies are required by the stub format and signatures mirror the published API; cover with SONAR-CONF-1. |
