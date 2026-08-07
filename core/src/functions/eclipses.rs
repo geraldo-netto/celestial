@@ -296,15 +296,12 @@ fn try_refine_occultation(
     curr: f64,
     body: Body,
 ) -> Option<EclipseResult> {
-    const THRESHOLD: f64 = 1.5;
-    const OCC_DISC: f64 = 0.27;
     let next = moon_body_separation(jd + step, body).unwrap_or(180.0);
-    let is_min = curr <= prev && curr <= next && curr < THRESHOLD;
-    if !is_min {
+    if !occultation_candidate(prev, curr, next) {
         return None;
     }
     let (jd_occ, min_sep) = refine_separation_minimum(jd, step, body);
-    if min_sep >= OCC_DISC {
+    if !visible_occultation(min_sep) {
         return None;
     }
     let mut tret = [0.0f64; 10];
@@ -313,6 +310,30 @@ fn try_refine_occultation(
         ret_flags: 64,
         tret,
     })
+}
+
+fn occultation_candidate(prev: f64, curr: f64, next: f64) -> bool {
+    curr <= prev && curr <= next && curr < 1.5
+}
+
+fn visible_occultation(min_separation: f64) -> bool {
+    min_separation < 0.27
+}
+
+fn occultation_step(backwards: bool) -> f64 {
+    if backwards {
+        -0.1
+    } else {
+        0.1
+    }
+}
+
+fn occultation_limit(start: f64, step: f64) -> f64 {
+    step.mul_add(4000.0, start)
+}
+
+fn occultation_limit_reached(jd: f64, limit: f64, step: f64) -> bool {
+    (jd - limit) * step.signum() >= 0.0
 }
 
 /// Next occultation of `body` by the Moon, searching globally from `tjd_start`.
@@ -329,13 +350,13 @@ pub fn lun_occult_when_glob(
     backwards: bool,
 ) -> Result<EclipseResult> {
     let tjd_start: f64 = tjd_start.into();
-    let step = if backwards { -0.1_f64 } else { 0.1_f64 };
+    let step = occultation_step(backwards);
     let mut jd = tjd_start;
-    let limit = step.mul_add(4000.0, tjd_start);
+    let limit = occultation_limit(tjd_start, step);
     let mut prev = moon_body_separation(jd, body).unwrap_or(180.0);
 
     for _ in 0..5000 {
-        if (jd - limit) * step.signum() >= 0.0 {
+        if occultation_limit_reached(jd, limit, step) {
             break;
         }
         jd += step;
@@ -413,4 +434,114 @@ pub fn lun_occult_where(
         geopos: [0.0; 10],
         attr: [0.0; 20],
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn solar_and_lunar_wrappers_match_regression_vectors() {
+        let direct =
+            sol_eclipse_where(JulianDay::new(2_460_409.243_617_635_7), CalcFlags::BUILTIN).unwrap();
+        assert_eq!(direct.ret_flags, 5);
+        assert_eq!(
+            direct.geopos[..2],
+            [-112.397_420_263_862_07, 17.471_952_013_398_788]
+        );
+        assert_eq!(direct.attr[0], 1.243_040_393_729_840_9);
+
+        let searched = sol_eclipse_where(JulianDay::new(2_460_000.0), CalcFlags::BUILTIN).unwrap();
+        assert_eq!(searched.ret_flags, 33);
+        assert_eq!(
+            searched.geopos[..2],
+            [82.394_190_704_691_54, 26.598_867_953_774_743]
+        );
+        assert_eq!(searched.attr[0], 1.098_997_037_776_069_2);
+
+        for (k, flags) in [
+            (282, ae::ECL_TOTAL),
+            (299, ae::ECL_PARTIAL),
+            (300, ae::ECL_PENUMBRAL),
+        ] {
+            let result = lun_eclipse_how(
+                JulianDay::new(ae::new_moon_jd(k as f64 + 0.5)),
+                CalcFlags::BUILTIN,
+                None,
+            )
+            .unwrap();
+            assert_eq!(result.ret_flags, flags);
+        }
+    }
+
+    #[test]
+    fn occultation_geometry_matches_regression_vectors() {
+        assert_eq!(
+            ecl_to_eq(123.0, -4.0, 23.4_f64.to_radians()),
+            (2.169_996_223_760_971, 0.271_571_386_730_812_44)
+        );
+        assert_eq!(
+            moon_body_separation(2_451_545.0, Body::VENUS),
+            Some(18.467_528_321_254_28)
+        );
+        assert_eq!(moon_body_separation(2_451_545.0, Body(i32::MAX)), None);
+        assert_eq!(
+            refine_separation_minimum(2_451_545.0, 0.1, Body::VENUS),
+            (2_451_545.199_998_957, 16.341_352_223_792_576)
+        );
+    }
+
+    #[test]
+    fn occultation_boundaries_and_searches_are_exact() {
+        assert!(occultation_candidate(1.499, 1.499, 1.499));
+        assert!(!occultation_candidate(1.498, 1.499, 1.5));
+        assert!(!occultation_candidate(1.5, 1.499, 1.498));
+        assert!(!occultation_candidate(2.0, 1.5, 2.0));
+        assert!(visible_occultation(0.269_999));
+        assert!(!visible_occultation(0.27));
+
+        assert_eq!(occultation_step(false), 0.1);
+        assert_eq!(occultation_step(true), -0.1);
+        assert_eq!(occultation_limit(1000.0, 0.1), 1400.0);
+        assert_eq!(occultation_limit(1000.0, -0.1), 600.0);
+        assert!(!occultation_limit_reached(1399.9, 1400.0, 0.1));
+        assert!(occultation_limit_reached(1400.0, 1400.0, 0.1));
+        assert!(!occultation_limit_reached(600.1, 600.0, -0.1));
+        assert!(occultation_limit_reached(600.0, 600.0, -0.1));
+
+        let forward = lun_occult_when_glob(
+            JulianDay::new(2_451_545.0),
+            Body::NEPTUNE,
+            None,
+            CalcFlags::BUILTIN,
+            0,
+            false,
+        )
+        .unwrap();
+        assert_eq!(forward.ret_flags, 64);
+        assert_eq!(forward.tret[0], 2_451_551.737_477_73);
+
+        let backward = lun_occult_when_glob(
+            JulianDay::new(2_451_545.0),
+            Body::NEPTUNE,
+            None,
+            CalcFlags::BUILTIN,
+            0,
+            true,
+        )
+        .unwrap();
+        assert_eq!(backward.tret[0], 2_451_524.417_441_363_4);
+
+        let local = lun_occult_when_loc(
+            JulianDay::new(2_451_545.0),
+            Body::NEPTUNE,
+            None,
+            CalcFlags::BUILTIN,
+            [12.5, 37.5, 100.0],
+            false,
+        )
+        .unwrap();
+        assert_eq!(local.tret, forward.tret);
+        assert_eq!(local.attr[1], -6.585_406_883_780_061_4);
+    }
 }
