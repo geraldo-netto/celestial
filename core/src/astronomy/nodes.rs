@@ -60,9 +60,10 @@ pub fn moon_true_node(jd_et: JulianDay) -> f64 {
 #[must_use]
 pub fn moon_true_node_speed(jd_et: JulianDay) -> f64 {
     let jd_et: f64 = jd_et.into();
-    let h = 0.5;
-    (moon_true_node(JulianDay::new(jd_et + h)) - moon_true_node(JulianDay::new(jd_et - h)))
-        / (2.0 * h)
+    let plus = moon_true_node(JulianDay::new(jd_et + 0.5));
+    let minus = moon_true_node(JulianDay::new(jd_et - 0.5));
+    let delta = plus - minus;
+    delta - 360.0 * (delta / 360.0).round()
 }
 
 // ─── Lunar apsides ────────────────────────────────────────────────────────────
@@ -280,6 +281,7 @@ pub fn planet_nodes_speeds(body: i32, jd_et: JulianDay) -> Option<(f64, f64)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::astronomy::test_support::f64_fingerprint;
 
     #[test]
     fn elements_lookup_known_bodies() {
@@ -340,5 +342,105 @@ mod tests {
                 assert!(el.inc.is_finite());
             }
         }
+    }
+
+    #[test]
+    fn lunar_nodes_and_apsides_match_regression_vectors() {
+        let cases = [
+            (
+                1_721_425.5,
+                [
+                    268.430_556_136_037_9,
+                    -0.052_955_966_596_012_795,
+                    269.669_190_176_386_85,
+                    -0.588_544_310_726_490_5,
+                    101.444_811_936_191_4,
+                    0.111_403_519_890_485_97,
+                ],
+            ),
+            (
+                J2000,
+                [
+                    125.044_555_501,
+                    -0.052_953_764_872_607_806,
+                    126.396_165_760_473_15,
+                    -0.412_772_392_669_538_14,
+                    83.353_243,
+                    0.111_403_519_890_485_97,
+                ],
+            ),
+            (
+                2_463_456.789,
+                [
+                    214.270_702_418_787_32,
+                    -0.052_953_727_787_803_745,
+                    215.420_458_421_668_94,
+                    -0.217_098_848_816_078_77,
+                    330.367_367_184_137_27,
+                    0.111_403_519_890_485_97,
+                ],
+            ),
+            (
+                3_182_045.0,
+                [
+                    323.164_041_261_006_8,
+                    -0.052_951_421_488_076_66,
+                    324.338_881_111_259_47,
+                    -0.442_124_943_385_522_33,
+                    99.394_698_999_996_76,
+                    0.111_403_519_890_485_97,
+                ],
+            ),
+        ];
+        for (jd, expected) in cases {
+            let jd = JulianDay::new(jd);
+            assert_eq!(
+                [
+                    moon_mean_node(jd),
+                    moon_mean_node_speed(jd),
+                    moon_true_node(jd),
+                    moon_true_node_speed(jd),
+                    moon_mean_perigee(jd),
+                    moon_mean_perigee_speed(jd),
+                ],
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn planetary_elements_match_regression_fingerprint() {
+        let mut values = Vec::new();
+        for jd in [1_721_425.5, J2000, 2_463_456.789, 3_182_045.0] {
+            for body in [0, 1, 2, 4, 5, 6, 7, 8] {
+                let el = planet_mean_elements(body, JulianDay::new(jd)).unwrap();
+                let nodes = planet_nodes_apsides(body, JulianDay::new(jd)).unwrap();
+                let speeds = planet_nodes_speeds(body, JulianDay::new(jd)).unwrap();
+                values.extend([
+                    el.node_lon,
+                    el.peri_lon,
+                    el.semi_major,
+                    el.ecc,
+                    el.inc,
+                    el.mean_lon,
+                    nodes.0,
+                    nodes.1,
+                    nodes.2,
+                    nodes.3,
+                    nodes.4,
+                    speeds.0,
+                    speeds.1,
+                ]);
+            }
+        }
+        assert_eq!(f64_fingerprint(values), 0xc25d_dee4_34d8_8405);
+    }
+
+    #[test]
+    fn true_node_speed_normalizes_longitude_wrap() {
+        assert_eq!(
+            moon_true_node_speed(JulianDay::new(2_453_881.0)),
+            -0.258_702_313_310_777_75
+        );
     }
 }
