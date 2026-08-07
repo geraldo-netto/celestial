@@ -5,7 +5,7 @@
 //! model from Schaefer (1990) and Mallama & Hilton (2018).
 #![allow(dead_code)]
 
-use crate::astronomy::constants::to_rad;
+use crate::astronomy::constants::{angular_separation, to_rad};
 use crate::units::{JulianDay, Latitude, Longitude};
 
 // ─── Atmospheric extinction ───────────────────────────────────────────────────
@@ -36,11 +36,6 @@ fn airmass(alt_deg: f64) -> f64 {
 fn extinction_mag(alt_deg: f64, pressure_mb: f64, temp_c: f64) -> f64 {
     let k = extinction_coeff(pressure_mb, temp_c, 550.0);
     k * airmass(alt_deg)
-}
-
-fn angular_separation(first: f64, second: f64) -> f64 {
-    let delta = (first - second).rem_euclid(360.0);
-    180.0 - (delta - 180.0).abs()
 }
 
 // ─── Sky brightness ───────────────────────────────────────────────────────────

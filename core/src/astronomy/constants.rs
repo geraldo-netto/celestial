@@ -69,6 +69,12 @@ pub fn norm_deg(d: f64) -> f64 {
     d.rem_euclid(360.0)
 }
 
+#[inline]
+pub(crate) fn angular_separation(first: f64, second: f64) -> f64 {
+    let delta = (first - second).rem_euclid(360.0);
+    180.0 - (delta - 180.0).abs()
+}
+
 /// Julian centuries from J2000.0.
 #[inline]
 #[must_use]
@@ -90,5 +96,13 @@ mod tests {
     #[test]
     fn radians_per_arcsecond_matches_reference() {
         assert!((RAD_PER_ARCSEC - 4.848_136_811_095_36e-6).abs() < 1e-18);
+    }
+
+    #[test]
+    fn angular_separation_covers_both_directions_and_opposition() {
+        assert_eq!(angular_separation(10.0, 350.0), 20.0);
+        assert_eq!(angular_separation(350.0, 10.0), 20.0);
+        assert_eq!(angular_separation(190.0, 10.0), 180.0);
+        assert_eq!(angular_separation(10.0, 10.0), 0.0);
     }
 }
