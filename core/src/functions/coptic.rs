@@ -136,6 +136,7 @@ mod tests {
         assert!(is_coptic_leap_year(3));
         assert!(!is_coptic_leap_year(4));
         assert!(is_coptic_leap_year(1739));
+        assert_eq!(coptic_month_days(3, 1), 30);
         assert_eq!(coptic_month_days(3, 13), 6);
         assert_eq!(coptic_month_days(4, 13), 5);
     }
@@ -158,6 +159,18 @@ mod tests {
         let jd = ethiopic_to_jd(1, 1, 1);
         assert!((jd - 1_724_220.5).abs() < 1e-6, "got jd = {jd}");
         assert_eq!(jd_to_ethiopic(JulianDay::new(jd)), (1, 1, 1));
+    }
+
+    #[test]
+    fn nontrivial_dates_roundtrip() {
+        let coptic_jd = coptic_to_jd(4, 2, 4);
+        let ethiopic_jd = ethiopic_to_jd(4, 2, 4);
+
+        assert_eq!(coptic_jd, 1_826_158.5);
+        assert_eq!(ethiopic_jd, 1_725_349.5);
+        assert_eq!(jd_to_coptic(JulianDay::new(coptic_jd)), (4, 2, 4));
+        assert_eq!(jd_to_ethiopic(JulianDay::new(ethiopic_jd)), (4, 2, 4));
+        assert_eq!(jd_to_coptic(JulianDay::new(1_826_154.5)), (4, 1, 30));
     }
 
     #[test]
