@@ -52,9 +52,10 @@ behavior defined here when interacting with this workspace.
     or shapes (exactly how DOC-9/DOC-10 drifted). Prose-only explanation fine.
   - `cargo xtask pyi --check` / `cargo xtask dts --check` — stubs in sync.
   Run in `binding-parity` CI pipeline; red gate blocks merge.
-- ALWAYS record review findings in `TODO.md` — never report only in chat. Any time
-  scan, review, audit, or "look for issues" (not just major changes), add each finding to
-  matching category table in `TODO.md` before/while reporting.
+- ALWAYS record every finding in `TODO.md`, regardless of how or when it is discovered
+  (implementation, testing, mutation testing, scan, review, audit, user report, or incidental
+  observation) — never report only in chat. Add each finding to the matching category table
+  before/while reporting it.
 - ALWAYS remove completed items from `TODO.md` — once finding implemented + tested + merged,
   delete row from table outright. No "shipped" sub-sections, no struck-through entries.
   `git log` = durable record. Exceptions: "Open — parked" section keeps open-but-deferred
