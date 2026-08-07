@@ -52,7 +52,7 @@ pub fn gauquelin_sector(
     )?;
     let asc = r.ascmc[0];
     // Angular distance from ASC in the diurnal direction
-    let d = (lon_body - asc + 360.0).rem_euclid(360.0);
+    let d = (lon_body - asc).rem_euclid(360.0);
     // Map to 36 sectors
     let sector = (d / 10.0).floor() + 1.0;
     Ok(sector.clamp(1.0, 36.0))
@@ -157,19 +157,7 @@ pub fn vis_limit_mag(
 ) -> Result<[f64; 8]> {
     let jd_ut: f64 = jd_ut.into();
     use crate::astronomy::heliacal::vis_limit_mag as vlm;
-    let body_num: i32 = match objectname.trim().to_ascii_lowercase().as_str() {
-        "" | "sun" => 0,
-        "moon" => 1,
-        "mercury" => 2,
-        "venus" => 3,
-        "mars" => 4,
-        "jupiter" => 5,
-        "saturn" => 6,
-        "uranus" => 7,
-        "neptune" => 8,
-        "pluto" => 9,
-        _ => 2, // default to Mercury for unknown
-    };
+    let body_num = body_name_to_num(objectname);
     Ok(vlm(jd_ut, dgeo, datm, dobs, body_num, helflag))
 }
 
@@ -178,7 +166,6 @@ fn body_name_to_num(name: &str) -> i32 {
     match name.trim().to_ascii_lowercase().as_str() {
         "" | "sun" => 0,
         "moon" => 1,
-        "mercury" => 2,
         "venus" => 3,
         "mars" => 4,
         "jupiter" => 5,
@@ -230,7 +217,11 @@ pub fn yallop_q(arcv_deg: f64, arcl_deg: f64, sd_arcmin: f64) -> (f64, char) {
     let poly = 11.8371 - 6.3226 * w + 0.7319 * w.powi(2) - 0.1018 * w.powi(3);
     let q = (arcv_deg - poly) / 10.0;
 
-    let code = if q > 0.216 {
+    (q, yallop_class(q))
+}
+
+fn yallop_class(q: f64) -> char {
+    if q > 0.216 {
         'A'
     } else if q > -0.014 {
         'B'
@@ -242,8 +233,7 @@ pub fn yallop_q(arcv_deg: f64, arcl_deg: f64, sd_arcmin: f64) -> (f64, char) {
         'E'
     } else {
         'F'
-    };
-    (q, code)
+    }
 }
 
 /// Best time for crescent visibility evaluation:
@@ -261,6 +251,173 @@ pub fn best_time_method(jd_sunset: JulianDay, jd_moonset: JulianDay) -> f64 {
 #[cfg(test)]
 mod yallop_tests {
     use super::*;
+
+    #[test]
+    fn phenomena_wrappers_are_exact() {
+        let jd = JulianDay::new(2_463_456.789);
+        let mars = pheno(jd, Body::MARS, CalcFlags::BUILTIN).unwrap();
+        assert_eq!(
+            mars[..5],
+            [
+                5.995783409870891,
+                0.9972647926390633,
+                9.93891467987703,
+                3.556211401202907,
+                1.7191613930080134,
+            ]
+        );
+        assert_eq!(mars[5..], [0.0; 15]);
+
+        let sun = pheno_ut(jd, Body::SUN, CalcFlags::BUILTIN).unwrap();
+        assert_eq!(
+            sun[..5],
+            [
+                59.1316840570739,
+                0.7565333356460056,
+                0.0,
+                1894.0247653105225,
+                -26.74,
+            ]
+        );
+        assert_eq!(sun[5..], [0.0; 15]);
+    }
+
+    #[test]
+    fn gauquelin_sector_regression_is_exact() {
+        assert_eq!(
+            gauquelin_sector(
+                JulianDay::new(2_463_456.789),
+                Body::MARS,
+                None,
+                CalcFlags::BUILTIN,
+                0,
+                [12.5, 37.5, 0.0],
+                1013.25,
+                15.0,
+            )
+            .unwrap(),
+            33.0
+        );
+    }
+
+    #[test]
+    fn heliacal_wrappers_are_exact() {
+        let dgeo = [12.5, 37.5, 0.0];
+        let datm = [1013.25, 15.0, 0.0, 0.0];
+        let dobs = [45.0; 6];
+        let event = heliacal_ut(
+            JulianDay::new(2_451_545.0),
+            dgeo,
+            datm,
+            dobs,
+            "mercury",
+            1,
+            CalcFlags::BUILTIN,
+        )
+        .unwrap();
+        assert_eq!(
+            event[..4],
+            [
+                2_451_647.692_935_799_7,
+                11.645_670_559_351_998,
+                -6.0,
+                0.273_584_129_561_749_43,
+            ]
+        );
+        assert_eq!(event[4..], [0.0; 46]);
+
+        let pheno = heliacal_pheno_ut(
+            JulianDay::new(2_463_456.789),
+            dgeo,
+            datm,
+            dobs,
+            "jupiter",
+            1,
+            CalcFlags::BUILTIN,
+        )
+        .unwrap();
+        assert_eq!(
+            pheno[..10],
+            [
+                153.857_907_271_980_08,
+                0.0,
+                293.997_262_096_252_1,
+                -0.509_432_053_720_327_2,
+                -6.0,
+                8.5,
+                15.0,
+                4.199_116_747_226_824_5,
+                1013.25,
+                15.0,
+            ]
+        );
+        assert_eq!(pheno[10..], [0.0; 40]);
+    }
+
+    #[test]
+    fn visibility_wrapper_is_exact() {
+        assert_eq!(
+            vis_limit_mag(
+                JulianDay::new(2_463_456.789),
+                [12.5, 37.5, 0.0],
+                [1013.25, 15.0, 0.0, 0.0],
+                [45.0; 6],
+                "jupiter",
+                0,
+            )
+            .unwrap(),
+            [
+                8.5,
+                -2.709_926_504_057_772,
+                15.0,
+                153.857_907_271_980_08,
+                0.0,
+                -6.0,
+                1013.25,
+                15.0,
+            ]
+        );
+    }
+
+    #[test]
+    fn body_name_mapping_is_exact() {
+        let cases = [
+            ("", 0),
+            (" Sun ", 0),
+            ("moon", 1),
+            ("mercury", 2),
+            ("venus", 3),
+            ("mars", 4),
+            ("jupiter", 5),
+            ("saturn", 6),
+            ("uranus", 7),
+            ("neptune", 8),
+            ("pluto", 9),
+            ("Sirius", 3),
+            ("not-a-body", 2),
+        ];
+        for (name, expected) in cases {
+            assert_eq!(body_name_to_num(name), expected);
+        }
+    }
+
+    #[test]
+    fn heliacal_event_failure_is_preserved() {
+        let error = heliacal_ut(
+            JulianDay::new(2_451_545.0),
+            [12.5, 37.5, 0.0],
+            [1013.25, 15.0, 0.0, 0.0],
+            [45.0; 6],
+            "jupiter",
+            4,
+            CalcFlags::BUILTIN,
+        )
+        .unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "calculation error: heliacal_ut: no event found within search window"
+        );
+    }
 
     #[test]
     fn yallop_easily_visible() {
@@ -282,6 +439,22 @@ mod yallop_tests {
         let (q, _) = yallop_q(10.5, 10.0, 15.0);
         // q should be near zero — boundary between classes B and C
         assert!(q.abs() < 0.2, "q = {q}");
+    }
+
+    #[test]
+    fn yallop_formula_and_class_boundaries_are_exact() {
+        assert_eq!(yallop_q(10.5, 10.0, 15.0).0, 0.006_691_394_975_816_678);
+        let boundaries = [
+            (0.216, 'B', 'A'),
+            (-0.014, 'C', 'B'),
+            (-0.160, 'D', 'C'),
+            (-0.232, 'E', 'D'),
+            (-0.293, 'F', 'E'),
+        ];
+        for (boundary, at, above) in boundaries {
+            assert_eq!(yallop_class(boundary), at);
+            assert_eq!(yallop_class(boundary + f64::EPSILON), above);
+        }
     }
 
     #[test]
