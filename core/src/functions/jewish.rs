@@ -16,11 +16,17 @@
 use super::omer::{
     approx_hebrew_year, hebrew_month_days, hebrew_month_start_jd, is_hebrew_leap_year,
 };
-use crate::units::JulianDay;
+use crate::{day_of_week, units::JulianDay};
 
 const NIGHTFALL_OFFSET: f64 = 0.25;
 const MIN_SUPPORTED_JD: f64 = 347_997.25;
 const MAX_SUPPORTED_JD: f64 = 1.0e10;
+const MAX_HOLIDAY_HEBREW_YEAR: i32 = 27_377_793;
+const MAX_CONVERSION_HEBREW_YEAR: i32 = 27_377_794;
+const MONDAY: i32 = 0;
+const FRIDAY: i32 = 4;
+const SATURDAY: i32 = 5;
+const SUNDAY: i32 = 6;
 
 /// A Jewish holiday with its Hebrew date and Julian day.
 #[derive(Debug, Clone)]
@@ -31,13 +37,13 @@ pub struct JewishHoliday {
     pub hebrew_name: &'static str,
     /// Hebrew month (1=Nisan … 7=Tishrei … 12/13=Adar II).
     pub hebrew_month: u8,
-    /// Hebrew day of the month.
+    /// Observed Hebrew day of the month, including weekday postponements.
     pub hebrew_day: u8,
-    /// Julian day at nightfall (start of the holiday).
+    /// Inclusive start of the holiday interval, at nightfall.
     pub jd: f64,
-    /// Julian day at nightfall ending the holiday (same as jd for 1-day holidays).
+    /// Exclusive end of the holiday interval, at nightfall.
     pub jd_end: f64,
-    /// Duration in days.
+    /// Length of the `[jd, jd_end)` interval in days.
     pub days: u8,
     /// Category of the holiday.
     pub category: HolidayCategory,
@@ -59,16 +65,13 @@ pub enum HolidayCategory {
 }
 
 /// Static descriptor for a Jewish holiday entry. Month sentinel `0` = Purim
-/// month (12 in common year, 13 in leap year). `extra_end` adds extra days
-/// to `jd_end` beyond `start + days` (used for holidays whose ritual day
-/// ends at next nightfall but `days` counts only the calendar day).
+/// month (12 in common year, 13 in leap year).
 struct HolidaySpec {
     name: &'static str,
     hebrew_name: &'static str,
     month: u8,
     day: u8,
     days: u8,
-    extra_end: f64,
     category: HolidayCategory,
 }
 
@@ -80,7 +83,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 7,
         day: 1,
         days: 2,
-        extra_end: 0.0,
         category: HolidayCategory::MajorFestival,
     },
     HolidaySpec {
@@ -89,7 +91,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 7,
         day: 3,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Fast,
     },
     HolidaySpec {
@@ -98,7 +99,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 7,
         day: 10,
         days: 1,
-        extra_end: 0.0,
         category: HolidayCategory::MajorFestival,
     },
     HolidaySpec {
@@ -107,7 +107,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 7,
         day: 15,
         days: 7,
-        extra_end: 0.0,
         category: HolidayCategory::MajorFestival,
     },
     HolidaySpec {
@@ -116,7 +115,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 7,
         day: 22,
         days: 1,
-        extra_end: 0.0,
         category: HolidayCategory::MajorFestival,
     },
     HolidaySpec {
@@ -125,7 +123,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 7,
         day: 23,
         days: 1,
-        extra_end: 0.0,
         category: HolidayCategory::MajorFestival,
     },
     // Kislev / Tevet / Shevat
@@ -135,7 +132,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 9,
         day: 25,
         days: 8,
-        extra_end: 0.0,
         category: HolidayCategory::RabbinicFestival,
     },
     HolidaySpec {
@@ -144,7 +140,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 10,
         day: 10,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Fast,
     },
     HolidaySpec {
@@ -153,7 +148,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 11,
         day: 15,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Minor,
     },
     // Purim month (sentinel 0 → 12 or 13)
@@ -163,7 +157,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 0,
         day: 13,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Fast,
     },
     HolidaySpec {
@@ -172,7 +165,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 0,
         day: 14,
         days: 2,
-        extra_end: 0.0,
         category: HolidayCategory::RabbinicFestival,
     },
     // Nisan
@@ -182,7 +174,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 1,
         day: 14,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Fast,
     },
     HolidaySpec {
@@ -191,7 +182,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 1,
         day: 15,
         days: 8,
-        extra_end: 0.0,
         category: HolidayCategory::MajorFestival,
     },
     HolidaySpec {
@@ -200,7 +190,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 1,
         day: 27,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Minor,
     },
     // Iyyar
@@ -210,7 +199,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 2,
         day: 4,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Minor,
     },
     HolidaySpec {
@@ -219,7 +207,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 2,
         day: 5,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Minor,
     },
     HolidaySpec {
@@ -228,7 +215,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 2,
         day: 18,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Minor,
     },
     HolidaySpec {
@@ -237,7 +223,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 2,
         day: 28,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Minor,
     },
     // Sivan
@@ -247,7 +232,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 3,
         day: 6,
         days: 2,
-        extra_end: 0.0,
         category: HolidayCategory::MajorFestival,
     },
     // Tammuz
@@ -257,7 +241,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 4,
         day: 17,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Fast,
     },
     // Av
@@ -267,7 +250,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 5,
         day: 9,
         days: 1,
-        extra_end: 0.0,
         category: HolidayCategory::Fast,
     },
     HolidaySpec {
@@ -276,7 +258,6 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
         month: 5,
         day: 15,
         days: 1,
-        extra_end: -1.0,
         category: HolidayCategory::Minor,
     },
 ];
@@ -294,19 +275,69 @@ fn bounded_jd(jd: f64) -> f64 {
     }
 }
 
+fn bounded_hebrew_year(year: i32) -> i32 {
+    year.clamp(1, MAX_HOLIDAY_HEBREW_YEAR)
+}
+
+fn hebrew_weekday(hebrew_year: i32, month: u8, day: u8) -> i32 {
+    day_of_week(JulianDay::new(nightfall_jd(hebrew_year, month, day) + 0.5))
+}
+
+fn saturday_alternative(hebrew_year: i32, month: u8, nominal_day: u8, saturday_day: u8) -> u8 {
+    if hebrew_weekday(hebrew_year, month, nominal_day) == SATURDAY {
+        saturday_day
+    } else {
+        nominal_day
+    }
+}
+
+fn observed_yom_hashoah(hebrew_year: i32) -> u8 {
+    match hebrew_weekday(hebrew_year, 1, 27) {
+        FRIDAY => 26,
+        SUNDAY => 28,
+        _ => 27,
+    }
+}
+
+fn observed_yom_haatzmaut(hebrew_year: i32) -> u8 {
+    match hebrew_weekday(hebrew_year, 2, 5) {
+        SATURDAY => 3,
+        FRIDAY => 4,
+        MONDAY => 6,
+        _ => 5,
+    }
+}
+
+fn observed_day(spec: &HolidaySpec, hebrew_year: i32, month: u8) -> u8 {
+    match spec.name {
+        "Tzom Gedaliah" => saturday_alternative(hebrew_year, month, spec.day, 4),
+        "Ta'anit Esther" => saturday_alternative(hebrew_year, month, spec.day, 11),
+        "Ta'anit Bechorot (Fast of the Firstborn)" => {
+            saturday_alternative(hebrew_year, month, spec.day, 12)
+        }
+        "Yom HaShoah" => observed_yom_hashoah(hebrew_year),
+        "Yom HaZikaron" => observed_yom_haatzmaut(hebrew_year).saturating_sub(1),
+        "Yom HaAtzmaut" => observed_yom_haatzmaut(hebrew_year),
+        "Shiva Asar B'Tammuz" => saturday_alternative(hebrew_year, month, spec.day, 18),
+        "Tisha B'Av" => saturday_alternative(hebrew_year, month, spec.day, 10),
+        _ => spec.day,
+    }
+}
+
 fn materialize_holiday(spec: &HolidaySpec, hebrew_year: i32, purim_month: u8) -> JewishHoliday {
     let month = if spec.month == 0 {
         purim_month
     } else {
         spec.month
     };
-    let start = nightfall_jd(hebrew_year, month, spec.day);
-    let end = start + spec.days as f64 + spec.extra_end;
+    let day = observed_day(spec, hebrew_year, month);
+    let start = nightfall_jd(hebrew_year, month, day);
+    let end = start + spec.days as f64;
     JewishHoliday {
         name: spec.name,
         hebrew_name: spec.hebrew_name,
         hebrew_month: month,
-        hebrew_day: spec.day,
+        hebrew_day: day,
         jd: start,
         jd_end: end,
         days: spec.days,
@@ -316,9 +347,13 @@ fn materialize_holiday(spec: &HolidaySpec, hebrew_year: i32, purim_month: u8) ->
 
 /// Compute all major Jewish holidays for the given Hebrew year.
 ///
-/// Returns holidays sorted by Julian day (chronological).
+/// Returns holidays sorted by Julian day (chronological). Weekday-dependent
+/// fasts and modern Israeli observances use their observed Hebrew dates.
+/// Input years are clamped to 1..=27377793, the last complete year in the
+/// supported Julian-day range.
 #[must_use]
 pub fn jewish_holidays(hebrew_year: i32) -> Vec<JewishHoliday> {
+    let hebrew_year = bounded_hebrew_year(hebrew_year);
     let purim_month = if is_hebrew_leap_year(hebrew_year) {
         13u8
     } else {
@@ -334,6 +369,7 @@ pub fn jewish_holidays(hebrew_year: i32) -> Vec<JewishHoliday> {
 
 /// Return the JD of a specific Jewish holiday in the given Hebrew year.
 /// Returns `None` if the holiday name is not found.
+/// Input years are clamped to 1..=27377793.
 pub fn jewish_holiday_jd(hebrew_year: i32, name: &str) -> Option<f64> {
     jewish_holidays(hebrew_year)
         .into_iter()
@@ -347,15 +383,14 @@ pub fn jewish_holiday_jd(hebrew_year: i32, name: &str) -> Option<f64> {
 #[must_use]
 pub fn hebrew_year_from_jd(jd: JulianDay) -> i32 {
     let jd = bounded_jd(jd.into());
-    let max_year = approx_hebrew_year(JulianDay::new(MAX_SUPPORTED_JD)).saturating_add(1);
-    let year = approx_hebrew_year(JulianDay::new(jd)).clamp(1, max_year);
+    let year = approx_hebrew_year(JulianDay::new(jd)).clamp(1, MAX_CONVERSION_HEBREW_YEAR);
     // The mean-year estimate differs by at most one year over the supported JD range.
     if nightfall_jd(year, 7, 1) > jd {
         return year.saturating_sub(1).max(1);
     }
     let next_year = year.saturating_add(1);
     if nightfall_jd(next_year, 7, 1) <= jd {
-        next_year.min(max_year)
+        next_year.min(MAX_CONVERSION_HEBREW_YEAR)
     } else {
         year
     }
@@ -447,60 +482,67 @@ mod tests {
     }
 
     #[test]
-    fn holidays_end_after_start() {
+    fn holiday_intervals_match_declared_days() {
         for spec_year in [5783, 5784, 5785, 5786, 5787, 5788] {
             for h in jewish_holidays(spec_year) {
-                assert!(
-                    h.jd_end >= h.jd,
-                    "{}: jd_end {} < jd {}",
-                    h.name,
-                    h.jd_end,
-                    h.jd
-                );
+                assert_eq!(h.jd_end - h.jd, h.days as f64, "{}", h.name);
+                assert!(h.jd_end > h.jd, "{}", h.name);
             }
         }
     }
 
-    #[test]
-    fn yom_kippur_one_day_jd_end_offset() {
-        // Yom Kippur is days=1 but ends at next nightfall: jd_end = jd + 1.0
-        let h = jewish_holidays(5785);
-        let yk = h.iter().find(|h| h.name == "Yom Kippur").unwrap();
-        assert!((yk.jd_end - yk.jd - 1.0).abs() < 1e-9);
-        assert_eq!(yk.days, 1);
-    }
-
-    #[test]
-    fn one_day_minor_jd_end_equals_jd() {
-        // Tu BiShvat is a 1-day minor holiday → jd_end == jd
-        let h = jewish_holidays(5785);
-        let tb = h.iter().find(|h| h.name == "Tu BiShvat").unwrap();
-        assert!((tb.jd_end - tb.jd).abs() < 1e-9);
-    }
-
-    #[test]
-    fn daytime_holidays_have_zero_length_jd_range() {
-        let holidays = jewish_holidays(5785);
-        let names = [
-            "Tzom Gedaliah",
-            "Tzom Tevet (10 Tevet)",
-            "Tu BiShvat",
-            "Ta'anit Esther",
-            "Ta'anit Bechorot (Fast of the Firstborn)",
-            "Yom HaShoah",
-            "Yom HaZikaron",
-            "Yom HaAtzmaut",
-            "Lag Ba'Omer",
-            "Yom Yerushalayim",
-            "Shiva Asar B'Tammuz",
-            "Tu B'Av",
-        ];
-        for name in names {
+    fn assert_observed_days(cases: &[(i32, &str, u8, u8)]) {
+        for &(year, name, month, day) in cases {
+            let holidays = jewish_holidays(year);
             let holiday = holidays
                 .iter()
                 .find(|holiday| holiday.name == name)
                 .unwrap();
-            assert_eq!(holiday.jd_end, holiday.jd, "{name}");
+            assert_eq!((holiday.hebrew_month, holiday.hebrew_day), (month, day));
+            assert_eq!(holiday.jd, nightfall_jd(year, month, day));
+        }
+    }
+
+    #[test]
+    fn traditional_fasts_follow_weekday_postponements() {
+        assert_observed_days(&[
+            (5785, "Tzom Gedaliah", 7, 4),
+            (5784, "Tzom Gedaliah", 7, 3),
+            (5784, "Ta'anit Esther", 13, 11),
+            (5785, "Ta'anit Esther", 12, 13),
+            (5785, "Ta'anit Bechorot (Fast of the Firstborn)", 1, 12),
+            (5782, "Ta'anit Bechorot (Fast of the Firstborn)", 1, 14),
+            (5782, "Shiva Asar B'Tammuz", 4, 18),
+            (5785, "Shiva Asar B'Tammuz", 4, 17),
+            (5782, "Tisha B'Av", 5, 10),
+            (5785, "Tisha B'Av", 5, 9),
+        ]);
+    }
+
+    #[test]
+    fn modern_holidays_follow_statutory_postponements() {
+        assert_observed_days(&[
+            (5785, "Yom HaShoah", 1, 26),
+            (5784, "Yom HaShoah", 1, 28),
+            (5783, "Yom HaShoah", 1, 27),
+            (5785, "Yom HaZikaron", 2, 2),
+            (5785, "Yom HaAtzmaut", 2, 3),
+            (5784, "Yom HaZikaron", 2, 5),
+            (5784, "Yom HaAtzmaut", 2, 6),
+            (5782, "Yom HaZikaron", 2, 3),
+            (5782, "Yom HaAtzmaut", 2, 4),
+            (5783, "Yom HaZikaron", 2, 4),
+            (5783, "Yom HaAtzmaut", 2, 5),
+        ]);
+    }
+
+    #[test]
+    fn holiday_year_inputs_are_bounded() {
+        let cases = [(i32::MIN, 1), (0, 1), (i32::MAX, MAX_HOLIDAY_HEBREW_YEAR)];
+        for (input, bounded) in cases {
+            let expected = jewish_holiday_jd(bounded, "Rosh Hashanah");
+            assert_eq!(jewish_holiday_jd(input, "Rosh Hashanah"), expected);
+            assert_eq!(jewish_holidays(input).len(), HOLIDAY_TABLE.len());
         }
     }
 
