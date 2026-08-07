@@ -85,7 +85,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 |---|---|---|---|---|
 | CONF-1 | OPEN | S | `render::compute` validates arguments before `load_config`, so config-provided values bypass validation. A config with `lat = 999` renders successfully and exposes 999 in the context. | Merge config first, then validate the effective arguments; add config-path tests for non-finite and out-of-range values. |
 | CONF-2 | OPEN | M | Config precedence infers whether the CLI supplied a value by comparing it with sentinel defaults (`now`, `0.0`, `P`). Explicit `--lat 0 --lon 0`, `--date now`, or `--hsys P` can therefore be overwritten by config despite the documented “CLI flags take precedence” rule. | Preserve Clap value-source information or model defaultable fields as `Option<T>` until after config merging. |
-| SONAR-CONF-2 | OPEN | S | Binding test paths are listed under source-only `sonar.exclusions`, so SonarCloud still analyzes them despite the file comment claiming otherwise. | Move test patterns to `sonar.test.exclusions`; keep only generated source artifacts under `sonar.exclusions`. |
 
 ## Data Structure
 
