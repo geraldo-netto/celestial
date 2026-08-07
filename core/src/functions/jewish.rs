@@ -14,9 +14,13 @@
 //! ```
 
 use super::omer::{
-    hebrew_month_days, hebrew_month_start_jd, hebrew_new_year_jd, is_hebrew_leap_year,
+    approx_hebrew_year, hebrew_month_days, hebrew_month_start_jd, is_hebrew_leap_year,
 };
 use crate::units::JulianDay;
+
+const NIGHTFALL_OFFSET: f64 = 0.25;
+const MIN_SUPPORTED_JD: f64 = 347_997.25;
+const MAX_SUPPORTED_JD: f64 = 1.0e10;
 
 /// A Jewish holiday with its Hebrew date and Julian day.
 #[derive(Debug, Clone)]
@@ -279,7 +283,15 @@ const HOLIDAY_TABLE: &[HolidaySpec] = &[
 
 #[inline]
 fn nightfall_jd(hebrew_year: i32, month: u8, day: u8) -> f64 {
-    hebrew_month_start_jd(hebrew_year, month as i32) as f64 + (day as f64 - 1.0) + 0.25
+    hebrew_month_start_jd(hebrew_year, month as i32) as f64 + (day as f64 - 1.0) + NIGHTFALL_OFFSET
+}
+
+fn bounded_jd(jd: f64) -> f64 {
+    if jd.is_finite() {
+        jd.clamp(MIN_SUPPORTED_JD, MAX_SUPPORTED_JD)
+    } else {
+        MIN_SUPPORTED_JD
+    }
 }
 
 fn materialize_holiday(spec: &HolidaySpec, hebrew_year: i32, purim_month: u8) -> JewishHoliday {
@@ -330,29 +342,34 @@ pub fn jewish_holiday_jd(hebrew_year: i32, name: &str) -> Option<f64> {
 }
 
 /// Return the current Hebrew year for a given Julian day.
+///
+/// Finite values are clamped to 347997.25..=1e10. Non-finite values map to year 1.
 #[must_use]
 pub fn hebrew_year_from_jd(jd: JulianDay) -> i32 {
-    let jd: f64 = jd.into();
-    let mut year = ((jd - 347_997.0) * 98_496.0 / 35_975_351.0) as i32 + 1;
-    while year > 1 && (hebrew_new_year_jd(year) as f64) > jd {
-        year -= 1;
+    let jd = bounded_jd(jd.into());
+    let max_year = approx_hebrew_year(JulianDay::new(MAX_SUPPORTED_JD)).saturating_add(1);
+    let year = approx_hebrew_year(JulianDay::new(jd)).clamp(1, max_year);
+    // The mean-year estimate differs by at most one year over the supported JD range.
+    if nightfall_jd(year, 7, 1) > jd {
+        return year.saturating_sub(1).max(1);
     }
-    loop {
-        if (hebrew_new_year_jd(year + 1) as f64) > jd {
-            break;
-        }
-        year += 1;
+    let next_year = year.saturating_add(1);
+    if nightfall_jd(next_year, 7, 1) <= jd {
+        next_year.min(max_year)
+    } else {
+        year
     }
-    year.max(1)
 }
 
 /// Convert a Julian day to a Hebrew date (year, month, day).
 /// Month: 1=Nisan, 2=Iyyar, …, 7=Tishrei, …, 12=Adar (or Adar I), 13=Adar II (leap)
+///
+/// Finite values are clamped to 347997.25..=1e10. Non-finite values map to 1 Tishrei 1.
 #[must_use]
 pub fn jd_to_hebrew_date(jd: JulianDay) -> (i32, u8, u8) {
-    let jd: f64 = jd.into();
+    let jd = bounded_jd(jd.into());
     let year = hebrew_year_from_jd(JulianDay::new(jd));
-    let jd_int = jd.floor() as i64;
+    let jd_int = (jd - NIGHTFALL_OFFSET).floor() as i64;
     // Find month by walking from Tishrei
     let months: Vec<i32> = {
         let n = if is_hebrew_leap_year(year) { 13 } else { 12 };
@@ -462,6 +479,77 @@ mod tests {
     }
 
     #[test]
+    fn daytime_holidays_have_zero_length_jd_range() {
+        let holidays = jewish_holidays(5785);
+        let names = [
+            "Tzom Gedaliah",
+            "Tzom Tevet (10 Tevet)",
+            "Tu BiShvat",
+            "Ta'anit Esther",
+            "Ta'anit Bechorot (Fast of the Firstborn)",
+            "Yom HaShoah",
+            "Yom HaZikaron",
+            "Yom HaAtzmaut",
+            "Lag Ba'Omer",
+            "Yom Yerushalayim",
+            "Shiva Asar B'Tammuz",
+            "Tu B'Av",
+        ];
+        for name in names {
+            let holiday = holidays
+                .iter()
+                .find(|holiday| holiday.name == name)
+                .unwrap();
+            assert_eq!(holiday.jd_end, holiday.jd, "{name}");
+        }
+    }
+
+    #[test]
+    fn hebrew_date_rolls_over_at_nightfall() {
+        let start = nightfall_jd(5785, 7, 1);
+        let cases = [
+            (start - 0.01, (5784, 6, 29)),
+            (start, (5785, 7, 1)),
+            (start + 0.99, (5785, 7, 1)),
+            (start + 1.0, (5785, 7, 2)),
+        ];
+        for (jd, expected) in cases {
+            assert_eq!(jd_to_hebrew_date(JulianDay::new(jd)), expected);
+            assert_eq!(hebrew_year_from_jd(JulianDay::new(jd)), expected.0);
+        }
+    }
+
+    #[test]
+    fn hebrew_month_rolls_over_at_nightfall() {
+        let start = nightfall_jd(5785, 10, 1);
+        let kislev_days = hebrew_month_days(5785, 9) as u8;
+        assert_eq!(
+            jd_to_hebrew_date(JulianDay::new(start - 0.01)),
+            (5785, 9, kislev_days)
+        );
+        assert_eq!(jd_to_hebrew_date(JulianDay::new(start)), (5785, 10, 1));
+    }
+
+    #[test]
+    fn hebrew_year_adjusts_underestimated_year() {
+        let start = nightfall_jd(5000, 7, 1);
+        assert_eq!(approx_hebrew_year(JulianDay::new(start)), 4999);
+        for jd in [start, start + 0.1] {
+            assert_eq!(approx_hebrew_year(JulianDay::new(jd)), 4999);
+            assert_eq!(hebrew_year_from_jd(JulianDay::new(jd)), 5000);
+        }
+    }
+
+    #[test]
+    fn invalid_and_extreme_jds_are_bounded() {
+        for jd in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, -f64::MAX] {
+            assert_eq!(hebrew_year_from_jd(JulianDay::new(jd)), 1);
+            assert_eq!(jd_to_hebrew_date(JulianDay::new(jd)), (1, 7, 1));
+        }
+        assert!(hebrew_year_from_jd(JulianDay::new(f64::MAX)) > 1);
+    }
+
+    #[test]
     fn fuzz_random_years_no_panic_and_sorted() {
         // Deterministic xorshift-ish year sweep across plausible Hebrew years.
         let mut s: u64 = 0xC0FFEE;
@@ -484,12 +572,13 @@ mod tests {
         let (y, m, d) = jd_to_hebrew_date(JulianDay::new(2_451_545.0));
         assert_eq!(y, 5760);
         assert_eq!(m, 10); // Tevet
-        assert_eq!(d, 24); // Jan 1, 2000 = 24 Tevet 5760
+        assert_eq!(d, 23);
     }
 
     #[test]
     fn hebrew_year_before_rosh_hashanah_handles_estimate_overshoot() {
         let jd = crate::julday(1853, 10, 1, 12.0, crate::body::Calendar::Gregorian);
+        assert_eq!(approx_hebrew_year(JulianDay::new(jd)), 5614);
         assert_eq!(hebrew_year_from_jd(JulianDay::new(jd)), 5613);
         assert_eq!(jd_to_hebrew_date(JulianDay::new(jd)).0, 5613);
     }
