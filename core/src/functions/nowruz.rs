@@ -79,9 +79,9 @@ pub const PERSIAN_MONTHS: [(&str, &str, u8); 12] = [
     ("Mehr", "Autumn", 30),
     ("Aban", "Autumn", 30),
     ("Azar", "Autumn", 30),
-    ("Dey", "Winter", 29), // 30 in leap year
-    ("Bahman", "Winter", 29),
-    ("Esfand", "Winter", 29),
+    ("Dey", "Winter", 30),
+    ("Bahman", "Winter", 30),
+    ("Esfand", "Winter", 29), // 30 in leap year
 ];
 
 // ─── Bahá'í calendar ─────────────────────────────────────────────────────────
@@ -136,7 +136,7 @@ pub struct BahaiDate {
 /// Bahá'í leap years correspond to Gregorian leap years.
 #[must_use]
 pub fn is_bahai_leap_year(bahai_year: i32) -> bool {
-    let gregorian_year = bahai_year + 1843;
+    let gregorian_year = bahai_year + 1844;
     gregorian_year % 4 == 0 && (gregorian_year % 100 != 0 || gregorian_year % 400 == 0)
 }
 
@@ -164,14 +164,13 @@ pub fn jd_to_bahai(jd: JulianDay) -> BahaiDate {
     }
 
     let year_start = naw_ruz_jd(bahai_year);
-    let day_of_year = (jd - year_start).floor() as u32;
-
-    // Months 1-18 have 19 days each (342 days), then Ayyám-i-Há (4/5 days), then month 19
     let ayyam_days = if is_bahai_leap_year(bahai_year) {
         5u32
     } else {
         4
     };
+    let last_day_of_year = 342 + ayyam_days + 18;
+    let day_of_year = ((jd - year_start).floor() as u32).min(last_day_of_year);
 
     if day_of_year < 342 {
         let month = (day_of_year / 19 + 1) as u8;
@@ -345,6 +344,18 @@ pub fn bahai_holy_days(bahai_year: i32) -> Vec<BahaiHolyDay> {
 mod tests {
     use super::*;
 
+    fn assert_bahai_date(date: &BahaiDate, year: i32, month: u8, day: u8, name: &str) {
+        assert_eq!(date.year, year);
+        assert_eq!(date.month, month);
+        assert_eq!(date.day, day);
+        assert_eq!(date.month_name, name);
+    }
+
+    fn assert_jd_offset(year_start: f64, month: u8, day: u8, expected: f64) {
+        let actual = bahai_jd_of(year_start, 4, month, day) - year_start;
+        assert_eq!(actual, expected);
+    }
+
     #[test]
     fn nowruz_2025_in_march() {
         let jd = nowruz_jd(2025);
@@ -384,8 +395,108 @@ mod tests {
     }
 
     #[test]
+    fn persian_months_have_correct_names_seasons_and_lengths() {
+        assert_eq!(
+            PERSIAN_MONTHS,
+            [
+                ("Farvardin", "Spring", 31),
+                ("Ordibehesht", "Spring", 31),
+                ("Khordad", "Spring", 31),
+                ("Tir", "Summer", 31),
+                ("Mordad", "Summer", 31),
+                ("Shahrivar", "Summer", 31),
+                ("Mehr", "Autumn", 30),
+                ("Aban", "Autumn", 30),
+                ("Azar", "Autumn", 30),
+                ("Dey", "Winter", 30),
+                ("Bahman", "Winter", 30),
+                ("Esfand", "Winter", 29),
+            ]
+        );
+        assert_eq!(
+            PERSIAN_MONTHS
+                .iter()
+                .map(|(_, _, days)| u16::from(*days))
+                .sum::<u16>(),
+            365
+        );
+    }
+
+    #[test]
     fn bahai_months_count() {
         assert_eq!(BAHAI_MONTHS.len(), 19);
+    }
+
+    #[test]
+    fn bahai_leap_year_follows_gregorian_century_rule() {
+        assert!(!is_bahai_leap_year(1));
+        assert!(is_bahai_leap_year(152));
+        assert!(!is_bahai_leap_year(153));
+        assert!(!is_bahai_leap_year(56));
+        assert!(is_bahai_leap_year(156));
+    }
+
+    #[test]
+    fn jd_to_bahai_maps_regular_month_boundaries() {
+        let start = naw_ruz_jd(182);
+        let cases = [
+            (0.0, 1, 1, "Bahá"),
+            (18.0, 1, 19, "Bahá"),
+            (19.0, 2, 1, "Jalál"),
+            (341.0, 18, 19, "Mulk"),
+        ];
+        for (offset, month, day, name) in cases {
+            let date = jd_to_bahai(JulianDay::new(start + offset));
+            assert_bahai_date(&date, 182, month, day, name);
+        }
+    }
+
+    #[test]
+    fn jd_to_bahai_maps_common_year_intercalary_boundaries() {
+        let start = naw_ruz_jd(182);
+        let cases = [
+            (342.0, 0, 1, AYYAM_I_HA.0),
+            (345.0, 0, 4, AYYAM_I_HA.0),
+            (346.0, 19, 1, "'Alá'"),
+            (364.0, 19, 19, "'Alá'"),
+        ];
+        for (offset, month, day, name) in cases {
+            let date = jd_to_bahai(JulianDay::new(start + offset));
+            assert_bahai_date(&date, 182, month, day, name);
+        }
+    }
+
+    #[test]
+    fn jd_to_bahai_maps_leap_year_intercalary_boundaries() {
+        let start = naw_ruz_jd(180);
+        let cases = [
+            (346.0, 0, 5, AYYAM_I_HA.0),
+            (347.0, 19, 1, "'Alá'"),
+            (365.0, 19, 19, "'Alá'"),
+        ];
+        for (offset, month, day, name) in cases {
+            let date = jd_to_bahai(JulianDay::new(start + offset));
+            assert_bahai_date(&date, 180, month, day, name);
+        }
+    }
+
+    #[test]
+    fn jd_to_bahai_changes_year_only_at_naw_ruz() {
+        let next_start = naw_ruz_jd(183);
+        let before = jd_to_bahai(JulianDay::new(next_start - 1e-6));
+        let at = jd_to_bahai(JulianDay::new(next_start));
+        let after = jd_to_bahai(JulianDay::new(next_start + 1e-6));
+        assert_bahai_date(&before, 182, 19, 19, "'Alá'");
+        assert_bahai_date(&at, 183, 1, 1, "Bahá");
+        assert_bahai_date(&after, 183, 1, 1, "Bahá");
+        assert!(before.jd < at.jd && at.jd < after.jd);
+    }
+
+    #[test]
+    fn bahai_jd_offsets_cover_each_calendar_section() {
+        assert_jd_offset(1_000.0, 0, 2, 343.0);
+        assert_jd_offset(1_000.0, 2, 3, 21.0);
+        assert_jd_offset(1_000.0, 19, 2, 347.0);
     }
 
     #[test]
@@ -412,16 +523,15 @@ mod tests {
     }
 
     #[test]
-    fn bahai_fast_after_ayyam_leap_offset() {
-        // Common year: ayyam_days=4, Fast month=19 day=1 starts at year_start+342+4
+    fn bahai_fast_offsets_follow_intercalary_length() {
         let common_start = naw_ruz_jd(181);
         let common = bahai_holy_days(181);
         let fast_common = common.iter().find(|d| d.name.starts_with("Fast")).unwrap();
-        let common_offset = fast_common.jd - common_start;
-        assert!(
-            common_offset == 346.0 || common_offset == 347.0,
-            "common offset {common_offset}"
-        );
+        let leap_start = naw_ruz_jd(180);
+        let leap = bahai_holy_days(180);
+        let fast_leap = leap.iter().find(|d| d.name.starts_with("Fast")).unwrap();
+        assert_eq!(fast_common.jd - common_start, 346.0);
+        assert_eq!(fast_leap.jd - leap_start, 347.0);
     }
 
     #[test]
