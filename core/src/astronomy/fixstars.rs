@@ -1185,3 +1185,73 @@ pub fn star_speed(_star: &StarEntry) -> (f64, f64, f64) {
     let speed_lon = 50.29 / 3600.0 / 365.25;
     (speed_lon, 0.0, 0.0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::astronomy::test_support::f64_fingerprint;
+
+    #[test]
+    fn catalog_matches_regression_fingerprint() {
+        assert_eq!(CATALOG.len(), 97);
+        let hash = f64_fingerprint(CATALOG.iter().flat_map(|star| {
+            [
+                star.ra,
+                star.dec,
+                star.pm_ra,
+                star.pm_dec,
+                star.mag,
+                star.plx,
+                star.rv,
+            ]
+        }));
+        assert_eq!(hash, 0x9793_bfe1_56af_1481);
+    }
+
+    #[test]
+    fn positions_and_speed_match_regression_vectors() {
+        let sirius = &CATALOG[find_star("Sirius").unwrap()];
+        assert_eq!(
+            star_ecliptic_pos(sirius, JulianDay::new(J2000)),
+            (
+                104.081_458_995_813_28,
+                -39.605_156_925_112_91,
+                542_802_631.578_947_3
+            )
+        );
+        assert_eq!(
+            star_ecliptic_pos(sirius, JulianDay::new(2_463_456.789)),
+            (
+                104.532_459_201_710_99,
+                -39.616_658_108_532_65,
+                542_802_631.578_947_3
+            )
+        );
+        assert_eq!(star_speed(sirius), (3.824_625_446_802_038e-5, 0.0, 0.0));
+
+        let custom = StarEntry {
+            name: "Test",
+            bayer: "tst",
+            ra: 123.0,
+            dec: -45.0,
+            pm_ra: 1.25,
+            pm_dec: -2.5,
+            mag: -1.0,
+            plx: 0.0,
+            rv: -3.0,
+        };
+        assert_eq!(
+            star_ecliptic_pos(&custom, JulianDay::new(3_182_045.0)),
+            (176.007_009_847_630_9, -63.198_073_863_432_26, 1.0e10)
+        );
+    }
+
+    #[test]
+    fn lookup_handles_exact_bayer_prefix_and_missing_names() {
+        let sirius = find_star("Sirius").unwrap();
+        assert_eq!(find_star("  sIrIuS "), Some(sirius));
+        assert_eq!(find_star("ALCMA"), Some(sirius));
+        assert_eq!(find_star("Siri"), Some(sirius));
+        assert_eq!(find_star("not-a-star"), None);
+    }
+}
