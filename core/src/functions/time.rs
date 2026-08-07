@@ -385,16 +385,7 @@ pub fn parse_datetime(s: &str) -> Option<[i32; 6]> {
     // Strip everything that isn't a digit, replacing with space
     let clean: String = s
         .chars()
-        .enumerate()
-        .map(|(i, c)| {
-            if c == '-' && i == 0 {
-                ' '
-            } else if c.is_ascii_digit() {
-                c
-            } else {
-                ' '
-            }
-        })
+        .map(|c| if c.is_ascii_digit() { c } else { ' ' })
         .collect();
     let parts: Vec<i32> = clean
         .split_whitespace()
@@ -586,6 +577,10 @@ mod iso_week_tests {
         // 2020-12-31 Thursday → (2020, 53)
         let jd = julday(2020, 12, 31, 12.0, Calendar::Gregorian);
         assert_eq!(iso_week(JulianDay::new(jd)), (2020, 53));
+        let friday_jan1 = julday(2021, 1, 1, 12.0, Calendar::Gregorian);
+        assert_eq!(iso_week(JulianDay::new(friday_jan1)), (2020, 53));
+        let monday_dec31 = julday(2018, 12, 31, 12.0, Calendar::Gregorian);
+        assert_eq!(iso_week(JulianDay::new(monday_dec31)), (2019, 1));
     }
 
     #[test]
@@ -600,5 +595,246 @@ mod iso_week_tests {
         assert_eq!(weeks_in_iso_year(2020), 53);
         assert_eq!(weeks_in_iso_year(2021), 52);
         assert_eq!(weeks_in_iso_year(2026), 53);
+    }
+}
+
+#[cfg(test)]
+mod mutation_tests {
+    use super::*;
+
+    #[test]
+    fn calendar_and_weekday_boundaries_are_exact() {
+        assert_eq!(julday(2000, 1, 1, 12.0, Calendar::Gregorian), 2_451_545.0);
+        assert_eq!(julday(2000, 1, 1, 12.0, Calendar::Julian), 2_451_558.0);
+        assert_eq!(julday(2024, 3, 1, 6.0, Calendar::Gregorian), 2_460_370.75);
+        assert_eq!(
+            revjul(JulianDay::new(2_451_545.0), Calendar::Gregorian),
+            CalDate {
+                year: 2000,
+                month: 1,
+                day: 1,
+                hour: 12.0,
+            }
+        );
+        assert_eq!(
+            revjul(JulianDay::new(2_451_545.0), Calendar::Julian),
+            CalDate {
+                year: 1999,
+                month: 12,
+                day: 19,
+                hour: 12.0,
+            }
+        );
+        let sentinel = CalDate {
+            year: 0,
+            month: 1,
+            day: 1,
+            hour: 0.0,
+        };
+        assert_eq!(
+            revjul(JulianDay::new(f64::NAN), Calendar::Gregorian),
+            sentinel
+        );
+        assert_eq!(
+            revjul(JulianDay::new(1.0e10 + 1.0), Calendar::Gregorian),
+            sentinel
+        );
+        assert_ne!(
+            revjul(JulianDay::new(1.0e10), Calendar::Gregorian),
+            sentinel
+        );
+        assert_eq!(day_of_week(JulianDay::new(2_451_545.0)), 5);
+        assert_eq!(day_of_week(JulianDay::new(1.0e10)), 4);
+        assert_eq!(day_of_week(JulianDay::new(1.0e10 + 1.0)), 0);
+        assert_eq!(day_of_week(JulianDay::new(f64::INFINITY)), 0);
+    }
+
+    #[test]
+    fn utc_conversions_match_regression_vectors() {
+        let date = UtcDate {
+            year: 2024,
+            month: 2,
+            day: 29,
+            hour: 23,
+            minute: 59,
+            second: 30.5,
+        };
+        let pair = utc_to_jd(&date, Calendar::Gregorian).unwrap();
+        assert_eq!(
+            pair,
+            JdPair {
+                et: 2_460_370.500_514_672_6,
+                ut1: 2_460_370.499_658_565,
+            }
+        );
+        let expected = UtcDate {
+            year: 2024,
+            month: 2,
+            day: 29,
+            hour: 23,
+            minute: 59,
+            second: 30.500_019_192_695_618,
+        };
+        assert_eq!(
+            jd_ut_to_utc(JulianDay::new(pair.ut1), Calendar::Gregorian),
+            expected
+        );
+        assert_eq!(
+            jd_et_to_utc(JulianDay::new(pair.et), Calendar::Gregorian),
+            expected
+        );
+    }
+
+    #[test]
+    fn timezone_offsets_cross_days_exactly() {
+        let date = UtcDate {
+            year: 2024,
+            month: 1,
+            day: 1,
+            hour: 0,
+            minute: 15,
+            second: 12.5,
+        };
+        assert_eq!(
+            utc_time_zone(&date, -1.0),
+            UtcDate {
+                year: 2023,
+                month: 12,
+                day: 31,
+                hour: 23,
+                minute: 15,
+                second: 12.5,
+            }
+        );
+        assert_eq!(
+            utc_time_zone(&date, 5.5),
+            UtcDate {
+                year: 2024,
+                month: 1,
+                day: 1,
+                hour: 5,
+                minute: 45,
+                second: 12.5,
+            }
+        );
+        let late = UtcDate {
+            year: 2024,
+            month: 12,
+            day: 31,
+            hour: 23,
+            minute: 30,
+            second: 0.0,
+        };
+        assert_eq!(
+            utc_time_zone(&late, 2.0),
+            UtcDate {
+                year: 2025,
+                month: 1,
+                day: 1,
+                hour: 1,
+                minute: 30,
+                second: 0.0,
+            }
+        );
+    }
+
+    #[test]
+    fn sidereal_and_equation_of_time_vectors_are_exact() {
+        assert_eq!(
+            sidtime0(
+                JulianDay::new(2_463_456.789),
+                Degrees::new(23.4),
+                Degrees::new(-0.004),
+            ),
+            4.354_880_721_874_905
+        );
+        let expected = [
+            0.135_234_324_487_036_4,
+            0.055_065_461_383_026_11,
+            0.083_421_012_774_689_04,
+            0.080_322_053_247_365,
+        ];
+        for (jd, expected) in [1_721_425.5, 2_451_545.0, 2_463_456.789, 3_182_045.0]
+            .into_iter()
+            .zip(expected)
+        {
+            assert_eq!(time_equ(JulianDay::new(jd)).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn display_parsing_and_duration_boundaries_are_exact() {
+        assert_eq!(
+            revjul_hms(JulianDay::new(2_460_370.524_268_391), Calendar::Gregorian),
+            [2024, 3, 1, 0, 34, 57]
+        );
+        assert_eq!(
+            revjul_hms(JulianDay::new(2_460_370.75), Calendar::Gregorian),
+            [2024, 3, 1, 6, 0, 0]
+        );
+        assert_eq!(
+            parse_datetime("-0044-03-15 12:34:56"),
+            Some([-44, 3, 15, 12, 34, 56])
+        );
+        assert_eq!(parse_datetime("2024-02-29"), Some([2024, 2, 29, 0, 0, 0]));
+        for invalid in [
+            "2024-00-01",
+            "2024-01-00",
+            "2024-01-01 24:00:00",
+            "2024-01-01 00:60:00",
+            "2024-01-01 00:00:60",
+            "2024-01",
+        ] {
+            assert_eq!(parse_datetime(invalid), None, "{invalid}");
+        }
+        assert_eq!(parse_time("23:59:58"), Some([23, 59, 58]));
+        assert_eq!(parse_time("7"), Some([7, 0, 0]));
+        for invalid in ["24:00:00", "00:60:00", "00:00:60", ""] {
+            assert_eq!(parse_time(invalid), None, "{invalid}");
+        }
+
+        let span = 3.0 + 4.0 / 24.0 + 5.0 / 1440.0 + 6.0 / 86_400.0;
+        assert_eq!(
+            jd_duration(JulianDay::new(1000.0), JulianDay::new(1000.0 + span)),
+            [3, 4, 5, 6]
+        );
+        assert_eq!(
+            jd_duration(JulianDay::new(1000.0 + span), JulianDay::new(1000.0)),
+            [3, 4, 5, 6]
+        );
+    }
+
+    #[test]
+    fn display_and_astronomy_wrappers_are_exact() {
+        let jd = JulianDay::new(2_463_456.789);
+        assert_eq!(
+            jd_to_iso_string(JulianDay::new(2_460_370.75), Calendar::Gregorian),
+            "2024-03-01 06:00:00 UTC"
+        );
+        assert_eq!(mean_obliquity(jd), 23.435_036_476_285_976);
+        assert_eq!(true_obliquity(jd), 23.432_952_624_610_717);
+        assert_eq!(
+            nutation(jd),
+            (0.003_015_295_494_215_732, -0.002_083_851_675_260_442)
+        );
+        assert_eq!(tt_to_ut(jd), 2_463_456.788_081_351);
+    }
+
+    #[test]
+    fn jdnow_tracks_system_clock() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let before = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs_f64();
+        let actual = jdnow();
+        let after = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs_f64();
+        let lower = 2_440_587.5 + before / 86_400.0;
+        let upper = 2_440_587.5 + after / 86_400.0;
+        assert!((lower..=upper).contains(&actual));
     }
 }
