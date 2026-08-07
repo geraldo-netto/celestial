@@ -22,6 +22,10 @@ behavior defined here when interacting with this workspace.
 - Write minimum code that solve problem. No speculative or unneeded changes.
 - Touch only what must. Clean own mess only. Leave workspace cleaner than found.
 - Define success criteria before changes. Verify + iterate until satisfied.
+- ALWAYS validate new or changed tests with mutation testing. Add test cases that
+  kill every applicable mutant in changed behavior. If mutation tooling cannot
+  run or no applicable mutant can be generated, report why; never claim mutation
+  validation ran.
 - Keep code complexity <= 10 for any function, class, method. All code,
   **including tests**. No exceptions. Logic need more → split helpers, table-drive,
   or restructure until each function <= 10. Flat lookup `match` (one arm = one mapping, no
