@@ -5,7 +5,8 @@
 //! Split out of the former 3.5k-line `mod.rs` god file — pure code
 //! movement, no behaviour change (re-exported by the facade).
 
-use super::*;
+use super::{CliError, RenderArgs};
+use std::collections::BTreeMap;
 use std::path::{Component, Path, PathBuf};
 
 // ─── Config file ──────────────────────────────────────────────────────────────

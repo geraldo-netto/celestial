@@ -38,12 +38,7 @@
 
 use crate::error::CliError;
 #[cfg(test)]
-use celestial_core::JulianDay;
-use std::collections::BTreeMap;
-
-use celestial_core::body::CalcFlags;
-use celestial_core::{lunar_return_jd, revjul, solar_return_jd, Calendar};
-use minijinja::{Environment, Value as MjValue};
+use celestial_core::{Calendar, JulianDay};
 #[cfg(test)]
 use serde_json::Value;
 
@@ -79,7 +74,6 @@ mod traditional;
 
 pub use args::RenderArgs;
 pub(crate) use chart_context::ChartContext;
-pub(crate) use config::*;
 pub(crate) use dignity::{
     antiscion_lon, body_color, body_name, contra_antiscion_lon, key_to_body, period_body_name,
     planet_dignity, ASPECT_DEFS, BODIES,
@@ -88,18 +82,13 @@ pub(crate) use format::{fmt_lon_dms, jd_to_date_str, moon_phase_str};
 pub(crate) use geometry::{spread_labels, wheel_angle, wx, wy};
 pub(crate) use palette::{palette_obj, palette_vars, CX, CY, RC, RH, RI, RM, RO, RP};
 pub use pipeline::run;
-pub(crate) use pipeline::*;
 pub(crate) use registry::*;
 pub(crate) use south_indian::{
     render_south_indian_svg, sarvashtakavarga, NI_CELLS, RASI_GLYPHS, RASI_NAMES,
 };
 
 use builtin_svg::render_builtin_svg;
-use context::{build_base_context as build_context, build_natal_context};
-use derived::{
-    build_biwheel_context, build_progressed_context, build_solar_arc_context, render_biwheel_svg,
-    render_cosmogram_svg, render_progressed_svg,
-};
+use context::build_base_context as build_context;
 
 // ─── JSON helper ───────────────────────────────────────────────────────────────
 
@@ -156,6 +145,10 @@ pub(super) fn json_array(v: &serde_json::Value) -> &[serde_json::Value] {
 
 #[cfg(test)]
 mod tests {
+    use super::derived::{
+        build_biwheel_context, build_progressed_context, build_solar_arc_context,
+    };
+    use super::pipeline::{CONTEXT_SCHEMA, EXAMPLE_TEMPLATE};
     use super::specialist::{
         build_composite_context, build_dial_context, build_graphic_ephemeris_context,
         build_local_space_context, build_triwheel_context,

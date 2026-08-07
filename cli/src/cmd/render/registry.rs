@@ -5,8 +5,24 @@
 //! Split out of the former 3.5k-line `mod.rs` god file — pure code
 //! movement, no behaviour change (the facade re-exports these).
 
-use super::*;
-use celestial_core::JulianDay;
+use super::chart_context::ChartContext;
+use super::context::{build_base_context as build_context, build_natal_context};
+use super::derived::{
+    build_biwheel_context, build_progressed_context, build_solar_arc_context, render_biwheel_svg,
+    render_cosmogram_svg, render_progressed_svg,
+};
+use super::format::jd_to_date_str;
+use super::pipeline::build_calendar_context;
+use super::{
+    builtin_svg::render_builtin_svg, calendar_overlays, calendar_wheel, chinese, hellenistic,
+    indigenous, mesoamerican, omer_grid, specialist, vedic, RenderArgs,
+};
+use crate::error::CliError;
+use celestial_core::body::CalcFlags;
+use celestial_core::{lunar_return_jd, solar_return_jd, JulianDay};
+use std::collections::BTreeMap;
+
+use super::south_indian::render_south_indian_svg;
 
 /// Clone `user_vars` and ensure a `title` field exists, using `default`
 /// only when the user didn't supply one via `--var title=…`.

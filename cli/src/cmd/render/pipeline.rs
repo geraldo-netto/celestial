@@ -5,8 +5,14 @@
 //! Split out of the former 3.5k-line `mod.rs` god file — pure code
 //! movement, no behaviour change (re-exported by the facade).
 
-use super::*;
-use celestial_core::JulianDay;
+use super::chart_context::ChartContext;
+use super::config::{apply_var_overrides, load_config, merge_date_and_time};
+use super::registry::{dispatch_chart_type, ChartRenderer};
+use super::{calendar_overlays, RenderArgs};
+use crate::error::CliError;
+use celestial_core::{revjul, Calendar, JulianDay};
+use minijinja::{Environment, Value as MjValue};
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 /// Default colour palette for the calendar chart-type. Returns a JSON Object
@@ -673,7 +679,7 @@ mod tests {
 
     #[test]
     fn compute_calendar_overlays() {
-        use super::args::CalendarKind;
+        use super::super::args::CalendarKind;
         let mut a = natal_args();
         a.calendars = vec![
             CalendarKind::Omer,
