@@ -647,6 +647,46 @@ mod tests {
         assert_eq!(i32::from(b), 15);
     }
 
+    #[test]
+    fn special_body_sentinels_keep_negative_ids() {
+        assert_eq!(Body::ECL_NUT.as_raw(), -1);
+        assert_eq!(Body::FIXED_STAR.as_raw(), -10);
+    }
+
+    #[test]
+    fn combined_calc_flags_keep_every_bit() {
+        assert_eq!(CalcFlags::ASTROMETRIC.as_raw(), 1_536);
+        assert_eq!(CalcFlags::DEFAULT.as_raw(), 258);
+    }
+
+    #[test]
+    fn every_house_system_has_its_canonical_name() {
+        let cases = [
+            (HouseSystem::PLACIDUS, "Placidus"),
+            (HouseSystem::KOCH, "Koch"),
+            (HouseSystem::EQUAL, "Equal"),
+            (HouseSystem::WHOLE_SIGN, "Whole-Sign"),
+            (HouseSystem::PORPHYRY, "Porphyry"),
+            (HouseSystem::REGIOMONTANUS, "Regiomontanus"),
+            (HouseSystem::CAMPANUS, "Campanus"),
+            (HouseSystem::MORINUS, "Morinus"),
+            (HouseSystem::ALCABITUS, "Alcabitus"),
+            (HouseSystem::AXIAL_ROTATION, "Axial Rotation"),
+            (HouseSystem::GAUQUELIN, "Gauquelin"),
+            (HouseSystem::VEHLOW_EQUAL, "Vehlow Equal"),
+            (HouseSystem::WHOLE_SIGN_MERIDIAN, "Whole-Sign Meridian"),
+        ];
+
+        for (system, expected) in cases {
+            assert_eq!(system.name(), expected);
+        }
+    }
+
+    #[test]
+    fn sidereal_mode_name_is_canonical() {
+        assert_eq!(SiderealMode::LAHIRI.name(), "Lahiri");
+    }
+
     fn assert_is_node(bodies: &[Body], expect: bool) {
         for b in bodies {
             assert_eq!(b.is_node(), expect, "is_node mismatch for {b:?}");
