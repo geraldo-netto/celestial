@@ -66,7 +66,12 @@ pub fn norm_rad(r: f64) -> f64 {
 #[inline]
 #[must_use]
 pub fn norm_deg(d: f64) -> f64 {
-    d.rem_euclid(360.0)
+    let r = d.rem_euclid(360.0);
+    if r >= 360.0 {
+        0.0
+    } else {
+        r
+    }
 }
 
 #[inline]
@@ -104,5 +109,18 @@ mod tests {
         assert_eq!(angular_separation(350.0, 10.0), 20.0);
         assert_eq!(angular_separation(190.0, 10.0), 180.0);
         assert_eq!(angular_separation(10.0, 10.0), 0.0);
+    }
+
+    #[test]
+    fn norm_deg_stays_below_full_turn_for_tiny_negatives() {
+        for d in [-1e-18, -1e-30, -f64::MIN_POSITIVE] {
+            assert_eq!(d.rem_euclid(360.0), 360.0);
+            assert_eq!(norm_deg(d), 0.0);
+        }
+        assert_eq!(norm_deg(-1e-9), 359.999_999_999);
+        assert_eq!(norm_deg(0.0), 0.0);
+        assert_eq!(norm_deg(360.0), 0.0);
+        assert_eq!(norm_deg(359.5), 359.5);
+        assert!(norm_deg(f64::NAN).is_nan());
     }
 }

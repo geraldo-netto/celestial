@@ -255,7 +255,12 @@ pub fn coord_transform_with_speed(coords: [f64; 6], eps: Degrees) -> [f64; 6] {
 #[inline]
 #[must_use]
 pub fn norm_deg(x: f64) -> f64 {
-    x.rem_euclid(360.0)
+    let r = x.rem_euclid(360.0);
+    if r >= 360.0 {
+        0.0
+    } else {
+        r
+    }
 }
 
 /// Normalise radians to [0, 2π).
@@ -615,6 +620,19 @@ mod tests {
         assert_eq!(diff_rad_signed(pi, 0.0), pi);
         assert_eq!(diff_rad_signed(0.25, 6.0), 0.5331853071795862);
         assert_eq!(diff_rad_signed(6.0, 0.25), -0.5331853071795862);
+    }
+
+    #[test]
+    fn norm_deg_stays_below_full_turn_for_tiny_negatives() {
+        for x in [-1e-18, -1e-30, -f64::MIN_POSITIVE] {
+            assert_eq!(x.rem_euclid(360.0), 360.0);
+            assert_eq!(norm_deg(x), 0.0);
+        }
+        assert_eq!(norm_deg(-1e-9), 359.999_999_999);
+        assert_eq!(norm_deg(0.0), 0.0);
+        assert_eq!(norm_deg(360.0), 0.0);
+        assert_eq!(norm_deg(359.5), 359.5);
+        assert!(norm_deg(f64::NAN).is_nan());
     }
 
     #[test]
