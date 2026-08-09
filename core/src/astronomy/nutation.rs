@@ -16,7 +16,7 @@
 
 #![allow(dead_code)]
 
-use crate::astronomy::constants::{julian_centuries, to_rad};
+use crate::astronomy::constants::{horner, julian_centuries, to_rad};
 
 /// Nutation components (arcseconds).
 #[derive(Debug, Clone, Copy)]
@@ -62,7 +62,7 @@ pub fn nutation(jde: f64) -> Nutation {
 
     // IAU 2000 fundamental arguments (Delaunay arguments + Ω)
     // From Simon et al. (1994), as given in IERS TN 32 §5.4.1
-    let l = to_rad(poly(
+    let l = to_rad(horner(
         t,
         &[
             134.963_402_51,
@@ -73,7 +73,7 @@ pub fn nutation(jde: f64) -> Nutation {
             -1.0 / 60_889_600.0,
         ],
     ));
-    let lp = to_rad(poly(
+    let lp = to_rad(horner(
         t,
         &[
             357.529_109_18,
@@ -84,7 +84,7 @@ pub fn nutation(jde: f64) -> Nutation {
             0.0,
         ],
     ));
-    let f = to_rad(poly(
+    let f = to_rad(horner(
         t,
         &[
             93.272_090_62,
@@ -95,7 +95,7 @@ pub fn nutation(jde: f64) -> Nutation {
             0.0,
         ],
     ));
-    let d = to_rad(poly(
+    let d = to_rad(horner(
         t,
         &[
             297.850_195_47,
@@ -106,7 +106,7 @@ pub fn nutation(jde: f64) -> Nutation {
             1.0 / 72_800_000.0,
         ],
     ));
-    let om = to_rad(poly(
+    let om = to_rad(horner(
         t,
         &[
             125.044_555_01,
@@ -163,14 +163,6 @@ pub fn nutation_1980(jde: f64) -> Nutation {
         dpsi: dpsi * 0.0001,
         deps: deps * 0.0001,
     }
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/// Evaluate a polynomial using Horner's method (constant term first).
-#[inline]
-fn poly(x: f64, coeffs: &[f64]) -> f64 {
-    coeffs.iter().rev().fold(0.0, |acc, &c| acc * x + c)
 }
 
 // ─── IAU 2000B coefficient table ─────────────────────────────────────────────

@@ -69,7 +69,6 @@ Prior 2026-05-27 COV-1 raised coverage gates to 93; retained as DECIDED test-cov
 | DUP-3 | DECIDED | — | Deterministic `core/tests/rel_clamps.rs` and randomized `fuzz/src/main.rs::test_rel_clamps` overlap on body-id edge coverage. | Intentional two-tier coverage split: `cargo test` regression plus opt-in fuzz/property run. |
 | DUP-4 | DECIDED | — | `revjul` / `revjul_hms` have three language-specific return shapes. | Published API idioms differ; normalizing would break bindings. |
 | DUP-5 | DECIDED | — | Per-tradition SVG wheel geometry uses similar-looking constants. | Distinct layout contracts; shared pieces are already factored. |
-| DUP-12 | OPEN | S | Horner evaluation is implemented twice with different numerics: `nutation.rs:172 poly` folds with `acc * x + c` while `delta_t.rs:241 polynomial` folds with `acc.mul_add(x, c)`. Neither is visible to the other modules that need it. | **Consolidate on the plain `acc * x + c` form, not the FMA one.** Measured: switching `nutation::poly` to `mul_add` moves `dpsi` by 5.5e-12″ at ±1 century and 1.8e-10″ at ±17 centuries, against a 1.0e-11″ gate at `nutation.rs:385` whose furthest pinned epoch is t≈1.33 cy — i.e. right on the limit with only the 8 leading rows of 77 modelled, so the full series very likely breaks it. `delta_t` moving to the plain form is safe (its gates are 1e-6 s). Put the single `pub(crate)` helper in `astronomy/constants.rs`. Prerequisite for PERF-13/PERF-14. |
 
 ## Composition
 

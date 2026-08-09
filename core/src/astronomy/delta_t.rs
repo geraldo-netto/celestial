@@ -6,6 +6,7 @@
 //! The polynomial fits are from Morrison & Stephenson (2004), Espenak & Meeus
 //! (2006), and the USNO/IERS for recent years.
 
+use crate::astronomy::constants::horner;
 use crate::units::JulianDay;
 
 /// Compute ΔT (seconds) for a given Julian day number (UT).
@@ -35,7 +36,7 @@ fn jd_ut_to_year(jd: f64) -> f64 {
 
 /// One row of the piece-wise polynomial ΔT fit from Espenak & Meeus (2006).
 ///
-/// For `y` in `(prev_end .. year_end]`, ΔT = polynomial(t) where
+/// For `y` in `(prev_end .. year_end]`, ΔT = horner(t) where
 /// `t = (y - year_base) / denom`.
 ///
 /// # References
@@ -227,19 +228,12 @@ pub fn delta_t_for_year(y: f64) -> f64 {
     for p in DELTA_T_PIECES {
         if y < p.year_end {
             let t = (y - p.year_base) / p.denom;
-            return polynomial(t, p.coeffs);
+            return horner(t, p.coeffs);
         }
     }
     // Unreachable: the last piece ends at 2050.0 and we already short-circuited
     // on y >= 2050.0 above, but return a sensible fallback for safety.
     long_term_parabola(y)
-}
-
-/// Evaluate a polynomial using Horner's method.
-///
-/// `coeffs[0]` is the constant term, `coeffs[n]` is the coefficient of `x^n`.
-fn polynomial(x: f64, coeffs: &[f64]) -> f64 {
-    coeffs.iter().rev().fold(0.0, |acc, &c| acc.mul_add(x, c))
 }
 
 /// Convert a UT Julian day to TT (Terrestrial Time) Julian day.

@@ -74,6 +74,12 @@ pub fn norm_deg(d: f64) -> f64 {
     }
 }
 
+/// Evaluate a polynomial by Horner's method; `coeffs[0]` is the constant term.
+#[inline]
+pub(crate) fn horner(x: f64, coeffs: &[f64]) -> f64 {
+    coeffs.iter().rev().fold(0.0, |acc, &c| acc * x + c)
+}
+
 #[inline]
 pub(crate) fn angular_separation(first: f64, second: f64) -> f64 {
     let delta = (first - second).rem_euclid(360.0);
@@ -109,6 +115,15 @@ mod tests {
         assert_eq!(angular_separation(350.0, 10.0), 20.0);
         assert_eq!(angular_separation(190.0, 10.0), 180.0);
         assert_eq!(angular_separation(10.0, 10.0), 0.0);
+    }
+
+    #[test]
+    fn horner_folds_the_constant_term_first() {
+        assert_eq!(horner(2.0, &[1.0, 3.0, 5.0]), 27.0);
+        assert_eq!(horner(-2.0, &[1.0, 3.0, 5.0]), 15.0);
+        assert_eq!(horner(0.0, &[1.0, 3.0, 5.0]), 1.0);
+        assert_eq!(horner(2.0, &[7.0]), 7.0);
+        assert_eq!(horner(2.0, &[]), 0.0);
     }
 
     #[test]
