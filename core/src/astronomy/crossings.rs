@@ -62,7 +62,11 @@ fn midpoint(first: f64, second: f64) -> f64 {
 }
 
 fn opposite_sign(first: f64, second: f64) -> bool {
-    first * second < 0.0
+    (first < 0.0 && second > 0.0) || (first > 0.0 && second < 0.0)
+}
+
+fn brackets_root(first: f64, second: f64) -> bool {
+    first == 0.0 || second == 0.0 || opposite_sign(first, second)
 }
 
 fn signed_angular_distance(target: f64, longitude: f64) -> f64 {
@@ -102,7 +106,7 @@ where
         jd += dir * step;
         let d1 = diff(lon_at(jd)?);
         // Sign change & not an antipodal ±180° jump
-        if d0 * d1 <= 0.0 && (d1 - d0).abs() < 180.0 {
+        if brackets_root(d0, d1) && (d1 - d0).abs() < 180.0 {
             return Some((jd - dir * step, d0, jd, d1));
         }
         d0 = d1;
@@ -465,6 +469,54 @@ mod cov_tests {
         };
         assert!(bracket_crossing(0.0, 1.0, 100.0, 400.0, &constant, &|_| 1.0).is_none());
         assert_eq!(calls.get(), 5);
+    }
+
+    #[test]
+    fn sign_predicates_ignore_product_underflow() {
+        let (tiny_neg, tiny_pos) = (-1e-200, 1e-200);
+        assert_eq!(tiny_neg * tiny_pos, -0.0);
+        assert_eq!(tiny_pos * tiny_pos, 0.0);
+        assert!(opposite_sign(tiny_neg, tiny_pos));
+        assert!(brackets_root(tiny_neg, tiny_pos));
+        assert!(!opposite_sign(tiny_pos, tiny_pos));
+        assert!(!brackets_root(tiny_pos, tiny_pos));
+        assert!(!brackets_root(tiny_neg, tiny_neg));
+        assert!(opposite_sign(-1e200, 1e200));
+        assert!(!opposite_sign(1e200, 1e200));
+    }
+
+    #[test]
+    fn brackets_root_keeps_zero_and_nan_semantics() {
+        assert!(brackets_root(0.0, 1.0));
+        assert!(brackets_root(-1.0, 0.0));
+        assert!(brackets_root(-0.0, -1.0));
+        assert!(brackets_root(1.0, -0.0));
+        assert!(!brackets_root(1.0, 1.0));
+        assert!(!brackets_root(-1.0, -1.0));
+        assert!(!brackets_root(f64::NAN, -1.0));
+        assert!(!brackets_root(-1.0, f64::NAN));
+    }
+
+    #[test]
+    fn opposite_sign_excludes_zero_endpoints() {
+        assert!(!opposite_sign(0.0, -1.0));
+        assert!(!opposite_sign(1.0, 0.0));
+        assert!(!opposite_sign(0.0, 1.0));
+        assert!(!opposite_sign(-1.0, -0.0));
+        assert!(!opposite_sign(0.0, 0.0));
+        assert!(!opposite_sign(-1.0, f64::NAN));
+    }
+
+    #[test]
+    fn bracket_crossing_rejects_underflowed_same_sign_pairs() {
+        let linear = |jd| Some(jd);
+        let crossing = |lon: f64| (lon - 5.0) * 1e-200;
+        assert_eq!(
+            bracket_crossing(0.0, 1.0, 2.0, 400.0, &linear, &crossing),
+            Some((4.0, -1e-200, 6.0, 1e-200))
+        );
+        let same_sign = |lon: f64| (lon + 1.0) * 1e-200;
+        assert!(bracket_crossing(0.0, 1.0, 2.0, 400.0, &linear, &same_sign).is_none());
     }
 
     #[test]
