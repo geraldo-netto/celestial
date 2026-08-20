@@ -200,16 +200,20 @@ uses `--print-context` when template data is needed as JSON.
 
 Produces SVG charts for 27 astrological chart types across eight traditions.
 
-![Celestial Chart — Paris J2000.0](docs/example_chart.svg)
+![Natal chart — Geraldo Augusto de Oliveira Netto](docs/example_chart.svg)
+
+[PNG version](docs/example_chart.png)
 
 ```bash
 # Natal chart — birth date, birth time, and the birth-place timezone
-celestial render --date "1986-05-30 09:00" --tz=-03:00 \
-  --lat=-23.55 --lon=-46.63 --out chart.svg
+celestial render --date "1986-05-30 06:00" --tz=-03:00 \
+  --lat=-23.5333 --lon=-46.6333 \
+  --var "title=Geraldo Augusto de Oliveira Netto" --out chart.svg
 
 # Same, using a timezone abbreviation instead of a numeric offset
-celestial render --date "1986-05-30 09:00" --tz BRT \
-  --lat=-23.55 --lon=-46.63 --out chart.svg
+celestial render --date "1986-05-30 06:00" --tz BRT \
+  --lat=-23.5333 --lon=-46.6333 \
+  --var "title=Geraldo Augusto de Oliveira Netto" --out chart.svg
 
 # Current sky — `now` is already UTC, so no --timezone is needed
 celestial render --date now --lat 48.85 --lon 2.35 \
@@ -236,12 +240,12 @@ three hours off, shifting the Ascendant and house cusps. To prevent this,
 
 | Flag | Required for natal? | Meaning | Example |
 |---|---|---|---|
-| `--date` | yes | Birth **date and time** as local wall-clock time. Format `YYYY-MM-DD HH:MM[:SS]`. A bare `YYYY-MM-DD` is rejected (no birth time). | `--date "1986-05-30 09:00"` |
+| `--date` | yes | Birth **date and time** as local wall-clock time. Format `YYYY-MM-DD HH:MM[:SS]`. A bare `YYYY-MM-DD` is rejected (no birth time). | `--date "1986-05-30 06:00"` |
 | `--time` | optional | Time-of-day, merged into `--date` when `--date` carries no time. Same timezone as `--date`. | `--time 09:00` |
 | `--timezone` / `--tz` | yes | The UTC offset **of that local time at the birth place** (including the daylight-saving rule in force *on that date*). Numeric offset, `UTC`, or an unambiguous abbreviation. | `--tz=-03:00` · `--tz BRT` |
 
 The conversion applied is `UTC = local_time − offset`, i.e.
-`--date "1986-05-30 09:00" --tz=-03:00` is the instant **1986-05-30 12:00 UTC**.
+`--date "1986-05-30 06:00" --tz=-03:00` is the instant **1986-05-30 09:00 UTC**.
 
 Exceptions that do **not** require `--timezone`:
 
@@ -300,14 +304,14 @@ abbreviation table lives in `core/src/functions/timezone.rs`.
 
 ```toml
 [render]
-date     = "1986-05-30 09:00"  # local wall-clock birth time
+date     = "1986-05-30 06:00"  # local wall-clock birth time
 timezone = "-03:00"            # offset of that local time (BRT also works)
-lat      = -23.5505
+lat      = -23.5333
 lon      = -46.6333
 hsys     = "P"
 
 [vars]
-title        = "Natal Chart"
+title        = "Geraldo Augusto de Oliveira Netto"
 bg_color     = "#0d1117"
 ring_color   = "#58a6ff"
 ```
