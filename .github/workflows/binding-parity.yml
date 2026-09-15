@@ -1,31 +1,13 @@
 # ─── binding parity check ──────────────────────────────────────────────────────
 #
-# Runs on every PR and push to main that touches any binding source.
+# Manual only (workflow_dispatch) — Actions tab or `gh workflow run <file>`.
 # Fails immediately if Python, JS, and PHP don't export the same function set.
 # Fix gaps with:  cargo xtask codegen --apply  (then review the diff)
 
 name: binding-parity
 
 on:
-  push:
-    branches: ["main", "master", "develop"]
-    paths:
-      - "bindings/**"
-      - "core/**"
-      - "tests/fixtures/binding_golden.json"
-      - "xtask/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - ".github/workflows/binding-parity.yml"
-  pull_request:
-    paths:
-      - "bindings/**"
-      - "core/**"
-      - "tests/fixtures/binding_golden.json"
-      - "xtask/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - ".github/workflows/binding-parity.yml"
+  workflow_dispatch:
 
 concurrency:
   group: binding-parity-${{ github.ref }}

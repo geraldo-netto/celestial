@@ -154,7 +154,8 @@ python3 benches/precision_comparison.py
 Precision vs Meeus benchmarks confirmed at ~3.2″ Sun / ~0.7″ Moon. Jupiter / Saturn carry ~5′–30′ residuals against canonical ephemerides — see [README.md#accuracy](../README.md#accuracy) for the full per-body table. `SYNODIC_MONTH = 29.530_588_853` days.
 ## CI pipelines
 
-Five independent pipelines, each triggered on changes to its crate or `core/`:
+Five independent pipelines. All are **manual-only** (`workflow_dispatch`) — run them
+from the Actions tab or with `gh workflow run <file>`; nothing fires on push or PR:
 
 | Pipeline | Jobs |
 |---|---|

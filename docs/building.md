@@ -296,10 +296,13 @@ cargo xtask test-stubs
 
 ## CI pipeline summary
 
-Five independent GitHub Actions pipelines each trigger on changes to their
-crate or `core/`:
+Six independent GitHub Actions pipelines. All are **manual-only**
+(`workflow_dispatch`): run them from the Actions tab or with
+`gh workflow run celestial-core.yml`. Nothing fires on push or pull request.
+The scope column records which paths each pipeline covers, so you know which
+ones to trigger after a change.
 
-| Pipeline | Trigger path | Jobs |
+| Pipeline | Scope | Jobs |
 |---|---|---|
 | `celestial-core` | `core/**`, `fuzz/**` | lint → test (1174) ‖ fuzz (84 suites, ~1M checks) |
 | `celestial-cli` | `cli/**`, `core/**` | lint → test (293) → release build |

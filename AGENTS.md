@@ -51,7 +51,8 @@ behavior defined here when interacting with this workspace.
     must LINK to generated file for constants/signatures, never restate numbers
     or shapes (exactly how DOC-9/DOC-10 drifted). Prose-only explanation fine.
   - `cargo xtask pyi --check` / `cargo xtask dts --check` — stubs in sync.
-  Run in `binding-parity` CI pipeline; red gate blocks merge.
+  Run locally before commit. The `binding-parity` CI pipeline is manual-only
+  (`workflow_dispatch`) — trigger it when a change warrants it; red gate blocks merge.
 - ALWAYS record every finding in `TODO.md`, regardless of how or when it is discovered
   (implementation, testing, mutation testing, scan, review, audit, user report, or incidental
   observation) — never report only in chat. Add each finding to the matching category table

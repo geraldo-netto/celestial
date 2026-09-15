@@ -1,6 +1,6 @@
 # ─── celestial-core pipeline ──────────────────────────────────────────────────────
 #
-# Triggers: changes to any root-workspace member or shared build configuration
+# Triggers: manual only (workflow_dispatch) — Actions tab or `gh workflow run <file>`
 # Jobs:
 #   lint           → cargo clippy -D correctness -D suspicious -D perf
 #   test           → cargo test --package celestial-core
@@ -12,37 +12,7 @@
 name: celestial-core
 
 on:
-  push:
-    branches: ["main", "master", "develop"]
-    paths:
-      - "core/**"
-      - "bindings/ffi/**"
-      - "bindings/python/**"
-      - "bindings/js/**"
-      - "fuzz/**"
-      - "cli/**"
-      - "xtask/**"
-      - "tests/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rustfmt.toml"
-      - ".github/workflows/celestial-core.yml"
-      - "sonar-project.properties"
-  pull_request:
-    paths:
-      - "core/**"
-      - "bindings/ffi/**"
-      - "bindings/python/**"
-      - "bindings/js/**"
-      - "fuzz/**"
-      - "cli/**"
-      - "xtask/**"
-      - "tests/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rustfmt.toml"
-      - ".github/workflows/celestial-core.yml"
-      - "sonar-project.properties"
+  workflow_dispatch:
 
 concurrency:
   group: celestial-core-${{ github.ref }}

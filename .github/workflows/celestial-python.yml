@@ -1,6 +1,6 @@
 # ─── celestial-python pipeline ────────────────────────────────────────────────────
 #
-# Triggers: changes to bindings/python/ or core/
+# Triggers: manual only (workflow_dispatch) — Actions tab or `gh workflow run <file>`
 # Jobs:
 #   lint-rs  → cargo clippy on the PyO3 binding (.rs files only)
 #   lint-py  → ruff + mypy on Python files only (.py files only)
@@ -16,25 +16,7 @@
 name: celestial-python
 
 on:
-  push:
-    branches: ["main", "master", "develop"]
-    paths:
-      - "bindings/python/**"
-      - "core/**"
-      - "tests/fixtures/binding_golden.json"
-      - "tests/fixtures/reference_values.json"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - ".github/workflows/celestial-python.yml"
-  pull_request:
-    paths:
-      - "bindings/python/**"
-      - "core/**"
-      - "tests/fixtures/binding_golden.json"
-      - "tests/fixtures/reference_values.json"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - ".github/workflows/celestial-python.yml"
+  workflow_dispatch:
 
 concurrency:
   group: celestial-python-${{ github.ref }}

@@ -1,6 +1,6 @@
 # ─── celestial-cli pipeline ───────────────────────────────────────────────────────
 #
-# Triggers: any change to cli/ or core/ (CLI depends on core)
+# Triggers: manual only (workflow_dispatch) — Actions tab or `gh workflow run <file>`
 # Jobs:
 #   lint    → clippy on celestial-cli
 #   test    → cargo test --package celestial-cli
@@ -9,21 +9,7 @@
 name: celestial-cli
 
 on:
-  push:
-    branches: ["main", "master", "develop"]
-    paths:
-      - "cli/**"
-      - "core/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - ".github/workflows/celestial-cli.yml"
-  pull_request:
-    paths:
-      - "cli/**"
-      - "core/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - ".github/workflows/celestial-cli.yml"
+  workflow_dispatch:
 
 concurrency:
   group: celestial-cli-${{ github.ref }}
